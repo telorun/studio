@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.103.1+unreleased";
+var TELO_ENGINE_VERSION = "0.103.1";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
