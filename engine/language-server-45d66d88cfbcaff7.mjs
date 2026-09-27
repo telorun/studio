@@ -17440,8 +17440,8 @@ function normalizePath(path) {
 function splitSource(source) {
   const match = SCHEME.exec(source);
   if (match) return { prefix: `${match[1]}://${match[2]}`, path: match[3] || "/" };
-  const unc = /^(\/\/[^/]+)(.*)$/.exec(source);
-  if (unc) return { prefix: unc[1], path: unc[2] || "/" };
+  const root = /^(\/\/[^/]+|\/[A-Za-z]:(?=\/|$))(.*)$/.exec(source);
+  if (root) return { prefix: root[1], path: root[2] || "/" };
   return { prefix: "", path: source };
 }
 function dirnameOf(source) {
@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.103.0";
+var TELO_ENGINE_VERSION = "0.103.1+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -58978,7 +58978,7 @@ function describe3(value) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.103.0";
+var TELO_SURFACE_VERSION = "0.103.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE19 = "telo-analyzer";
