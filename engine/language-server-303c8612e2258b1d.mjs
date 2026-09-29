@@ -11281,7 +11281,7 @@ var require_fast_deep_equal = __commonJS({
 var require_json_schema_traverse = __commonJS({
   "../../node_modules/.pnpm/json-schema-traverse@1.0.0/node_modules/json-schema-traverse/index.js"(exports, module) {
     "use strict";
-    var traverse2 = module.exports = function(schema4, opts, cb) {
+    var traverse3 = module.exports = function(schema4, opts, cb) {
       if (typeof opts == "function") {
         cb = opts;
         opts = {};
@@ -11293,7 +11293,7 @@ var require_json_schema_traverse = __commonJS({
       };
       _traverse(opts, pre, post, schema4, "", schema4);
     };
-    traverse2.keywords = {
+    traverse3.keywords = {
       additionalItems: true,
       items: true,
       contains: true,
@@ -11304,20 +11304,20 @@ var require_json_schema_traverse = __commonJS({
       then: true,
       else: true
     };
-    traverse2.arrayKeywords = {
+    traverse3.arrayKeywords = {
       items: true,
       allOf: true,
       anyOf: true,
       oneOf: true
     };
-    traverse2.propsKeywords = {
+    traverse3.propsKeywords = {
       $defs: true,
       definitions: true,
       properties: true,
       patternProperties: true,
       dependencies: true
     };
-    traverse2.skipKeywords = {
+    traverse3.skipKeywords = {
       default: true,
       enum: true,
       const: true,
@@ -11343,16 +11343,16 @@ var require_json_schema_traverse = __commonJS({
         for (var key2 in schema4) {
           var sch = schema4[key2];
           if (Array.isArray(sch)) {
-            if (key2 in traverse2.arrayKeywords) {
+            if (key2 in traverse3.arrayKeywords) {
               for (var i = 0; i < sch.length; i++)
                 _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key2 + "/" + i, rootSchema, jsonPtr, key2, schema4, i);
             }
-          } else if (key2 in traverse2.propsKeywords) {
+          } else if (key2 in traverse3.propsKeywords) {
             if (sch && typeof sch == "object") {
               for (var prop in sch)
                 _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key2 + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key2, schema4, prop);
             }
-          } else if (key2 in traverse2.keywords || opts.allKeys && !(key2 in traverse2.skipKeywords)) {
+          } else if (key2 in traverse3.keywords || opts.allKeys && !(key2 in traverse3.skipKeywords)) {
             _traverse(opts, pre, post, sch, jsonPtr + "/" + key2, rootSchema, jsonPtr, key2, schema4);
           }
         }
@@ -11373,7 +11373,7 @@ var require_resolve = __commonJS({
     exports.getSchemaRefs = exports.resolveUrl = exports.normalizeId = exports._getFullPath = exports.getFullPath = exports.inlineRef = void 0;
     var util_1 = require_util();
     var equal = require_fast_deep_equal();
-    var traverse2 = require_json_schema_traverse();
+    var traverse3 = require_json_schema_traverse();
     var SIMPLE_INLINED = /* @__PURE__ */ new Set([
       "type",
       "format",
@@ -11469,7 +11469,7 @@ var require_resolve = __commonJS({
       const pathPrefix = getFullPath(uriResolver, schId, false);
       const localRefs = {};
       const schemaRefs = /* @__PURE__ */ new Set();
-      traverse2(schema4, { allKeys: true }, (sch, jsonPtr, _2, parentJsonPtr) => {
+      traverse3(schema4, { allKeys: true }, (sch, jsonPtr, _2, parentJsonPtr) => {
         if (parentJsonPtr === void 0)
           return;
         const fullPath = pathPrefix + jsonPtr;
@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.105.0";
+var TELO_ENGINE_VERSION = "0.106.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -17789,7 +17789,7 @@ var TELO_SCHEMA_ANNOTATIONS = {
   },
   "x-telo-scope": {
     title: "Execution scope",
-    description: "JSON Pointer to a region whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit.",
+    description: "JSON Pointer to a region whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit. Legal only on a named top-level property of the resource.",
     anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
   },
   "x-telo-context": {
@@ -40949,1134 +40949,14 @@ function resolveBindingOrder(bindings, moduleNames) {
   return { order, cycles };
 }
 
-// ../../analyzer/nodejs/src/reference-field-map.ts
-function refSlotOfEntry(entry) {
-  const slot = {
-    kinds: entry.refs,
-    uses: entry.uses,
-    inline: entry.inline === true,
-    valueBranches: entry.valueBranches ?? []
-  };
-  if (entry.useCases) slot.useCases = entry.useCases;
-  if (entry.inputs !== void 0) slot.inputs = entry.inputs;
-  if (entry.throwsThrough) slot.throwsThrough = true;
-  if (entry.outputType) slot.outputType = entry.outputType;
-  return slot;
-}
-function isRefEntry(entry) {
-  return "refs" in entry;
-}
-function satisfiesValueBranch(value, branches, registry) {
-  if (!branches?.length) return false;
-  return branches.some(
-    (branch) => registry.schemaCompileError(branch) === void 0 && registry.validateWithRefs(value, branch).length === 0
-  );
-}
-function isScopeEntry(entry) {
-  return "scope" in entry;
-}
-function isSchemaFromEntry(entry) {
-  return "schemaFrom" in entry;
-}
-function isInlineResource(val) {
-  if (typeof val.name === "string") return false;
-  if (typeof val.kind !== "string") return false;
-  return true;
-}
-function resolveFieldEntries(obj, path) {
-  const parts = path.split(".");
-  let current = [{ value: obj, path: "" }];
-  for (const part of parts) {
-    if (part === "{}") {
-      const next2 = [];
-      for (const entry of current) {
-        if (!entry.value || typeof entry.value !== "object") continue;
-        for (const [k, v] of Object.entries(entry.value)) {
-          if (v != null) {
-            next2.push({ value: v, path: entry.path ? `${entry.path}.${k}` : k });
-          }
-        }
-      }
-      current = next2;
-      continue;
-    }
-    const isArray2 = part.endsWith("[]");
-    const key2 = isArray2 ? part.slice(0, -2) : part;
-    const next = [];
-    for (const entry of current) {
-      if (!entry.value || typeof entry.value !== "object") continue;
-      const val = entry.value[key2];
-      if (val == null) continue;
-      const basePath = entry.path ? `${entry.path}.${key2}` : key2;
-      if (isArray2 && Array.isArray(val)) {
-        for (let i = 0; i < val.length; i++) {
-          if (val[i] != null) next.push({ value: val[i], path: `${basePath}[${i}]` });
-        }
-      } else if (!isArray2) {
-        next.push({ value: val, path: basePath });
-      }
-    }
-    current = next;
-  }
-  return current;
-}
-function resolveFieldValues(obj, path) {
-  return resolveFieldEntries(obj, path).map((e) => e.value);
-}
-function buildReferenceFieldMap(schema4) {
-  const map3 = /* @__PURE__ */ new Map();
-  const sink = injectionSink(map3);
-  if (schema4.properties) {
-    for (const [key2, propSchema] of Object.entries(schema4.properties)) {
-      traverseNode(propSchema, key2, sink, schema4);
-    }
-  }
-  return map3;
-}
-function collectRefs2(node) {
-  return readRefSlot(node)?.kinds ?? [];
-}
-function buildFieldMapAtPath(schema4, pathPrefix) {
-  const map3 = /* @__PURE__ */ new Map();
-  traverseNode(schema4, pathPrefix, injectionSink(map3), schema4);
-  return map3;
-}
-var drivenSlotMaps = /* @__PURE__ */ new WeakMap();
-var RESOURCE_ENVELOPE_KEYS = ["kind", "metadata"];
-function buildDrivenSlotMap(schema4) {
-  const cached = drivenSlotMaps.get(schema4);
-  if (cached) return cached;
-  const slots = { paths: /* @__PURE__ */ new Map(), declaredKeys: /* @__PURE__ */ new Map(), drives: false };
-  traverseNode(schema4, "", drivenSink(slots), schema4);
-  drivenSlotMaps.set(schema4, slots);
-  return slots;
-}
-var joinPath = (path, key2) => path ? `${path}.${key2}` : key2;
-function injectionSink(map3) {
-  return {
-    driven: false,
-    ref: (path, entry) => {
-      map3.set(path, entry);
-    },
-    stop: (path, entry) => {
-      map3.set(path, entry);
-    },
-    step: () => {
-    },
-    recurse: () => {
-    },
-    mapValue: () => {
-    }
-  };
-}
-function drivenSink(slots) {
-  const recorded = /* @__PURE__ */ new Map();
-  const at2 = (path) => {
-    let entry = slots.paths.get(path);
-    if (!entry) {
-      entry = { refs: [], steps: [], recurse: [] };
-      slots.paths.set(path, entry);
-    }
-    return entry;
-  };
-  const firstTime = (path, node) => {
-    let nodes = recorded.get(path);
-    if (!nodes) recorded.set(path, nodes = /* @__PURE__ */ new Set());
-    if (nodes.has(node)) return false;
-    nodes.add(node);
-    return true;
-  };
-  return {
-    driven: true,
-    ref: (path, entry, node) => {
-      if (!firstTime(path, node)) return;
-      at2(path).refs.push(entry);
-      slots.drives = true;
-    },
-    stop: () => {
-    },
-    step: (path, step, node) => {
-      if (!firstTime(path, node)) return;
-      at2(path).steps.push(step);
-      slots.drives = true;
-    },
-    recurse: (path, to) => {
-      const entry = at2(path);
-      if (!entry.recurse.includes(to)) entry.recurse.push(to);
-    },
-    mapValue: (mapPath, declared) => {
-      const previous = slots.declaredKeys.get(mapPath);
-      slots.declaredKeys.set(
-        mapPath,
-        new Set(previous ? declared.filter((key2) => previous.has(key2)) : declared)
-      );
-    }
-  };
-}
-function followLocalRef(node, path, sink, root, onStack) {
-  if (!root) return;
-  const target = resolveLocalRef(node, root);
-  if (!target || target === node) return;
-  const entered = onStack.get(target);
-  if (entered !== void 0) {
-    if (entered !== path) sink.recurse(path, entered);
-    return;
-  }
-  onStack.set(target, path);
-  try {
-    traverseNode(target, path, sink, root, onStack);
-  } finally {
-    onStack.delete(target);
-  }
-}
-function traverseMapValue(owner, path, sink, root, onStack) {
-  const valueSchema = owner.additionalProperties;
-  if (!valueSchema || typeof valueSchema !== "object" || Array.isArray(valueSchema)) return;
-  const mapPath = joinPath(path, "{}");
-  const declared = owner.properties && typeof owner.properties === "object" ? Object.keys(owner.properties) : [];
-  sink.mapValue(mapPath, path === "" ? [...declared, ...RESOURCE_ENVELOPE_KEYS] : declared);
-  traverseNode(valueSchema, mapPath, sink, root, onStack);
-}
-function traverseNode(node, path, sink, root, onStack = /* @__PURE__ */ new Map()) {
-  const driven = sink.driven;
-  if (typeof node?.$ref === "string" && !driven) return;
-  if ("x-telo-scope" in node) {
-    sink.stop(path, { scope: node["x-telo-scope"] });
-    return;
-  }
-  if ("x-telo-schema-from" in node) {
-    sink.stop(path, { schemaFrom: node["x-telo-schema-from"] });
-    return;
-  }
-  if (driven) {
-    const step = readStepSlot(node);
-    if (step) {
-      sink.step(path, step, node);
-      return;
-    }
-  }
-  const slot = readRefSlot(node);
-  if (slot && slot.kinds.length > 0) {
-    const entry = {
-      refs: slot.kinds,
-      uses: slot.uses,
-      isArray: path.includes("[]")
-    };
-    if (slot.useCases) entry.useCases = slot.useCases;
-    if (slot.inputs !== void 0) entry.inputs = slot.inputs;
-    if (slot.valueBranches.length > 0) entry.valueBranches = slot.valueBranches;
-    if (node["x-telo-context"]) entry.context = node["x-telo-context"];
-    if (slot.inline) entry.inline = true;
-    if (slot.throwsThrough) entry.throwsThrough = true;
-    if (slot.outputType) entry.outputType = slot.outputType;
-    sink.ref(path, entry, node);
-    for (const variantKey2 of ["oneOf", "anyOf", "allOf"]) {
-      const variants = node[variantKey2];
-      if (!Array.isArray(variants)) continue;
-      for (const variant of variants) {
-        if (!variant || typeof variant !== "object") continue;
-        traverseVariant(variant, path, sink, root, onStack);
-      }
-    }
-    return;
-  }
-  if (typeof node?.$ref === "string") {
-    followLocalRef(node, path, sink, root, onStack);
-    return;
-  }
-  if (node.type === "array" && node.items) {
-    traverseNode(node.items, path + "[]", sink, root, onStack);
-  }
-  if (node.properties) {
-    for (const [key2, propSchema] of Object.entries(node.properties)) {
-      traverseNode(propSchema, joinPath(path, key2), sink, root, onStack);
-    }
-  }
-  for (const variantKey2 of ["oneOf", "anyOf", "allOf"]) {
-    const variants = node[variantKey2];
-    if (!Array.isArray(variants)) continue;
-    for (const variant of variants) {
-      if (!variant || typeof variant !== "object") continue;
-      traverseVariant(variant, path, sink, root, onStack);
-    }
-  }
-  traverseMapValue(node, path, sink, root, onStack);
-}
-function traverseVariant(variant, path, sink, root, onStack = /* @__PURE__ */ new Map()) {
-  if (sink.driven && typeof variant.$ref === "string") {
-    followLocalRef(variant, path, sink, root, onStack);
-    return;
-  }
-  if (variant.properties) {
-    for (const [key2, propSchema] of Object.entries(variant.properties)) {
-      traverseNode(propSchema, joinPath(path, key2), sink, root, onStack);
-    }
-  }
-  if (variant.type === "array" && variant.items) {
-    traverseNode(variant.items, path + "[]", sink, root, onStack);
-  }
-  traverseMapValue(variant, path, sink, root, onStack);
-}
-
-// ../../analyzer/nodejs/src/resource-rule.ts
-var RESOURCE_RULES_ANNOTATION = "x-telo-resource-rules";
+// ../../analyzer/nodejs/src/schema-projection.ts
 function isObject4(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
-function isCelNode(value) {
-  if (!isObject4(value)) return false;
-  if (value.__compiled === true) return true;
-  return value.__tagged === true && value.engine === CEL_ENGINE;
-}
-function deferredTagOf(value) {
-  if (!isTaggedSentinel(value) || isRefSentinel(value)) return void 0;
-  return value.engine === CEL_ENGINE ? void 0 : value.engine;
-}
-function isTaggedCondition(value) {
-  return isCelNode(value);
-}
-function celSourceOf(value) {
-  if (typeof value === "string") return value;
-  if (isCelNode(value) && typeof value.source === "string") return value.source;
-  return void 0;
-}
-function readRawResourceRules(schema4) {
-  if (!isObject4(schema4)) return void 0;
-  return schema4[RESOURCE_RULES_ANNOTATION];
-}
-function readResourceRules(schema4) {
-  const raw = readRawResourceRules(schema4);
-  if (!Array.isArray(raw)) return [];
-  const rules = [];
-  raw.forEach((entry, index) => {
-    if (!isObject4(entry)) return;
-    const condition = celSourceOf(entry.condition);
-    const { code, message } = entry;
-    if (!condition || typeof code !== "string" || typeof message !== "string") return;
-    if (code.length === 0 || message.length === 0) return;
-    const severity = entry.severity === "warning" ? "warning" : "error";
-    if (entry.severity !== void 0 && entry.severity !== "warning" && entry.severity !== "error") {
-      return;
-    }
-    const pointer = entry.in;
-    if (pointer !== void 0 && typeof pointer !== "string") return;
-    const resolve = entry.resolve;
-    if (resolve !== void 0 && !(Array.isArray(resolve) && resolve.every((p) => typeof p === "string" && pointerSegments(p)))) {
-      return;
-    }
-    rules.push({
-      ...pointer === void 0 ? {} : { in: pointer },
-      ...resolve === void 0 ? {} : { resolve },
-      condition,
-      code,
-      message,
-      severity,
-      index
-    });
-  });
-  return rules;
-}
-function pointerSegments(pointer) {
-  if (pointer === "" || pointer === "/") return [];
-  if (!pointer.startsWith("/")) return void 0;
-  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
-}
-function resolvePointer(value, pointer) {
-  const segments = pointerSegments(pointer);
-  if (!segments) return void 0;
-  let current = value;
-  for (const segment of segments) {
-    if (Array.isArray(current)) {
-      const index = Number(segment);
-      if (!Number.isInteger(index)) return void 0;
-      current = current[index];
-    } else if (isObject4(current)) {
-      current = current[segment];
-    } else {
-      return void 0;
-    }
-    if (current === void 0) return void 0;
-  }
-  return current;
-}
-function pointerToPath(pointer) {
-  const segments = pointerSegments(pointer) ?? [];
-  return segments.reduce((acc, segment) => {
-    if (/^\d+$/.test(segment)) return `${acc}[${segment}]`;
-    return acc === "" ? segment : `${acc}.${segment}`;
-  }, "");
-}
-function resolveRuleSubjects(config, pointer) {
-  const collection = resolvePointer(config, pointer);
-  if (collection === void 0 || collection === null) return [];
-  const base = pointerToPath(pointer);
-  if (Array.isArray(collection)) {
-    return collection.map((value, index) => ({ path: `${base}[${index}]`, value }));
-  }
-  if (isObject4(collection)) {
-    return Object.entries(collection).map(([key2, value]) => ({
-      path: `${base}.${key2}`,
-      value,
-      key: key2
-    }));
-  }
-  return void 0;
-}
-function dynamicNode(value, path) {
-  const at2 = path || "(value)";
-  if (isCelNode(value)) return { path: at2, what: "a CEL expression" };
-  const tag = deferredTagOf(value);
-  return tag ? { path: at2, what: `an !${tag} embed` } : void 0;
-}
-function findDynamicLeaf(value, base = "") {
-  if (isObject4(value)) {
-    const own = dynamicNode(value, base);
-    if (own) return own;
-    if (typeof value.kind === "string" && base !== "") return void 0;
-    for (const [key2, child] of Object.entries(value)) {
-      const found = findDynamicLeaf(child, base === "" ? key2 : `${base}.${key2}`);
-      if (found) return found;
-    }
-    return void 0;
-  }
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) {
-      const found = findDynamicLeaf(value[i], `${base}[${i}]`);
-      if (found) return found;
-    }
-  }
-  return void 0;
-}
-function readNodes(chains, roots) {
-  const nodes = [];
-  for (const chain of chains) {
-    const root = chain[0];
-    let current = root !== void 0 && root in roots ? roots[root] : void 0;
-    if (current === void 0) continue;
-    for (const segment of chain.slice(1)) {
-      if (segment === "[*]") break;
-      if (Array.isArray(current)) {
-        const index = Number(segment);
-        current = Number.isInteger(index) ? current[index] : void 0;
-      } else if (isObject4(current)) {
-        current = current[segment];
-      } else {
-        current = void 0;
-      }
-      if (current === void 0) break;
-    }
-    if (current !== void 0) nodes.push(current);
-  }
-  return nodes;
-}
-
-// ../../analyzer/nodejs/src/rule-condition.ts
-var RULE_BUDGET_MS = 50;
-var UNTAGGED_CONDITION = "Write 'condition' with the !cel tag. The reader is lenient and a bare string still runs, but untagged the expression is not CEL to the editor's colouring, completion or hover, so a rule silently stops being CEL to every surface but this one.";
-function untaggedConditionFix(condition) {
-  return interpolationShape(condition) === "none" ? { replacement: condition, tag: "cel" } : void 0;
-}
-var HOST_BACKED2 = new Set(CEL_FUNCTIONS.filter((f2) => f2.hostBacked).map((f2) => f2.name));
-var NON_DETERMINISTIC2 = new Set(
-  CEL_FUNCTIONS.filter((f2) => !f2.deterministic).map((f2) => f2.name)
-);
-var sharedEnv;
-function ruleEnv() {
-  sharedEnv ??= buildCelEnvironment();
-  return sharedEnv;
-}
-var RULE_CACHE_LIMIT = 512;
-var compiledRules = /* @__PURE__ */ new Map();
-function compileRuleCondition(condition, fallbackRoots, moduleNames) {
-  const key2 = cacheKey(condition, moduleNames);
-  const cached = compiledRules.get(key2);
-  if (cached) return cached;
-  let result;
-  try {
-    const parsed = ruleEnv().parse(condition);
-    const ast2 = parsed.ast;
-    if (ast2) resolveModuleCalls(ast2, moduleNames);
-    result = {
-      parsed,
-      chains: ast2 ? extractAccessChains(ast2) : fallbackRoots.map((root) => [root])
-    };
-  } catch (err) {
-    result = { reason: err instanceof Error ? err.message : String(err) };
-  }
-  if (compiledRules.size >= RULE_CACHE_LIMIT) {
-    const oldest = compiledRules.keys().next();
-    if (!oldest.done) compiledRules.delete(oldest.value);
-  }
-  compiledRules.set(key2, result);
-  return result;
-}
-function cacheKey(condition, moduleNames) {
-  return moduleNames === void 0 || moduleNames.size === 0 ? condition : `${[...moduleNames].sort().join(",")}\0${condition}`;
-}
-function conditionRefusals(condition, moduleNames) {
-  const out = [];
-  const result = celEngine.analyze(condition, {
-    celEnv: ruleEnv(),
-    contextSchema: null,
-    moduleNames
-  });
-  for (const diagnostic of result.diagnostics) out.push(`Rule condition: ${diagnostic.message}`);
-  for (const call of result.calls) {
-    if (call.moduleCall) continue;
-    if (HOST_BACKED2.has(call.name)) {
-      out.push(
-        `Rule condition calls '${call.name}()', which the kernel supplies at boot (it needs Node crypto / Buffer). The analyzer registers a throwing stub, so the rule cannot run at telo check.`
-      );
-    } else if (NON_DETERMINISTIC2.has(call.name) || call.deterministic === false) {
-      out.push(
-        `Rule condition calls '${call.name}()', which re-evaluates per call. A check whose verdict depends on when it ran is not a check.`
-      );
-    }
-  }
-  return out;
-}
-function conditionCallRefusals(condition, moduleNames, flagsOf) {
-  const out = [];
-  let ast2;
-  try {
-    ast2 = ruleEnv().parse(condition).ast;
-  } catch {
-    return out;
-  }
-  const reported = /* @__PURE__ */ new Set();
-  for (const qualified of resolveModuleCalls(ast2, moduleNames)) {
-    if (reported.has(qualified)) continue;
-    reported.add(qualified);
-    const flags = flagsOf(qualified);
-    if (!flags) {
-      out.push(
-        `Rule condition calls '${qualified}', which reaches no function this module can call. A rule is evaluated at telo check, so every call it makes must reach a function written in CEL.`
-      );
-    } else if (flags.hostBacked) {
-      out.push(
-        `Rule condition calls '${qualified}', which needs the runtime's host (${renderChain(flags.hostBackedVia)}): a native function's code is never available to the analyzer, so the rule could never run at telo check.`
-      );
-    } else if (!flags.deterministic) {
-      out.push(
-        `Rule condition calls '${qualified}', which re-evaluates per call (${renderChain(flags.nondeterministicVia)}). A check whose verdict depends on when it ran is not a check.`
-      );
-    }
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/validate-resource-rules.ts
-var RESOURCE_RULE_BUDGET_MS = RULE_BUDGET_MS;
-function isObject5(value) {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-function schemaAtPointer(schema4, pointer) {
-  const segments = pointerSegments(pointer);
-  if (!segments) return void 0;
-  let node = schema4;
-  for (const segment of segments) {
-    if (!isObject5(node)) return void 0;
-    const properties = isObject5(node.properties) ? node.properties : void 0;
-    const next = properties?.[segment] ?? (node.type === "array" ? node.items : void 0) ?? (isObject5(node.additionalProperties) ? node.additionalProperties : void 0);
-    if (next === void 0) return void 0;
-    node = next;
-  }
-  return node;
-}
-function isIterableSchema(node) {
-  if (!isObject5(node)) return true;
-  const type = node.type;
-  if (type === void 0) return true;
-  const types = Array.isArray(type) ? type : [type];
-  return types.some((t) => t === "array" || t === "object");
-}
-function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames) {
-  const own = manifest.schema;
-  const schema4 = effectiveSchema ?? own;
-  const raw = readRawResourceRules(own);
-  if (raw === void 0) return [];
-  const base = `schema.${RESOURCE_RULES_ANNOTATION}`;
-  const issues = [];
-  const issue = (path, message, fix) => {
-    issues.push({ code: "RESOURCE_RULE_INVALID", manifest, path, message, ...fix ? { fix } : {} });
-  };
-  if (!Array.isArray(raw)) {
-    issue(base, `'${RESOURCE_RULES_ANNOTATION}' must be an array of rules.`);
-    return issues;
-  }
-  const seen = /* @__PURE__ */ new Map();
-  raw.forEach((entry, index) => {
-    const at2 = `${base}[${index}]`;
-    if (!isObject5(entry)) {
-      issue(at2, "A rule must be an object with 'condition', 'code' and 'message'.");
-      return;
-    }
-    const condition = celSourceOf(entry.condition);
-    if (condition === void 0 || condition.length === 0) {
-      issue(
-        `${at2}.condition`,
-        "A rule needs a 'condition' \u2014 a CEL expression that is TRUE when the rule holds (the polarity Telo.JsonSchema rules use). Write it with the !cel tag."
-      );
-    }
-    if (typeof entry.code !== "string" || entry.code.length === 0) {
-      issue(
-        `${at2}.code`,
-        "A rule needs a 'code' naming it. It is reported in the diagnostic's data.rule, not as a diagnostic code \u2014 every violation reports under RESOURCE_RULE_VIOLATED."
-      );
-    } else {
-      const first = seen.get(entry.code);
-      if (first !== void 0) {
-        issue(
-          `${at2}.code`,
-          `Rule code '${entry.code}' is already used by rule ${first}. A code names one rule, so two rules sharing it are indistinguishable in data.rule.`
-        );
-      } else {
-        seen.set(entry.code, index);
-      }
-    }
-    if (typeof entry.message !== "string" || entry.message.length === 0) {
-      issue(
-        `${at2}.message`,
-        "A rule needs a 'message' saying what the relationship means \u2014 only the kind's author knows that, and the analyzer supplies only where and what."
-      );
-    }
-    if (entry.severity !== void 0 && entry.severity !== "error" && entry.severity !== "warning") {
-      issue(`${at2}.severity`, "'severity' must be 'error' or 'warning'.");
-    }
-    if (entry.in !== void 0) {
-      if (typeof entry.in !== "string") {
-        issue(`${at2}.in`, "'in' must be a JSON Pointer to the collection the rule iterates.");
-      } else if (!pointerSegments(entry.in)) {
-        issue(`${at2}.in`, `'in' must be a JSON Pointer starting with '/', got '${entry.in}'.`);
-      } else {
-        const node = schemaAtPointer(schema4, entry.in);
-        if (node === void 0) {
-          issue(
-            `${at2}.in`,
-            `'in' points at '${entry.in}', which this kind's schema does not declare. The pointer is the diagnostic's anchor, so it must name a field of this kind.`
-          );
-        } else if (!isIterableSchema(node)) {
-          issue(
-            `${at2}.in`,
-            `'in' points at '${entry.in}', which is not a collection. A rule iterates an array or a map; omit 'in' for a rule about the resource as a whole.`
-          );
-        }
-      }
-    }
-    if (entry.resolve !== void 0) {
-      if (!Array.isArray(entry.resolve)) {
-        issue(`${at2}.resolve`, "'resolve' must be a list of JSON Pointers to this kind's reference slots.");
-      } else {
-        entry.resolve.forEach((pointer, i) => {
-          if (typeof pointer !== "string" || !pointerSegments(pointer)) {
-            issue(`${at2}.resolve[${i}]`, "Each 'resolve' entry must be a JSON Pointer starting with '/'.");
-          } else if (schemaAtPointer(schema4, pointer) === void 0) {
-            issue(
-              `${at2}.resolve[${i}]`,
-              `'resolve' names '${pointer}', which this kind's schema does not declare. It must name a reference slot of this kind, or a collection of them.`
-            );
-          }
-        });
-      }
-    }
-    if (condition !== void 0 && condition.length > 0 && !isTaggedCondition(entry.condition)) {
-      issue(`${at2}.condition`, UNTAGGED_CONDITION, untaggedConditionFix(condition));
-    }
-    if (condition) {
-      for (const refusal of conditionRefusals(condition, moduleNames)) {
-        issue(`${at2}.condition`, refusal);
-      }
-    }
-  });
-  return issues;
-}
-function resourceRuleCallIssues(manifest, moduleNames, flagsOf) {
-  const raw = readRawResourceRules(manifest.schema);
-  if (!Array.isArray(raw)) return [];
-  const issues = [];
-  raw.forEach((entry, index) => {
-    const condition = isObject5(entry) ? celSourceOf(entry.condition) : void 0;
-    if (!condition) return;
-    for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
-      issues.push({
-        code: "RESOURCE_RULE_INVALID",
-        manifest,
-        path: `schema.${RESOURCE_RULES_ANNOTATION}[${index}].condition`,
-        message
-      });
-    }
-  });
-  return issues;
-}
-function evaluateResourceRules(manifest, definitionSchema, moduleNames, functions, binder, kind = manifest.kind) {
-  const rules = readResourceRules(definitionSchema);
-  if (rules.length === 0) return [];
-  const findings = [];
-  for (const rule of rules) {
-    const bound = resolvedView(manifest, rule, binder, kind);
-    if (!bound.ok) {
-      findings.push({ kind: "unbound", rule, failure: bound.failure });
-      continue;
-    }
-    const self = bound.self;
-    const subjects = rule.in === void 0 ? [{ path: "", value: self }] : resolveRuleSubjects(self, rule.in);
-    if (subjects === void 0) continue;
-    const compiled = compileRuleCondition(rule.condition, ["self", "this"], moduleNames);
-    if ("reason" in compiled) {
-      findings.push({ kind: "failed", rule, path: "", reason: compiled.reason });
-      continue;
-    }
-    const { parsed, chains } = compiled;
-    const started = Date.now();
-    for (const subject of subjects) {
-      let dynamic;
-      for (const node of readNodes(chains, { self, this: subject.value })) {
-        dynamic = findDynamicLeaf(node);
-        if (dynamic !== void 0) break;
-      }
-      if (dynamic !== void 0) {
-        findings.push({ kind: "skipped", rule, path: subject.path, dynamic });
-        continue;
-      }
-      let held;
-      try {
-        held = parsed({
-          self,
-          this: subject.value,
-          key: subject.key ?? null,
-          ...functions ? { [MODULE_CALL_DISPATCH_KEY]: functions } : {}
-        });
-      } catch (err) {
-        findings.push({
-          kind: "failed",
-          rule,
-          path: subject.path,
-          reason: err instanceof Error ? err.message : String(err)
-        });
-        break;
-      }
-      if (held !== true) {
-        findings.push({ kind: "violation", rule, path: subject.path, message: rule.message });
-      }
-      const elapsed = Date.now() - started;
-      if (elapsed > RESOURCE_RULE_BUDGET_MS) {
-        findings.push({ kind: "over-budget", rule, path: subject.path, elapsedMs: elapsed });
-        break;
-      }
-    }
-  }
-  return findings;
-}
-function resolvedView(manifest, rule, binder, kind) {
-  let self = manifest;
-  for (const pointer of rule.resolve ?? []) {
-    if (!binder) return { ok: false, failure: { reason: "unknown-shape", at: pointer } };
-    const resolved = binder.resolveReferences(manifest, kind, pointer);
-    if (!resolved.ok) return resolved;
-    self = replaceAt(self, pointerSegments(pointer), resolved.value);
-  }
-  return { ok: true, self };
-}
-function replaceAt(value, segments, replacement) {
-  if (segments.length === 0) return replacement;
-  const [head, ...rest] = segments;
-  if (Array.isArray(value)) {
-    const copy = [...value];
-    copy[Number(head)] = replaceAt(copy[Number(head)], rest, replacement);
-    return copy;
-  }
-  const record = isObject5(value) ? value : {};
-  return { ...record, [head]: replaceAt(record[head], rest, replacement) };
-}
-function ruleExercised(manifest, rule) {
-  if (rule.in === void 0) return true;
-  const subjects = resolveRuleSubjects(manifest, rule.in);
-  return subjects !== void 0 && subjects.length > 0;
-}
-function reportResourceRules(manifest, definition, findings, declarationIsOurs) {
-  const name = manifest.metadata?.name ?? "<unnamed>";
-  const out = [];
-  for (const finding of findings) {
-    const at2 = "path" in finding && finding.path !== "" ? finding.path : void 0;
-    if (finding.kind === "violation") {
-      out.push({
-        // One analyzer-owned envelope: surfaces branch on `code`, so a published
-        // module free to emit any string could shadow machinery that never
-        // expected a third party in that space. The rule's own name rides in
-        // `data.rule`.
-        code: "RESOURCE_RULE_VIOLATED",
-        severity: finding.rule.severity,
-        message: `${manifest.kind}/${name}${at2 ? ` at '${at2}'` : ""}: ${finding.message}`,
-        manifest,
-        path: at2,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    if (finding.kind === "unbound") {
-      out.push({
-        code: "RESOURCE_RULE_SKIPPED",
-        severity: "information",
-        message: `${manifest.kind}/${name}: rule '${finding.rule.code}' did not run \u2014 ${bindingFailureReason(finding.failure)} Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
-        manifest,
-        path: finding.failure.at,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    if (finding.kind === "skipped") {
-      out.push({
-        code: "RESOURCE_RULE_SKIPPED",
-        severity: "information",
-        message: `${manifest.kind}/${name}: rule '${finding.rule.code}' did not run${at2 ? ` at '${at2}'` : ""} \u2014 the value holds ${finding.dynamic.what} at '${finding.dynamic.path}', which is not known until the resource is created. Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
-        manifest,
-        path: at2,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    const because = finding.kind === "failed" ? `failed to evaluate: ${finding.reason}. Guard an optional field with \`in\` or \`.?\`.` : `exceeded its evaluation budget (${finding.elapsedMs}ms) and was stopped, so coverage from here on is incomplete. Simplify the condition.`;
-    out.push({
-      code: "RESOURCE_RULE_INVALID",
-      severity: declarationIsOurs ? "error" : "warning",
-      message: `Rule '${finding.rule.code}' on kind '${manifest.kind}' ${because} This is a defect in the rule, not in ${name}` + (declarationIsOurs ? "." : " \u2014 it is declared by a module this workspace does not own."),
-      manifest: declarationIsOurs && definition ? definition : manifest,
-      path: declarationIsOurs && definition ? `schema.${RESOURCE_RULES_ANNOTATION}[${finding.rule.index}]` : at2,
-      rule: finding.rule.code
-    });
-  }
-  return out;
-}
-function reportUnexercisedRule(definition, rule) {
-  return {
-    code: "RESOURCE_RULE_UNEXERCISED",
-    severity: "information",
-    message: `Rule '${rule.code}' never ran: '${rule.in}' was empty on every resource of this kind, so nothing has proven the condition. A nested typo in the condition is caught only at evaluation.`,
-    manifest: definition,
-    path: `schema.${RESOURCE_RULES_ANNOTATION}[${rule.index}]`,
-    rule: rule.code
-  };
-}
-
-// ../../analyzer/nodejs/src/peer-binding.ts
-function isObject6(value) {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
-function referenceValueOf(value) {
-  if (!isObject6(value)) return void 0;
-  if (value.__tagged === true && value.engine === "ref" && typeof value.source === "string") {
-    const dot = value.source.indexOf(".");
-    return dot > 0 ? { alias: value.source.slice(0, dot), name: value.source.slice(dot + 1) } : { name: value.source };
-  }
-  if (typeof value.name === "string" && typeof value.kind === "string") {
-    return {
-      name: value.name,
-      kind: value.kind,
-      ...typeof value.alias === "string" ? { alias: value.alias } : {}
-    };
-  }
-  return void 0;
-}
-function shapeMatches(concrete, shape) {
-  const c = concrete.split(".");
-  const s = shape.split(".");
-  if (c.length !== s.length) return false;
-  return s.every((segment, i) => {
-    if (segment === "{}") return true;
-    if (segment.endsWith("[]")) {
-      const base = segment.slice(0, -2);
-      return c[i].startsWith(`${base}[`) && /^\[\d+\]$/.test(c[i].slice(base.length));
-    }
-    return segment === c[i];
-  });
-}
-function entryBoundary(concrete, shape) {
-  const c = concrete.split(".");
-  const s = shape.split(".");
-  for (let i = 0; i < s.length; i++) {
-    if (s[i] === "{}" || s[i].endsWith("[]")) return c.slice(0, i + 1).join(".");
-  }
-  return concrete;
-}
-function navigatePath2(value, path) {
-  if (path === "") return value;
-  let current = value;
-  for (const segment of path.split(".")) {
-    const parsed = /^([^[\]]*)((?:\[\d+\])*)$/.exec(segment);
-    if (!parsed) return void 0;
-    const [, key2, indices] = parsed;
-    if (key2 !== "") {
-      if (!isObject6(current)) return void 0;
-      current = current[key2];
-    }
-    for (const index of indices.match(/\d+/g) ?? []) {
-      if (!Array.isArray(current)) return void 0;
-      current = current[Number(index)];
-    }
-    if (current === void 0) return void 0;
-  }
-  return current;
-}
-function entryShapeOf(shapes, collectionPath, isArray2) {
-  const wanted = isArray2 ? `${collectionPath}[]` : `${collectionPath}.{}`;
-  return shapes.some((shape) => shape === wanted || shape.startsWith(`${wanted}.`)) ? wanted : void 0;
-}
-function entryRefsOf(shapes, entryShape) {
-  const properties = /* @__PURE__ */ new Set();
-  let itemIsRef = false;
-  for (const shape of shapes) {
-    if (shape === entryShape) {
-      itemIsRef = true;
-      continue;
-    }
-    if (!shape.startsWith(`${entryShape}.`)) continue;
-    const rest = shape.slice(entryShape.length + 1);
-    if (!rest.includes(".")) properties.add(rest);
-  }
-  return { itemIsRef, properties };
-}
-function dynamicInDeclaration(declaration) {
-  for (const [key2, value] of Object.entries(declaration)) {
-    if (key2 === "metadata" || isModulePath(value)) continue;
-    const dynamic = dynamicNode(value, key2);
-    if (dynamic) return dynamic;
-  }
-  return void 0;
-}
-var isModulePath = (value) => !!value && typeof value === "object" && value.engine === MODULE_PATH_ENGINE;
-function resolveEntry(value, at2, refs, lookup) {
-  if (refs.itemIsRef) {
-    const reference = referenceValueOf(value);
-    if (reference) {
-      const declaration = lookup(reference);
-      if (!declaration) return { ok: false, failure: { reason: "unresolved", at: at2 } };
-      if (isInjectedDeclaration(declaration)) return { ok: false, failure: { reason: "kind-only", at: at2 } };
-      const dynamic = dynamicInDeclaration(declaration);
-      if (dynamic) {
-        return {
-          ok: false,
-          failure: { reason: "dynamic", at: `${at2} \u2192 ${dynamic.path}`, what: dynamic.what }
-        };
-      }
-      return { ok: true, value: declaration };
-    }
-  }
-  if (!isObject6(value)) return { ok: true, value };
-  const out = {};
-  for (const [key2, child] of Object.entries(value)) {
-    if (!refs.properties.has(key2)) {
-      const dynamic2 = findDynamicLeaf(child, `${at2}.${key2}`);
-      if (dynamic2 !== void 0) {
-        return { ok: false, failure: { reason: "dynamic", at: dynamic2.path, what: dynamic2.what } };
-      }
-      out[key2] = child;
-      continue;
-    }
-    const reference = referenceValueOf(child);
-    if (!reference) {
-      out[key2] = child;
-      continue;
-    }
-    const declaration = lookup(reference);
-    if (!declaration) return { ok: false, failure: { reason: "unresolved", at: `${at2}.${key2}` } };
-    if (isInjectedDeclaration(declaration)) {
-      return { ok: false, failure: { reason: "kind-only", at: `${at2}.${key2}` } };
-    }
-    const dynamic = dynamicInDeclaration(declaration);
-    if (dynamic) {
-      return {
-        ok: false,
-        failure: { reason: "dynamic", at: `${at2}.${key2} \u2192 ${dynamic.path}`, what: dynamic.what }
-      };
-    }
-    out[key2] = declaration;
-  }
-  return { ok: true, value: out };
-}
-var PeerBinder = class {
-  constructor(env) {
-    this.env = env;
-  }
-  collections = /* @__PURE__ */ new WeakMap();
-  /**
-   * @param slotPath concrete path of the edge that reached the referenced
-   *   resource, e.g. `tables[2]` or `mounts[1].mount`.
-   */
-  bind(referrer, referrerKind, pointer, slotPath) {
-    const collectionPath = pointerToPath(pointer);
-    const shapes = this.env.refSlotsOf(referrerKind);
-    if (!shapes) return { ok: false, failure: { reason: "unknown-shape", at: collectionPath } };
-    const resolved = this.collection(referrer, pointer, collectionPath, shapes);
-    if (!resolved.ok) return resolved;
-    const mine = resolved.entryShape ? this.entryKey(slotPath, collectionPath, resolved.entryShape) : void 0;
-    const at2 = mine === void 0 ? -1 : resolved.keys.indexOf(mine);
-    const peers = at2 === -1 ? resolved.values : resolved.values.filter((_2, i) => i !== at2);
-    if (at2 !== -1) return { ok: true, binding: { peers, entry: resolved.values[at2] } };
-    const shape = shapes.find((candidate) => shapeMatches(slotPath, candidate));
-    if (!shape) return { ok: false, failure: { reason: "unknown-shape", at: slotPath } };
-    const boundary = entryBoundary(slotPath, shape);
-    const entryShape = entryBoundary(shape, shape);
-    const entry = resolveEntry(
-      navigatePath2(referrer, boundary),
-      boundary,
-      entryRefsOf(shapes, entryShape),
-      this.env.declarationOf
-    );
-    if (!entry.ok) return entry;
-    return { ok: true, binding: { peers, entry: entry.value } };
-  }
-  /**
-   * The value at `pointer` with the references in it resolved one level — a
-   * resource rule's `resolve:` view of its OWN reference slots. A single slot
-   * yields the declaration it names; a collection yields the same collection
-   * with each entry resolved, exactly as `peers:` binds one.
-   */
-  resolveReferences(manifest, kind, pointer) {
-    const path = pointerToPath(pointer);
-    const shapes = this.env.refSlotsOf(kind);
-    if (!shapes) return { ok: false, failure: { reason: "unknown-shape", at: path } };
-    const raw = resolvePointer(manifest, pointer);
-    if (raw === void 0 || raw === null) return { ok: true, value: raw };
-    if (shapes.includes(path)) {
-      return resolveEntry(raw, path, { itemIsRef: true, properties: /* @__PURE__ */ new Set() }, this.env.declarationOf);
-    }
-    const resolved = this.collection(manifest, pointer, path, shapes);
-    if (!resolved.ok) return resolved;
-    if (Array.isArray(raw)) return { ok: true, value: resolved.values };
-    return { ok: true, value: Object.fromEntries(resolved.keys.map((k, i) => [k, resolved.values[i]])) };
-  }
-  /** True when the rule has something to compare — the input to the
-   *  never-exercised report, asked through the same cache. */
-  hasPeers(referrer, referrerKind, pointer, slotPath) {
-    const bound = this.bind(referrer, referrerKind, pointer, slotPath);
-    return bound.ok && bound.binding.peers.length > 0;
-  }
-  collection(referrer, pointer, collectionPath, shapes) {
-    let byPointer = this.collections.get(referrer);
-    if (!byPointer) {
-      byPointer = /* @__PURE__ */ new Map();
-      this.collections.set(referrer, byPointer);
-    }
-    const cached = byPointer.get(pointer);
-    if (cached) return cached;
-    const resolved = this.resolveCollection(referrer, pointer, collectionPath, shapes);
-    byPointer.set(pointer, resolved);
-    return resolved;
-  }
-  resolveCollection(referrer, pointer, collectionPath, shapes) {
-    const raw = resolvePointer(referrer, pointer);
-    if (raw === void 0 || raw === null) return { ok: true, keys: [], values: [] };
-    if (!Array.isArray(raw) && !isObject6(raw)) {
-      return { ok: false, failure: { reason: "no-collection", at: collectionPath } };
-    }
-    const entryShape = entryShapeOf(shapes, collectionPath, Array.isArray(raw));
-    if (!entryShape) {
-      return { ok: false, failure: { reason: "unknown-shape", at: collectionPath } };
-    }
-    const refs = entryRefsOf(shapes, entryShape);
-    const keys = Array.isArray(raw) ? raw.map((_2, i) => String(i)) : Object.keys(raw);
-    const items = Array.isArray(raw) ? raw : Object.values(raw);
-    const values = [];
-    for (let i = 0; i < items.length; i++) {
-      const at2 = Array.isArray(raw) ? `${collectionPath}[${keys[i]}]` : `${collectionPath}.${keys[i]}`;
-      const resolved = resolveEntry(items[i], at2, refs, this.env.declarationOf);
-      if (!resolved.ok) return resolved;
-      values.push(resolved.value);
-    }
-    return { ok: true, keys, values, entryShape };
-  }
-  /** The array index or map key `slotPath` occupies in the peers collection, or
-   *  `undefined` when the path does not run through it at all. */
-  entryKey(slotPath, collectionPath, entryShape) {
-    if (entryShape.endsWith("[]")) {
-      if (!slotPath.startsWith(`${collectionPath}[`)) return void 0;
-      const match = /^\[(\d+)\]/.exec(slotPath.slice(collectionPath.length));
-      return match ? match[1] : void 0;
-    }
-    if (!slotPath.startsWith(`${collectionPath}.`)) return void 0;
-    const rest = slotPath.slice(collectionPath.length + 1);
-    const dot = rest.indexOf(".");
-    return dot === -1 ? rest : rest.slice(0, dot);
-  }
-};
-function bindingFailureReason(failure) {
-  switch (failure.reason) {
-    case "no-collection":
-      return `'${failure.at}' holds no collection to resolve.`;
-    case "unresolved":
-      return `a reference at '${failure.at}' names a declaration this analysis does not hold, so it would resolve to nothing.`;
-    case "kind-only":
-      return `a reference at '${failure.at}' names a library's resources: input, known by its kind alone until the importer supplies it, so there is nothing to compare yet.`;
-    case "dynamic":
-      return `a value at '${failure.at}' holds ${failure.what ?? "a value"}, which is not known until the resource is created, so the comparison would run against a placeholder.`;
-    case "unknown-shape":
-      return `which paths under '${failure.at}' hold references is not known here, so nothing could be resolved into a declaration.`;
-  }
-}
-function analyzerPeerBinder(registry, aliases, manifests) {
-  const byName = /* @__PURE__ */ new Map();
-  const byModuleAndName = /* @__PURE__ */ new Map();
-  for (const m of manifests) {
-    const name = m.metadata?.name;
-    if (!name) continue;
-    byName.set(name, m);
-    const mod = m.metadata.module;
-    if (mod) byModuleAndName.set(`${mod}\0${name}`, m);
-  }
-  const declarationOf = (ref) => {
-    if (ref.alias && ref.alias !== "Self") {
-      const module = aliases.moduleForAlias(ref.alias);
-      return module ? byModuleAndName.get(`${module}\0${ref.name}`) : void 0;
-    }
-    return byName.get(ref.name);
-  };
-  const refSlotsOf = (kind) => {
-    const map3 = registry.getFieldMapForKind(kind, aliases);
-    if (!map3) return void 0;
-    return [...map3].filter(([, entry]) => isRefEntry(entry)).map(([path]) => path);
-  };
-  return new PeerBinder({ declarationOf, refSlotsOf });
-}
-function analyzerPeersTarget(registry) {
-  return (referrerKind, pointer) => {
-    const implementations = registry.getByExtends(referrerKind).map(
-      (d) => d.metadata.module ? `${d.metadata.module}.${d.metadata.name}` : String(d.metadata.name)
-    );
-    const candidates2 = [referrerKind, ...implementations];
-    const path = pointerToPath(pointer);
-    let sawSchema = false;
-    let sawCollection = false;
-    for (const kind of candidates2) {
-      const schema4 = registry.effectiveSchema(kind);
-      if (!schema4) continue;
-      sawSchema = true;
-      const node = schemaAtPointer(schema4, pointer);
-      if (node === void 0 || !isIterableSchema(node)) continue;
-      sawCollection = true;
-      const map3 = registry.getFieldMap(kind);
-      if (!map3) continue;
-      for (const [fieldPath, entry] of map3) {
-        if (!isRefEntry(entry)) continue;
-        if (fieldPath === `${path}[]` || fieldPath.startsWith(`${path}[].`) || fieldPath === `${path}.{}` || fieldPath.startsWith(`${path}.{}.`)) {
-          return "ok";
-        }
-      }
-    }
-    if (!sawSchema) return "unknown";
-    const filter = registry.resolve(referrerKind);
-    if (implementations.length === 0 && filter?.kind === "Telo.Abstract") return "unknown";
-    return sawCollection ? "plain" : "absent";
-  };
-}
-
-// ../../analyzer/nodejs/src/schema-projection.ts
-function isObject7(value) {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-}
 function readSchemaProjection(definition) {
-  if (!isObject7(definition)) return void 0;
+  if (!isObject4(definition)) return void 0;
   const raw = rawSchemaProjection(definition);
-  if (!isObject7(raw)) return void 0;
+  if (!isObject4(raw)) return void 0;
   const entries = raw.entries;
   const key2 = raw.key;
   if (typeof entries !== "string" || typeof key2 !== "string") return void 0;
@@ -42091,37 +40971,37 @@ function readSchemaProjection(definition) {
   };
 }
 function readProjectionReference(raw) {
-  if (!isObject7(raw)) return void 0;
+  if (!isObject4(raw)) return void 0;
   const { from, keyword, base, baseFrom } = raw;
   if (typeof from !== "string" || typeof keyword !== "string") return void 0;
   return {
     from,
     keyword,
-    base: isObject7(base) ? base : void 0,
+    base: isObject4(base) ? base : void 0,
     baseFrom: typeof baseFrom === "string" ? baseFrom : void 0
   };
 }
 function rawSchemaProjection(definition) {
-  if (!isObject7(definition)) return void 0;
+  if (!isObject4(definition)) return void 0;
   const own = definition["x-telo-schema-projection"];
   if (own !== void 0) return own;
   const schema4 = definition.schema;
-  return isObject7(schema4) ? schema4["x-telo-schema-projection"] : void 0;
+  return isObject4(schema4) ? schema4["x-telo-schema-projection"] : void 0;
 }
 function schemaProjectionIsMisplaced(definition) {
-  if (!isObject7(definition)) return false;
+  if (!isObject4(definition)) return false;
   if (definition["x-telo-schema-projection"] !== void 0) return false;
   const schema4 = definition.schema;
-  return isObject7(schema4) && schema4["x-telo-schema-projection"] !== void 0;
+  return isObject4(schema4) && schema4["x-telo-schema-projection"] !== void 0;
 }
 function schemaMapBranch(node) {
-  if (!isObject7(node)) return void 0;
+  if (!isObject4(node)) return void 0;
   if (node["x-telo-schema-map"] !== void 0) return node;
   for (const key2 of ["oneOf", "anyOf"]) {
     const branches = node[key2];
     if (!Array.isArray(branches)) continue;
     for (const branch of branches) {
-      if (isObject7(branch) && branch["x-telo-schema-map"] !== void 0) return branch;
+      if (isObject4(branch) && branch["x-telo-schema-map"] !== void 0) return branch;
     }
   }
   return void 0;
@@ -42130,10 +41010,10 @@ function readSchemaMap(node) {
   return ownSchemaMap(schemaMapBranch(node));
 }
 function ownSchemaMap(node) {
-  if (!isObject7(node)) return void 0;
+  if (!isObject4(node)) return void 0;
   const raw = node["x-telo-schema-map"];
-  if (!isObject7(raw)) return void 0;
-  const entries = Object.entries(raw).filter(([, value]) => isObject7(value));
+  if (!isObject4(raw)) return void 0;
+  const entries = Object.entries(raw).filter(([, value]) => isObject4(value));
   if (entries.length === 0) return void 0;
   return Object.fromEntries(entries);
 }
@@ -42142,7 +41022,7 @@ var PROJECTION_DERIVATION_KEYS = ["from", "pick", "omit"];
 function readProjectionDerivation(raw) {
   if (raw === void 0) return void 0;
   if (typeof raw === "string") return { derivation: { from: raw } };
-  if (!isObject7(raw)) {
+  if (!isObject4(raw)) {
     return { invalid: `'${PROJECTION_FROM}' is a JSON Pointer, or an object '{ from, pick?, omit? }'.` };
   }
   const unknown = Object.keys(raw).filter((key2) => !PROJECTION_DERIVATION_KEYS.includes(key2));
@@ -42170,7 +41050,7 @@ function readProjectionDerivation(raw) {
   };
 }
 function readKindDerivation(definition) {
-  if (!isObject7(definition)) return void 0;
+  if (!isObject4(definition)) return void 0;
   const read = readProjectionDerivation(definition[PROJECTION_FROM]);
   if (!read || "invalid" in read) return read;
   if (rawSchemaProjection(definition) !== void 0) {
@@ -42191,7 +41071,7 @@ function decodePointer(pointer) {
 function navigate(root, pointer) {
   let current = root;
   for (const segment of decodePointer(pointer)) {
-    if (!isObject7(current)) return void 0;
+    if (!isObject4(current)) return void 0;
     current = current[segment];
   }
   return current;
@@ -42211,13 +41091,13 @@ function decodeSegment(segment) {
 function resolveLocal(node, root) {
   let current = node;
   const seen = /* @__PURE__ */ new Set();
-  while (isObject7(current) && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
+  while (isObject4(current) && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
     if (seen.has(current)) return void 0;
     seen.add(current);
     let target = root;
     for (const segment of current.$ref.slice(1).split("/")) {
       if (segment === "") continue;
-      if (!isObject7(target)) return void 0;
+      if (!isObject4(target)) return void 0;
       target = target[decodeSegment(segment)];
     }
     current = target;
@@ -42228,25 +41108,25 @@ function projectionCollectionSchema(kindSchema, entries) {
   let node = resolveLocal(kindSchema, kindSchema);
   for (const segment of entries.split("/")) {
     if (segment === "") continue;
-    if (!isObject7(node) || !isObject7(node.properties)) return void 0;
+    if (!isObject4(node) || !isObject4(node.properties)) return void 0;
     node = resolveLocal(node.properties[decodeSegment(segment)], kindSchema);
   }
-  return isObject7(node) ? node : void 0;
+  return isObject4(node) ? node : void 0;
 }
 function collectionEntrySchema(collection, kindSchema) {
-  if (!isObject7(collection)) return void 0;
-  const raw = isObject7(collection.additionalProperties) ? collection.additionalProperties : isObject7(collection.items) ? collection.items : void 0;
+  if (!isObject4(collection)) return void 0;
+  const raw = isObject4(collection.additionalProperties) ? collection.additionalProperties : isObject4(collection.items) ? collection.items : void 0;
   const entry = resolveLocal(raw, kindSchema);
-  return isObject7(entry) ? entry : void 0;
+  return isObject4(entry) ? entry : void 0;
 }
 function projectionEntryField(kindSchema, projection, field) {
   const entry = collectionEntrySchema(
     projectionCollectionSchema(kindSchema, projection.entries),
     kindSchema
   );
-  if (!entry || !isObject7(entry.properties)) return void 0;
+  if (!entry || !isObject4(entry.properties)) return void 0;
   const node = resolveLocal(entry.properties[field], kindSchema);
-  return isObject7(node) ? node : void 0;
+  return isObject4(node) ? node : void 0;
 }
 function projectionKeyMap(kindSchema, projection) {
   return readSchemaMap(projectionEntryField(kindSchema, projection, projection.key));
@@ -42256,7 +41136,7 @@ function failureAnchor(entryPointer, projection, options) {
 }
 function referencedNode(value, entryName, entryPointer, projection, map3, holder, options) {
   const reference = projection.reference;
-  if (!reference || !isObject7(value)) return void 0;
+  if (!reference || !isObject4(value)) return void 0;
   const name = readProjectionRef(value)?.name ?? "<unnamed>";
   const report = () => {
     options?.failures?.push({
@@ -42281,19 +41161,19 @@ function referencedNode(value, entryName, entryPointer, projection, map3, holder
 }
 function branchDefault(branch, field, root) {
   const node = resolveLocal(branch, root);
-  if (!isObject7(node) || !isObject7(node.properties)) return void 0;
+  if (!isObject4(node) || !isObject4(node.properties)) return void 0;
   const property = resolveLocal(node.properties[field], root);
-  return isObject7(property) && "default" in property ? { value: property.default } : void 0;
+  return isObject4(property) && "default" in property ? { value: property.default } : void 0;
 }
 function modifierDefaultSites(entrySchema, field, root) {
   const sites = [];
-  const own = isObject7(entrySchema.properties) ? resolveLocal(entrySchema.properties[field], root) : void 0;
-  if (isObject7(own) && "default" in own) {
+  const own = isObject4(entrySchema.properties) ? resolveLocal(entrySchema.properties[field], root) : void 0;
+  if (isObject4(own) && "default" in own) {
     sites.push({ kind: "field", path: `properties.${field}.default`, value: own.default });
   }
   const visit4 = (raw, path, seen) => {
     const node = resolveLocal(raw, root);
-    if (!isObject7(node) || seen.has(node)) return;
+    if (!isObject4(node) || seen.has(node)) return;
     seen.add(node);
     if (node.if !== void 0) {
       const thenDefault = branchDefault(node.then, field, root);
@@ -42321,7 +41201,7 @@ var compiledConditions = /* @__PURE__ */ new WeakMap();
 var conditionAjv;
 function compileDefaultCondition(condition) {
   if (typeof condition === "boolean") return () => condition;
-  if (!isObject7(condition)) return { error: "an 'if' is a JSON Schema: an object or a boolean" };
+  if (!isObject4(condition)) return { error: "an 'if' is a JSON Schema: an object or a boolean" };
   const cached = compiledConditions.get(condition);
   if (cached) return cached;
   let check3;
@@ -42355,16 +41235,16 @@ function modifierDefaultSitesOf(projection, kindSchema) {
 function projectCollection(collection, collectionPointer, run) {
   const pairs2 = [];
   const consider = (name, segment, entry) => {
-    if (!isObject7(entry) || typeof name !== "string") return;
+    if (!isObject4(entry) || typeof name !== "string") return;
     const node = projectEntry(entry, name, `${collectionPointer}/${segment}`, run);
     if (node) pairs2.push([name, node]);
   };
   const { nameField } = run.projection;
   if (Array.isArray(collection)) {
     collection.forEach(
-      (entry, index) => consider(isObject7(entry) && nameField ? entry[nameField] : void 0, String(index), entry)
+      (entry, index) => consider(isObject4(entry) && nameField ? entry[nameField] : void 0, String(index), entry)
     );
-  } else if (isObject7(collection)) {
+  } else if (isObject4(collection)) {
     for (const [name, entry] of Object.entries(collection)) consider(name, name, entry);
   } else {
     return void 0;
@@ -42418,11 +41298,11 @@ function projectEntries(manifest, projection, map3, options) {
     options,
     defaultSites: modifierDefaultSitesOf(projection, options?.kindSchema),
     ancestors: /* @__PURE__ */ new Set(),
-    declaration: isObject7(manifest) ? manifest : void 0
+    declaration: isObject4(manifest) ? manifest : void 0
   });
 }
 function readProjectionRef(value) {
-  if (!isObject7(value)) return void 0;
+  if (!isObject4(value)) return void 0;
   if (isRefSentinel(value)) {
     const dot = value.source.indexOf(".");
     return dot > 0 ? { name: value.source.slice(dot + 1), alias: value.source.slice(0, dot) } : { name: value.source };
@@ -42488,7 +41368,7 @@ function isReportedAtConsumer(failure) {
   return failure.reason !== "injected" && failure.reason !== "invalid";
 }
 function isFailure(value) {
-  return isObject7(value) && typeof value.reason === "string" && typeof value.pointer === "string";
+  return isObject4(value) && typeof value.reason === "string" && typeof value.pointer === "string";
 }
 function isComputed(value) {
   return isCompiledValue(value) || isTaggedSentinel(value) && !isRefSentinel(value);
@@ -42499,7 +41379,7 @@ function hopOf(holder, inner, run) {
 }
 function referenceValueKind(value, run) {
   if (run.scope.isLiveReference?.(value) === true || isRefSentinel(value)) return "reference";
-  if (!isObject7(value) || typeof value.kind !== "string") return "data";
+  if (!isObject4(value) || typeof value.kind !== "string") return "data";
   return typeof value.name === "string" ? "reference" : "inline";
 }
 function followReference(value, holder, inner, anchor, run) {
@@ -42550,7 +41430,7 @@ function walk(start, pointer, anchor, run) {
       slots = referenceSlotsOf(holder, inner, run, left);
       if (isFailure(slots)) return slots;
     }
-    if (!isObject7(value) && !Array.isArray(value)) {
+    if (!isObject4(value) && !Array.isArray(value)) {
       const via = hopOf(holder, inner, run);
       return { reason: "no-ref", pointer: left ?? prefix, ...via ? { via } : {} };
     }
@@ -42559,7 +41439,7 @@ function walk(start, pointer, anchor, run) {
     prefix = `${prefix}/${segment}`;
     inner.push(segment);
     const concrete = concretePath(inner, containers);
-    atReference = slots.some((shape) => shapeMatches(concrete, shape));
+    atReference = slots.includes(concrete);
   }
   return { value, holder, inner, atReference, anchor: left ?? prefix };
 }
@@ -42591,7 +41471,7 @@ function selectedEntry(holder, selector, anchor, run) {
   const written = run.scope.authored?.(walked.holder.declaration) ?? walked.holder.declaration;
   let authored = written;
   for (const segment of walked.inner) {
-    authored = isObject7(authored) || Array.isArray(authored) ? authored[segment] : void 0;
+    authored = isObject4(authored) || Array.isArray(authored) ? authored[segment] : void 0;
   }
   if (isComputed(authored) || isComputed(walked.value)) {
     return { reason: "selector-computed", pointer: walked.anchor, selector };
@@ -42602,7 +41482,7 @@ function selectedEntry(holder, selector, anchor, run) {
   return walked.value;
 }
 function entriesOf(projected) {
-  return isObject7(projected.properties) ? projected.properties : {};
+  return isObject4(projected.properties) ? projected.properties : {};
 }
 function withoutEntries(projected, holder, selectors, anchor, run) {
   if (!selectors || selectors.length === 0) return projected;
@@ -42712,7 +41592,7 @@ function resolveSchemaProjections(schema4, manifest, scope, failures) {
     });
     return moved2 ? items : schema4;
   }
-  if (!isObject7(schema4)) return schema4;
+  if (!isObject4(schema4)) return schema4;
   const read = readProjectionDerivation(schema4[PROJECTION_FROM]);
   if (read && manifest) {
     const projected = "invalid" in read ? { reason: "invalid", pointer: "", detail: read.invalid } : projectDerivation(manifest, read.derivation, scope, failures);
@@ -42752,8 +41632,8 @@ function projectionModules(defs, aliases, scopes) {
     },
     referenceSlots(declaration, module) {
       const view = { ...declaration, metadata: { ...declaration.metadata, module } };
-      const map3 = defs.expandedFieldMapForResource(view, aliases, byModule);
-      return map3 && [...map3].filter(([, entry]) => isRefEntry(entry)).map(([path]) => path);
+      if (!defs.declaredReachOf(view, aliases, byModule)) return void 0;
+      return defs.referenceSites(view, aliases, byModule, declaration).filter((site) => site.refs.length > 0).map((site) => site.path);
     }
   };
 }
@@ -43564,6 +42444,747 @@ function stampFile(file, ownerModule2) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/reference-reach.ts
+function areAlternatives(a, b) {
+  return a.branches.some((x) => b.branches.some((y) => x.union === y.union && x.index !== y.index));
+}
+var RESOURCE_ENVELOPE_KEYS = ["kind", "metadata"];
+function resolveLocalReference(node, document) {
+  const ref = node.$ref;
+  if (typeof ref !== "string" || !ref.startsWith("#")) return void 0;
+  const target = resolveSchemaPointer(document, ref);
+  if (!target || typeof target !== "object" || Array.isArray(target)) return void 0;
+  return { document, node: target };
+}
+function refFieldEntryOf(slot, node, path) {
+  const entry = {
+    refs: slot.kinds,
+    uses: slot.uses,
+    isArray: path.includes("[]")
+  };
+  if (slot.useCases) entry.useCases = slot.useCases;
+  if (slot.inputs !== void 0) entry.inputs = slot.inputs;
+  if (slot.valueBranches.length > 0) entry.valueBranches = slot.valueBranches;
+  if (node["x-telo-context"]) entry.context = node["x-telo-context"];
+  if (slot.inline) entry.inline = true;
+  if (slot.throwsThrough) entry.throwsThrough = true;
+  if (slot.outputType) entry.outputType = slot.outputType;
+  return entry;
+}
+function refSlotOfEntry(entry) {
+  const slot = {
+    kinds: entry.refs,
+    uses: entry.uses,
+    inline: entry.inline === true,
+    valueBranches: entry.valueBranches ?? []
+  };
+  if (entry.useCases) slot.useCases = entry.useCases;
+  if (entry.inputs !== void 0) slot.inputs = entry.inputs;
+  if (entry.throwsThrough) slot.throwsThrough = true;
+  if (entry.outputType) slot.outputType = entry.outputType;
+  return slot;
+}
+var branchDocuments = /* @__PURE__ */ new WeakMap();
+var branchSchemas = /* @__PURE__ */ new WeakMap();
+function valueBranchSchema(branch) {
+  const document = branchDocuments.get(branch);
+  if (!document || document === branch) return branch;
+  const { $defs, definitions } = document;
+  if ($defs === void 0 && definitions === void 0) return branch;
+  let wrapped = branchSchemas.get(branch);
+  if (!wrapped) {
+    wrapped = {
+      allOf: [branch],
+      ...$defs !== void 0 ? { $defs } : {},
+      ...definitions !== void 0 ? { definitions } : {}
+    };
+    branchSchemas.set(branch, wrapped);
+  }
+  return wrapped;
+}
+var entryDeclarations = /* @__PURE__ */ new WeakMap();
+var entryAlternatives = /* @__PURE__ */ new WeakMap();
+var resourceReaches = /* @__PURE__ */ new WeakMap();
+var enteredReaches = /* @__PURE__ */ new WeakMap();
+function reachOfSchema(schema4) {
+  let reach = resourceReaches.get(schema4);
+  if (!reach) {
+    reach = traverse2(schema4, schema4, true);
+    resourceReaches.set(schema4, reach);
+  }
+  return reach;
+}
+function reachOfNode(document, node) {
+  let byNode = enteredReaches.get(document);
+  if (!byNode) enteredReaches.set(document, byNode = /* @__PURE__ */ new WeakMap());
+  let reach = byNode.get(node);
+  if (!reach) {
+    reach = traverse2(document, node, false);
+    byNode.set(node, reach);
+  }
+  return reach;
+}
+function traverse2(document, node, envelope) {
+  const reach = {
+    document,
+    node,
+    paths: /* @__PURE__ */ new Map(),
+    stops: /* @__PURE__ */ new Map(),
+    declaredKeys: /* @__PURE__ */ new Map(),
+    drives: false,
+    scopeNodes: [],
+    declarations: /* @__PURE__ */ new Map()
+  };
+  const walk5 = {
+    reach,
+    envelope,
+    recorded: /* @__PURE__ */ new Map(),
+    onStack: /* @__PURE__ */ new Map([[node, ""]]),
+    branches: [],
+    declared: /* @__PURE__ */ new Map()
+  };
+  visitNode2(node, "", locationIn(document, node), walk5);
+  addValueAlternatives(reach);
+  return reach;
+}
+function declare(walk5, path, node) {
+  let nodes = walk5.declared.get(path);
+  if (!nodes) walk5.declared.set(path, nodes = /* @__PURE__ */ new Set());
+  let list2 = walk5.reach.declarations.get(path);
+  if (!list2) walk5.reach.declarations.set(path, list2 = []);
+  if (nodes.has(node)) return list2.find((d) => d.node === node);
+  nodes.add(node);
+  const declaration = { node, branches: [...walk5.branches] };
+  list2.push(declaration);
+  return declaration;
+}
+function isReferenceNode(node, document) {
+  const seen = /* @__PURE__ */ new Set();
+  let current = node;
+  while (current && !seen.has(current)) {
+    seen.add(current);
+    const slot = readRefSlot(current);
+    if (slot && slot.kinds.length > 0) return true;
+    current = typeof current.$ref === "string" ? resolveLocalReference(current, document)?.node : void 0;
+  }
+  return false;
+}
+function addValueAlternatives(reach) {
+  for (const [path, at2] of reach.paths) {
+    for (const entry of at2.refs) {
+      const own = entryDeclarations.get(entry);
+      const alternatives = own ? (reach.declarations.get(path) ?? []).filter(
+        (d) => areAlternatives(d, own) && !isReferenceNode(d.node, reach.document)
+      ) : [];
+      if (alternatives.length > 0) {
+        entry.valueBranches = [...entry.valueBranches ?? [], ...alternatives.map((d) => d.node)];
+        entryAlternatives.set(
+          entry,
+          alternatives.map((d) => ({
+            node: d.node,
+            diverging: d.branches.filter(
+              (x) => own.branches.some((y) => x.union === y.union && x.index !== y.index)
+            )
+          }))
+        );
+      }
+      for (const branch of entry.valueBranches ?? []) {
+        if (!branchDocuments.has(branch)) branchDocuments.set(branch, reach.document);
+      }
+      for (const { diverging } of entryAlternatives.get(entry) ?? []) {
+        for (const choice of diverging) {
+          const member = unionMember(choice);
+          if (!branchDocuments.has(member)) branchDocuments.set(member, reach.document);
+        }
+      }
+    }
+  }
+}
+function unionMember(choice) {
+  return choice.union[choice.index];
+}
+function enclosingPattern(path) {
+  const dot = path.lastIndexOf(".");
+  return dot === -1 ? "" : path.slice(0, dot);
+}
+var enclosingMemo = /* @__PURE__ */ new WeakMap();
+function enclosingDeclarations(reach, declaredPath, entry) {
+  let out = enclosingMemo.get(entry);
+  if (out) return out;
+  const own = entryDeclarations.get(entry);
+  out = (reach.declarations.get(enclosingPattern(declaredPath)) ?? []).filter((d) => !own || !areAlternatives(d, own)).map((d) => d.node);
+  enclosingMemo.set(entry, out);
+  return out;
+}
+var joinKey = (path, key2) => path ? `${path}.${key2}` : key2;
+function locationIn(document, node) {
+  if (node === document) return "";
+  const seen = /* @__PURE__ */ new Set();
+  const search = (value, at2) => {
+    if (!value || typeof value !== "object" || seen.has(value)) return void 0;
+    seen.add(value);
+    if (value === node) return at2;
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i++) {
+        const found = search(value[i], `${at2}[${i}]`);
+        if (found !== void 0) return found;
+      }
+      return void 0;
+    }
+    for (const [key2, child] of Object.entries(value)) {
+      const found = search(child, joinKey(at2, key2));
+      if (found !== void 0) return found;
+    }
+    return void 0;
+  };
+  return search(document, "") ?? "";
+}
+function pointerLocation(ref) {
+  return ref.slice(1).split("/").filter((segment) => segment !== "").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~")).join(".");
+}
+function firstTime(walk5, path, node) {
+  let nodes = walk5.recorded.get(path);
+  if (!nodes) walk5.recorded.set(path, nodes = /* @__PURE__ */ new Set());
+  if (nodes.has(node)) return false;
+  nodes.add(node);
+  return true;
+}
+function pathAt(walk5, path) {
+  let entry = walk5.reach.paths.get(path);
+  if (!entry) walk5.reach.paths.set(path, entry = { refs: [], steps: [], recurse: [] });
+  return entry;
+}
+function stopAt(walk5, path) {
+  let entry = walk5.reach.stops.get(path);
+  if (!entry) walk5.reach.stops.set(path, entry = { scopes: [], schemaFrom: [] });
+  return entry;
+}
+function visitNode2(node, path, loc, walk5) {
+  if (!node || typeof node !== "object" || Array.isArray(node)) return;
+  const schema4 = node;
+  const declaration = declare(walk5, path, schema4);
+  if ("x-telo-scope" in schema4) {
+    if (firstTime(walk5, path, schema4)) {
+      stopAt(walk5, path).scopes.push({ scope: schema4["x-telo-scope"] });
+      walk5.reach.scopeNodes.push({ path, node: schema4, location: loc });
+    }
+    return;
+  }
+  if ("x-telo-schema-from" in schema4) {
+    if (firstTime(walk5, path, schema4)) {
+      stopAt(walk5, path).schemaFrom.push({ schemaFrom: schema4["x-telo-schema-from"] });
+    }
+    return;
+  }
+  const step = readStepSlot(schema4);
+  if (step) {
+    if (firstTime(walk5, path, schema4)) {
+      pathAt(walk5, path).steps.push(step);
+      walk5.reach.drives = true;
+    }
+    if (itemsAreReferenceSlot(schema4.items, walk5)) {
+      visitNode2(schema4.items, `${path}[]`, joinKey(loc, "items"), walk5);
+    }
+    return;
+  }
+  const slot = readRefSlot(schema4);
+  if (slot && slot.kinds.length > 0) {
+    if (firstTime(walk5, path, schema4)) {
+      const entry = refFieldEntryOf(slot, schema4, path);
+      entryDeclarations.set(entry, declaration);
+      pathAt(walk5, path).refs.push(entry);
+      walk5.reach.drives = true;
+    }
+    visitVariants(schema4, path, loc, walk5);
+    return;
+  }
+  if (typeof schema4.$ref === "string") {
+    followLocalRef(schema4, path, walk5);
+    return;
+  }
+  if (schema4.type === "array" && schema4.items) {
+    visitNode2(schema4.items, `${path}[]`, joinKey(loc, "items"), walk5);
+  }
+  visitProperties(schema4, path, loc, walk5);
+  visitVariants(schema4, path, loc, walk5);
+  visitMapValue(schema4, path, loc, walk5);
+}
+function itemsAreReferenceSlot(items, walk5) {
+  if (!items || typeof items !== "object" || Array.isArray(items)) return false;
+  let node = items;
+  if (typeof node.$ref === "string") {
+    const target = resolveLocalReference(node, walk5.reach.document);
+    if (!target) return false;
+    node = target.node;
+  }
+  const slot = readRefSlot(node);
+  return !!slot && slot.kinds.length > 0;
+}
+function visitProperties(schema4, path, loc, walk5) {
+  const properties = schema4.properties;
+  if (!properties || typeof properties !== "object") return;
+  for (const [key2, propSchema] of Object.entries(properties)) {
+    visitNode2(propSchema, joinKey(path, key2), joinKey(joinKey(loc, "properties"), key2), walk5);
+  }
+}
+function visitVariants(schema4, path, loc, walk5) {
+  for (const variantKey2 of ["oneOf", "anyOf", "allOf"]) {
+    const variants = schema4[variantKey2];
+    if (!Array.isArray(variants)) continue;
+    const disjunct = variantKey2 !== "allOf";
+    variants.forEach((variant, i) => {
+      if (!variant || typeof variant !== "object") return;
+      if (disjunct) walk5.branches.push({ union: variants, index: i, path });
+      try {
+        visitVariant(variant, path, `${joinKey(loc, variantKey2)}[${i}]`, walk5);
+      } finally {
+        if (disjunct) walk5.branches.pop();
+      }
+    });
+  }
+}
+function visitVariant(variant, path, loc, walk5) {
+  declare(walk5, path, variant);
+  if (typeof variant.$ref === "string") {
+    followLocalRef(variant, path, walk5);
+    return;
+  }
+  visitProperties(variant, path, loc, walk5);
+  if (variant.type === "array" && variant.items) {
+    visitNode2(variant.items, `${path}[]`, joinKey(loc, "items"), walk5);
+  }
+  visitMapValue(variant, path, loc, walk5);
+}
+function followLocalRef(node, path, walk5) {
+  const target = resolveLocalReference(node, walk5.reach.document);
+  if (!target || target.node === node) return;
+  const entered = walk5.onStack.get(target.node);
+  if (entered !== void 0) {
+    if (entered !== path) {
+      const at2 = pathAt(walk5, path);
+      if (!at2.recurse.includes(entered)) at2.recurse.push(entered);
+    }
+    return;
+  }
+  walk5.onStack.set(target.node, path);
+  try {
+    visitNode2(target.node, path, pointerLocation(node.$ref), walk5);
+  } finally {
+    walk5.onStack.delete(target.node);
+  }
+}
+function visitMapValue(owner, path, loc, walk5) {
+  const valueSchema = owner.additionalProperties;
+  if (!valueSchema || typeof valueSchema !== "object" || Array.isArray(valueSchema)) return;
+  const mapPath = joinKey(path, "{}");
+  const declared = owner.properties && typeof owner.properties === "object" ? Object.keys(owner.properties) : [];
+  if (path === "" && walk5.envelope) declared.push(...RESOURCE_ENVELOPE_KEYS);
+  const previous = walk5.reach.declaredKeys.get(mapPath);
+  walk5.reach.declaredKeys.set(
+    mapPath,
+    new Set(previous ? declared.filter((key2) => previous.has(key2)) : declared)
+  );
+  visitNode2(valueSchema, mapPath, joinKey(loc, "additionalProperties"), walk5);
+}
+function declaredReach(schema4, schemaFrom) {
+  const references = /* @__PURE__ */ new Map();
+  const stops = [];
+  const expanding = /* @__PURE__ */ new Set();
+  const collect2 = (reach, base) => {
+    expanding.add(reach);
+    for (const [rel, at2] of reach.paths) {
+      if (at2.refs.length === 0) continue;
+      const path = joinPattern(base, rel);
+      let declared = references.get(path);
+      if (!declared) {
+        declared = { path, isArray: path.includes("[]"), kinds: [], entries: [] };
+        references.set(path, declared);
+      }
+      for (const entry of at2.refs) {
+        declared.entries.push(base ? { ...entry, isArray: declared.isArray } : entry);
+        for (const kind of entry.refs) {
+          if (!declared.kinds.includes(kind)) declared.kinds.push(kind);
+        }
+      }
+    }
+    for (const [rel, stop] of reach.stops) {
+      const path = joinPattern(base, rel);
+      stops.push({ path, scopes: stop.scopes, schemaFrom: stop.schemaFrom, viaAnchor: base !== "" });
+      if (!schemaFrom) continue;
+      for (const { schemaFrom: expression } of stop.schemaFrom) {
+        const anchor = schemaFrom(expression, reach.document);
+        if (!anchor) continue;
+        const anchored = reachOfNode(anchor.document, anchor.node);
+        if (!expanding.has(anchored)) collect2(anchored, path);
+      }
+    }
+    expanding.delete(reach);
+  };
+  collect2(reachOfSchema(schema4), "");
+  return { references: [...references.values()], stops };
+}
+function misplacedScopeSlots(schema4) {
+  const reach = reachOfSchema(schema4);
+  const recursesToRoot = [...reach.paths.values()].some((at2) => at2.recurse.includes(""));
+  const legal = /* @__PURE__ */ new Set();
+  const out = [];
+  const reported = /* @__PURE__ */ new Set();
+  const report = (location, reason) => {
+    if (reported.has(location)) return;
+    reported.add(location);
+    out.push({ location, reason });
+  };
+  for (const { path, node, location } of reach.scopeNodes) {
+    const reason = path === "" ? "it is the resource root itself" : path.includes("{}") ? `it applies to the values of an open-keyed map ('${path}')` : path.includes("[]") ? `it applies to the items of an array ('${path}')` : path.includes(".") ? `it is nested under an object ('${path}')` : recursesToRoot ? "the schema refers back to its own root, so it recurs below the top level" : void 0;
+    if (reason === void 0) legal.add(node);
+    else report(location, reason);
+  }
+  const seen = /* @__PURE__ */ new Set();
+  const scan = (value, at2) => {
+    if (!value || typeof value !== "object" || seen.has(value)) return;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      value.forEach((item, i) => scan(item, `${at2}[${i}]`));
+      return;
+    }
+    const node = value;
+    if ("x-telo-scope" in node && !legal.has(node)) {
+      report(at2, "no top-level property of the resource reaches it");
+    }
+    for (const [key2, child] of Object.entries(node)) {
+      if (key2 !== "x-telo-scope") scan(child, joinKey(at2, key2));
+    }
+  };
+  scan(schema4, "");
+  return out;
+}
+function enclosingDefault(ref, pointer) {
+  if (!pointer.startsWith("/")) return void 0;
+  const segments = pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+  const document = ref.declaredIn.document;
+  for (const declaration of ref.enclosing) {
+    let current = declaration;
+    let value;
+    for (const segment of segments) {
+      const written = current?.properties?.[segment];
+      if (!written || typeof written !== "object") {
+        current = void 0;
+        break;
+      }
+      const node = written;
+      const target = typeof node.$ref === "string" ? resolveLocalReference(node, document)?.node : void 0;
+      value = node.default !== void 0 ? node.default : target?.default;
+      current = target ?? node;
+    }
+    if (current && value !== void 0) return value;
+  }
+  return void 0;
+}
+function siteRefEntry(site) {
+  const first = site.refs[0];
+  const entry = {
+    refs: [],
+    uses: [],
+    isArray: first.fieldPath.includes("[]")
+  };
+  const valueBranches = [];
+  for (const { slot, context } of site.refs) {
+    for (const kind of slot.kinds) if (!entry.refs.includes(kind)) entry.refs.push(kind);
+    for (const use of slot.uses) if (!entry.uses.includes(use)) entry.uses.push(use);
+    if (slot.useCases && !entry.useCases) entry.useCases = slot.useCases;
+    if (slot.inputs !== void 0 && entry.inputs === void 0) entry.inputs = slot.inputs;
+    if (context && !entry.context) entry.context = context;
+    if (slot.inline) entry.inline = true;
+    if (slot.throwsThrough) entry.throwsThrough = true;
+    if (slot.outputType && !entry.outputType) entry.outputType = slot.outputType;
+    valueBranches.push(...slot.valueBranches);
+  }
+  if (valueBranches.length > 0) entry.valueBranches = valueBranches;
+  return entry;
+}
+function reachSites(schema4, data, schemaFrom, withSchemaFrom = false) {
+  return enumerateSites(schema4, data, { stops: true, schemaFrom, withSchemaFrom });
+}
+function drivenSites(schema4, data) {
+  return enumerateSites(schema4, data, { stops: false });
+}
+function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schemaFrom }) {
+  if (data === void 0 || data === null) return [];
+  const root = reachOfSchema(schema4);
+  const followsStops = keepStops || schemaFrom !== void 0;
+  if (!root.drives && !(followsStops && root.stops.size > 0)) return [];
+  const sites = /* @__PURE__ */ new Map();
+  const onData = /* @__PURE__ */ new Set([data]);
+  const expanded = /* @__PURE__ */ new Map();
+  const siteAt = (path, keys, found) => {
+    let site = sites.get(path);
+    if (!site) {
+      site = {
+        path,
+        keys,
+        data: found.value,
+        refs: [],
+        steps: [],
+        scopes: [],
+        schemaFrom: [],
+        from: /* @__PURE__ */ new Set()
+      };
+      if (found.holder) {
+        site.holder = found.holder;
+        site.key = found.key;
+      }
+      sites.set(path, site);
+    }
+    return site;
+  };
+  const walk5 = (reach, prefix, at0, base, baseKeys, patternBase) => {
+    for (const [declaredPath, at2] of reach.paths) {
+      const rel = relativeFieldPath(declaredPath, prefix);
+      if (rel === void 0) continue;
+      for (const found of resolveSites(at0, rel, prefix, reach)) {
+        const path = joinPattern(base, found.path);
+        const keys = [...baseKeys, ...found.keys];
+        if (at2.steps.length > 0 || at2.refs.length > 0) {
+          const site = siteAt(path, keys, found);
+          for (const step of at2.steps) {
+            if (site.from.has(step)) continue;
+            site.from.add(step);
+            site.steps.push(step);
+          }
+          for (const entry of at2.refs) {
+            if (site.from.has(entry)) continue;
+            site.from.add(entry);
+            const ref = {
+              slot: refSlotOfEntry(entry),
+              fieldPath: joinPattern(patternBase, declaredPath),
+              declaredIn: reach,
+              declaredPath,
+              viaAnchor: reach !== root,
+              node: entryDeclarations.get(entry).node,
+              enclosing: enclosingDeclarations(reach, declaredPath, entry),
+              alternatives: siteAlternatives(entry, reach, prefix, at0, found)
+            };
+            if (entry.context) ref.context = entry.context;
+            site.refs.push(ref);
+          }
+        }
+        if (at2.recurse.length === 0) continue;
+        if (!found.value || typeof found.value !== "object" || onData.has(found.value)) continue;
+        onData.add(found.value);
+        for (const to of at2.recurse) walk5(reach, to, found, path, keys, patternBase);
+        onData.delete(found.value);
+      }
+    }
+    if (!followsStops || reach.stops.size === 0) return;
+    for (const [declaredPath, stop] of reach.stops) {
+      const rel = relativeFieldPath(declaredPath, prefix);
+      if (rel === void 0) continue;
+      for (const found of resolveSites(at0, rel, prefix, reach)) {
+        const path = joinPattern(base, found.path);
+        const keys = [...baseKeys, ...found.keys];
+        if (keepStops && (stop.scopes.length > 0 || withSchemaFrom && stop.schemaFrom.length > 0)) {
+          const site = siteAt(path, keys, found);
+          for (const scope of stop.scopes) {
+            if (site.from.has(scope)) continue;
+            site.from.add(scope);
+            site.scopes.push(scope);
+          }
+          for (const entry of withSchemaFrom ? stop.schemaFrom : []) {
+            if (site.from.has(entry)) continue;
+            site.from.add(entry);
+            site.schemaFrom.push({
+              entry,
+              fieldPath: joinPattern(patternBase, declaredPath),
+              document: reach.document,
+              viaAnchor: reach !== root
+            });
+          }
+        }
+        if (!schemaFrom) continue;
+        for (const { schemaFrom: expression } of stop.schemaFrom) {
+          const anchor = schemaFrom(expression, reach.document);
+          if (!anchor) continue;
+          const anchored = reachOfNode(anchor.document, anchor.node);
+          let entered = expanded.get(found.value);
+          if (!entered) expanded.set(found.value, entered = /* @__PURE__ */ new Set());
+          if (entered.has(anchored)) continue;
+          entered.add(anchored);
+          walk5(anchored, "", found, path, keys, joinPattern(patternBase, declaredPath));
+          entered.delete(anchored);
+        }
+      }
+    }
+  };
+  walk5(root, "", { value: data, path: "", keys: [] }, "", [], "");
+  return [...sites.values()].map(({ from, ...site }) => site);
+}
+function siteAlternatives(entry, reach, prefix, start, found) {
+  const declared = entryAlternatives.get(entry);
+  if (!declared) return [];
+  return declared.map(({ node, diverging }) => {
+    const members = [];
+    for (const choice of diverging) {
+      const rel = choice.path === prefix ? "" : relativeFieldPath(choice.path, prefix);
+      const position = rel === void 0 ? void 0 : resolveSites(start, rel, prefix, reach).find(
+        (site) => site.keys.length <= found.keys.length && site.keys.every((key2, i) => found.keys[i] === key2)
+      );
+      if (!position) return { node, members: void 0 };
+      members.push({ member: unionMember(choice), document: reach.document, value: position.value });
+    }
+    return { node, members };
+  });
+}
+function reachPositions(schema4, data, schemaFrom) {
+  if (data === void 0 || data === null) return [];
+  const root = reachOfSchema(schema4);
+  const positions = /* @__PURE__ */ new Map();
+  const onData = /* @__PURE__ */ new Set([data]);
+  const expanded = /* @__PURE__ */ new Map();
+  const emit = (reach, prefix, at0, base, rel, fieldPath) => {
+    for (const relPrefix of patternPrefixes(rel)) {
+      for (const found of resolveSites(at0, relPrefix, prefix, reach)) {
+        const path = joinPattern(base, found.path);
+        if (!positions.has(path)) positions.set(path, { path, value: found.value, fieldPath });
+      }
+    }
+  };
+  const walk5 = (reach, prefix, at0, base, patternBase) => {
+    for (const [declaredPath, at2] of reach.paths) {
+      if (at2.refs.length === 0 && at2.recurse.length === 0) continue;
+      const rel = relativeFieldPath(declaredPath, prefix);
+      if (rel === void 0) continue;
+      const leadsTo = at2.refs.length > 0 ? declaredPath : [...reach.paths].find(
+        ([pattern, below]) => below.refs.length > 0 && at2.recurse.some((to) => relativeFieldPath(pattern, to) !== void 0)
+      )?.[0];
+      if (leadsTo !== void 0) emit(reach, prefix, at0, base, rel, joinPattern(patternBase, leadsTo));
+      if (at2.recurse.length === 0) continue;
+      for (const found of resolveSites(at0, rel, prefix, reach)) {
+        if (!found.value || typeof found.value !== "object" || onData.has(found.value)) continue;
+        onData.add(found.value);
+        const path = joinPattern(base, found.path);
+        for (const to of at2.recurse) walk5(reach, to, found, path, patternBase);
+        onData.delete(found.value);
+      }
+    }
+    if (!schemaFrom) return;
+    for (const [declaredPath, stop] of reach.stops) {
+      const rel = relativeFieldPath(declaredPath, prefix);
+      if (rel === void 0) continue;
+      for (const { schemaFrom: expression } of stop.schemaFrom) {
+        const anchor = schemaFrom(expression, reach.document);
+        if (!anchor) continue;
+        const anchored = reachOfNode(anchor.document, anchor.node);
+        if (!anchored.drives) continue;
+        for (const found of resolveSites(at0, rel, prefix, reach)) {
+          let entered = expanded.get(found.value);
+          if (!entered) expanded.set(found.value, entered = /* @__PURE__ */ new Set());
+          if (entered.has(anchored)) continue;
+          entered.add(anchored);
+          const path = joinPattern(base, found.path);
+          const anchoredBase = joinPattern(patternBase, declaredPath);
+          emit(reach, prefix, at0, base, rel, anchoredBase);
+          walk5(anchored, "", found, path, anchoredBase);
+          entered.delete(anchored);
+        }
+      }
+    }
+  };
+  walk5(root, "", { value: data, path: "", keys: [] }, "", "");
+  return [...positions.values()];
+}
+function patternPrefixes(rel) {
+  const out = [];
+  let acc = "";
+  for (const part of rel.split(".")) {
+    if (part === "") continue;
+    const key2 = part.replace(/(\[\])+$/, "");
+    if (key2) out.push(acc = joinKey(acc, key2));
+    for (let d = 0; d < (part.length - key2.length) / 2; d++) out.push(acc = `${acc}[]`);
+  }
+  return out;
+}
+function resolveSites(start, rel, prefix, reach) {
+  let sites = [{ ...start, path: "", keys: [] }];
+  if (rel === "") return sites;
+  let field = prefix;
+  for (const part of rel.split(".")) {
+    const next = [];
+    if (part === "{}") {
+      field = joinKey(field, "{}");
+      const declared = reach.declaredKeys.get(field);
+      for (const site of sites) {
+        if (!site.value || typeof site.value !== "object" || Array.isArray(site.value)) continue;
+        for (const [key2, entry] of Object.entries(site.value)) {
+          if (entry == null || declared?.has(key2)) continue;
+          next.push({
+            value: entry,
+            path: joinKey(site.path, key2),
+            keys: [...site.keys, key2],
+            holder: site.value,
+            key: key2
+          });
+        }
+      }
+    } else {
+      const key2 = part.replace(/(\[\])+$/, "");
+      const depth = (part.length - key2.length) / 2;
+      field = key2 ? joinKey(field, part) : `${field}${part}`;
+      for (const site of sites) {
+        let level;
+        if (key2) {
+          if (!site.value || typeof site.value !== "object") continue;
+          const entry = site.value[key2];
+          if (entry == null) continue;
+          level = [
+            {
+              value: entry,
+              path: joinKey(site.path, key2),
+              keys: [...site.keys, key2],
+              holder: site.value,
+              key: key2
+            }
+          ];
+        } else {
+          level = [site];
+        }
+        for (let d = 0; d < depth; d++) {
+          const items = [];
+          for (const holder of level) {
+            if (!Array.isArray(holder.value)) continue;
+            const array = holder.value;
+            array.forEach((item, i) => {
+              if (item != null) {
+                items.push({
+                  value: item,
+                  path: `${holder.path}[${i}]`,
+                  keys: [...holder.keys, i],
+                  holder: array,
+                  key: i
+                });
+              }
+            });
+          }
+          level = items;
+        }
+        next.push(...level);
+      }
+    }
+    sites = next;
+  }
+  return sites;
+}
+function relativeFieldPath(pattern, prefix) {
+  if (prefix === "") return pattern;
+  if (pattern.startsWith(`${prefix}.`)) return pattern.slice(prefix.length + 1);
+  if (pattern.startsWith(`${prefix}[]`)) return pattern.slice(prefix.length);
+  return void 0;
+}
+function joinPattern(base, rel) {
+  if (!base) return rel;
+  if (!rel) return base;
+  return rel.startsWith("[") ? `${base}${rel}` : `${base}.${rel}`;
+}
+
 // ../../analyzer/nodejs/src/validate-observed-state.ts
 var SYSTEM_KINDS = /* @__PURE__ */ new Set([
   "Telo.Definition",
@@ -43627,15 +43248,13 @@ function buildObservedStateIndex(manifests, defs, aliases, scopes) {
     if (name) record(kind, keyOf(name), false, module, forwardedFrom);
     const schema4 = resolve(kind)?.schema;
     if (!schema4) continue;
-    for (const [path, entry] of buildReferenceFieldMap(schema4)) {
-      if (!isScopeEntry(entry)) continue;
-      for (const value of resolveFieldValues(manifest, path)) {
-        for (const scopedEntry of Array.isArray(value) ? value : [value]) {
-          const scopedKind = scopedEntry?.kind;
-          const scopedName = scopedEntry?.metadata?.name;
-          if (typeof scopedKind === "string" && typeof scopedName === "string") {
-            record(scopedKind, keyOf(scopedName), true, forwardedFrom, forwardedFrom);
-          }
+    for (const site of reachSites(schema4, manifest)) {
+      if (site.scopes.length === 0) continue;
+      for (const scopedEntry of Array.isArray(site.data) ? site.data : [site.data]) {
+        const scopedKind = scopedEntry?.kind;
+        const scopedName = scopedEntry?.metadata?.name;
+        if (typeof scopedKind === "string" && typeof scopedName === "string") {
+          record(scopedKind, keyOf(scopedName), true, forwardedFrom, forwardedFrom);
         }
       }
     }
@@ -43918,113 +43537,21 @@ function walkStepArray(steps, stepItemSchema, rootSchema, basePath, visit4) {
 }
 function forEachDeclaredSlot(schema4, visit4) {
   if (!schema4 || typeof schema4 !== "object") return;
-  for (const [path, at2] of buildDrivenSlotMap(schema4).paths) {
+  for (const [path, at2] of reachOfSchema(schema4).paths) {
     if (at2.steps.length > 0) visit4({ kind: "step", slots: at2.steps, path });
     if (at2.refs.length > 0) visit4({ kind: "ref", slots: at2.refs.map(refSlotOfEntry), path });
   }
 }
 function forEachDrivenSlot(schema4, data, visit4) {
-  if (!schema4 || typeof schema4 !== "object" || data === void 0 || data === null) return;
-  const driven = buildDrivenSlotMap(schema4);
-  if (!driven.drives) return;
-  const sites = /* @__PURE__ */ new Map();
-  const onData = /* @__PURE__ */ new Set([data]);
-  const walk5 = (prefix, value, base) => {
-    for (const [fieldPath, at2] of driven.paths) {
-      const rel = relativeFieldPath(fieldPath, prefix);
-      if (rel === void 0) continue;
-      for (const found of resolveSites(value, rel, prefix, driven)) {
-        const path = joinConcrete(base, found.path);
-        if (at2.steps.length > 0 || at2.refs.length > 0) {
-          let site = sites.get(path);
-          if (!site) {
-            site = { data: found.value, steps: [], refs: [], from: /* @__PURE__ */ new Set() };
-            sites.set(path, site);
-          }
-          for (const step of at2.steps) {
-            if (site.from.has(step)) continue;
-            site.from.add(step);
-            site.steps.push(step);
-          }
-          for (const entry of at2.refs) {
-            if (site.from.has(entry)) continue;
-            site.from.add(entry);
-            site.refs.push({ slot: refSlotOfEntry(entry), fieldPath });
-          }
-        }
-        if (at2.recurse.length === 0) continue;
-        if (!found.value || typeof found.value !== "object" || onData.has(found.value)) continue;
-        onData.add(found.value);
-        for (const to of at2.recurse) walk5(to, found.value, path);
-        onData.delete(found.value);
-      }
-    }
-  };
-  walk5("", data, "");
-  for (const [path, site] of sites) {
+  if (!schema4 || typeof schema4 !== "object") return;
+  for (const site of drivenSites(schema4, data)) {
     if (site.steps.length > 0 && Array.isArray(site.data)) {
-      visit4({ kind: "step", slots: site.steps, data: site.data, path });
+      visit4({ kind: "step", slots: site.steps, data: site.data, path: site.path });
     } else if (site.refs.length > 0) {
-      visit4({ kind: "ref", slots: site.refs, data: site.data, path });
+      const slots = site.refs.map((ref) => ({ slot: ref.slot, fieldPath: ref.fieldPath, ref }));
+      visit4({ kind: "ref", slots, data: site.data, path: site.path });
     }
   }
-}
-function resolveSites(value, rel, prefix, driven) {
-  let sites = [{ value, path: "" }];
-  let field = prefix;
-  for (const part of rel.split(".")) {
-    const next = [];
-    if (part === "{}") {
-      field = joinKey(field, "{}");
-      const declared = driven.declaredKeys.get(field);
-      for (const site of sites) {
-        if (!site.value || typeof site.value !== "object" || Array.isArray(site.value)) continue;
-        for (const [key2, entry] of Object.entries(site.value)) {
-          if (entry == null || declared?.has(key2)) continue;
-          next.push({ value: entry, path: joinKey(site.path, key2) });
-        }
-      }
-    } else {
-      const key2 = part.replace(/(\[\])+$/, "");
-      const depth = (part.length - key2.length) / 2;
-      field = key2 ? joinKey(field, part) : `${field}${part}`;
-      for (const site of sites) {
-        let level;
-        if (key2) {
-          if (!site.value || typeof site.value !== "object") continue;
-          const entry = site.value[key2];
-          if (entry == null) continue;
-          level = [{ value: entry, path: joinKey(site.path, key2) }];
-        } else {
-          level = [site];
-        }
-        for (let d = 0; d < depth; d++) {
-          const items = [];
-          for (const holder of level) {
-            if (!Array.isArray(holder.value)) continue;
-            holder.value.forEach((item, i) => {
-              if (item != null) items.push({ value: item, path: `${holder.path}[${i}]` });
-            });
-          }
-          level = items;
-        }
-        next.push(...level);
-      }
-    }
-    sites = next;
-  }
-  return sites;
-}
-var joinKey = (path, key2) => path ? `${path}.${key2}` : key2;
-function relativeFieldPath(fieldPath, prefix) {
-  if (prefix === "") return fieldPath;
-  if (fieldPath.startsWith(`${prefix}.`)) return fieldPath.slice(prefix.length + 1);
-  if (fieldPath.startsWith(`${prefix}[]`)) return fieldPath.slice(prefix.length);
-  return void 0;
-}
-function joinConcrete(base, rel) {
-  if (!base) return rel;
-  return rel.startsWith("[") ? `${base}${rel}` : `${base}.${rel}`;
 }
 
 // ../../analyzer/nodejs/src/cel-scope.ts
@@ -44477,7 +44004,7 @@ function findManifest(manifests, kind, name) {
 }
 
 // ../../analyzer/nodejs/src/cel-scope-query.ts
-function joinPath2(base, segment) {
+function joinPath(base, segment) {
   return base ? `${base}.${segment}` : segment;
 }
 function manifestItemPath(exprPath, scope) {
@@ -44594,9 +44121,9 @@ var CelScopeQuery = class {
     if (!origin) return void 0;
     let base = origin.path;
     for (let i = 1; i < parts.length; i++) {
-      const candidates2 = i === 1 && origin.propertyMap ? [joinPath2(base, parts[i])] : [
-        joinPath2(joinPath2(base, "properties"), parts[i]),
-        joinPath2(joinPath2(joinPath2(base, "schema"), "properties"), parts[i])
+      const candidates2 = i === 1 && origin.propertyMap ? [joinPath(base, parts[i])] : [
+        joinPath(joinPath(base, "properties"), parts[i]),
+        joinPath(joinPath(joinPath(base, "schema"), "properties"), parts[i])
       ];
       const hit = candidates2.find(
         (candidate) => navigateConcretePath2(origin.manifest, candidate) !== void 0
@@ -44620,7 +44147,7 @@ var CelScopeQuery = class {
     const from = annotated["x-telo-context-from"];
     if (typeof from === "string") {
       const itemPath = manifestItemPath(sitePath, matchedScope);
-      return { manifest: root, path: joinPath2(itemPath, from.split("/").join(".")), propertyMap: true };
+      return { manifest: root, path: joinPath(itemPath, from.split("/").join(".")), propertyMap: true };
     }
     const fromRoot = annotated["x-telo-context-from-root"];
     if (typeof fromRoot === "string") {
@@ -44771,34 +44298,33 @@ function visitManifest(resources, registry, visitor, options = {}) {
     visitor.onResourceEnter?.({ source: r, definition });
     const emittedRefPaths = wantsNested ? /* @__PURE__ */ new Set() : null;
     if (wantsRefs || wantsScope || wantsSchemaFrom) {
-      const baseMap = moduleScope ? registry.getFieldMapForKind(r.kind, moduleScope) : registry.getFieldMap(r.kind);
-      const refScopeMap = expand2 && aliases && aliasesByModule ? registry.expandedFieldMapForResource(r, aliases, aliasesByModule) : baseMap;
-      if (refScopeMap && (wantsRefs || wantsScope)) {
+      const sites = registry.referenceSites(r, aliases, aliasesByModule);
+      if (wantsRefs || wantsScope) {
         const manifestsByPointer = /* @__PURE__ */ new Map();
         const scopeRefEntries = [];
         const declarations = [];
-        for (const [fieldPath, entry] of refScopeMap) {
-          if (!isScopeEntry(entry)) continue;
+        for (const site of sites) {
+          if (site.scopes.length === 0) continue;
           const raw = [];
-          for (const fe of resolveFieldEntries(r, fieldPath)) {
-            const items = Array.isArray(fe.value) ? fe.value : [fe.value];
-            items.forEach((v, i) => {
-              if (!v || typeof v !== "object") return;
-              const declarationPath = Array.isArray(fe.value) ? `${fe.path}[${i}]` : fe.path;
-              const rec = v;
-              if (isRefSentinel(v) || typeof rec.kind === "string" && typeof rec.name === "string") {
-                scopeRefEntries.push({
-                  path: declarationPath,
-                  refName: isRefSentinel(v) ? v.source : String(rec.name)
-                });
-                return;
-              }
-              raw.push(v);
-              declarations.push({ manifest: v, path: declarationPath });
-            });
+          const items = Array.isArray(site.data) ? site.data : [site.data];
+          items.forEach((v, i) => {
+            if (!v || typeof v !== "object") return;
+            const declarationPath = Array.isArray(site.data) ? `${site.path}[${i}]` : site.path;
+            const rec = v;
+            if (isRefSentinel(v) || typeof rec.kind === "string" && typeof rec.name === "string") {
+              scopeRefEntries.push({
+                path: declarationPath,
+                refName: isRefSentinel(v) ? v.source : String(rec.name)
+              });
+              return;
+            }
+            raw.push(v);
+            declarations.push({ manifest: v, path: declarationPath });
+          });
+          for (const { scope } of site.scopes) {
+            const pointers = Array.isArray(scope) ? scope : [scope];
+            for (const pointer of pointers) manifestsByPointer.set(pointer, raw);
           }
-          const pointers = Array.isArray(entry.scope) ? entry.scope : [entry.scope];
-          for (const pointer of pointers) manifestsByPointer.set(pointer, raw);
         }
         const scopePrefixes = Array.from(manifestsByPointer.keys()).map(scopePrefixOf);
         if (wantsScope) {
@@ -44819,37 +44345,47 @@ function visitManifest(resources, registry, visitor, options = {}) {
           });
         }
         if (wantsRefs) {
-          for (const [fieldPath, entry] of refScopeMap) {
-            if (!isRefEntry(entry)) continue;
-            const inScope = scopePrefixes.some((prefix) => pathUnderPrefix(fieldPath, prefix));
+          for (const reached of sites) {
+            const refs = expand2 ? reached.refs : reached.refs.filter((ref) => !ref.viaAnchor);
+            if (refs.length === 0 || !reached.data) continue;
+            const site = refs === reached.refs ? reached : { ...reached, refs };
+            const concretePath2 = site.path;
+            const inScope = scopePrefixes.some((prefix) => pathUnderPrefix(concretePath2, prefix));
             const visibleScopeManifests = [];
             if (inScope) {
               for (const [pointer, manifests] of manifestsByPointer) {
-                if (pathUnderPrefix(fieldPath, scopePrefixOf(pointer))) {
+                if (pathUnderPrefix(concretePath2, scopePrefixOf(pointer))) {
                   visibleScopeManifests.push(...manifests);
                 }
               }
             }
-            for (const { value, path: concretePath2 } of resolveFieldEntries(r, fieldPath)) {
-              if (!value) continue;
-              emittedRefPaths?.add(concretePath2);
-              visitor.onRef({
-                source: r,
-                fieldPath,
-                concretePath: concretePath2,
-                value,
-                entry,
-                inScope,
-                visibleScopeManifests
-              });
-            }
+            emittedRefPaths?.add(concretePath2);
+            visitor.onRef({
+              source: r,
+              fieldPath: site.refs[0].fieldPath,
+              concretePath: concretePath2,
+              value: site.data,
+              entry: siteRefEntry(site),
+              refs: site.refs,
+              inScope,
+              visibleScopeManifests
+            });
           }
         }
       }
-      if (wantsSchemaFrom && baseMap) {
-        for (const [fieldPath, entry] of baseMap) {
-          if (!isSchemaFromEntry(entry)) continue;
-          visitor.onSchemaFrom({ source: r, fieldPath, entry });
+      if (wantsSchemaFrom) {
+        for (const site of sites) {
+          for (const slot of site.schemaFrom) {
+            if (slot.viaAnchor) continue;
+            visitor.onSchemaFrom({
+              source: r,
+              fieldPath: slot.fieldPath,
+              concretePath: site.path,
+              value: site.data,
+              holder: site.holder,
+              entry: slot.entry
+            });
+          }
         }
       }
     }
@@ -44862,6 +44398,7 @@ function visitManifest(resources, registry, visitor, options = {}) {
           concretePath: path,
           value,
           entry: NESTED_REF_ENTRY,
+          refs: [],
           inScope: false,
           visibleScopeManifests: [],
           nested: true
@@ -44897,6 +44434,37 @@ function visitManifest(resources, registry, visitor, options = {}) {
     }
     visitor.onResourceExit?.({ source: r });
   }
+}
+
+// ../../analyzer/nodejs/src/reference-field-map.ts
+function satisfiesValueBranch(value, branches, registry) {
+  if (!branches?.length) return false;
+  return branches.some((branch) => {
+    const schema4 = valueBranchSchema(branch);
+    return registry.schemaCompileError(schema4) === void 0 && registry.validateWithRefs(value, schema4).length === 0;
+  });
+}
+function satisfiesSiteValue(value, refs, registry) {
+  return refs.some(
+    (ref) => satisfiesValueBranch(value, readRefSlot(ref.node)?.valueBranches, registry) || ref.alternatives.some(
+      ({ node, members }) => members !== void 0 && satisfiesValueBranch(value, [node], registry) && members.every(
+        ({ member, document, value: at2 }) => satisfiesValueBranch(substituteCelFields(at2, member, document), [member], registry)
+      )
+    )
+  );
+}
+function isValueAtSlot(value, refs, registry) {
+  const nodeUnionsValue = refs.some((ref) => (readRefSlot(ref.node)?.valueBranches.length ?? 0) > 0);
+  if (nodeUnionsValue && typeof value !== "object") return true;
+  return satisfiesSiteValue(value, refs, registry);
+}
+function isInlineResource(val) {
+  if (typeof val.name === "string") return false;
+  if (typeof val.kind !== "string") return false;
+  return true;
+}
+function collectRefs2(node) {
+  return readRefSlot(node)?.kinds ?? [];
 }
 
 // ../../analyzer/nodejs/src/system-kinds.ts
@@ -44970,25 +44538,15 @@ function schemaDefaultOf(enclosingSchema) {
     return value;
   };
 }
-function enclosingSchemaOf(rootSchema, slotFieldPath) {
-  const segments = slotFieldPath.split(".");
-  segments.pop();
-  let current = rootSchema;
-  for (const segment of segments) {
-    if (!current) return void 0;
-    const bare = segment.replace(/(\[\]|\{\})+$/g, "");
-    let next = propertySchemas(current).find(
-      ([k]) => k === bare
-    )?.[1];
-    if (!next) return void 0;
-    for (const marker of segment.slice(bare.length).match(/\[\]|\{\}/g) ?? []) {
-      next = marker === "[]" ? next?.items : next?.additionalProperties;
-      next = resolveLocalRef(next, rootSchema);
-      if (!next || typeof next !== "object") return void 0;
+function reachDefault(refs) {
+  if (refs.length === 0) return NO_DEFAULT;
+  return (pointer) => {
+    for (const ref of refs) {
+      const value = enclosingDefault(ref, pointer);
+      if (value !== void 0) return value;
     }
-    current = resolveLocalRef(next, rootSchema);
-  }
-  return current;
+    return void 0;
+  };
 }
 function isShapeField(manifest, concretePath2) {
   const head = concretePath2.split(/[.[]/, 1)[0];
@@ -45013,15 +44571,14 @@ function resolveUseAtSite(entry, root, concretePath2, schemaDefault) {
   const unresolvedReason = isTaggedSentinel(selector) ? "dynamic" : selector === void 0 ? "absent" : "unmatched";
   return { use: possibleUses(slot), unresolved: entry.useCases, unresolvedReason };
 }
-function resolveSlotUseAt(slot, resource, rootSchema, concretePath2, fieldPath) {
+function resolveSlotUseAt(slot, resource, ref, concretePath2) {
   const entry = {
     refs: slot.kinds,
     uses: slot.uses,
     isArray: false,
     ...slot.useCases ? { useCases: slot.useCases } : {}
   };
-  const schemaDefault = rootSchema ? schemaDefaultOf(enclosingSchemaOf(rootSchema, fieldPath)) : NO_DEFAULT;
-  return resolveUseAtSite(entry, resource, concretePath2, schemaDefault);
+  return resolveUseAtSite(entry, resource, concretePath2, reachDefault([ref]));
 }
 function isPlainRefValue(value) {
   if (typeof value.kind !== "string" || typeof value.name !== "string") return false;
@@ -45072,7 +44629,13 @@ function emitStepEdges(node, ctx) {
     const inline = written !== null && typeof written === "object" && !Array.isArray(written) && isInlineResource(written);
     node.refSlots = [
       ...node.refSlots ?? [],
-      { key: key2, path: `${node.path}.${key2}`, kinds: slot.kinds, ...inline ? { inline: true } : {} }
+      {
+        key: key2,
+        path: `${node.path}.${key2}`,
+        kinds: slot.kinds,
+        uses: possibleUses(slot),
+        ...inline ? { inline: true } : {}
+      }
     ];
     const targetName = refTargetName(written);
     if (targetName === void 0) continue;
@@ -45235,13 +44798,6 @@ function buildCallGraph(resources, registry, options = {}) {
   }
   let scopedNames = /* @__PURE__ */ new Set();
   let scopeLocal = /* @__PURE__ */ new Map();
-  const fieldMapFor = (manifest) => {
-    if (options.aliases && options.aliasesByModule) {
-      return registry.expandedFieldMapForResource(manifest, options.aliases, options.aliasesByModule);
-    }
-    if (options.aliases) return registry.getFieldMapForKind(manifest.kind, options.aliases);
-    return registry.getFieldMap(manifest.kind);
-  };
   visitManifest(
     resources,
     registry,
@@ -45281,37 +44837,35 @@ function buildCallGraph(resources, registry, options = {}) {
           edge.scoped = true;
         }
         for (const scopedNode of scopeLocal.values()) {
-          const fieldMap = fieldMapFor(scopedNode.manifest);
-          if (fieldMap) {
-            const definition = definitionFor2(scopedNode.manifest);
-            const rootSchema = definition?.schema;
-            for (const [fieldPath, entry] of fieldMap) {
-              if (!isRefEntry(entry)) continue;
-              for (const { value, path } of resolveFieldEntries(scopedNode.manifest, fieldPath)) {
-                const targetName = refTargetName(value);
-                if (targetName === void 0) continue;
-                const schemaDefault = rootSchema ? schemaDefaultOf(enclosingSchemaOf(rootSchema, fieldPath)) : NO_DEFAULT;
-                const { use, unresolved, unresolvedReason } = resolveUseAtSite(
-                  entry,
-                  scopedNode.manifest,
-                  path,
-                  schemaDefault
-                );
-                const edge = {
-                  from: scopedNode.id,
-                  toName: targetName,
-                  slot: fieldPath,
-                  path,
-                  use
-                };
-                const target = resolveScoped(targetName);
-                if (target) edge.to = target.id;
-                if (unresolved) edge.unresolved = unresolved;
-                if (unresolvedReason) edge.unresolvedReason = unresolvedReason;
-                if (entry.inputs !== void 0) edge.inputs = entry.inputs;
-                edges.push(edge);
-              }
-            }
+          for (const site of registry.referenceSites(
+            scopedNode.manifest,
+            options.aliases,
+            options.aliasesByModule
+          )) {
+            if (site.refs.length === 0) continue;
+            const targetName = refTargetName(site.data);
+            if (targetName === void 0) continue;
+            const fieldPath = site.refs[0].fieldPath;
+            const entry = siteRefEntry(site);
+            const { use, unresolved, unresolvedReason } = resolveUseAtSite(
+              entry,
+              scopedNode.manifest,
+              site.path,
+              reachDefault(site.refs)
+            );
+            const edge = {
+              from: scopedNode.id,
+              toName: targetName,
+              slot: fieldPath,
+              path: site.path,
+              use
+            };
+            const target = resolveScoped(targetName);
+            if (target) edge.to = target.id;
+            if (unresolved) edge.unresolved = unresolved;
+            if (unresolvedReason) edge.unresolvedReason = unresolvedReason;
+            if (entry.inputs !== void 0) edge.inputs = entry.inputs;
+            edges.push(edge);
           }
           collectStepsFor(scopedNode, resolveScoped);
         }
@@ -45330,9 +44884,7 @@ function buildCallGraph(resources, registry, options = {}) {
         }
         const targetName = refTargetName(event.value);
         if (targetName === void 0) return;
-        const definition = definitionFor2(event.source);
-        const rootSchema = definition?.schema;
-        const schemaDefault = !event.nested && rootSchema ? schemaDefaultOf(enclosingSchemaOf(rootSchema, event.fieldPath)) : NO_DEFAULT;
+        const schemaDefault = reachDefault(event.refs);
         const { use, unresolved, unresolvedReason } = event.nested && isShapeField(event.source, event.concretePath) ? { use: ["schema"] } : resolveUseAtSite(event.entry, event.source, event.concretePath, schemaDefault);
         const edge = {
           from: sourceId,
@@ -45643,16 +45195,17 @@ function canonicalJson(value) {
 }
 
 // ../../analyzer/nodejs/src/scope-declarations.ts
-function declaredScopes(resource, fieldMap) {
-  if (!fieldMap) return [];
+function declaredScopes(sites) {
   const out = [];
-  for (const [fieldPath, entry] of fieldMap) {
-    if (!isScopeEntry(entry)) continue;
-    const pointers = Array.isArray(entry.scope) ? entry.scope : [entry.scope];
-    const regions = pointers.map((p) => p.replace(/^\//, "").replace(/\//g, "."));
-    for (const { value, path } of resolveFieldEntries(resource, fieldPath)) {
-      if (Array.isArray(value)) out.push({ path, declarations: value, regions });
+  for (const site of sites) {
+    if (site.scopes.length === 0 || !Array.isArray(site.data)) continue;
+    const regions = /* @__PURE__ */ new Set();
+    for (const { scope } of site.scopes) {
+      for (const pointer of Array.isArray(scope) ? scope : [scope]) {
+        regions.add(pointer.replace(/^\//, "").replace(/\//g, "."));
+      }
     }
+    out.push({ path: site.path, declarations: site.data, regions: [...regions] });
   }
   return out;
 }
@@ -45758,8 +45311,7 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
     const current = queue[i];
     const { manifest: resource, home, outside } = current;
     const view = current.module !== void 0 && moduleOf3(resource) === void 0 ? { ...resource, metadata: { ...resource.metadata, module: current.module } } : resource;
-    const fieldMap = aliases && aliasesByModule ? registry.expandedFieldMapForResource(view, aliases, aliasesByModule) : registry.getFieldMapForKind(resource.kind, aliases);
-    if (!fieldMap) continue;
+    const sites = registry.referenceSites(view, aliases, aliasesByModule, resource);
     const parentName = resource.metadata.name;
     const parentModule = moduleOf3(view);
     const inherit = {
@@ -45767,7 +45319,7 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
       forwarded: current.forwarded,
       moduleGlobals: current.moduleGlobals
     };
-    const scopes = declaredScopes(resource, fieldMap);
+    const scopes = declaredScopes(sites);
     for (const scope of scopes) {
       for (const member of scopeMembers(scope)) {
         queue.push({ manifest: member, home: scope.declarations, outside, ...inherit });
@@ -45782,22 +45334,28 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
         names: scopeMembers(scope).map((member) => member.metadata.name)
       })).filter((scope) => scope.names.length > 0)
     ];
-    for (const [fieldPath, entry] of fieldMap) {
-      if (!isRefEntry(entry)) continue;
+    const extractedAt = [];
+    for (const site of sites) {
+      if (site.refs.length === 0) continue;
+      const entry = siteRefEntry(site);
       if (!acceptsInline(resource.kind, entry)) continue;
       if (current.inBody && entry.uses.includes("schema")) continue;
-      const scope = scopes.find((s) => scopeEncloses(s, fieldPath));
-      for (const manifest of extractInlinesAtPath(
+      if (extractedAt.some((at2) => site.path.startsWith(`${at2}.`) || site.path.startsWith(`${at2}[`))) {
+        continue;
+      }
+      const scope = scopes.find((s) => scopeEncloses(s, site.path));
+      const manifest = extractInlineAt(
         resource,
-        fieldPath,
+        site,
         parentName,
         resource.kind,
         inherit,
-        outsideAt(fieldPath, scope),
+        outsideAt(site.path, scope),
         entry.context
-      )) {
-        place2(manifest, scope?.declarations ?? home, parentModule, current.inBody);
-      }
+      );
+      if (!manifest) continue;
+      extractedAt.push(site.path);
+      place2(manifest, scope?.declarations ?? home, parentModule, current.inBody);
     }
     if (SYSTEM_KINDS3.has(resource.kind)) continue;
     extractStepTargets(
@@ -45894,83 +45452,38 @@ function pureSelfField(value) {
 function stepPathSegments(path) {
   return path.split(/[.[\]]/).filter((segment) => segment.length > 0);
 }
-function extractInlinesAtPath(resource, fieldPath, parentName, parentKind, inherit, outsideScopes, invocationContext) {
-  const extracted = [];
-  const parts = fieldPath.split(".");
-  function emit(inline, nameSegments, concretePath2) {
-    const name = sanitizeName([parentName, ...nameSegments].join("_"));
-    extracted.push(
-      buildManifest(
-        inline,
-        name,
-        {
-          parentKind,
-          parentName,
-          pathFromParent: concretePath2,
-          ...outsideScopes.length > 0 ? { outsideScopes } : {}
-        },
-        inherit,
-        invocationContext
-      )
-    );
-    return name;
-  }
-  function traverse2(obj, partsLeft, nameParts, pathSoFar) {
-    if (!obj || typeof obj !== "object" || partsLeft.length === 0) return;
-    const [head, ...rest] = partsLeft;
-    if (head === "{}") {
-      const container2 = obj;
-      for (const mapKey of Object.keys(container2)) {
-        const elem = container2[mapKey];
-        if (!elem || typeof elem !== "object") continue;
-        const sanitizedKey = sanitizeName(mapKey);
-        const childPath = pathSoFar ? `${pathSoFar}.${mapKey}` : mapKey;
-        if (rest.length === 0) {
-          if (isInlineResource(elem)) {
-            const name = emit(elem, [...nameParts, sanitizedKey], childPath);
-            container2[mapKey] = { kind: elem.kind, name };
-          }
-        } else {
-          traverse2(elem, rest, [...nameParts, sanitizedKey], childPath);
-        }
-      }
-      return;
-    }
-    const isArr = head.endsWith("[]");
-    const key2 = isArr ? head.slice(0, -2) : head;
-    const container = obj;
-    const val = container[key2];
-    if (val == null) return;
-    const keyPath = pathSoFar ? `${pathSoFar}.${key2}` : key2;
-    if (isArr) {
-      if (!Array.isArray(val)) return;
-      for (let idx = 0; idx < val.length; idx++) {
-        const elem = val[idx];
-        if (!elem || typeof elem !== "object") continue;
-        const elemId = typeof elem.name === "string" ? elem.name : String(idx);
-        const childPath = `${keyPath}[${idx}]`;
-        if (rest.length === 0) {
-          if (isInlineResource(elem)) {
-            const name = emit(elem, [...nameParts, key2, elemId], childPath);
-            val[idx] = { kind: elem.kind, name };
-          }
-        } else {
-          traverse2(elem, rest, [...nameParts, key2, elemId], childPath);
-        }
-      }
+function extractInlineAt(resource, site, parentName, parentKind, inherit, outsideScopes, invocationContext) {
+  const inline = site.data;
+  if (!inline || typeof inline !== "object" || Array.isArray(inline) || !site.holder) return void 0;
+  if (!isInlineResource(inline)) return void 0;
+  const nameParts = [];
+  let value = resource;
+  for (const key2 of site.keys) {
+    value = value[key2];
+    if (typeof key2 === "number") {
+      const itemName = value?.name;
+      nameParts.push(typeof itemName === "string" ? itemName : String(key2));
     } else {
-      if (rest.length === 0) {
-        if (val && typeof val === "object" && !Array.isArray(val) && isInlineResource(val)) {
-          const name = emit(val, [...nameParts, key2], keyPath);
-          container[key2] = { kind: val.kind, name };
-        }
-      } else {
-        traverse2(val, rest, [...nameParts, key2], keyPath);
-      }
+      nameParts.push(key2);
     }
   }
-  traverse2(resource, parts, [], "");
-  return extracted;
+  const name = sanitizeName([parentName, ...nameParts].join("_"));
+  site.holder[site.key] = {
+    kind: inline.kind,
+    name
+  };
+  return buildManifest(
+    inline,
+    name,
+    {
+      parentKind,
+      parentName,
+      pathFromParent: site.path,
+      ...outsideScopes.length > 0 ? { outsideScopes } : {}
+    },
+    inherit,
+    invocationContext
+  );
 }
 function buildManifest(inline, name, origin, inherit, invocationContext) {
   const existingMeta = inline.metadata && typeof inline.metadata === "object" ? inline.metadata : {};
@@ -46432,33 +45945,6 @@ var IdMinter = class {
     }
   }
 };
-function schemaAt(rootSchema, slotPath) {
-  if (!rootSchema) return void 0;
-  let current = rootSchema;
-  for (const segment of slotPath.split(".")) {
-    if (!current) return void 0;
-    if (segment === "{}") {
-      current = resolveLocalRef(
-        current.additionalProperties,
-        rootSchema
-      );
-      continue;
-    }
-    const bare = segment.replace(/(\[\]|\{\})+$/g, "");
-    let next = propertySchemas(current).find(
-      ([k]) => k === bare
-    )?.[1];
-    for (const marker of segment.slice(bare.length).match(/\[\]|\{\}/g) ?? []) {
-      next = resolveLocalRef(
-        marker === "[]" ? next?.items : next?.additionalProperties,
-        rootSchema
-      );
-      if (!next || typeof next !== "object") return void 0;
-    }
-    current = resolveLocalRef(next, rootSchema);
-  }
-  return current;
-}
 function isErrorBranch(schema4) {
   return schema4?.["x-telo-error-context"] !== void 0 || schema4?.["x-telo-outcome-list"] === "catches";
 }
@@ -46645,10 +46131,8 @@ function buildModuleGraph(resources, callGraph, deps, options = {}) {
   for (const node of nodes) {
     const manifest = node.root ? options.root : manifestById.get(node.id);
     if (!manifest) continue;
-    const definition = deps.definition(node.kind, node.module);
-    const schema4 = definition?.schema;
     const rowArrays = new Set(node.rowArrays.map((a) => a.field));
-    node.ports = buildPorts(manifest, deps, schema4, rowArrays);
+    node.ports = buildPorts(manifest, deps, rowArrays);
     const throws2 = deps.throwsOf?.(manifest);
     if (throws2 && (throws2.codes.length > 0 || throws2.unbounded)) node.throws = throws2;
     node.rows = weaveInlineRows(
@@ -46738,8 +46222,7 @@ function buildModuleGraph(resources, callGraph, deps, options = {}) {
       if (node.ownership === "enclosing") continue;
       const manifest = node.root ? options.root : manifestById.get(node.id);
       if (!manifest) continue;
-      const schema4 = deps.definition(node.kind, node.module)?.schema;
-      for (const site of forwardSitesOf(manifest, schema4, callGraph, callGraphIdOf(node.id), deps)) {
+      for (const site of forwardSitesOf(manifest, callGraph, callGraphIdOf(node.id), deps)) {
         const edge = {
           id: `${node.id}\0self\0${site.path}`,
           from: node.id,
@@ -46970,7 +46453,8 @@ function inlineRows(node, site, host, deps, rowIdByPath, out, forwarding) {
   out.rows.push(row);
   rowIdByPath.set(`${node.id}\0${site.path}`, id);
   const asManifest = { ...site.value, metadata: { name: id } };
-  const declaredSchema = declared?.schema;
+  const declarationSites2 = deps.refSites(asManifest);
+  const declarationPositions = forwarding ? deps.refPositions(asManifest) : [];
   for (const field of deps.refFields(asManifest)) {
     const reference = (entryPath, target, forward) => {
       const path = `${site.path}.${entryPath}`;
@@ -46994,14 +46478,14 @@ function inlineRows(node, site, host, deps, rowIdByPath, out, forwarding) {
         // host's own property — what decides whether it is drawn at all.
         slot: `${host.slot}.${field.path}`,
         path,
-        // Read off the DECLARED kind's own schema, exactly as a port's is —
-        // `use` is a property of the slot, and the slot belongs to the kind
-        // written here rather than to the resource hosting it.
-        uses: readUses(schemaAt(declaredSchema, field.path)),
+        // The DECLARED kind's own slot, exactly as a port's is — `use` is a
+        // property of the slot, and the slot belongs to the kind written here
+        // rather than to the resource hosting it.
+        uses: field.uses,
         ...forward ? { forward } : {}
       });
     };
-    for (const entry of resolveFieldEntries(asManifest, field.path)) {
+    for (const entry of sitesOf(declarationSites2, field.path)) {
       if (isInlineDeclaration(entry.value)) {
         inlineRows(
           node,
@@ -47018,7 +46502,7 @@ function inlineRows(node, site, host, deps, rowIdByPath, out, forwarding) {
       if (target !== void 0) reference(entry.path, target);
     }
     if (!forwarding) continue;
-    for (const forward of forwardSites(site.value, field.path)) {
+    for (const forward of forwardsAt(declarationPositions, field.path)) {
       reference(forward.path, `self.${forward.self.join(".")}`, forward.self);
     }
   }
@@ -47037,9 +46521,10 @@ function weaveInlineRows(node, manifest, callGraph, callGraphId, deps, rowIdByPa
       record(rowId, site.path, step.step[site.key], `${step.array}[].${site.key}`);
     }
   }
+  let manifestSites;
   for (const port of node.ports) {
     if (!port.slots.some((slot) => slot.inline)) continue;
-    for (const entry of resolveFieldEntries(manifest, port.slot)) {
+    for (const entry of sitesOf(manifestSites ??= deps.refSites(manifest), port.slot)) {
       const rowId = rowIdByPath.get(`${node.id}\0${entry.path}`) ?? rowAt(/* @__PURE__ */ new Map([[node.id, ownRows]]), node.id, entry.path);
       if (!rowId) continue;
       record(rowId, entry.path, entry.value, port.slot);
@@ -47072,44 +46557,22 @@ function weaveInlineRows(node, manifest, callGraph, callGraphId, deps, rowIdByPa
   }
   return out;
 }
-function forwardSites(value, fieldPath) {
+function forwardsAt(positions, fieldPath) {
   const out = [];
-  const visit4 = (current, parts, path) => {
-    if (path !== "") {
-      const self = selfForwardPath(current);
-      if (self) {
-        out.push({ path, self });
-        return;
-      }
-    }
-    if (parts.length === 0 || !current || typeof current !== "object") return;
-    if (isTaggedSentinel(current) || current.__compiled) return;
-    const [part, ...rest] = parts;
-    const join = (key3) => path ? `${path}.${key3}` : key3;
-    if (part === "{}") {
-      for (const [key3, child2] of Object.entries(current)) {
-        visit4(child2, rest, join(key3));
-      }
-      return;
-    }
-    const isArray2 = part.endsWith("[]");
-    const key2 = isArray2 ? part.slice(0, -2) : part;
-    const child = current[key2];
-    if (isArray2 && Array.isArray(child)) {
-      child.forEach((item, i) => visit4(item, rest, `${join(key2)}[${i}]`));
-      return;
-    }
-    visit4(child, rest, join(key2));
-  };
-  visit4(value, fieldPath.split("."), "");
+  for (const position of positions) {
+    if (position.fieldPath !== fieldPath) continue;
+    const self = selfForwardPath(position.value);
+    if (self) out.push({ path: position.path, self });
+  }
   return out;
 }
-function forwardSitesOf(manifest, schema4, callGraph, callGraphId, deps) {
+function forwardSitesOf(manifest, callGraph, callGraphId, deps) {
   const byPath = /* @__PURE__ */ new Map();
+  const positions = deps.refPositions(manifest);
   for (const field of deps.refFields(manifest)) {
-    for (const site of forwardSites(manifest, field.path)) {
+    for (const site of forwardsAt(positions, field.path)) {
       if (byPath.has(site.path)) continue;
-      byPath.set(site.path, { ...site, slot: field.path, uses: readUses(schemaAt(schema4, field.path)) });
+      byPath.set(site.path, { ...site, slot: field.path, uses: field.uses });
     }
   }
   for (const step of callGraph.steps(callGraphId)) {
@@ -47121,7 +46584,7 @@ function forwardSitesOf(manifest, schema4, callGraph, callGraphId, deps) {
         path: slot.path,
         self,
         slot: fieldPath,
-        uses: readUses(schemaAt(schema4, fieldPath))
+        uses: slot.uses
       });
     }
   }
@@ -47263,18 +46726,21 @@ function guardOf(entry) {
   }
   return void 0;
 }
-function buildPorts(manifest, deps, schema4, rowArrays) {
+function sitesOf(sites, fieldPath) {
+  return sites.filter((site) => site.fieldPath === fieldPath);
+}
+function buildPorts(manifest, deps, rowArrays) {
   const fields = deps.refFields(manifest);
+  const filled = deps.refSites(manifest);
   const arrayRefBases = new Set(
     fields.filter((f2) => isArrayOfRefs(f2.path)).map((f2) => arrayBaseOf(f2.path))
   );
   const ports = [];
   for (const field of fields) {
     if ([...arrayRefBases].some((base) => field.path.startsWith(`${base}[].`))) continue;
-    const slotSchema = schemaAt(schema4, field.path);
-    const uses = readUses(slotSchema);
+    const uses = field.uses;
     const slots = [];
-    for (const { value, path } of resolveFieldEntries(manifest, field.path)) {
+    for (const { value, path } of sitesOf(filled, field.path)) {
       const target = refName(value);
       const slot = { path };
       if (target !== void 0) slot.target = target;
@@ -47318,10 +46784,6 @@ function appendPathFor(path, manifest) {
 function containerArrayOf(path) {
   const marker = path.indexOf("[]");
   return marker === -1 ? path : path.slice(0, marker);
-}
-function readUses(slotSchema) {
-  const slot = readRefSlot(slotSchema);
-  return slot ? possibleUses(slot) : [];
 }
 function projectEdge(edge, callGraph, byId, rowIdByPath, rowsByOwner, byQualifiedName, projectedId) {
   const source = callGraph.nodes.get(edge.from);
@@ -47601,7 +47063,13 @@ function resolvedRefInSchema(obj) {
 }
 
 // ../../analyzer/nodejs/src/schema-from-sites.ts
-function schemaFromSites(resource, fieldPath, schemaFrom, ctx) {
+function schemaFromIsKindDecidable(schemaFrom) {
+  const expr = schemaFrom.startsWith("/") ? schemaFrom.slice(1) : schemaFrom;
+  const slash = expr.indexOf("/");
+  return slash === -1 || !schemaFrom.startsWith("/") && expr.slice(0, slash).includes(".");
+}
+function schemaFromSites(resource, slot, schemaFrom, ctx) {
+  const { fieldPath } = slot;
   const out = [];
   const label2 = `${resource.kind}/${resource.metadata?.name}`;
   const isAbsolute = schemaFrom.startsWith("/");
@@ -47640,8 +47108,8 @@ function schemaFromSites(resource, fieldPath, schemaFrom, ctx) {
       });
       return out;
     }
-    const subSchema = navigateJsonPointer(targetDef.schema, jsonPointer);
-    if (subSchema === void 0) {
+    const subSchema2 = navigateJsonPointer(targetDef.schema, jsonPointer);
+    if (subSchema2 === void 0) {
       out.push({
         code: "SCHEMA_FROM_MISSING_PATH",
         message: `${label2}: x-telo-schema-from at '${fieldPath}' \u2192 kind '${targetKind}' has no schema path '${jsonPointer}'`,
@@ -47649,77 +47117,64 @@ function schemaFromSites(resource, fieldPath, schemaFrom, ctx) {
       });
       return out;
     }
-    for (const { value, path } of resolveFieldEntries(resource, fieldPath)) {
-      if (value == null) continue;
+    if (slot.value == null) return out;
+    out.push({
+      path: slot.path,
+      value: slot.value,
+      schema: subSchema2,
+      source: `${anchorName}${jsonPointer}`,
+      form: "anchored"
+    });
+    return out;
+  }
+  const { value, path } = slot;
+  if (value == null) return out;
+  const enclosing = isAbsolute ? resource : slot.holder && !Array.isArray(slot.holder) ? slot.holder : void 0;
+  const anchorVal = enclosing?.[anchorName];
+  if (!anchorVal || typeof anchorVal !== "object") return out;
+  const ref = anchorVal;
+  if (typeof ref.kind !== "string") return out;
+  const target = typeof ref.name === "string" ? ctx.resolveTarget(ref) : void 0;
+  const perInstance = target === void 0 ? void 0 : navigateJsonPointer(target, jsonPointer);
+  if (perInstance !== void 0) {
+    const instanceSchema = resolveTypeFieldToSchema(perInstance, ctx.typeManifests);
+    if (instanceSchema) {
       out.push({
         path,
         value,
-        schema: subSchema,
-        source: `${anchorName}${jsonPointer}`,
-        form: "anchored"
+        schema: instanceSchema,
+        source: `the schema '${ref.name}' declares at '${jsonPointer}'`,
+        form: "instance"
       });
+      return out;
     }
+  }
+  const refResolvedKind = ctx.aliases.resolveKind(ref.kind) ?? ref.kind;
+  const refDef = ctx.defs.resolve(ref.kind) ?? ctx.defs.resolve(refResolvedKind);
+  if (!refDef?.schema) {
+    out.push({
+      code: "SCHEMA_FROM_MISSING_PATH",
+      message: `${label2}: x-telo-schema-from at '${path}' \u2192 kind '${ref.kind}' has no schema`,
+      path
+    });
     return out;
   }
-  let anchorPath;
-  if (isAbsolute) {
-    anchorPath = anchorName;
-  } else {
-    const lastDot = fieldPath.lastIndexOf(".");
-    anchorPath = lastDot === -1 ? anchorName : fieldPath.slice(0, lastDot + 1) + anchorName;
-  }
-  const anchorValues = resolveFieldValues(resource, anchorPath);
-  if (anchorValues.length === 0) return out;
-  const fieldEntries = resolveFieldEntries(resource, fieldPath);
-  for (let i = 0; i < fieldEntries.length; i++) {
-    const { value, path } = fieldEntries[i];
-    if (value == null) continue;
-    const anchorVal = isAbsolute ? anchorValues[0] : anchorValues[i];
-    if (!anchorVal || typeof anchorVal !== "object") continue;
-    const ref = anchorVal;
-    if (typeof ref.kind !== "string") continue;
-    const target = typeof ref.name === "string" ? ctx.resolveTarget(ref) : void 0;
-    const perInstance = target === void 0 ? void 0 : navigateJsonPointer(target, jsonPointer);
-    if (perInstance !== void 0) {
-      const instanceSchema = resolveTypeFieldToSchema(perInstance, ctx.typeManifests);
-      if (instanceSchema) {
-        out.push({
-          path,
-          value,
-          schema: instanceSchema,
-          source: `the schema '${ref.name}' declares at '${jsonPointer}'`,
-          form: "instance"
-        });
-        continue;
-      }
-    }
-    const refResolvedKind = ctx.aliases.resolveKind(ref.kind) ?? ref.kind;
-    const refDef = ctx.defs.resolve(ref.kind) ?? ctx.defs.resolve(refResolvedKind);
-    if (!refDef?.schema) {
-      out.push({
-        code: "SCHEMA_FROM_MISSING_PATH",
-        message: `${label2}: x-telo-schema-from at '${path}' \u2192 kind '${ref.kind}' has no schema`,
-        path
-      });
-      continue;
-    }
-    const subSchema = navigateJsonPointer(refDef.schema, jsonPointer);
-    if (subSchema === void 0) {
-      out.push({
-        code: "SCHEMA_FROM_MISSING_PATH",
-        message: `${label2}: x-telo-schema-from at '${path}' \u2192 kind '${ref.kind}' has no schema path '${jsonPointer}'`,
-        path
-      });
-      continue;
-    }
+  const subSchema = navigateJsonPointer(refDef.schema, jsonPointer);
+  if (subSchema === void 0) {
     out.push({
-      path,
-      value,
-      schema: subSchema,
-      source: `${ref.kind}${jsonPointer}`,
-      form: "kind"
+      code: "SCHEMA_FROM_MISSING_PATH",
+      message: `${label2}: x-telo-schema-from at '${path}' \u2192 kind '${ref.kind}' has no schema path '${jsonPointer}'`,
+      path
     });
+    return out;
   }
+  out.push({
+    path,
+    value,
+    schema: subSchema,
+    source: `${ref.kind}${jsonPointer}`,
+    form: "kind"
+  });
   return out;
 }
 function isSchemaFromSite(entry) {
@@ -47783,27 +47238,27 @@ function stepCallSites(manifest, defSchema, ctx) {
   }
   return out;
 }
-function slotCallSites(manifest, fieldMap, ctx) {
+function slotCallSites(manifest, sites, ctx) {
   const out = [];
-  if (!fieldMap) return out;
-  for (const [fieldPath, entry] of fieldMap) {
-    if (!isRefEntry(entry) || !entry.inputs) continue;
-    const pointer = pointerSegments2(entry.inputs);
+  for (const site of sites) {
+    if (site.refs.length === 0) continue;
+    const inputs = siteRefEntry(site).inputs;
+    if (!inputs) continue;
+    const pointer = pointerSegments(inputs);
     if (!pointer) continue;
-    for (const { value: invoke, path: slotPath } of resolveFieldEntries(manifest, fieldPath)) {
-      if (!invoke || typeof invoke !== "object" || Array.isArray(invoke)) continue;
-      const enclosing = slotPath.slice(0, Math.max(0, slotPath.lastIndexOf(".")));
-      const inputsPath = [enclosing, ...pointer].filter(Boolean).join(".");
-      const values = navigateConcretePath2(manifest, inputsPath);
-      if (!values || typeof values !== "object" || Array.isArray(values)) continue;
-      out.push(
-        callSite("slot", inputsPath, values, invoke, manifest, ctx)
-      );
-    }
+    const invoke = site.data;
+    if (!invoke || typeof invoke !== "object" || Array.isArray(invoke)) continue;
+    const enclosing = site.path.slice(0, Math.max(0, site.path.lastIndexOf(".")));
+    const inputsPath = [enclosing, ...pointer].filter(Boolean).join(".");
+    const values = navigateConcretePath2(manifest, inputsPath);
+    if (!values || typeof values !== "object" || Array.isArray(values)) continue;
+    out.push(
+      callSite("slot", inputsPath, values, invoke, manifest, ctx)
+    );
   }
   return out;
 }
-function pointerSegments2(pointer) {
+function pointerSegments(pointer) {
   if (!pointer.startsWith("/")) return void 0;
   const segments = pointer.slice(1).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((s) => s.length > 0 && !/^\d+$/.test(s)) ? segments : void 0;
@@ -47876,7 +47331,7 @@ function derivedSlotsOf(resource, ctx) {
     ...schema4 ? stepCallSites(manifest, schema4, ctx) : [],
     ...slotCallSites(
       manifest,
-      ctx.defs.expandedFieldMapForResource(resource, ctx.aliases, ctx.aliasesByModule),
+      ctx.defs.referenceSites(resource, ctx.aliases, ctx.aliasesByModule),
       ctx
     )
   ];
@@ -47893,7 +47348,8 @@ function derivedSlotsOf(resource, ctx) {
     ctx.defs,
     {
       onSchemaFrom: (e) => {
-        for (const site of schemaFromSites(manifest, e.fieldPath, e.entry.schemaFrom, ctx)) {
+        const slot = { fieldPath: e.fieldPath, path: e.concretePath, value: e.value, holder: e.holder };
+        for (const site of schemaFromSites(manifest, slot, e.entry.schemaFrom, ctx)) {
           if (isSchemaFromSite(site)) at2(site.path, site.value, site.schema);
         }
       }
@@ -47901,8 +47357,7 @@ function derivedSlotsOf(resource, ctx) {
     {
       aliases: ctx.aliases,
       aliasesByModule: ctx.aliasesByModule,
-      skipKinds: REF_VALIDATION_SKIP_KINDS,
-      expand: false
+      skipKinds: REF_VALIDATION_SKIP_KINDS
     }
   );
   return out;
@@ -47954,9 +47409,9 @@ function collectStepInputIssues(manifest, defSchema, allManifests, defs, aliases
     (site) => checkCallSite(site, manifest, allManifests, defs, aliases, scopes, stepContext)
   );
 }
-function collectRefInputIssues(manifest, fieldMap, allManifests, defs, aliases, scopes) {
+function collectRefInputIssues(manifest, sites, allManifests, defs, aliases, scopes) {
   const ctx = callSiteContext(manifest, allManifests, defs, aliases, scopes);
-  return slotCallSites(manifest, fieldMap, ctx).flatMap(
+  return slotCallSites(manifest, sites, ctx).flatMap(
     (site) => checkCallSite(site, manifest, allManifests, defs, aliases, scopes)
   );
 }
@@ -48082,19 +47537,19 @@ function targetLabel(target) {
   }
   return `${String(target.kind)} '${metadata.name}'`;
 }
-function collectReferenceOutputIssues(manifest, fieldMap, allManifests, defs, aliases, scopes) {
+function collectReferenceOutputIssues(manifest, sites, allManifests, defs, aliases, scopes) {
   const out = [];
-  if (!fieldMap) return out;
   const ctx = callSiteContext(manifest, allManifests, defs, aliases, scopes);
   const contractScope = analyzerContractScope(defs, aliases, scopes, allManifests);
   const readingModule = manifest.metadata?.module;
-  for (const [fieldPath, entry] of fieldMap) {
-    if (!isRefEntry(entry) || !entry.outputType) continue;
-    const slot = refSlotOfEntry(entry);
-    for (const { value: ref, path } of resolveFieldEntries(manifest, fieldPath)) {
-      if (!ref || typeof ref !== "object" || Array.isArray(ref)) continue;
-      const reference = ref;
-      if (typeof reference.kind !== "string") continue;
+  for (const site of sites) {
+    const ref = site.data;
+    if (!ref || typeof ref !== "object" || Array.isArray(ref)) continue;
+    const reference = ref;
+    if (typeof reference.kind !== "string") continue;
+    const reported = /* @__PURE__ */ new Set();
+    for (const { slot } of site.refs) {
+      if (!slot.outputType) continue;
       const target = typeof reference.name === "string" ? ctx.resolveTarget(reference) : reference;
       if (!target) continue;
       const definition = contractScope.resolveIn(reference.kind, readingModule);
@@ -48104,10 +47559,10 @@ function collectReferenceOutputIssues(manifest, fieldMap, allManifests, defs, al
         defs
       );
       if (issues.length === 0) continue;
-      out.push({
-        path,
-        message: `${targetLabel(target)} does not return what this slot reads from it. The slot requires an output of ${JSON.stringify(slot.outputType)}; its declared output contract disagrees: ${issues.join("; ")}.`
-      });
+      const message = `${targetLabel(target)} does not return what this slot reads from it. The slot requires an output of ${JSON.stringify(slot.outputType)}; its declared output contract disagrees: ${issues.join("; ")}.`;
+      if (reported.has(message)) continue;
+      reported.add(message);
+      out.push({ path: site.path, message });
     }
   }
   return out;
@@ -48269,6 +47724,7 @@ function schemaWithTagsAsText(value) {
 }
 
 // ../../analyzer/nodejs/src/definition-registry.ts
+var CANONICAL_SCOPE = {};
 var DefinitionRegistry = class {
   constructor() {
     for (const def of KERNEL_BUILTINS) this.add(def, true);
@@ -48284,12 +47740,14 @@ var DefinitionRegistry = class {
    *  what lets a colliding type name be reported instead of silently dropped. */
   definitionSchemaIds = /* @__PURE__ */ new Set();
   defs = /* @__PURE__ */ new Map();
-  fieldMaps = /* @__PURE__ */ new Map();
   /** Reverse inheritance index: parent kind → direct child kinds. */
   extendedBy = /* @__PURE__ */ new Map();
   /** Memoized inheritance-resolved schemas. `null` records "resolved to
    *  nothing", so a kind with no schema is not re-walked on every resource. */
   effectiveSchemas = /* @__PURE__ */ new Map();
+  /** Per kind key, per owner alias scope — cleared with `effectiveSchemas`. */
+  kindReaches = /* @__PURE__ */ new Map();
+  resourceSites = /* @__PURE__ */ new WeakMap();
   /** DEPRECATED module identity table: identity string → canonical module name
    *  ("std/pipeline" → "pipeline"). Serves only the legacy
    *  `<namespace>/<module>#<Kind>` form of `x-telo-ref`, kept resolvable for
@@ -48305,8 +47763,8 @@ var DefinitionRegistry = class {
     const { name, module: mod } = definition.metadata;
     const key2 = mod ? `${mod}.${name}` : name;
     this.defs.set(key2, definition);
-    this.fieldMaps.clear();
     this.effectiveSchemas.clear();
+    this.kindReaches.clear();
     if (definition.capability) {
       this.addExtendedBy(definition.capability, key2);
     }
@@ -48524,8 +47982,8 @@ var DefinitionRegistry = class {
    * context — is invisible on every child, silently and per consumer. Sharing
    * one memo is what keeps those consumers from drifting apart.
    *
-   * Lazy for the same reason `getFieldMap` is: a child registered before its
-   * parent still sees the inherited half once both are present.
+   * Lazy so a child registered before its parent still sees the inherited
+   * half once both are present.
    */
   effectiveSchema(kind) {
     const cached = this.effectiveSchemas.get(kind);
@@ -48546,54 +48004,93 @@ var DefinitionRegistry = class {
     const resolved = this.effectiveSchema(mod ? `${mod}.${name}` : name);
     return resolved ?? definition.schema;
   }
-  /** Returns the reference field map for the given kind, computed lazily from the
-   *  kind's AUTHOR-FACING (inheritance-resolved) schema and memoized. Lazy so a
-   *  child registered before its parent still sees the parent's inherited ref
-   *  slots once both are present. */
-  getFieldMap(kind) {
-    const cached = this.fieldMaps.get(kind);
+  /** The registry key a resource's kind resolves to — the kind as written
+   *  first, then through `scope` (the declaring module's alias table). */
+  kindKeyOf(kind, scope) {
+    if (this.defs.has(kind)) return kind;
+    const resolved = scope?.resolveKind(kind);
+    return resolved && this.defs.has(resolved) ? resolved : void 0;
+  }
+  /**
+   * Where a resource's kind reaches (`reference-reach.ts`): the kind's
+   * inheritance-resolved schema, and the resolver that expands its static
+   * `x-telo-schema-from` slots. The kind resolves in the alias scope of the
+   * module that DECLARED the resource; an anchor in the scope of the module that
+   * declared the definition writing it — the resource's kind first, then each
+   * anchor definition for the anchors nested in its own schema. Without
+   * `aliases`, a kind and an anchor are read as canonical. Memoized per kind and
+   * owner scope, anchors per document.
+   */
+  reachOf(resource, aliases, aliasesByModule) {
+    const moduleScope = aliases ? moduleAliasScope(resource.metadata, aliases, aliasesByModule) : void 0;
+    const key2 = this.kindKeyOf(String(resource.kind), moduleScope);
+    if (!key2) return void 0;
+    const def = this.defs.get(key2);
+    const ownerScope = aliases ? moduleAliasScope(def.metadata, aliases, aliasesByModule) : void 0;
+    let byScope = this.kindReaches.get(key2);
+    if (!byScope) this.kindReaches.set(key2, byScope = /* @__PURE__ */ new WeakMap());
+    const cached = byScope.get(ownerScope ?? CANONICAL_SCOPE);
     if (cached) return cached;
-    const def = this.defs.get(kind);
-    if (!def) return void 0;
-    const schema4 = effectiveAuthorSchema(def, (k) => this.resolve(k));
-    const map3 = buildReferenceFieldMap(schema4 ?? {});
-    this.fieldMaps.set(kind, map3);
-    return map3;
-  }
-  /** Returns the field map for `kind`, falling back to the alias-resolved kind when not found. */
-  getFieldMapForKind(kind, aliases) {
-    const fm = this.getFieldMap(kind);
-    if (fm) return fm;
-    const resolved = aliases?.resolveKind(kind);
-    return resolved ? this.getFieldMap(resolved) : void 0;
-  }
-  /** Returns the field map for `resource.kind` with x-telo-schema-from entries replaced
-   *  by their nested ref/scope slots — so Phase 2 inline normalization and Phase 5
-   *  injection see encoders nested behind a schema-from indirection (e.g.
-   *  http-server `Server.notFoundHandler.returns[].content[mime].encoder`).
-   *
-   *  Only static absolute schema-from paths with a dotted alias anchor are expanded
-   *  (e.g. "HttpDispatch.Outcomes/$defs/Returns"). Relative and unqualified absolute
-   *  anchors depend on a sibling property at runtime and stay unexpanded; the
-   *  analyzer's reference validation phase already flags the cases that matter. */
-  expandedFieldMapForResource(resource, aliases, aliasesByModule) {
-    const moduleScope = moduleAliasScope(resource.metadata, aliases, aliasesByModule);
-    const baseMap = this.getFieldMapForKind(resource.kind, moduleScope);
-    if (!baseMap) return void 0;
-    const resolvedKind = moduleScope.resolveKind(resource.kind) ?? resource.kind;
-    const def = this.resolve(resource.kind) ?? this.resolve(resolvedKind);
-    const ownerScope = moduleAliasScope(def?.metadata, aliases, aliasesByModule);
-    const expanded = /* @__PURE__ */ new Map();
-    for (const [path, entry] of baseMap) {
-      if (!isSchemaFromEntry(entry)) {
-        expanded.set(path, entry);
-        continue;
+    const schema4 = this.effectiveSchema(key2) ?? {};
+    const scopes = new WeakMap([[schema4, ownerScope]]);
+    const anchors = /* @__PURE__ */ new WeakMap();
+    const schemaFrom = (expression, document) => {
+      let byExpression = anchors.get(document);
+      if (!byExpression) anchors.set(document, byExpression = /* @__PURE__ */ new Map());
+      const known = byExpression.get(expression);
+      if (known !== void 0) return known ?? void 0;
+      const anchor = this.resolveSchemaFromAnchor(expression, scopes.get(document));
+      byExpression.set(expression, anchor ? { document: anchor.document, node: anchor.node } : null);
+      if (!anchor) return void 0;
+      if (!scopes.has(anchor.document)) {
+        scopes.set(
+          anchor.document,
+          aliases ? moduleAliasScope(anchor.definition.metadata, aliases, aliasesByModule) : void 0
+        );
       }
-      const sub = this.resolveSchemaFromSubMap(entry.schemaFrom, path, ownerScope);
-      if (!sub) continue;
-      for (const [subPath, subEntry] of sub) expanded.set(subPath, subEntry);
+      return { document: anchor.document, node: anchor.node };
+    };
+    const reach = { schema: schema4, schemaFrom };
+    byScope.set(ownerScope ?? CANONICAL_SCOPE, reach);
+    return reach;
+  }
+  /**
+   * Every concrete reference, step, scope and schema-from site of `data` (the
+   * resource itself by default), schema-from slots expanded — the one
+   * enumeration Phase-5 injection, scope creation and every analyzer pass read.
+   * Empty when the kind resolves to no definition.
+   *
+   * Memoized per resource object. A cached list stands while every site still
+   * holds the value it was enumerated over: the passes that rewrite a manifest
+   * (inline extraction, `!ref` resolution, Phase-5 substitution, scope handles)
+   * each replace the value at a site, which is what invalidates it.
+   */
+  referenceSites(resource, aliases, aliasesByModule, data = resource) {
+    const reach = this.reachOf(resource, aliases, aliasesByModule);
+    if (!reach) return [];
+    const cached = this.resourceSites.get(resource);
+    if (cached && cached.reach === reach && cached.data === data && cached.sites.every(
+      (site) => site.holder === void 0 || site.holder[site.key] === site.data
+    )) {
+      return cached.sites;
     }
-    return expanded;
+    const sites = reachSites(reach.schema, data, reach.schemaFrom, true);
+    this.resourceSites.set(resource, { reach, data, sites });
+    return sites;
+  }
+  /** Every concrete position of `data` at or above one of its reference slots
+   *  (`reachPositions`), schema-from slots expanded. Empty when the kind
+   *  resolves to no definition. */
+  referencePositions(resource, aliases, aliasesByModule, data = resource) {
+    const reach = this.reachOf(resource, aliases, aliasesByModule);
+    return reach ? reachPositions(reach.schema, data, reach.schemaFrom) : [];
+  }
+  /** The patterns a resource's kind declares, schema-from slots expanded, or
+   *  undefined when the kind resolves to no definition. */
+  declaredReachOf(resource, aliases, aliasesByModule) {
+    const reach = this.reachOf(resource, aliases, aliasesByModule);
+    if (!reach) return void 0;
+    return reach.declared ??= declaredReach(reach.schema, reach.schemaFrom);
   }
   /**
    * The schema an `x-telo-schema-from` slot derives its shape from.
@@ -48605,11 +48102,16 @@ var DefinitionRegistry = class {
    * guessing at one instance's shape.
    *
    * Its own method because a schema-from slot is otherwise INVISIBLE to anything
-   * reading `properties`: the field map needs the nested ref slots, and an IDE
+   * reading `properties`: the reach needs the nested ref slots, and an IDE
    * needs the very same node to offer a key or describe one. Two resolutions of
    * one annotation would eventually disagree about which anchors are static.
    */
   resolveSchemaFromNode(schemaFrom, ownerScope) {
+    return this.resolveSchemaFromAnchor(schemaFrom, ownerScope)?.node;
+  }
+  /** {@link resolveSchemaFromNode}, with the anchor definition and its whole
+   *  schema — the document the anchor's own local `$ref`s resolve against. */
+  resolveSchemaFromAnchor(schemaFrom, ownerScope) {
     const isAbsolute = schemaFrom.startsWith("/");
     const expr = isAbsolute ? schemaFrom.slice(1) : schemaFrom;
     const slashIdx = expr.indexOf("/");
@@ -48617,21 +48119,14 @@ var DefinitionRegistry = class {
     const anchorName = expr.slice(0, slashIdx);
     const jsonPointer = "/" + expr.slice(slashIdx + 1);
     if (!anchorName.includes(".")) return void 0;
-    const targetKind = ownerScope.resolveKind(anchorName);
+    const targetKind = ownerScope ? ownerScope.resolveKind(anchorName) : anchorName;
     if (!targetKind) return void 0;
     const targetDef = this.resolve(targetKind);
     if (!targetDef?.schema) return void 0;
-    const subSchema = navigateJsonPointer(
-      targetDef.schema,
-      jsonPointer
-    );
+    const document = targetDef.schema;
+    const subSchema = navigateJsonPointer(document, jsonPointer);
     if (!subSchema || typeof subSchema !== "object") return void 0;
-    return subSchema;
-  }
-  resolveSchemaFromSubMap(schemaFrom, fieldPath, ownerScope) {
-    const subSchema = this.resolveSchemaFromNode(schemaFrom, ownerScope);
-    if (!subSchema) return null;
-    return buildFieldMapAtPath(subSchema, fieldPath);
+    return { node: subSchema, document, definition: targetDef };
   }
   /** The kinds a definition descends from DIRECTLY — the same two edges
    *  `register` feeds into `extendedBy`, read the other way.
@@ -48960,10 +48455,9 @@ function resolveInherited(manifest, definition, ctx, ownerModule2) {
       return;
     }
     const handsBack = driven.slots.some(
-      ({ slot, fieldPath }) => throwsUses(
-        slot,
-        resolveSlotUseAt(slot, manifest, schema4, driven.path, fieldPath).use
-      ).some(handsFailureBack)
+      ({ slot, ref }) => throwsUses(slot, resolveSlotUseAt(slot, manifest, ref, driven.path).use).some(
+        handsFailureBack
+      )
     );
     if (handsBack) unionInto(result, resolveRefTargetThrows(driven.data, ctx, ownerModule2));
   });
@@ -49284,55 +48778,33 @@ var AnalysisRegistry = class _AnalysisRegistry {
     return this.defs.schemaForId(id);
   }
   /**
-   * Iterates a resource's reference and scope fields as declared by its definition.
-   * Calls onRef for each plain reference field and onScope for each scope field.
-   *
-   * Uses the expanded field map so x-telo-schema-from entries contribute their
-   * nested ref/scope slots — Phase 5 injection sees encoders that live inside a
-   * sub-schema (e.g. Server.notFoundHandler.returns[].content[mime].encoder).
+   * Every concrete reference, step, scope and schema-from site of a resource
+   * (`reference-reach.ts`), `x-telo-schema-from` slots expanded against their
+   * anchor definitions — the sites Phase-5 injection substitutes and scope
+   * creation stands a handle up at, read by the analyzer through the same
+   * enumeration.
    */
-  iterateFieldEntries(resource, onRef, onScope) {
-    const fieldMap = this.defs.expandedFieldMapForResource(
-      resource,
-      this.aliases,
-      this.aliasesByModule
-    );
-    if (!fieldMap) return;
-    for (const [fieldPath, entry] of fieldMap) {
-      if (isScopeEntry(entry)) {
-        onScope(fieldPath);
-        continue;
-      }
-      if (isRefEntry(entry)) {
-        onRef(fieldPath);
-      }
-    }
+  referenceSitesOf(resource, data = resource) {
+    return this.defs.referenceSites(resource, this.aliases, this.aliasesByModule, data);
   }
   /**
    * Returns every reference field a resource's definition declares, with arity
-   * and the capability each slot targets — derived purely from the schema field
-   * map, so it lists slots even when the manifest leaves them empty. Editor
-   * hosts render these as node ports (drag-to-wire for node-capability targets,
-   * inline picker for ambient targets).
+   * and the capability each slot targets — derived purely from the declared
+   * patterns of the kind's reach, so it lists slots even when the manifest
+   * leaves them empty. A pattern several branches declare lists once with its
+   * kinds unioned; a recursive slot lists at its outermost occurrence. Editor
+   * hosts render these as node ports (drag-to-wire for node-capability
+   * targets, inline picker for ambient targets).
    */
   refFieldsForResource(resource) {
-    const fieldMap = this.defs.expandedFieldMapForResource(
-      resource,
-      this.aliases,
-      this.aliasesByModule
-    );
-    if (!fieldMap) return [];
-    const out = [];
-    for (const [path, entry] of fieldMap) {
-      if (!isRefEntry(entry)) continue;
-      out.push({
-        path,
-        isArray: entry.isArray,
-        refs: entry.refs,
-        capabilities: this.capabilitiesForRefs(entry.refs)
-      });
-    }
-    return out;
+    const declared = this.defs.declaredReachOf(resource, this.aliases, this.aliasesByModule);
+    if (!declared) return [];
+    return declared.references.map(({ path, isArray: isArray2, kinds }) => ({
+      path,
+      isArray: isArray2,
+      refs: kinds,
+      capabilities: this.capabilitiesForRefs(kinds)
+    }));
   }
   /** Base capability an `x-telo-ref` constraint targets. A definition's declared
    *  `capability` is always one of the base capabilities, so it wins — this
@@ -49514,7 +48986,20 @@ var AnalysisRegistry = class _AnalysisRegistry {
       new Set(options.entryModule ? [options.entryModule] : [])
     );
     return {
-      refFields: (resource) => this.refFieldsForResource(resource),
+      refFields: (resource) => {
+        const declared = this.defs.declaredReachOf(resource, this.aliases, this.aliasesByModule);
+        return (declared?.references ?? []).map(({ path, isArray: isArray2, kinds, entries }) => ({
+          path,
+          isArray: isArray2,
+          refs: kinds,
+          capabilities: this.capabilitiesForRefs(kinds),
+          uses: [...new Set(entries.flatMap((entry) => possibleUses(refSlotOfEntry(entry))))]
+        }));
+      },
+      refPositions: (resource) => this.defs.referencePositions(resource, this.aliases, this.aliasesByModule),
+      refSites: (resource) => this.referenceSitesOf(resource).flatMap(
+        (site) => site.refs.length > 0 ? [{ path: site.path, fieldPath: site.refs[0].fieldPath, value: site.data }] : []
+      ),
       definition: (kind, module) => this.resolveDefinitionIn(kind, module),
       aliasesForModule: (module) => this.aliases.aliasesFor(module),
       throwsOf: (resource) => {
@@ -49554,7 +49039,7 @@ var AnalysisRegistry = class _AnalysisRegistry {
    *  against its own module name. The global alias table knows neither, so
    *  {@link resolveDefinition} silently returns undefined for them and callers
    *  fall back to an un-inherited view. Mirrors the module-scope selection in
-   *  `expandedFieldMapForResource`. */
+   *  `DefinitionRegistry.reachOf`. */
   resolverForDefinition(def) {
     const scope = moduleAliasScope(def?.metadata, this.aliases, this.aliasesByModule);
     return (kind) => {
@@ -50434,19 +49919,16 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
     };
   };
   const declaredInScopes = (resource) => {
-    const fieldMap = defs?.getFieldMapForKind(resource.kind, aliases);
-    if (!fieldMap) return void 0;
+    if (!defs) return void 0;
     let declared;
-    for (const [fieldPath, entry] of fieldMap) {
-      if (!isScopeEntry(entry)) continue;
-      for (const { value } of resolveFieldEntries(resource, fieldPath)) {
-        for (const element of Array.isArray(value) ? value : [value]) {
-          if (!element || typeof element !== "object" || Array.isArray(element)) continue;
-          const manifest = element;
-          const name = manifest.metadata?.name;
-          if (typeof manifest.kind === "string" && typeof name === "string") {
-            (declared ??= /* @__PURE__ */ new Map()).set(name, manifest);
-          }
+    for (const site of defs.referenceSites(resource, aliases, aliasesByModule)) {
+      if (site.scopes.length === 0) continue;
+      for (const element of Array.isArray(site.data) ? site.data : [site.data]) {
+        if (!element || typeof element !== "object" || Array.isArray(element)) continue;
+        const manifest = element;
+        const name = manifest.metadata?.name;
+        if (typeof manifest.kind === "string" && typeof name === "string") {
+          (declared ??= /* @__PURE__ */ new Map()).set(name, manifest);
         }
       }
     }
@@ -50507,13 +49989,165 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
   }
 }
 
+// ../../analyzer/nodejs/src/resource-rule.ts
+var RESOURCE_RULES_ANNOTATION = "x-telo-resource-rules";
+function isObject5(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function isCelNode(value) {
+  if (!isObject5(value)) return false;
+  if (value.__compiled === true) return true;
+  return value.__tagged === true && value.engine === CEL_ENGINE;
+}
+function deferredTagOf(value) {
+  if (!isTaggedSentinel(value) || isRefSentinel(value)) return void 0;
+  return value.engine === CEL_ENGINE ? void 0 : value.engine;
+}
+function isTaggedCondition(value) {
+  return isCelNode(value);
+}
+function celSourceOf(value) {
+  if (typeof value === "string") return value;
+  if (isCelNode(value) && typeof value.source === "string") return value.source;
+  return void 0;
+}
+function readRawResourceRules(schema4) {
+  if (!isObject5(schema4)) return void 0;
+  return schema4[RESOURCE_RULES_ANNOTATION];
+}
+function readResourceRules(schema4) {
+  const raw = readRawResourceRules(schema4);
+  if (!Array.isArray(raw)) return [];
+  const rules = [];
+  raw.forEach((entry, index) => {
+    if (!isObject5(entry)) return;
+    const condition = celSourceOf(entry.condition);
+    const { code, message } = entry;
+    if (!condition || typeof code !== "string" || typeof message !== "string") return;
+    if (code.length === 0 || message.length === 0) return;
+    const severity = entry.severity === "warning" ? "warning" : "error";
+    if (entry.severity !== void 0 && entry.severity !== "warning" && entry.severity !== "error") {
+      return;
+    }
+    const pointer = entry.in;
+    if (pointer !== void 0 && typeof pointer !== "string") return;
+    const resolve = entry.resolve;
+    if (resolve !== void 0 && !(Array.isArray(resolve) && resolve.every((p) => typeof p === "string" && pointerSegments2(p)))) {
+      return;
+    }
+    rules.push({
+      ...pointer === void 0 ? {} : { in: pointer },
+      ...resolve === void 0 ? {} : { resolve },
+      condition,
+      code,
+      message,
+      severity,
+      index
+    });
+  });
+  return rules;
+}
+function pointerSegments2(pointer) {
+  if (pointer === "" || pointer === "/") return [];
+  if (!pointer.startsWith("/")) return void 0;
+  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+}
+function resolvePointer(value, pointer) {
+  const segments = pointerSegments2(pointer);
+  if (!segments) return void 0;
+  let current = value;
+  for (const segment of segments) {
+    if (Array.isArray(current)) {
+      const index = Number(segment);
+      if (!Number.isInteger(index)) return void 0;
+      current = current[index];
+    } else if (isObject5(current)) {
+      current = current[segment];
+    } else {
+      return void 0;
+    }
+    if (current === void 0) return void 0;
+  }
+  return current;
+}
+function pointerToPath(pointer) {
+  const segments = pointerSegments2(pointer) ?? [];
+  return segments.reduce((acc, segment) => {
+    if (/^\d+$/.test(segment)) return `${acc}[${segment}]`;
+    return acc === "" ? segment : `${acc}.${segment}`;
+  }, "");
+}
+function resolveRuleSubjects(config, pointer) {
+  const collection = resolvePointer(config, pointer);
+  if (collection === void 0 || collection === null) return [];
+  const base = pointerToPath(pointer);
+  if (Array.isArray(collection)) {
+    return collection.map((value, index) => ({ path: `${base}[${index}]`, value }));
+  }
+  if (isObject5(collection)) {
+    return Object.entries(collection).map(([key2, value]) => ({
+      path: `${base}.${key2}`,
+      value,
+      key: key2
+    }));
+  }
+  return void 0;
+}
+function dynamicNode(value, path) {
+  const at2 = path || "(value)";
+  if (isCelNode(value)) return { path: at2, what: "a CEL expression" };
+  const tag = deferredTagOf(value);
+  return tag ? { path: at2, what: `an !${tag} embed` } : void 0;
+}
+function findDynamicLeaf(value, base = "") {
+  if (isObject5(value)) {
+    const own = dynamicNode(value, base);
+    if (own) return own;
+    if (typeof value.kind === "string" && base !== "") return void 0;
+    for (const [key2, child] of Object.entries(value)) {
+      const found = findDynamicLeaf(child, base === "" ? key2 : `${base}.${key2}`);
+      if (found) return found;
+    }
+    return void 0;
+  }
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      const found = findDynamicLeaf(value[i], `${base}[${i}]`);
+      if (found) return found;
+    }
+  }
+  return void 0;
+}
+function readNodes(chains, roots) {
+  const nodes = [];
+  for (const chain of chains) {
+    const root = chain[0];
+    let current = root !== void 0 && root in roots ? roots[root] : void 0;
+    if (current === void 0) continue;
+    for (const segment of chain.slice(1)) {
+      if (segment === "[*]") break;
+      if (Array.isArray(current)) {
+        const index = Number(segment);
+        current = Number.isInteger(index) ? current[index] : void 0;
+      } else if (isObject5(current)) {
+        current = current[segment];
+      } else {
+        current = void 0;
+      }
+      if (current === void 0) break;
+    }
+    if (current !== void 0) nodes.push(current);
+  }
+  return nodes;
+}
+
 // ../../analyzer/nodejs/src/referrer-rule.ts
 var REFERRER_RULES_ANNOTATION = "x-telo-referrer-rules";
-function isObject8(value) {
+function isObject6(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 function readRawReferrerRules(schema4) {
-  if (!isObject8(schema4)) return void 0;
+  if (!isObject6(schema4)) return void 0;
   return schema4[REFERRER_RULES_ANNOTATION];
 }
 function readReferrerRules(schema4) {
@@ -50521,7 +50155,7 @@ function readReferrerRules(schema4) {
   if (!Array.isArray(raw)) return [];
   const rules = [];
   raw.forEach((entry, index) => {
-    if (!isObject8(entry)) return;
+    if (!isObject6(entry)) return;
     const condition = celSourceOf(entry.condition);
     const { code, message, referrer, peers } = entry;
     if (!condition || typeof code !== "string" || typeof message !== "string") return;
@@ -50550,7 +50184,7 @@ function rewriteReferrerRuleKinds(node, rewrite2) {
   const raw = node[REFERRER_RULES_ANNOTATION];
   if (!Array.isArray(raw)) return;
   for (const entry of raw) {
-    if (!isObject8(entry) || typeof entry.referrer !== "string") continue;
+    if (!isObject6(entry) || typeof entry.referrer !== "string") continue;
     const rewritten = rewrite2(entry.referrer);
     if (rewritten !== void 0) entry.referrer = rewritten;
   }
@@ -51544,7 +51178,7 @@ function validateZoneSlotDeclarations(definition) {
 
 // ../../analyzer/nodejs/src/validate-schema-projection.ts
 var PROJECTION = "x-telo-schema-projection";
-function isObject9(value) {
+function isObject7(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 var PROJECTION_FROM2 = "x-telo-schema-projection-from";
@@ -51567,7 +51201,7 @@ function derivationIssues(manifest, kindDocument) {
       node.forEach((item, index) => visit4(item, `${path}[${index}]`, [...segments, index]));
       return;
     }
-    if (!isObject9(node)) return;
+    if (!isObject7(node)) return;
     for (const [key2, value] of Object.entries(node)) {
       const at2 = path === "" ? key2 : `${path}.${key2}`;
       if (key2 === PROJECTION_FROM2) {
@@ -51599,7 +51233,7 @@ function projectionIssues(manifest) {
       )
     );
   }
-  if (!isObject9(raw)) {
+  if (!isObject7(raw)) {
     return [
       ...issues,
       issue(
@@ -51649,7 +51283,7 @@ function projectionIssues(manifest) {
   }
   const reference = raw.reference;
   if (reference !== void 0) {
-    if (!isObject9(reference)) {
+    if (!isObject7(reference)) {
       issues.push(
         issue(
           "SCHEMA_PROJECTION_INVALID",
@@ -51735,7 +51369,7 @@ function modifierDefaultProblems(schema4, projection) {
   return problems;
 }
 function isArrayCollection(collection) {
-  return !!collection && isObject9(collection.items) && !isObject9(collection.additionalProperties);
+  return !!collection && isObject7(collection.items) && !isObject7(collection.additionalProperties);
 }
 function nestedProblem(nested, schema4, projection) {
   if (nested === void 0) return void 0;
@@ -51766,6 +51400,689 @@ function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
   const right = b;
   const keys = Object.keys(left);
   return keys.length === Object.keys(right).length && keys.every((key2) => Object.hasOwn(right, key2) && sameShape(left[key2], right[key2], seen));
+}
+
+// ../../analyzer/nodejs/src/rule-condition.ts
+var RULE_BUDGET_MS = 50;
+var UNTAGGED_CONDITION = "Write 'condition' with the !cel tag. The reader is lenient and a bare string still runs, but untagged the expression is not CEL to the editor's colouring, completion or hover, so a rule silently stops being CEL to every surface but this one.";
+function untaggedConditionFix(condition) {
+  return interpolationShape(condition) === "none" ? { replacement: condition, tag: "cel" } : void 0;
+}
+var HOST_BACKED2 = new Set(CEL_FUNCTIONS.filter((f2) => f2.hostBacked).map((f2) => f2.name));
+var NON_DETERMINISTIC2 = new Set(
+  CEL_FUNCTIONS.filter((f2) => !f2.deterministic).map((f2) => f2.name)
+);
+var sharedEnv;
+function ruleEnv() {
+  sharedEnv ??= buildCelEnvironment();
+  return sharedEnv;
+}
+var RULE_CACHE_LIMIT = 512;
+var compiledRules = /* @__PURE__ */ new Map();
+function compileRuleCondition(condition, fallbackRoots, moduleNames) {
+  const key2 = cacheKey(condition, moduleNames);
+  const cached = compiledRules.get(key2);
+  if (cached) return cached;
+  let result;
+  try {
+    const parsed = ruleEnv().parse(condition);
+    const ast2 = parsed.ast;
+    if (ast2) resolveModuleCalls(ast2, moduleNames);
+    result = {
+      parsed,
+      chains: ast2 ? extractAccessChains(ast2) : fallbackRoots.map((root) => [root])
+    };
+  } catch (err) {
+    result = { reason: err instanceof Error ? err.message : String(err) };
+  }
+  if (compiledRules.size >= RULE_CACHE_LIMIT) {
+    const oldest = compiledRules.keys().next();
+    if (!oldest.done) compiledRules.delete(oldest.value);
+  }
+  compiledRules.set(key2, result);
+  return result;
+}
+function cacheKey(condition, moduleNames) {
+  return moduleNames === void 0 || moduleNames.size === 0 ? condition : `${[...moduleNames].sort().join(",")}\0${condition}`;
+}
+function conditionRefusals(condition, moduleNames) {
+  const out = [];
+  const result = celEngine.analyze(condition, {
+    celEnv: ruleEnv(),
+    contextSchema: null,
+    moduleNames
+  });
+  for (const diagnostic of result.diagnostics) out.push(`Rule condition: ${diagnostic.message}`);
+  for (const call of result.calls) {
+    if (call.moduleCall) continue;
+    if (HOST_BACKED2.has(call.name)) {
+      out.push(
+        `Rule condition calls '${call.name}()', which the kernel supplies at boot (it needs Node crypto / Buffer). The analyzer registers a throwing stub, so the rule cannot run at telo check.`
+      );
+    } else if (NON_DETERMINISTIC2.has(call.name) || call.deterministic === false) {
+      out.push(
+        `Rule condition calls '${call.name}()', which re-evaluates per call. A check whose verdict depends on when it ran is not a check.`
+      );
+    }
+  }
+  return out;
+}
+function conditionCallRefusals(condition, moduleNames, flagsOf) {
+  const out = [];
+  let ast2;
+  try {
+    ast2 = ruleEnv().parse(condition).ast;
+  } catch {
+    return out;
+  }
+  const reported = /* @__PURE__ */ new Set();
+  for (const qualified of resolveModuleCalls(ast2, moduleNames)) {
+    if (reported.has(qualified)) continue;
+    reported.add(qualified);
+    const flags = flagsOf(qualified);
+    if (!flags) {
+      out.push(
+        `Rule condition calls '${qualified}', which reaches no function this module can call. A rule is evaluated at telo check, so every call it makes must reach a function written in CEL.`
+      );
+    } else if (flags.hostBacked) {
+      out.push(
+        `Rule condition calls '${qualified}', which needs the runtime's host (${renderChain(flags.hostBackedVia)}): a native function's code is never available to the analyzer, so the rule could never run at telo check.`
+      );
+    } else if (!flags.deterministic) {
+      out.push(
+        `Rule condition calls '${qualified}', which re-evaluates per call (${renderChain(flags.nondeterministicVia)}). A check whose verdict depends on when it ran is not a check.`
+      );
+    }
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/peer-binding.ts
+function isObject8(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function referenceValueOf(value) {
+  if (!isObject8(value)) return void 0;
+  if (value.__tagged === true && value.engine === "ref" && typeof value.source === "string") {
+    const dot = value.source.indexOf(".");
+    return dot > 0 ? { alias: value.source.slice(0, dot), name: value.source.slice(dot + 1) } : { name: value.source };
+  }
+  if (typeof value.name === "string" && typeof value.kind === "string") {
+    return {
+      name: value.name,
+      kind: value.kind,
+      ...typeof value.alias === "string" ? { alias: value.alias } : {}
+    };
+  }
+  return void 0;
+}
+function entryBoundary(concrete, shape) {
+  const c = concrete.split(".");
+  const s = shape.split(".");
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === "{}" || s[i].endsWith("[]")) return c.slice(0, i + 1).join(".");
+  }
+  return concrete;
+}
+function navigatePath2(value, path) {
+  if (path === "") return value;
+  let current = value;
+  for (const segment of path.split(".")) {
+    const parsed = /^([^[\]]*)((?:\[\d+\])*)$/.exec(segment);
+    if (!parsed) return void 0;
+    const [, key2, indices] = parsed;
+    if (key2 !== "") {
+      if (!isObject8(current)) return void 0;
+      current = current[key2];
+    }
+    for (const index of indices.match(/\d+/g) ?? []) {
+      if (!Array.isArray(current)) return void 0;
+      current = current[Number(index)];
+    }
+    if (current === void 0) return void 0;
+  }
+  return current;
+}
+function entryShapeOf(shapes, collectionPath, isArray2) {
+  const wanted = isArray2 ? `${collectionPath}[]` : `${collectionPath}.{}`;
+  return shapes.some((shape) => shape === wanted || shape.startsWith(`${wanted}.`)) ? wanted : void 0;
+}
+function dynamicInDeclaration(declaration) {
+  for (const [key2, value] of Object.entries(declaration)) {
+    if (key2 === "metadata" || isModulePath(value)) continue;
+    const dynamic = dynamicNode(value, key2);
+    if (dynamic) return dynamic;
+  }
+  return void 0;
+}
+var isModulePath = (value) => !!value && typeof value === "object" && value.engine === MODULE_PATH_ENGINE;
+function resolveEntry(value, at2, isSite, lookup) {
+  if (isSite(at2)) {
+    const reference = referenceValueOf(value);
+    if (reference) {
+      const declaration = lookup(reference);
+      if (!declaration) return { ok: false, failure: { reason: "unresolved", at: at2 } };
+      if (isInjectedDeclaration(declaration)) return { ok: false, failure: { reason: "kind-only", at: at2 } };
+      const dynamic = dynamicInDeclaration(declaration);
+      if (dynamic) {
+        return {
+          ok: false,
+          failure: { reason: "dynamic", at: `${at2} \u2192 ${dynamic.path}`, what: dynamic.what }
+        };
+      }
+      return { ok: true, value: declaration };
+    }
+  }
+  if (!isObject8(value)) return { ok: true, value };
+  const out = {};
+  for (const [key2, child] of Object.entries(value)) {
+    if (!isSite(`${at2}.${key2}`)) {
+      const dynamic2 = findDynamicLeaf(child, `${at2}.${key2}`);
+      if (dynamic2 !== void 0) {
+        return { ok: false, failure: { reason: "dynamic", at: dynamic2.path, what: dynamic2.what } };
+      }
+      out[key2] = child;
+      continue;
+    }
+    const reference = referenceValueOf(child);
+    if (!reference) {
+      out[key2] = child;
+      continue;
+    }
+    const declaration = lookup(reference);
+    if (!declaration) return { ok: false, failure: { reason: "unresolved", at: `${at2}.${key2}` } };
+    if (isInjectedDeclaration(declaration)) {
+      return { ok: false, failure: { reason: "kind-only", at: `${at2}.${key2}` } };
+    }
+    const dynamic = dynamicInDeclaration(declaration);
+    if (dynamic) {
+      return {
+        ok: false,
+        failure: { reason: "dynamic", at: `${at2}.${key2} \u2192 ${dynamic.path}`, what: dynamic.what }
+      };
+    }
+    out[key2] = declaration;
+  }
+  return { ok: true, value: out };
+}
+var PeerBinder = class {
+  constructor(env) {
+    this.env = env;
+  }
+  collections = /* @__PURE__ */ new WeakMap();
+  /**
+   * @param slotPath concrete path of the edge that reached the referenced
+   *   resource, e.g. `tables[2]` or `mounts[1].mount`.
+   */
+  bind(referrer, referrerKind, pointer, slotPath) {
+    const collectionPath = pointerToPath(pointer);
+    const shapes = this.env.refSlotsOf(referrerKind);
+    const sites = this.env.refSitesOf(referrer, referrerKind);
+    if (!shapes || !sites) {
+      return { ok: false, failure: { reason: "unknown-shape", at: collectionPath } };
+    }
+    const resolved = this.collection(referrer, pointer, collectionPath, shapes, sites);
+    if (!resolved.ok) return resolved;
+    const mine = resolved.entryShape ? this.entryKey(slotPath, collectionPath, resolved.entryShape) : void 0;
+    const at2 = mine === void 0 ? -1 : resolved.keys.indexOf(mine);
+    const peers = at2 === -1 ? resolved.values : resolved.values.filter((_2, i) => i !== at2);
+    if (at2 !== -1) return { ok: true, binding: { peers, entry: resolved.values[at2] } };
+    const shape = sites.get(slotPath);
+    if (!shape) {
+      if (navigatePath2(referrer, slotPath) === void 0) {
+        return { ok: true, binding: { peers, entry: void 0 } };
+      }
+      return { ok: false, failure: { reason: "unknown-shape", at: slotPath } };
+    }
+    const boundary = entryBoundary(slotPath, shape);
+    const entry = resolveEntry(
+      navigatePath2(referrer, boundary),
+      boundary,
+      (path) => sites.has(path),
+      this.env.declarationOf
+    );
+    if (!entry.ok) return entry;
+    return { ok: true, binding: { peers, entry: entry.value } };
+  }
+  /**
+   * The value at `pointer` with the references in it resolved one level — a
+   * resource rule's `resolve:` view of its OWN reference slots. A single slot
+   * yields the declaration it names; a collection yields the same collection
+   * with each entry resolved, exactly as `peers:` binds one.
+   */
+  resolveReferences(manifest, kind, pointer) {
+    const path = pointerToPath(pointer);
+    const shapes = this.env.refSlotsOf(kind);
+    const sites = this.env.refSitesOf(manifest, kind);
+    if (!shapes || !sites) return { ok: false, failure: { reason: "unknown-shape", at: path } };
+    const raw = resolvePointer(manifest, pointer);
+    if (raw === void 0 || raw === null) return { ok: true, value: raw };
+    if (sites.has(path)) {
+      return resolveEntry(raw, path, (at2) => at2 === path, this.env.declarationOf);
+    }
+    const resolved = this.collection(manifest, pointer, path, shapes, sites);
+    if (!resolved.ok) return resolved;
+    if (Array.isArray(raw)) return { ok: true, value: resolved.values };
+    return { ok: true, value: Object.fromEntries(resolved.keys.map((k, i) => [k, resolved.values[i]])) };
+  }
+  /** True when the rule has something to compare — the input to the
+   *  never-exercised report, asked through the same cache. */
+  hasPeers(referrer, referrerKind, pointer, slotPath) {
+    const bound = this.bind(referrer, referrerKind, pointer, slotPath);
+    return bound.ok && bound.binding.peers.length > 0;
+  }
+  collection(referrer, pointer, collectionPath, shapes, sites) {
+    let byPointer = this.collections.get(referrer);
+    if (!byPointer) {
+      byPointer = /* @__PURE__ */ new Map();
+      this.collections.set(referrer, byPointer);
+    }
+    const cached = byPointer.get(pointer);
+    if (cached) return cached;
+    const resolved = this.resolveCollection(referrer, pointer, collectionPath, shapes, sites);
+    byPointer.set(pointer, resolved);
+    return resolved;
+  }
+  resolveCollection(referrer, pointer, collectionPath, shapes, sites) {
+    const raw = resolvePointer(referrer, pointer);
+    if (raw === void 0 || raw === null) return { ok: true, keys: [], values: [] };
+    if (!Array.isArray(raw) && !isObject8(raw)) {
+      return { ok: false, failure: { reason: "no-collection", at: collectionPath } };
+    }
+    const entryShape = entryShapeOf(shapes, collectionPath, Array.isArray(raw));
+    if (!entryShape) {
+      return { ok: false, failure: { reason: "unknown-shape", at: collectionPath } };
+    }
+    const keys = Array.isArray(raw) ? raw.map((_2, i) => String(i)) : Object.keys(raw);
+    const items = Array.isArray(raw) ? raw : Object.values(raw);
+    const values = [];
+    for (let i = 0; i < items.length; i++) {
+      const at2 = Array.isArray(raw) ? `${collectionPath}[${keys[i]}]` : `${collectionPath}.${keys[i]}`;
+      const resolved = resolveEntry(items[i], at2, (path) => sites.has(path), this.env.declarationOf);
+      if (!resolved.ok) return resolved;
+      values.push(resolved.value);
+    }
+    return { ok: true, keys, values, entryShape };
+  }
+  /** The array index or map key `slotPath` occupies in the peers collection, or
+   *  `undefined` when the path does not run through it at all. */
+  entryKey(slotPath, collectionPath, entryShape) {
+    if (entryShape.endsWith("[]")) {
+      if (!slotPath.startsWith(`${collectionPath}[`)) return void 0;
+      const match = /^\[(\d+)\]/.exec(slotPath.slice(collectionPath.length));
+      return match ? match[1] : void 0;
+    }
+    if (!slotPath.startsWith(`${collectionPath}.`)) return void 0;
+    const rest = slotPath.slice(collectionPath.length + 1);
+    const dot = rest.indexOf(".");
+    return dot === -1 ? rest : rest.slice(0, dot);
+  }
+};
+function bindingFailureReason(failure) {
+  switch (failure.reason) {
+    case "no-collection":
+      return `'${failure.at}' holds no collection to resolve.`;
+    case "unresolved":
+      return `a reference at '${failure.at}' names a declaration this analysis does not hold, so it would resolve to nothing.`;
+    case "kind-only":
+      return `a reference at '${failure.at}' names a library's resources: input, known by its kind alone until the importer supplies it, so there is nothing to compare yet.`;
+    case "dynamic":
+      return `a value at '${failure.at}' holds ${failure.what ?? "a value"}, which is not known until the resource is created, so the comparison would run against a placeholder.`;
+    case "unknown-shape":
+      return `which paths under '${failure.at}' hold references is not known here, so nothing could be resolved into a declaration.`;
+  }
+}
+function analyzerPeerBinder(registry, aliases, manifests) {
+  const byName = /* @__PURE__ */ new Map();
+  const byModuleAndName = /* @__PURE__ */ new Map();
+  for (const m of manifests) {
+    const name = m.metadata?.name;
+    if (!name) continue;
+    byName.set(name, m);
+    const mod = m.metadata.module;
+    if (mod) byModuleAndName.set(`${mod}\0${name}`, m);
+  }
+  const declarationOf = (ref) => {
+    if (ref.alias && ref.alias !== "Self") {
+      const module = aliases.moduleForAlias(ref.alias);
+      return module ? byModuleAndName.get(`${module}\0${ref.name}`) : void 0;
+    }
+    return byName.get(ref.name);
+  };
+  const refSlotsOf = (kind) => registry.declaredReachOf({ kind }, aliases)?.references.map((reference) => reference.path);
+  const refSitesOf = (manifest, kind) => {
+    const view = manifest.kind === kind ? manifest : { ...manifest, kind };
+    if (!registry.declaredReachOf(view, aliases)) return void 0;
+    const sites = /* @__PURE__ */ new Map();
+    for (const site of registry.referenceSites(view, aliases)) {
+      if (site.refs.length > 0) sites.set(site.path, site.refs[0].fieldPath);
+    }
+    return sites;
+  };
+  return new PeerBinder({ declarationOf, refSlotsOf, refSitesOf });
+}
+function analyzerPeersTarget(registry) {
+  return (referrerKind, pointer) => {
+    const implementations = registry.getByExtends(referrerKind).map(
+      (d) => d.metadata.module ? `${d.metadata.module}.${d.metadata.name}` : String(d.metadata.name)
+    );
+    const candidates2 = [referrerKind, ...implementations];
+    const path = pointerToPath(pointer);
+    let sawSchema = false;
+    let sawCollection = false;
+    for (const kind of candidates2) {
+      const schema4 = registry.effectiveSchema(kind);
+      if (!schema4) continue;
+      sawSchema = true;
+      const node = schemaAtPointer(schema4, pointer);
+      if (node === void 0 || !isIterableSchema(node)) continue;
+      sawCollection = true;
+      const declared = registry.declaredReachOf({ kind });
+      if (!declared) continue;
+      for (const { path: fieldPath } of declared.references) {
+        if (fieldPath === `${path}[]` || fieldPath.startsWith(`${path}[].`) || fieldPath === `${path}.{}` || fieldPath.startsWith(`${path}.{}.`)) {
+          return "ok";
+        }
+      }
+    }
+    if (!sawSchema) return "unknown";
+    const filter = registry.resolve(referrerKind);
+    if (implementations.length === 0 && filter?.kind === "Telo.Abstract") return "unknown";
+    return sawCollection ? "plain" : "absent";
+  };
+}
+
+// ../../analyzer/nodejs/src/validate-resource-rules.ts
+var RESOURCE_RULE_BUDGET_MS = RULE_BUDGET_MS;
+function isObject9(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function schemaAtPointer(schema4, pointer) {
+  const segments = pointerSegments2(pointer);
+  if (!segments) return void 0;
+  let node = schema4;
+  for (const segment of segments) {
+    if (!isObject9(node)) return void 0;
+    const properties = isObject9(node.properties) ? node.properties : void 0;
+    const next = properties?.[segment] ?? (node.type === "array" ? node.items : void 0) ?? (isObject9(node.additionalProperties) ? node.additionalProperties : void 0);
+    if (next === void 0) return void 0;
+    node = next;
+  }
+  return node;
+}
+function isIterableSchema(node) {
+  if (!isObject9(node)) return true;
+  const type = node.type;
+  if (type === void 0) return true;
+  const types = Array.isArray(type) ? type : [type];
+  return types.some((t) => t === "array" || t === "object");
+}
+function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames) {
+  const own = manifest.schema;
+  const schema4 = effectiveSchema ?? own;
+  const raw = readRawResourceRules(own);
+  if (raw === void 0) return [];
+  const base = `schema.${RESOURCE_RULES_ANNOTATION}`;
+  const issues = [];
+  const issue = (path, message, fix) => {
+    issues.push({ code: "RESOURCE_RULE_INVALID", manifest, path, message, ...fix ? { fix } : {} });
+  };
+  if (!Array.isArray(raw)) {
+    issue(base, `'${RESOURCE_RULES_ANNOTATION}' must be an array of rules.`);
+    return issues;
+  }
+  const seen = /* @__PURE__ */ new Map();
+  raw.forEach((entry, index) => {
+    const at2 = `${base}[${index}]`;
+    if (!isObject9(entry)) {
+      issue(at2, "A rule must be an object with 'condition', 'code' and 'message'.");
+      return;
+    }
+    const condition = celSourceOf(entry.condition);
+    if (condition === void 0 || condition.length === 0) {
+      issue(
+        `${at2}.condition`,
+        "A rule needs a 'condition' \u2014 a CEL expression that is TRUE when the rule holds (the polarity Telo.JsonSchema rules use). Write it with the !cel tag."
+      );
+    }
+    if (typeof entry.code !== "string" || entry.code.length === 0) {
+      issue(
+        `${at2}.code`,
+        "A rule needs a 'code' naming it. It is reported in the diagnostic's data.rule, not as a diagnostic code \u2014 every violation reports under RESOURCE_RULE_VIOLATED."
+      );
+    } else {
+      const first = seen.get(entry.code);
+      if (first !== void 0) {
+        issue(
+          `${at2}.code`,
+          `Rule code '${entry.code}' is already used by rule ${first}. A code names one rule, so two rules sharing it are indistinguishable in data.rule.`
+        );
+      } else {
+        seen.set(entry.code, index);
+      }
+    }
+    if (typeof entry.message !== "string" || entry.message.length === 0) {
+      issue(
+        `${at2}.message`,
+        "A rule needs a 'message' saying what the relationship means \u2014 only the kind's author knows that, and the analyzer supplies only where and what."
+      );
+    }
+    if (entry.severity !== void 0 && entry.severity !== "error" && entry.severity !== "warning") {
+      issue(`${at2}.severity`, "'severity' must be 'error' or 'warning'.");
+    }
+    if (entry.in !== void 0) {
+      if (typeof entry.in !== "string") {
+        issue(`${at2}.in`, "'in' must be a JSON Pointer to the collection the rule iterates.");
+      } else if (!pointerSegments2(entry.in)) {
+        issue(`${at2}.in`, `'in' must be a JSON Pointer starting with '/', got '${entry.in}'.`);
+      } else {
+        const node = schemaAtPointer(schema4, entry.in);
+        if (node === void 0) {
+          issue(
+            `${at2}.in`,
+            `'in' points at '${entry.in}', which this kind's schema does not declare. The pointer is the diagnostic's anchor, so it must name a field of this kind.`
+          );
+        } else if (!isIterableSchema(node)) {
+          issue(
+            `${at2}.in`,
+            `'in' points at '${entry.in}', which is not a collection. A rule iterates an array or a map; omit 'in' for a rule about the resource as a whole.`
+          );
+        }
+      }
+    }
+    if (entry.resolve !== void 0) {
+      if (!Array.isArray(entry.resolve)) {
+        issue(`${at2}.resolve`, "'resolve' must be a list of JSON Pointers to this kind's reference slots.");
+      } else {
+        entry.resolve.forEach((pointer, i) => {
+          if (typeof pointer !== "string" || !pointerSegments2(pointer)) {
+            issue(`${at2}.resolve[${i}]`, "Each 'resolve' entry must be a JSON Pointer starting with '/'.");
+          } else if (schemaAtPointer(schema4, pointer) === void 0) {
+            issue(
+              `${at2}.resolve[${i}]`,
+              `'resolve' names '${pointer}', which this kind's schema does not declare. It must name a reference slot of this kind, or a collection of them.`
+            );
+          }
+        });
+      }
+    }
+    if (condition !== void 0 && condition.length > 0 && !isTaggedCondition(entry.condition)) {
+      issue(`${at2}.condition`, UNTAGGED_CONDITION, untaggedConditionFix(condition));
+    }
+    if (condition) {
+      for (const refusal of conditionRefusals(condition, moduleNames)) {
+        issue(`${at2}.condition`, refusal);
+      }
+    }
+  });
+  return issues;
+}
+function resourceRuleCallIssues(manifest, moduleNames, flagsOf) {
+  const raw = readRawResourceRules(manifest.schema);
+  if (!Array.isArray(raw)) return [];
+  const issues = [];
+  raw.forEach((entry, index) => {
+    const condition = isObject9(entry) ? celSourceOf(entry.condition) : void 0;
+    if (!condition) return;
+    for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
+      issues.push({
+        code: "RESOURCE_RULE_INVALID",
+        manifest,
+        path: `schema.${RESOURCE_RULES_ANNOTATION}[${index}].condition`,
+        message
+      });
+    }
+  });
+  return issues;
+}
+function evaluateResourceRules(manifest, definitionSchema, moduleNames, functions, binder, kind = manifest.kind) {
+  const rules = readResourceRules(definitionSchema);
+  if (rules.length === 0) return [];
+  const findings = [];
+  for (const rule of rules) {
+    const bound = resolvedView(manifest, rule, binder, kind);
+    if (!bound.ok) {
+      findings.push({ kind: "unbound", rule, failure: bound.failure });
+      continue;
+    }
+    const self = bound.self;
+    const subjects = rule.in === void 0 ? [{ path: "", value: self }] : resolveRuleSubjects(self, rule.in);
+    if (subjects === void 0) continue;
+    const compiled = compileRuleCondition(rule.condition, ["self", "this"], moduleNames);
+    if ("reason" in compiled) {
+      findings.push({ kind: "failed", rule, path: "", reason: compiled.reason });
+      continue;
+    }
+    const { parsed, chains } = compiled;
+    const started = Date.now();
+    for (const subject of subjects) {
+      let dynamic;
+      for (const node of readNodes(chains, { self, this: subject.value })) {
+        dynamic = findDynamicLeaf(node);
+        if (dynamic !== void 0) break;
+      }
+      if (dynamic !== void 0) {
+        findings.push({ kind: "skipped", rule, path: subject.path, dynamic });
+        continue;
+      }
+      let held;
+      try {
+        held = parsed({
+          self,
+          this: subject.value,
+          key: subject.key ?? null,
+          ...functions ? { [MODULE_CALL_DISPATCH_KEY]: functions } : {}
+        });
+      } catch (err) {
+        findings.push({
+          kind: "failed",
+          rule,
+          path: subject.path,
+          reason: err instanceof Error ? err.message : String(err)
+        });
+        break;
+      }
+      if (held !== true) {
+        findings.push({ kind: "violation", rule, path: subject.path, message: rule.message });
+      }
+      const elapsed = Date.now() - started;
+      if (elapsed > RESOURCE_RULE_BUDGET_MS) {
+        findings.push({ kind: "over-budget", rule, path: subject.path, elapsedMs: elapsed });
+        break;
+      }
+    }
+  }
+  return findings;
+}
+function resolvedView(manifest, rule, binder, kind) {
+  let self = manifest;
+  for (const pointer of rule.resolve ?? []) {
+    if (!binder) return { ok: false, failure: { reason: "unknown-shape", at: pointer } };
+    const resolved = binder.resolveReferences(manifest, kind, pointer);
+    if (!resolved.ok) return resolved;
+    self = replaceAt(self, pointerSegments2(pointer), resolved.value);
+  }
+  return { ok: true, self };
+}
+function replaceAt(value, segments, replacement) {
+  if (segments.length === 0) return replacement;
+  const [head, ...rest] = segments;
+  if (Array.isArray(value)) {
+    const copy = [...value];
+    copy[Number(head)] = replaceAt(copy[Number(head)], rest, replacement);
+    return copy;
+  }
+  const record = isObject9(value) ? value : {};
+  return { ...record, [head]: replaceAt(record[head], rest, replacement) };
+}
+function ruleExercised(manifest, rule) {
+  if (rule.in === void 0) return true;
+  const subjects = resolveRuleSubjects(manifest, rule.in);
+  return subjects !== void 0 && subjects.length > 0;
+}
+function reportResourceRules(manifest, definition, findings, declarationIsOurs) {
+  const name = manifest.metadata?.name ?? "<unnamed>";
+  const out = [];
+  for (const finding of findings) {
+    const at2 = "path" in finding && finding.path !== "" ? finding.path : void 0;
+    if (finding.kind === "violation") {
+      out.push({
+        // One analyzer-owned envelope: surfaces branch on `code`, so a published
+        // module free to emit any string could shadow machinery that never
+        // expected a third party in that space. The rule's own name rides in
+        // `data.rule`.
+        code: "RESOURCE_RULE_VIOLATED",
+        severity: finding.rule.severity,
+        message: `${manifest.kind}/${name}${at2 ? ` at '${at2}'` : ""}: ${finding.message}`,
+        manifest,
+        path: at2,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    if (finding.kind === "unbound") {
+      out.push({
+        code: "RESOURCE_RULE_SKIPPED",
+        severity: "information",
+        message: `${manifest.kind}/${name}: rule '${finding.rule.code}' did not run \u2014 ${bindingFailureReason(finding.failure)} Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
+        manifest,
+        path: finding.failure.at,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    if (finding.kind === "skipped") {
+      out.push({
+        code: "RESOURCE_RULE_SKIPPED",
+        severity: "information",
+        message: `${manifest.kind}/${name}: rule '${finding.rule.code}' did not run${at2 ? ` at '${at2}'` : ""} \u2014 the value holds ${finding.dynamic.what} at '${finding.dynamic.path}', which is not known until the resource is created. Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
+        manifest,
+        path: at2,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    const because = finding.kind === "failed" ? `failed to evaluate: ${finding.reason}. Guard an optional field with \`in\` or \`.?\`.` : `exceeded its evaluation budget (${finding.elapsedMs}ms) and was stopped, so coverage from here on is incomplete. Simplify the condition.`;
+    out.push({
+      code: "RESOURCE_RULE_INVALID",
+      severity: declarationIsOurs ? "error" : "warning",
+      message: `Rule '${finding.rule.code}' on kind '${manifest.kind}' ${because} This is a defect in the rule, not in ${name}` + (declarationIsOurs ? "." : " \u2014 it is declared by a module this workspace does not own."),
+      manifest: declarationIsOurs && definition ? definition : manifest,
+      path: declarationIsOurs && definition ? `schema.${RESOURCE_RULES_ANNOTATION}[${finding.rule.index}]` : at2,
+      rule: finding.rule.code
+    });
+  }
+  return out;
+}
+function reportUnexercisedRule(definition, rule) {
+  return {
+    code: "RESOURCE_RULE_UNEXERCISED",
+    severity: "information",
+    message: `Rule '${rule.code}' never ran: '${rule.in}' was empty on every resource of this kind, so nothing has proven the condition. A nested typo in the condition is caught only at evaluation.`,
+    manifest: definition,
+    path: `schema.${RESOURCE_RULES_ANNOTATION}[${rule.index}]`,
+    rule: rule.code
+  };
 }
 
 // ../../analyzer/nodejs/src/validate-referrer-rules.ts
@@ -51870,7 +52187,7 @@ function validatePeersDeclaration(entry, at2, issue, context) {
     );
     return;
   }
-  if (pointerSegments(peers) === void 0 || peers === "" || peers === "/") {
+  if (pointerSegments2(peers) === void 0 || peers === "" || peers === "/") {
     issue(
       `${at2}.peers`,
       `'peers' must be a JSON Pointer to a collection, e.g. /tables \u2014 '${peers}' is not one.`
@@ -52264,6 +52581,19 @@ function selectorPathOf(slotPath, pointer) {
   const enclosing = lastDot < 0 ? "" : slotPath.slice(0, lastDot);
   const segments = pointer.replace(/^\//, "").split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~")).join(".");
   return enclosing ? `${enclosing}.${segments}` : segments;
+}
+
+// ../../analyzer/nodejs/src/validate-scope-slots.ts
+function scopeSlotProblems(definition) {
+  const schema4 = definition.schema;
+  if (!schema4 || typeof schema4 !== "object" || Array.isArray(schema4)) return [];
+  return misplacedScopeSlots(schema4).map(({ location, reason }) => {
+    const path = `${location ? `schema.${location}` : "schema"}.x-telo-scope`;
+    return {
+      path,
+      message: `'${String(definition.metadata?.name)}' declares \`x-telo-scope\` at '${path}', where no scope can be stood up: ${reason}. A scope belongs on a named top-level property \u2014 one in the schema root's \`properties\` or in a root \`anyOf\` / \`oneOf\` / \`allOf\` branch's, written directly or through a local \`$ref\`. Move the annotation there.`
+    };
+  });
 }
 
 // ../../analyzer/nodejs/src/validate-value-type-slots.ts
@@ -59829,7 +60159,7 @@ function describe3(value) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.105.0";
+var TELO_SURFACE_VERSION = "0.106.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -60087,14 +60417,16 @@ function validateInvocationContract(manifests, registry, aliases, aliasesByModul
 function checkRefSlotWiring(m, definition, manifests, resolveDef, resource, filePath, diagnostics) {
   const schema4 = definition.schema;
   if (!schema4) return;
-  for (const [path, entry] of buildReferenceFieldMap(schema4)) {
-    if (!isRefEntry(entry)) continue;
-    if (slotTakesPairedInputs(schema4, path)) continue;
+  const ownModule = m.metadata?.module;
+  for (const site of reachSites(schema4, m)) {
+    if (site.refs.length === 0) continue;
+    if (site.refs.some((ref) => ref.slot.inputs !== void 0)) continue;
+    const entry = siteRefEntry(site);
     const slotDeclares = slotDeclaredInputs(entry.refs, resolveDef, manifests);
     const runSite = isRunOnlySlot(entry.refs, resolveDef);
     if (!runSite && slotDeclares === void 0) continue;
-    const ownModule = m.metadata?.module;
-    for (const name of refValuesAt(m, path)) {
+    const path = site.path;
+    for (const name of referencedNames(site.data)) {
       const target = findInModule(manifests, name, ownModule);
       if (!target) continue;
       const targetDef = resolveDef(target.kind, target);
@@ -60152,49 +60484,13 @@ function requiredInputsOf(schema4) {
   if (!schema4) return void 0;
   return Array.isArray(schema4.required) ? schema4.required : [];
 }
-function slotTakesPairedInputs(schema4, path) {
-  const parentPath2 = path.slice(0, Math.max(0, path.lastIndexOf(".")));
-  const parent = parentPath2 ? navigateSchema(schema4, parentPath2) : schema4;
-  const properties = parent?.properties ?? {};
-  return Object.values(properties).some((p) => p?.["x-telo-topology-role"] === "inputs");
-}
-function navigateSchema(schema4, path) {
-  let node = schema4;
-  for (const raw of path.split(".")) {
-    if (!node) return void 0;
-    const key2 = raw.replace(/\[\]|\{\}/g, "");
-    let next = (node.properties ?? {})[key2];
-    if (!next) return void 0;
-    if (raw.includes("[]")) next = next.items ?? {};
-    node = next;
-  }
-  return node;
-}
-function refValuesAt(manifest, path) {
+function referencedNames(value) {
   const out = [];
-  const walk5 = (node, segments) => {
-    if (node == null) return;
-    if (segments.length === 0) {
-      const items = Array.isArray(node) ? node : [node];
-      for (const item of items) {
-        if (item && typeof item === "object" && typeof item.name === "string" && typeof item.kind === "string") {
-          out.push(item.name);
-        }
-      }
-      return;
+  for (const item of Array.isArray(value) ? value : [value]) {
+    if (item && typeof item === "object" && typeof item.name === "string" && typeof item.kind === "string") {
+      out.push(item.name);
     }
-    const [head, ...rest] = segments;
-    const key2 = head.replace(/\[\]|\{\}/g, "");
-    const value = node[key2];
-    if (head.includes("[]") && Array.isArray(value)) {
-      for (const item of value) walk5(item, rest);
-    } else if (head.includes("{}") && value && typeof value === "object") {
-      for (const item of Object.values(value)) walk5(item, rest);
-    } else {
-      walk5(value, rest);
-    }
-  };
-  walk5(manifest, path.split("."));
+  }
   return out;
 }
 function checkContractResolves(m, md, manifests, resource, filePath, diagnostics) {
@@ -60846,7 +61142,7 @@ function validateReferences(resources, context, shared) {
         }
         if (typeof val !== "object") return;
         const refVal = val;
-        if (satisfiesValueBranch(val, entry.valueBranches, registry)) return;
+        if (satisfiesSiteValue(val, e.refs, registry)) return;
         if (isInlineResource(refVal)) return;
         if (typeof refVal.kind !== "string" && ("invoke" in refVal || "ref" in refVal || carriesDeclaredBranchKeys(refVal, entry.valueBranches))) {
           return;
@@ -60915,43 +61211,75 @@ function validateReferences(resources, context, shared) {
     },
     { aliases, aliasesByModule, skipKinds: REF_VALIDATION_SKIP_KINDS, expand: true }
   );
+  const reportedSlotFailures = /* @__PURE__ */ new Set();
+  const schemaFromContext = (r) => ({
+    defs: registry,
+    aliases,
+    aliasesByModule: aliasesByModule ?? /* @__PURE__ */ new Map(),
+    rootModules: /* @__PURE__ */ new Set(),
+    typeManifests: resources,
+    // In the reading resource's scope, as the kernel resolves it: a bare
+    // name same module first, an alias through that module's import.
+    resolveTarget: (ref) => {
+      if (typeof ref.name !== "string") return void 0;
+      if (typeof ref.alias === "string" && ref.alias !== "Self") {
+        const target = moduleAliasScope(r.metadata, aliases, aliasesByModule).moduleForAlias(
+          ref.alias
+        );
+        return target === void 0 ? void 0 : byModuleName.get(`${target}\0${ref.name}`);
+      }
+      return resolveScopedName(byNameAll.get(ref.name), moduleOf5, moduleOf5(r));
+    }
+  });
+  const reportFailure = (r, failure) => {
+    const resourceLabel = `${r.kind}/${r.metadata.name}`;
+    const key2 = `${resourceLabel}\0${failure.code}\0${failure.message}`;
+    if (reportedSlotFailures.has(key2)) return;
+    reportedSlotFailures.add(key2);
+    diagnostics.push({
+      severity: DiagnosticSeverity2.Error,
+      code: failure.code,
+      source: SOURCE25,
+      message: failure.message,
+      data: {
+        resource: { kind: r.kind, name: r.metadata.name },
+        filePath: r.metadata?.source,
+        path: failure.path
+      }
+    });
+  };
   visitManifest(
     localResources,
     registry,
     {
+      onResourceEnter: ({ source: r }) => {
+        const declared = registry.declaredReachOf(r, aliases, aliasesByModule);
+        for (const stop of declared?.stops ?? []) {
+          if (stop.viaAnchor) continue;
+          for (const { schemaFrom } of stop.schemaFrom) {
+            if (!schemaFromIsKindDecidable(schemaFrom)) continue;
+            const slot = { fieldPath: stop.path, path: stop.path, value: void 0 };
+            for (const site of schemaFromSites(r, slot, schemaFrom, schemaFromContext(r))) {
+              if (!isSchemaFromSite(site)) reportFailure(r, site);
+            }
+          }
+        }
+      },
       onSchemaFrom: (e) => {
         const r = e.source;
         const resourceLabel = `${r.kind}/${r.metadata.name}`;
         const resourceData = { kind: r.kind, name: r.metadata.name };
         const filePath = r.metadata?.source;
-        const sites = schemaFromSites(r, e.fieldPath, e.entry.schemaFrom, {
-          defs: registry,
-          aliases,
-          aliasesByModule: aliasesByModule ?? /* @__PURE__ */ new Map(),
-          rootModules: /* @__PURE__ */ new Set(),
-          typeManifests: resources,
-          // In the reading resource's scope, as the kernel resolves it: a bare
-          // name same module first, an alias through that module's import.
-          resolveTarget: (ref) => {
-            if (typeof ref.name !== "string") return void 0;
-            if (typeof ref.alias === "string" && ref.alias !== "Self") {
-              const target = moduleAliasScope(r.metadata, aliases, aliasesByModule).moduleForAlias(
-                ref.alias
-              );
-              return target === void 0 ? void 0 : byModuleName.get(`${target}\0${ref.name}`);
-            }
-            return resolveScopedName(byNameAll.get(ref.name), moduleOf5, moduleOf5(r));
-          }
-        });
+        const kindDecidable = schemaFromIsKindDecidable(e.entry.schemaFrom);
+        const sites = schemaFromSites(
+          r,
+          { fieldPath: e.fieldPath, path: e.concretePath, value: e.value, holder: e.holder },
+          e.entry.schemaFrom,
+          schemaFromContext(r)
+        );
         for (const site of sites) {
           if (!isSchemaFromSite(site)) {
-            diagnostics.push({
-              severity: DiagnosticSeverity2.Error,
-              code: site.code,
-              source: SOURCE25,
-              message: site.message,
-              data: { resource: resourceData, filePath, path: site.path }
-            });
+            if (!kindDecidable) reportFailure(r, site);
             continue;
           }
           const substituted = substituteDecodedCelFields(site.value, site.schema, void 0, {
@@ -60987,7 +61315,7 @@ function validateReferences(resources, context, shared) {
         }
       }
     },
-    { aliases, aliasesByModule, skipKinds: REF_VALIDATION_SKIP_KINDS, expand: false }
+    { aliases, aliasesByModule, skipKinds: REF_VALIDATION_SKIP_KINDS }
   );
   return diagnostics;
 }
@@ -61010,9 +61338,7 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
       onRef: (e) => {
         const value = e.value;
         if (isTaggedSentinel(value)) return;
-        const hasValueBranch = (e.entry.valueBranches?.length ?? 0) > 0;
-        if (hasValueBranch && typeof value !== "object") return;
-        if (satisfiesValueBranch(value, e.entry.valueBranches, registry)) return;
+        if (isValueAtSlot(value, e.refs, registry)) return;
         const r = e.source;
         const resourceLabel = `${r.kind}/${r.metadata.name}`;
         const resourceData = { kind: r.kind, name: r.metadata.name };
@@ -61655,68 +61981,63 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
           }
         }
       }
-      const fieldMap = registry.expandedFieldMapForResource(
-        { ...body2.manifest, metadata: { ...body2.manifest.metadata ?? {}, module: meta?.module } },
-        aliases,
-        aliasesByModule
-      );
-      if (!fieldMap) continue;
-      const computed = /* @__PURE__ */ new Set();
-      for (const [fieldPath, entry] of fieldMap) {
-        if (!isRefEntry(entry)) continue;
-        for (const site of computedReferenceSites(body2.manifest, fieldPath)) {
-          if (computed.has(site.path)) continue;
-          computed.add(site.path);
-          report(
-            "TEMPLATE_REF_COMPUTED",
-            `${body2.prefix}.${site.path}`,
-            `'${site.path}: !cel "${site.source}"' on ${label3} computes a value that holds the reference slot '${fieldPath}'. CEL values are data, so the reference cannot survive the expression. Forward it verbatim with a bare 'self.<path>' (the whole value, shaped as the slot expects), or write the slot itself as '!ref'.`
-          );
+      const view = {
+        ...body2.manifest,
+        metadata: { ...body2.manifest.metadata ?? {}, module: meta?.module }
+      };
+      for (const position of registry.referencePositions(view, aliases, aliasesByModule, body2.manifest)) {
+        const value = position.value;
+        if (!isTaggedSentinel(value) || value.engine !== CEL_ENGINE || isSelfForward(value.source)) {
+          continue;
         }
-        for (const site of resolveFieldEntries(body2.manifest, fieldPath)) {
-          const value = site.value;
-          if (value == null) continue;
-          const path = `${body2.prefix}.${site.path}`;
-          if (isTaggedSentinel(value)) {
-            const target = refSentinelTarget(value);
-            if (!target) continue;
-            const { alias, name: refName3 } = target;
-            if (alias && alias !== "Self") continue;
-            if (reachable.has(refName3)) continue;
-            const suggestion = nearestName(
-              refName3,
-              [...reachable].filter((name2) => !extracted.has(name2))
-            );
-            report(
-              "TEMPLATE_REF_UNKNOWN",
-              path,
-              `'${site.path}: !ref ${value.source}' on ${label3} names no sibling 'resources:' entry and no resource of this module. Siblings: ${written.filter((s) => s !== body2.manifest.metadata?.name).join(", ") || "(none)"}.` + (suggestion ? ` Did you mean '${suggestion}'?` : ""),
-              suggestion ? { replacement: suggestion } : void 0
-            );
-            continue;
-          }
-          const hasValueBranch = (entry.valueBranches?.length ?? 0) > 0;
-          if (hasValueBranch && typeof value !== "object") continue;
-          if (satisfiesValueBranch(value, entry.valueBranches, registry)) continue;
-          if (typeof value === "string") {
+        report(
+          "TEMPLATE_REF_COMPUTED",
+          `${body2.prefix}.${position.path}`,
+          `'${position.path}: !cel "${value.source}"' on ${label3} computes a value that holds the reference slot '${position.fieldPath}'. CEL values are data, so the reference cannot survive the expression. Forward it verbatim with a bare 'self.<path>' (the whole value, shaped as the slot expects), or write the slot itself as '!ref'.`
+        );
+      }
+      for (const site of registry.referenceSites(view, aliases, aliasesByModule, body2.manifest)) {
+        if (site.refs.length === 0) continue;
+        const value = site.data;
+        if (value == null) continue;
+        const path = `${body2.prefix}.${site.path}`;
+        if (isTaggedSentinel(value)) {
+          const target = refSentinelTarget(value);
+          if (!target) continue;
+          const { alias, name: refName3 } = target;
+          if (alias && alias !== "Self") continue;
+          if (reachable.has(refName3)) continue;
+          const suggestion = nearestName(
+            refName3,
+            [...reachable].filter((name2) => !extracted.has(name2))
+          );
+          report(
+            "TEMPLATE_REF_UNKNOWN",
+            path,
+            `'${site.path}: !ref ${value.source}' on ${label3} names no sibling 'resources:' entry and no resource of this module. Siblings: ${written.filter((s) => s !== body2.manifest.metadata?.name).join(", ") || "(none)"}.` + (suggestion ? ` Did you mean '${suggestion}'?` : ""),
+            suggestion ? { replacement: suggestion } : void 0
+          );
+          continue;
+        }
+        if (isValueAtSlot(value, site.refs, registry)) continue;
+        if (typeof value === "string") {
+          report(
+            "INVALID_REFERENCE_FORM",
+            path,
+            `string reference at '${site.path}' on the ${kind} entry \u2192 '${value}' is not supported; write it as '!ref ${value}'`,
+            isRefSourceSpelling(value) ? { replacement: value, tag: "ref" } : void 0
+          );
+          continue;
+        }
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          const obj = value;
+          if (typeof obj.name === "string" && extracted.has(obj.name)) continue;
+          if (typeof obj.kind === "string" && obj.name !== void 0) {
             report(
               "INVALID_REFERENCE_FORM",
               path,
-              `string reference at '${site.path}' on the ${kind} entry \u2192 '${value}' is not supported; write it as '!ref ${value}'`,
-              isRefSourceSpelling(value) ? { replacement: value, tag: "ref" } : void 0
+              `object reference '{ kind, name }' at '${site.path}' on the ${kind} entry is not supported; write it as '!ref ${describeRefName(obj.name)}'`
             );
-            continue;
-          }
-          if (value && typeof value === "object" && !Array.isArray(value)) {
-            const obj = value;
-            if (typeof obj.name === "string" && extracted.has(obj.name)) continue;
-            if (typeof obj.kind === "string" && obj.name !== void 0) {
-              report(
-                "INVALID_REFERENCE_FORM",
-                path,
-                `object reference '{ kind, name }' at '${site.path}' on the ${kind} entry is not supported; write it as '!ref ${describeRefName(obj.name)}'`
-              );
-            }
           }
         }
       }
@@ -61736,34 +62057,6 @@ function entrySchemaFor(definition, registry) {
   };
   entrySchemas.set(author, schema4);
   return schema4;
-}
-function computedReferenceSites(manifest, fieldPath) {
-  const out = [];
-  const visit4 = (value, parts, path) => {
-    if (isTaggedSentinel(value)) {
-      if (value.engine === CEL_ENGINE && !isSelfForward(value.source)) {
-        out.push({ path, source: value.source });
-      }
-      return;
-    }
-    if (parts.length === 0 || !value || typeof value !== "object") return;
-    const [part, ...rest] = parts;
-    const join = (key3) => path ? `${path}.${key3}` : key3;
-    if (part === "{}") {
-      for (const [k, v] of Object.entries(value)) visit4(v, rest, join(k));
-      return;
-    }
-    const isArray2 = part.endsWith("[]");
-    const key2 = isArray2 ? part.slice(0, -2) : part;
-    const child = value[key2];
-    if (isArray2 && Array.isArray(child)) {
-      child.forEach((item, i) => visit4(item, rest, `${join(key2)}[${i}]`));
-      return;
-    }
-    visit4(child, rest, join(key2));
-  };
-  visit4(manifest, fieldPath.split("."), "");
-  return out;
 }
 function describeDynamic(name) {
   if (isTaggedSentinel(name)) return `the expression '${name.source}'`;
@@ -61804,8 +62097,8 @@ function validateTemplateForwards(manifests, registry, aliases, aliasesByModule,
       const entryScope = moduleAliasScope(body2.definition.metadata, aliases, aliasesByModule);
       const entryName = body2.manifest.metadata?.name;
       for (const forward of templateForwardsOf(body2.manifest)) {
-        const declared = schemaAt2(authorSchema, forward.self, registry, ownScope);
-        const target = schemaAt2(entrySchema, forward.at, registry, entryScope);
+        const declared = schemaAt(authorSchema, forward.self, registry, ownScope);
+        const target = schemaAt(entrySchema, forward.at, registry, entryScope);
         if (!declared || !target) continue;
         const { compatible, issues } = checkSchemaCompatibility(
           declared,
@@ -61840,7 +62133,7 @@ function declaredIn(schema4, path) {
   }
   return true;
 }
-function schemaAt2(root, path, registry, scope) {
+function schemaAt(root, path, registry, scope) {
   let node = root;
   let nodeRoot = root;
   for (const segment of path) {
@@ -62397,7 +62690,7 @@ function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, 
     });
     const shape = (declaration) => {
       const view = module !== void 0 && typeof declaration.metadata?.module !== "string" ? { ...declaration, metadata: { ...declaration.metadata, module } } : declaration;
-      const fieldMap = registry.expandedFieldMapForResource(view, aliases, aliasesByModule);
+      const sites = registry.referenceSites(view, aliases, aliasesByModule, declaration);
       const definition = definitionInScope(
         registry,
         view.kind,
@@ -62406,8 +62699,8 @@ function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, 
         aliasesByModule
       );
       return {
-        fieldMap,
-        scopes: declaredScopes(declaration, fieldMap),
+        sites,
+        scopes: declaredScopes(sites),
         schema: registry.effectiveSchemaOf(definition)
       };
     };
@@ -62421,7 +62714,7 @@ function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, 
           nextShadowed.delete(name);
         }
       }
-      const { fieldMap, scopes, schema: schema4 } = shape(declaration);
+      const { sites, scopes, schema: schema4 } = shape(declaration);
       for (const scope of scopes) {
         for (const member of scope.declarations) {
           if (isScopeMember(member)) nextShadowed.add(member.metadata.name);
@@ -62446,14 +62739,9 @@ function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, 
           }
         }
       });
-      if (fieldMap) {
-        for (const [fieldPath, entry] of fieldMap) {
-          if (!isRefEntry(entry)) continue;
-          for (const { value, path } of resolveFieldEntries(declaration, fieldPath)) {
-            if (inScopeArray(path)) continue;
-            test(resolvedLocalName(value), path);
-          }
-        }
+      for (const site of sites) {
+        if (site.refs.length === 0 || inScopeArray(site.path)) continue;
+        test(resolvedLocalName(site.data), site.path);
       }
       if (schema4) {
         for (const body2 of stepBodiesOf(declaration, schema4)) {
@@ -63501,6 +63789,7 @@ var StaticAnalyzer = class {
     const moduleCallNames = moduleCallNamesByModule(manifests);
     const refConstraintIssues = [];
     const refSlotIssues = [];
+    const scopeSlotDiagnostics = [];
     const zoneSlotIssues = [];
     const SEVERITY = {
       error: DiagnosticSeverity2.Error,
@@ -63563,6 +63852,19 @@ var StaticAnalyzer = class {
       if (!ownModule || rootModules.has(ownModule)) {
         refConstraintIssues.push(...issues);
         refSlotIssues.push(...validateRefSlotDeclarations(m));
+        for (const problem of scopeSlotProblems(def)) {
+          scopeSlotDiagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "SCOPE_SLOT_MISPLACED",
+            source: SOURCE36,
+            message: `${m.kind} ${problem.message}`,
+            data: {
+              resource: { kind: m.kind, name: def.metadata?.name },
+              filePath: def.metadata?.source,
+              path: problem.path
+            }
+          });
+        }
         zoneSlotIssues.push(...validateZoneSlotDeclarations(m));
         resourceRuleIssues.push(
           ...validateResourceRuleDeclarations(
@@ -63676,6 +63978,7 @@ var StaticAnalyzer = class {
       }
       diagnostics.push(...validateReferenceForms(manifests, defs, aliases, aliasesByModule));
       for (const issue of refSlotIssues) diagnostics.push(refSlotIssueDiagnostic(issue));
+      diagnostics.push(...scopeSlotDiagnostics);
       for (const issue of valueTypeSlotIssues) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
@@ -64477,10 +64780,10 @@ var StaticAnalyzer = class {
           if (effectiveSchema) {
             const stepName = m.metadata?.name;
             const stepFile = m.metadata?.source;
-            const expandedFieldMap = defs.expandedFieldMapForResource(m, aliases, aliasesByModule);
+            const referenceSites = defs.referenceSites(m, aliases, aliasesByModule);
             for (const issue of collectReferenceOutputIssues(
               m,
-              expandedFieldMap,
+              referenceSites,
               allManifests,
               defs,
               aliases,
@@ -64501,7 +64804,7 @@ var StaticAnalyzer = class {
             const inputIssues = [
               ...collectRefInputIssues(
                 m,
-                expandedFieldMap,
+                referenceSites,
                 allManifests,
                 defs,
                 aliases,
@@ -68127,7 +68430,7 @@ function resolveSchemaFrom(node, resolve) {
     properties: { ...derived.properties ?? {}, ...node.properties ?? {} }
   };
 }
-function navigateSchema2(schema4, path, schemaFrom) {
+function navigateSchema(schema4, path, schemaFrom) {
   let current = schema4;
   for (const segment of path) {
     current = resolveSchemaFrom(resolveLocalRef3(current, schema4), schemaFrom);
@@ -68170,7 +68473,7 @@ function navigateSchema2(schema4, path, schemaFrom) {
 }
 function fieldSchemaAt(schema4, path, isItem, schemaFrom) {
   if (path.length === 0) return void 0;
-  const parent = navigateSchema2(schema4, path.slice(0, -1), schemaFrom);
+  const parent = navigateSchema(schema4, path.slice(0, -1), schemaFrom);
   const key2 = path[path.length - 1];
   let field = parent?.properties?.[key2] ?? parent?.additionalProperties;
   if (!field || typeof field !== "object") return void 0;
@@ -68213,7 +68516,7 @@ function lookupRefConstraints(definitionSchema, yamlPath, schemaFrom) {
   return lookupRefSlot(definitionSchema, yamlPath, schemaFrom)?.kinds ?? [];
 }
 function lookupRefSlot(definitionSchema, yamlPath, schemaFrom) {
-  const node = navigateSchema2(definitionSchema, yamlPath, schemaFrom);
+  const node = navigateSchema(definitionSchema, yamlPath, schemaFrom);
   return node ? readRefSlot(node) : void 0;
 }
 function detectContext(text, line, character, docs) {
@@ -68320,7 +68623,7 @@ function callInputsAt(registry, analysis, docKind, resourceName, concretePath2) 
   for (let depth = segments.length - 1; depth >= 0; depth--) {
     const enclosing = segments.slice(0, depth);
     const tail = segments.slice(depth);
-    const enclosingSchema = navigateSchema2(
+    const enclosingSchema = navigateSchema(
       definition.schema,
       // Schema navigation is index-free; the concrete path is not.
       enclosing.filter(Boolean),
@@ -68463,7 +68766,7 @@ function schemaAtPath(scope, parts) {
   const root = contextProperties(scope)[parts[0]];
   if (!root) return void 0;
   if (parts.length === 1) return root;
-  return navigateSchema2(root, parts.slice(1));
+  return navigateSchema(root, parts.slice(1));
 }
 function celMemberSymbols(scope, prefix) {
   if (prefix.length === 0) return celRootSymbols(scope);
@@ -68854,7 +69157,7 @@ function propKeyCompletions(kind, yamlPath, existingKeys, registry, callInputs) 
     }
     return [];
   }
-  const targetSchema = yamlPath.length === 0 ? definition.schema : navigateSchema2(
+  const targetSchema = yamlPath.length === 0 ? definition.schema : navigateSchema(
     definition.schema,
     yamlPath,
     (from) => registry.resolveSchemaFrom(from, kind)
@@ -69029,7 +69332,7 @@ function kindCompletions(registry, docKind, yamlPath, replaceRange) {
 function valueSuggestions(registry, docKind, yamlPath, replaceRange) {
   const definition = registry?.resolveDefinition(docKind);
   if (!registry || !definition?.schema || yamlPath.length === 0) return [];
-  const field = navigateSchema2(
+  const field = navigateSchema(
     definition.schema,
     yamlPath,
     (from) => registry.resolveSchemaFrom(from, docKind)
@@ -69321,7 +69624,7 @@ function fieldSchemaFor(resourceKind, relativePath, registry) {
   if (!resourceKind || !registry) return void 0;
   const def = registry.resolveDefinition(resourceKind);
   if (!def?.schema) return void 0;
-  return navigateSchema2(
+  return navigateSchema(
     def.schema,
     relativePath,
     (from) => registry.resolveSchemaFrom(from, resourceKind)
