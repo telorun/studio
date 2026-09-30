@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.106.0";
+var TELO_ENGINE_VERSION = "0.106.1+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -40949,6 +40949,18 @@ function resolveBindingOrder(bindings, moduleNames) {
   return { order, cycles };
 }
 
+// ../../analyzer/nodejs/src/executable-capability.ts
+function capabilityExtendsExecutable(capability, defs) {
+  let current = capability;
+  const seen = /* @__PURE__ */ new Set();
+  while (current && !seen.has(current)) {
+    if (current === "Telo.Executable") return true;
+    seen.add(current);
+    current = defs.resolve(current)?.extends;
+  }
+  return false;
+}
+
 // ../../analyzer/nodejs/src/schema-projection.ts
 function isObject4(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
@@ -43671,15 +43683,16 @@ function buildStepContextSchema(manifest, defSchema, allManifests, defs, aliases
   if (!props) return void 0;
   const contractScope = analyzerContractScope(defs, aliases, scopes, allManifests);
   const readingModule = manifest.metadata?.module;
+  let hasStepBody = false;
   for (const [fieldName, fieldSchema] of Object.entries(props)) {
     const stepCtx = readStepSlot(fieldSchema);
     if (!stepCtx) continue;
     const invokeField = stepCtx.invoke;
     const outputTypeField = stepCtx.outputType;
     const valueField = stepCtx.value;
-    if (!invokeField || !outputTypeField) continue;
     const steps = manifest[fieldName];
     if (!Array.isArray(steps)) continue;
+    hasStepBody = true;
     const stepItemSchema = resolveLocalRef2(
       fieldSchema.items,
       defSchema
@@ -43718,12 +43731,12 @@ function buildStepContextSchema(manifest, defSchema, allManifests, defs, aliases
       ) : invoke;
       const invokedDef = invokedKind ? contractScope.resolveIn(invokedKind, readingModule) : void 0;
       const outputSchema = resolveContract(
-        outputTypeField,
-        invokedManifest,
+        outputTypeField ?? "outputType",
+        outputTypeField ? invokedManifest : void 0,
         invokedDef,
         contractScope
       )?.schema;
-      const derived = outputSchema ? void 0 : valueDerivedContract(
+      const derived = outputSchema || !outputTypeField ? void 0 : valueDerivedContract(
         invokedManifest,
         defs.effectiveSchemaOf(invokedDef),
         outputTypeField
@@ -43742,7 +43755,13 @@ function buildStepContextSchema(manifest, defSchema, allManifests, defs, aliases
       };
     }
   }
-  return void 0;
+  return hasStepBody ? { type: "object", properties: {} } : void 0;
+}
+function callArgumentSites(definition, defs, resolveDef) {
+  if (!definition) return void 0;
+  const capability = inheritedCapability(definition, resolveDef);
+  if (capability === void 0 || !capabilityExtendsExecutable(capability, defs)) return void 0;
+  return kindCelEvalSites(definition, resolveDef);
 }
 function collectErrorContextScopes(defSchema) {
   const out = /* @__PURE__ */ new Map();
@@ -43821,12 +43840,14 @@ var CelScopeResolver = class {
   /** The input contract a step body's `inputs` is typed from, when the
    *  resource or its kind declares one. */
   inputsSchema;
+  /** Set only when the resource's kind receives call arguments. */
+  argumentSites;
   /** The enclosing definition's `self` schema, resolved once per resource. A
    *  template body's contexts resolve against the BODY, so `self` — the one
    *  binding anchored on the definition — is substituted before they do. */
   selfSchema;
-  /** The `steps` context schema for the current resource, or undefined when its
-   *  kind declares no step body. Exposed because the step-inputs check needs the
+  /** The `steps` context schema for the current resource, or undefined when it
+   *  holds no step body. Exposed because the step-inputs check needs the
    *  same schema this resource's expressions are typed against — recomputing it
    *  there is how the two would come to disagree. */
   get stepContextSchema() {
@@ -43858,7 +43879,9 @@ var CelScopeResolver = class {
     ) : void 0;
     this.errorScopes = collectErrorContextScopes(authorSchema);
     const contractScope = analyzerContractScope(defs, aliases, scopes, allManifests);
-    this.inputsSchema = this.stepContext ? resolveContract("inputType", m, definition, contractScope)?.schema : void 0;
+    const resolveDef = contractScope.resolveDefinition;
+    this.argumentSites = this.stepContext ? callArgumentSites(definition, defs, resolveDef) : void 0;
+    this.inputsSchema = this.argumentSites ? resolveContract("inputType", m, definition, contractScope)?.schema : void 0;
     this.selfSchema = m.kind === "Telo.Definition" ? buildSelfSchema(m, defs, aliases) : void 0;
     const declaringModule3 = m.metadata?.module;
     this.bodyScopes = templateBodies(m, defs, aliases, scopes).map((template) => {
@@ -43883,12 +43906,14 @@ var CelScopeResolver = class {
         aliases,
         scopes
       ) : void 0;
+      const argumentSites = stepContext ? callArgumentSites(body2.definition, defs, resolveDef) : void 0;
       return {
         prefix: body2.prefix,
         scopePrefix: body2.scopePrefix,
         manifest: body2.manifest,
         stepContext,
-        inputsSchema: stepContext ? resolveContract(
+        argumentSites,
+        inputsSchema: argumentSites ? resolveContract(
           "inputType",
           body2.manifest,
           body2.definition,
@@ -43970,25 +43995,22 @@ var CelScopeResolver = class {
     if (stepContext) {
       const base = matched ?? { type: "object", properties: {}, additionalProperties: true };
       const declaredInputs = inBody ? inBody.inputsSchema : this.inputsSchema;
+      const argumentSites = inBody ? inBody.argumentSites : this.argumentSites;
+      const localPath2 = inBody ? path.slice(inBody.prefix.length + 1) : path;
+      const argumentsBound = argumentSites !== void 0 && celEvalModeAt(argumentSites, localPath2) !== "compile";
       matched = {
         ...base,
         properties: {
-          // `inputs` is in scope beside `steps` wherever a step body runs — the
-          // step engine evaluates a step against the enclosing kind's own
-          // arguments, which is what `steps[0].inputs.x` reads. Modelled here
-          // because it was modelled NOWHERE: the step context is open, so a
-          // chain through it was never checked and the name's absence went
-          // unnoticed until something asked whether the root existed.
-          //
-          // Typed from the resolved input contract — the one the kernel binds
-          // and validates every call against — so a misspelled argument is the
-          // same `CEL_UNKNOWN_FIELD` a misspelled request field is. It wins over
-          // a caller's view of the slot (a route's open `inputs`), since the
-          // contract is what every call is validated against. Open only where
-          // no contract is declared.
-          inputs: { type: "object", additionalProperties: true },
+          // `inputs` is in scope beside `steps` only where a call's arguments
+          // exist: a kind in the `Telo.Executable` lineage, at a site evaluated
+          // per call rather than at compile time. Typed from the resolved input
+          // contract the kernel binds and validates every call against, so a
+          // misspelled argument is `CEL_UNKNOWN_FIELD`; it wins over a caller's
+          // view of the slot (a route's open `inputs`). Open only where no
+          // contract is declared.
+          ...argumentsBound ? { inputs: { type: "object", additionalProperties: true } } : {},
           ...base.properties ?? {},
-          ...declaredInputs ? { inputs: declaredInputs } : {},
+          ...argumentsBound && declaredInputs ? { inputs: declaredInputs } : {},
           steps: stepContext
         }
       };
@@ -60172,7 +60194,7 @@ function describe3(value) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.106.0";
+var TELO_SURFACE_VERSION = "0.106.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -63435,16 +63457,6 @@ function isExecutableKind(kind, defs, aliases) {
   if (!capability) return true;
   if (capabilityExtendsExecutable(capability, defs)) return true;
   return !NO_ENTRY_POINT_CAPABILITIES.has(capability);
-}
-function capabilityExtendsExecutable(capability, defs) {
-  let current = capability;
-  const seen = /* @__PURE__ */ new Set();
-  while (current && !seen.has(current)) {
-    if (current === "Telo.Executable") return true;
-    seen.add(current);
-    current = defs.resolve(current)?.extends;
-  }
-  return false;
 }
 var NO_ENTRY_POINT_CAPABILITIES = /* @__PURE__ */ new Set([
   "Telo.Mount",
