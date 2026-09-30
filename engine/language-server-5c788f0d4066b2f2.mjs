@@ -43554,6 +43554,77 @@ function forEachDrivenSlot(schema4, data, visit4) {
   }
 }
 
+// ../../analyzer/nodejs/src/resolve-schema-type-refs.ts
+var SCHEMA_FIELDS = ["schema", "inputType", "outputType"];
+var SIGNATURE_FIELDS = ["params", "returns"];
+function resolveSchemaTypeRefs(resources, aliases, aliasesByModule) {
+  const walk5 = (value, resolveAuthority, ownModule, isSlotRoot) => {
+    if (value === null || typeof value !== "object") return;
+    if (Array.isArray(value)) {
+      for (const item of value) walk5(item, resolveAuthority, ownModule, false);
+      return;
+    }
+    const obj = value;
+    const parsed = parseTeloTypeRef(obj.$ref);
+    if (parsed) {
+      const module = resolveAuthority(parsed.authority);
+      if (module) obj.$ref = canonicalTypeSchemaId(module, parsed.typeName);
+    }
+    const named = resolvedRefInSchema(obj);
+    if (named) {
+      const module = named.alias === void 0 ? ownModule : resolveAuthority(named.alias);
+      if (module) {
+        const canonical = canonicalTypeSchemaId(module, named.name);
+        if (isSlotRoot) {
+          obj.$ref = canonical;
+        } else {
+          delete obj.kind;
+          delete obj.name;
+          delete obj.alias;
+          obj.$ref = canonical;
+        }
+      }
+    }
+    for (const key2 of Object.keys(obj)) walk5(obj[key2], resolveAuthority, ownModule, false);
+  };
+  for (const r of resources) {
+    const ownModule = r.metadata?.module;
+    const resolver = moduleAliasScope(r.metadata, aliases, aliasesByModule);
+    const resolveAuthority = (authority) => authority === "Self" ? ownModule : resolver?.moduleForAlias(authority);
+    for (const field of SCHEMA_FIELDS) {
+      walk5(r[field], resolveAuthority, ownModule, true);
+    }
+    for (const field of SIGNATURE_FIELDS) {
+      walk5(r[field], resolveAuthority, ownModule, false);
+    }
+  }
+}
+function withCanonicalRefSentinels(value, ownModule, resolveModule) {
+  const target = refSentinelTarget(value);
+  if (target) {
+    const module = target.alias === void 0 || target.alias === "Self" ? ownModule : resolveModule(target.alias);
+    return module ? { $ref: canonicalTypeSchemaId(module, target.name) } : value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => withCanonicalRefSentinels(item, ownModule, resolveModule));
+  }
+  if (value === null || typeof value !== "object") return value;
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) return value;
+  const out = {};
+  for (const [key2, child] of Object.entries(value)) {
+    out[key2] = withCanonicalRefSentinels(child, ownModule, resolveModule);
+  }
+  return out;
+}
+function resolvedRefInSchema(obj) {
+  if (typeof obj.kind !== "string" || typeof obj.name !== "string") return null;
+  for (const key2 of Object.keys(obj)) {
+    if (key2 !== "kind" && key2 !== "name" && key2 !== "alias" && key2 !== "$ref") return null;
+  }
+  return typeof obj.alias === "string" ? { name: obj.name, alias: obj.alias } : { name: obj.name };
+}
+
 // ../../analyzer/nodejs/src/cel-scope.ts
 function buildSelfSchema(definition, defs, aliases) {
   const userSchema = defs ? effectiveAuthorSchema(
@@ -43789,7 +43860,20 @@ var CelScopeResolver = class {
     const contractScope = analyzerContractScope(defs, aliases, scopes, allManifests);
     this.inputsSchema = this.stepContext ? resolveContract("inputType", m, definition, contractScope)?.schema : void 0;
     this.selfSchema = m.kind === "Telo.Definition" ? buildSelfSchema(m, defs, aliases) : void 0;
-    this.bodyScopes = templateBodies(m, defs, aliases, scopes).map((body2) => {
+    const declaringModule3 = m.metadata?.module;
+    this.bodyScopes = templateBodies(m, defs, aliases, scopes).map((template) => {
+      const inputType = template.manifest.inputType;
+      const body2 = inputType === void 0 ? template : {
+        ...template,
+        manifest: {
+          ...template.manifest,
+          inputType: withCanonicalRefSentinels(
+            inputType,
+            declaringModule3,
+            (alias) => contractScope.projectionModules?.moduleForAlias(declaringModule3, alias)
+          )
+        }
+      };
       const bodySchema = defs.effectiveSchemaOf(body2.definition);
       const stepContext = bodySchema ? buildStepContextSchema(
         body2.manifest,
@@ -46989,77 +47073,6 @@ function copyPlainContainers(value) {
       copyPlainContainers(item)
     ])
   );
-}
-
-// ../../analyzer/nodejs/src/resolve-schema-type-refs.ts
-var SCHEMA_FIELDS = ["schema", "inputType", "outputType"];
-var SIGNATURE_FIELDS = ["params", "returns"];
-function resolveSchemaTypeRefs(resources, aliases, aliasesByModule) {
-  const walk5 = (value, resolveAuthority, ownModule, isSlotRoot) => {
-    if (value === null || typeof value !== "object") return;
-    if (Array.isArray(value)) {
-      for (const item of value) walk5(item, resolveAuthority, ownModule, false);
-      return;
-    }
-    const obj = value;
-    const parsed = parseTeloTypeRef(obj.$ref);
-    if (parsed) {
-      const module = resolveAuthority(parsed.authority);
-      if (module) obj.$ref = canonicalTypeSchemaId(module, parsed.typeName);
-    }
-    const named = resolvedRefInSchema(obj);
-    if (named) {
-      const module = named.alias === void 0 ? ownModule : resolveAuthority(named.alias);
-      if (module) {
-        const canonical = canonicalTypeSchemaId(module, named.name);
-        if (isSlotRoot) {
-          obj.$ref = canonical;
-        } else {
-          delete obj.kind;
-          delete obj.name;
-          delete obj.alias;
-          obj.$ref = canonical;
-        }
-      }
-    }
-    for (const key2 of Object.keys(obj)) walk5(obj[key2], resolveAuthority, ownModule, false);
-  };
-  for (const r of resources) {
-    const ownModule = r.metadata?.module;
-    const resolver = moduleAliasScope(r.metadata, aliases, aliasesByModule);
-    const resolveAuthority = (authority) => authority === "Self" ? ownModule : resolver?.moduleForAlias(authority);
-    for (const field of SCHEMA_FIELDS) {
-      walk5(r[field], resolveAuthority, ownModule, true);
-    }
-    for (const field of SIGNATURE_FIELDS) {
-      walk5(r[field], resolveAuthority, ownModule, false);
-    }
-  }
-}
-function withCanonicalRefSentinels(value, ownModule, resolveModule) {
-  const target = refSentinelTarget(value);
-  if (target) {
-    const module = target.alias === void 0 || target.alias === "Self" ? ownModule : resolveModule(target.alias);
-    return module ? { $ref: canonicalTypeSchemaId(module, target.name) } : value;
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => withCanonicalRefSentinels(item, ownModule, resolveModule));
-  }
-  if (value === null || typeof value !== "object") return value;
-  const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) return value;
-  const out = {};
-  for (const [key2, child] of Object.entries(value)) {
-    out[key2] = withCanonicalRefSentinels(child, ownModule, resolveModule);
-  }
-  return out;
-}
-function resolvedRefInSchema(obj) {
-  if (typeof obj.kind !== "string" || typeof obj.name !== "string") return null;
-  for (const key2 of Object.keys(obj)) {
-    if (key2 !== "kind" && key2 !== "name" && key2 !== "alias" && key2 !== "$ref") return null;
-  }
-  return typeof obj.alias === "string" ? { name: obj.name, alias: obj.alias } : { name: obj.name };
 }
 
 // ../../analyzer/nodejs/src/schema-from-sites.ts
