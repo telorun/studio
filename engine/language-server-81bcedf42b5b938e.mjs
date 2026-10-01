@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.106.1+unreleased";
+var TELO_ENGINE_VERSION = "0.107.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -34504,7 +34504,7 @@ function includeEngine(name, produced) {
     },
     fileClaims(source) {
       const { path } = normalizeIncludePath(source);
-      return path ? [{ path }] : [];
+      return path ? [{ path, notFoundCode: "INCLUDE_FILE_NOT_FOUND" }] : [];
     }
   };
 }
@@ -34698,7 +34698,7 @@ var modulePathEngine = {
   },
   fileClaims(source) {
     const { path } = normalizeModulePath(source);
-    return path ? [{ path, directory: true }] : [];
+    return path ? [{ path, directory: true, notFoundCode: "MODULE_PATH_NOT_FOUND" }] : [];
   }
 };
 
@@ -60194,7 +60194,7 @@ function describe3(value) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.106.1";
+var TELO_SURFACE_VERSION = "0.107.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -65599,40 +65599,80 @@ function synthPosition(modulePosition, alias, scalar2) {
   return { sourceLine, positionIndex: index };
 }
 
-// ../../analyzer/nodejs/src/module-path-existence.ts
-async function collectModulePathDiagnostics(entry, source) {
-  if (!source?.exists) return [];
+// ../../analyzer/nodejs/src/module-file-existence.ts
+async function collectLocalModuleFileDiagnostics(entry, modules, importEdges, sourceFor) {
   const out = [];
-  const ownerSource = entry.owner.source;
+  const seen = /* @__PURE__ */ new Set([entry.owner.source]);
+  const queue = [entry];
+  for (let next = queue.shift(); next; next = queue.shift()) {
+    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
+    for (const file of [next.owner, ...next.partials]) {
+      for (const edge of importEdges.get(file.source)?.values() ?? []) {
+        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
+        seen.add(edge.targetSource);
+        const target = modules.get(edge.targetSource);
+        if (target) queue.push(target);
+      }
+    }
+  }
+  return out;
+}
+function isPathImport(ref) {
+  return ref.startsWith(".") || ref.startsWith("/");
+}
+async function collectModuleFileDiagnostics(module, source) {
+  if (!source?.exists) return [];
+  const registry = defaultRegistry();
+  const out = [];
+  const ownerSource = module.owner.source;
   let staged;
-  for (const file of [entry.owner, ...entry.partials]) {
+  for (const file of [module.owner, ...module.partials]) {
     const found = [];
     file.manifests.forEach((manifest, index) => {
       if (!manifest || isNeverInstantiated(manifest.kind)) return;
       walkCelExpressions(manifest, "", (written, at2, engine) => {
-        if (engine !== MODULE_PATH_ENGINE) return;
-        const { path: relative } = normalizeModulePath(written);
-        if (relative) found.push({ index, at: at2, written, relative });
+        for (const claim of registry.get(engine)?.fileClaims?.(written) ?? []) {
+          found.push({ index, at: at2, engine, written, relative: claim.path, code: claim.notFoundCode });
+        }
       });
     });
-    for (const { index, at: at2, written, relative } of found) {
-      staged ??= stagedFilesOf(entry.owner.manifests.find((m) => m && isModuleKind(m.kind)));
+    for (const { index, at: at2, engine, written, relative, code } of found) {
+      staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
       if (pathsAtOrBeneath(staged, relative).length > 0) continue;
       if (await source.exists(ownerSource, relative)) continue;
       const manifest = file.manifests[index];
       const name = manifest.metadata?.name;
       const range = file.positions[index]?.positionIndex?.get(at2);
+      const absolute = source.locate?.(ownerSource, relative);
+      const hint = await nearMiss(source, ownerSource, relative, written);
       out.push({
         severity: DiagnosticSeverity2.Error,
-        code: "MODULE_PATH_NOT_FOUND",
+        code,
         source: "telo-analyzer",
-        message: `${manifest.kind}${name ? `/${name}` : ""}: \`!${MODULE_PATH_ENGINE} ${written}\` names '${relative}', and there is nothing there. The path is relative to the module root \u2014 the directory holding telo.yaml.`,
-        data: { resource: { kind: manifest.kind, name: name ?? "" }, filePath: file.source, path: at2 },
+        message: `${manifest.kind}${name ? `/${name}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
+        data: {
+          resource: { kind: manifest.kind, name: name ?? "" },
+          filePath: file.source,
+          path: at2,
+          ...hint?.replacement ? { fix: { replacement: hint.replacement } } : {}
+        },
         ...range ? { range } : {}
       });
     }
   }
   return out;
+}
+async function nearMiss(source, ownerSource, relative, written) {
+  if (!source.listDirectory) return void 0;
+  const slash = relative.lastIndexOf("/");
+  const directory = slash === -1 ? "" : relative.slice(0, slash);
+  const entries = await source.listDirectory(ownerSource, directory || ".");
+  if (!entries) return { text: `The directory '${directory}/' does not exist.` };
+  const meant = nearestName(relative.slice(slash + 1), entries);
+  if (!meant) return void 0;
+  const path = directory ? `${directory}/${meant}` : meant;
+  const replacement = written.trim().startsWith("./") ? `./${path}` : path;
+  return { text: `Did you mean '${replacement}'?`, replacement };
 }
 function stagedFilesOf(owner) {
   const { sources, problems } = readModuleSources(owner);
@@ -67538,9 +67578,11 @@ var Loader = class {
       overrides,
       migrationDiagnostics: collectMigrationDiagnostics(entry),
       versionDiagnostics: diagnostics,
-      modulePathDiagnostics: await collectModulePathDiagnostics(
+      moduleFileDiagnostics: await collectLocalModuleFileDiagnostics(
         entry,
-        this.sources.find((s) => s.supports(rootSource))
+        modules,
+        importEdges,
+        (url) => this.sources.find((s) => s.supports(url))
       ),
       parseDiagnostics: collectParseDiagnostics(modules),
       errors
@@ -67829,7 +67871,7 @@ function readWorkspaceConfig(text, where) {
       );
       continue;
     }
-    const near = nearMiss(key2, WORKSPACE_BLOCKS);
+    const near = nearMiss2(key2, WORKSPACE_BLOCKS);
     if (near) {
       report("WORKSPACE_UNKNOWN_KEY", `${where}: unknown block '${key2}'. Did you mean '${near}'?`, [key2]);
     } else {
@@ -67953,7 +67995,7 @@ function reportUnknownKeys(block, known, where, at2, report) {
   const names = Object.keys(known);
   for (const key2 of Object.keys(block)) {
     if (names.includes(key2)) continue;
-    const near = nearMiss(key2, names);
+    const near = nearMiss2(key2, names);
     report(
       "WORKSPACE_UNKNOWN_KEY",
       `${where}: unknown key '${[...at2, key2].join(".")}'.` + (near ? ` Did you mean '${near}'?` : ` Known keys: ${names.map((n) => `'${n}'`).join(", ")}.`),
@@ -67992,7 +68034,7 @@ function readStringList(raw, where, at2, report) {
   }
   return out;
 }
-function nearMiss(key2, known) {
+function nearMiss2(key2, known) {
   const lower = key2.toLowerCase();
   return known.find((name) => name !== key2 && editDistanceAtMostOne(lower, name.toLowerCase()));
 }
@@ -69511,7 +69553,7 @@ function assembleGraphDiagnostics(graph, analysisDiagnostics) {
       ...graph.parseDiagnostics,
       ...graph.migrationDiagnostics,
       ...graph.versionDiagnostics,
-      ...graph.modulePathDiagnostics,
+      ...graph.moduleFileDiagnostics,
       ...importResolutionDiagnostics(graph),
       ...live
     ],
