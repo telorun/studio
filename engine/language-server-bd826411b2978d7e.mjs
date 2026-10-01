@@ -17844,7 +17844,7 @@ var TELO_SCHEMA_ANNOTATIONS = {
   },
   "x-telo-value-schema-from": {
     title: "Value schema from",
-    description: "The value here must satisfy the type declared at the named field \u2014 checked for EVERY such slot, not only the branch a given input selects.",
+    description: "The value here must satisfy the type declared at the named location \u2014 a field of the resource, or a JSON Pointer from its root that may cross a reference and range over a list with '*'. On a configuration slot every such slot is checked, not only the branch a given input selects; inside inputType / outputType the node is typed by every type the location reaches.",
     type: "string"
   },
   "x-telo-bindings-from": {
@@ -17859,7 +17859,7 @@ var TELO_SCHEMA_ANNOTATIONS = {
   },
   "x-telo-context-from-root": {
     title: "Context from root",
-    description: "Replace this context node's schema with the value navigated from the manifest root.",
+    description: "Replace this context node's schema with the value navigated from the manifest root. When the path holds nothing, the node keeps the schema keywords it declares itself.",
     type: "string"
   },
   "x-telo-context-from-ref-kind": {
@@ -36778,6 +36778,215 @@ function propertySchemas(schema4) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/migrations/match.ts
+var MATCH_ANY = "*";
+var SCALAR_SHAPES = ["lone-hole", "interpolated"];
+var MATCH_KEYS = [
+  "key",
+  "scalar",
+  "inKind",
+  "under",
+  "value",
+  "valueOneOf",
+  "withSibling",
+  "notUnder",
+  "inSchema"
+];
+function isPlainObject5(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function deepEquals(a, b) {
+  if (a === b) return true;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((item, i) => deepEquals(item, b[i]));
+  }
+  if (isPlainObject5(a) && isPlainObject5(b)) {
+    const aKeys = Object.keys(a);
+    if (aKeys.length !== Object.keys(b).length) return false;
+    return aKeys.every((k) => Object.hasOwn(b, k) && deepEquals(a[k], b[k]));
+  }
+  return false;
+}
+function requireStringList(describe4, raw, key2) {
+  const value = raw[key2];
+  if (!Array.isArray(value) || value.length === 0 || value.some((v) => typeof v !== "string")) {
+    throw new Error(`${describe4}: 'match.${key2}' must be a non-empty sequence of strings`);
+  }
+  return value;
+}
+function readMigrationMatch(describe4, raw, surface = "core") {
+  if (!isPlainObject5(raw)) throw new Error(`${describe4}: 'match' must be a mapping`);
+  for (const key2 of Object.keys(raw)) {
+    if (!MATCH_KEYS.includes(key2)) {
+      throw new Error(
+        `${describe4}: 'match' has no key '${key2}'. Known keys: ${MATCH_KEYS.join(", ")}.`
+      );
+    }
+  }
+  const bySelector = Object.hasOwn(raw, "key") ? "key" : Object.hasOwn(raw, "scalar") ? "scalar" : void 0;
+  if (bySelector === void 0 || Object.hasOwn(raw, "key") && Object.hasOwn(raw, "scalar")) {
+    throw new Error(`${describe4}: 'match' takes exactly one of 'key' or 'scalar'`);
+  }
+  if (bySelector === "key" && (typeof raw.key !== "string" || raw.key.length === 0)) {
+    throw new Error(`${describe4}: 'match.key' must be a non-empty string`);
+  }
+  if (bySelector === "scalar") {
+    if (!SCALAR_SHAPES.includes(raw.scalar)) {
+      throw new Error(
+        `${describe4}: 'match.scalar' must be one of ${SCALAR_SHAPES.join(", ")}`
+      );
+    }
+    for (const key2 of ["value", "valueOneOf", "withSibling"]) {
+      if (Object.hasOwn(raw, key2)) {
+        throw new Error(`${describe4}: 'match.${key2}' does not apply to a 'scalar' rule`);
+      }
+    }
+  }
+  if (Object.hasOwn(raw, "value") && Object.hasOwn(raw, "valueOneOf")) {
+    throw new Error(`${describe4}: 'match' takes at most one of 'value' or 'valueOneOf'`);
+  }
+  if (Object.hasOwn(raw, "valueOneOf") && !Array.isArray(raw.valueOneOf)) {
+    throw new Error(`${describe4}: 'match.valueOneOf' must be a sequence`);
+  }
+  if (Object.hasOwn(raw, "withSibling") && typeof raw.withSibling !== "string") {
+    throw new Error(`${describe4}: 'match.withSibling' must be a string`);
+  }
+  if (Object.hasOwn(raw, "notUnder") && (!Array.isArray(raw.notUnder) || raw.notUnder.some((k) => typeof k !== "string"))) {
+    throw new Error(`${describe4}: 'match.notUnder' must be a sequence of strings`);
+  }
+  if (Object.hasOwn(raw, "inSchema") && typeof raw.inSchema !== "boolean") {
+    throw new Error(`${describe4}: 'match.inSchema' must be a boolean`);
+  }
+  const wildcards = [
+    ...Array.isArray(raw.inKind) ? raw.inKind : [],
+    ...Array.isArray(raw.under) ? raw.under : []
+  ].filter((value) => value === MATCH_ANY);
+  if (wildcards.length > 0 && bySelector === "scalar") {
+    if (surface !== "core") {
+      throw new Error(
+        `${describe4}: a module's migration may not reach '${MATCH_ANY}' \u2014 it names only kinds it owns`
+      );
+    }
+  } else if (wildcards.length > 0) {
+    if (raw.inSchema !== true) {
+      throw new Error(
+        `${describe4}: 'match.inKind' / 'match.under' may only be '${MATCH_ANY}' together with 'inSchema: true' \u2014 the schema region is what bounds a walk the wildcard unbounds`
+      );
+    }
+    if (!raw.key.startsWith("x-telo-")) {
+      throw new Error(
+        `${describe4}: '${MATCH_ANY}' is legal only for a rule keyed on an 'x-telo-*' annotation, which is Telo vocabulary wherever it appears \u2014 '${raw.key}' could mean something else inside a resource's own configuration`
+      );
+    }
+  }
+  const match = {
+    ...bySelector === "key" ? { key: raw.key } : { scalar: raw.scalar },
+    inKind: requireStringList(describe4, raw, "inKind"),
+    under: requireStringList(describe4, raw, "under")
+  };
+  if (Object.hasOwn(raw, "value")) match.value = raw.value;
+  if (Object.hasOwn(raw, "valueOneOf")) match.valueOneOf = raw.valueOneOf;
+  if (Object.hasOwn(raw, "withSibling")) match.withSibling = raw.withSibling;
+  if (Object.hasOwn(raw, "notUnder")) match.notUnder = raw.notUnder;
+  if (raw.inSchema === true) match.inSchema = true;
+  return match;
+}
+function isHoleCandidate(value) {
+  return typeof value === "string" && value.includes("${{");
+}
+function buildMatchIndex(document, keys, roots, scalars = false) {
+  const index = /* @__PURE__ */ new Map();
+  const scalarSites = [];
+  const result = { byKey: index, scalars: scalarSites };
+  if (keys.size === 0 && !scalars || roots.size === 0 || !isPlainObject5(document)) return result;
+  const stack = [];
+  const record = (key2, value, parent) => {
+    const bucket2 = index.get(key2) ?? [];
+    bucket2.push({ path: [...stack], value, parent });
+    index.set(key2, bucket2);
+  };
+  const walk5 = (node) => {
+    if (Array.isArray(node)) {
+      for (let i = 0; i < node.length; i++) {
+        stack.push(i);
+        if (scalars && isHoleCandidate(node[i])) {
+          scalarSites.push({ path: [...stack], value: node[i], parent: node });
+        }
+        walk5(node[i]);
+        stack.pop();
+      }
+      return;
+    }
+    if (!isPlainObject5(node) || isTaggedSentinel(node)) return;
+    for (const [key2, value] of Object.entries(node)) {
+      stack.push(key2);
+      if (keys.has(key2)) record(key2, value, node);
+      if (scalars && isHoleCandidate(value)) {
+        scalarSites.push({ path: [...stack], value, parent: node });
+      }
+      walk5(value);
+      stack.pop();
+    }
+  };
+  const everywhere = roots.has(MATCH_ANY);
+  for (const [key2, value] of Object.entries(document)) {
+    if (!everywhere && !roots.has(key2)) continue;
+    stack.push(key2);
+    if (keys.has(key2)) record(key2, value, document);
+    if (scalars && isHoleCandidate(value)) {
+      scalarSites.push({ path: [...stack], value, parent: document });
+    }
+    walk5(value);
+    stack.pop();
+  }
+  return result;
+}
+function applicableRules(rules, kind) {
+  const applicable = [];
+  const keys = /* @__PURE__ */ new Set();
+  const roots = /* @__PURE__ */ new Set();
+  let scalars = false;
+  if (typeof kind !== "string") return { rules: applicable, keys, roots, scalars };
+  for (const rule of rules) {
+    if (!rule.match.inKind.includes(kind) && !rule.match.inKind.includes(MATCH_ANY)) continue;
+    applicable.push(rule);
+    if (rule.match.key !== void 0) keys.add(rule.match.key);
+    else scalars = true;
+    for (const root of rule.match.under) roots.add(root);
+  }
+  return { rules: applicable, keys, roots, scalars };
+}
+function valueMatches(match, value) {
+  if (Object.hasOwn(match, "value")) return deepEquals(match.value, value);
+  if (match.valueOneOf) return match.valueOneOf.some((candidate) => deepEquals(candidate, value));
+  return true;
+}
+function selectMatches(index, document, match) {
+  const kind = isPlainObject5(document) ? document.kind : void 0;
+  if (typeof kind !== "string") return [];
+  if (!match.inKind.includes(kind) && !match.inKind.includes(MATCH_ANY)) return [];
+  const sites = match.key !== void 0 ? index.byKey.get(match.key) : index.scalars;
+  if (!sites) return [];
+  const anyRoot = match.under.includes(MATCH_ANY);
+  const out = [];
+  for (const site of sites) {
+    const anchor = site.path[0];
+    if (!anyRoot && (typeof anchor !== "string" || !match.under.includes(anchor))) continue;
+    if (match.inSchema && !isInSchemaRegion(site.path)) continue;
+    if (match.notUnder?.some((segment) => site.path.includes(segment))) continue;
+    if (match.scalar !== void 0) {
+      if (interpolationShape(site.value) !== match.scalar) continue;
+      out.push(site.path);
+      continue;
+    }
+    if (!valueMatches(match, site.value)) continue;
+    if (match.withSibling !== void 0 && !Object.hasOwn(site.parent, match.withSibling)) continue;
+    out.push(site.path);
+  }
+  return out;
+}
+
 // ../../analyzer/nodejs/src/telo-format.ts
 var import_formats = __toESM(require_formats(), 1);
 
@@ -39053,12 +39262,14 @@ function numericPlaceholder(schema4) {
   }
   return 0;
 }
-function foldedConstraints(schema4) {
+function foldedConstraints(schema4, root, build, open) {
   const branches = Array.isArray(schema4.allOf) ? schema4.allOf : [];
   if (branches.length === 0) return schema4;
   const out = { ...schema4 };
   for (const branch of branches) {
-    const folded = foldedConstraints(branch);
+    if (!branch || typeof branch !== "object") continue;
+    const entered = enterStandInNode(branch, root, build, open);
+    const folded = foldedConstraints(entered.schema, entered.root, build, entered.open);
     for (const key2 of ["minimum", "exclusiveMinimum", "minLength", "minItems"]) {
       if (typeof folded[key2] === "number" && (typeof out[key2] !== "number" || folded[key2] > out[key2])) {
         out[key2] = folded[key2];
@@ -39076,9 +39287,44 @@ function foldedConstraints(schema4) {
     if (folded.required) {
       out.required = [.../* @__PURE__ */ new Set([...out.required ?? [], ...folded.required])];
     }
-    if (folded.properties) out.properties = { ...folded.properties, ...out.properties ?? {} };
+    if (folded.properties) {
+      for (const member of Object.values(folded.properties)) {
+        if (member && typeof member === "object" && !build.foreign.has(member)) {
+          build.foreign.set(member, entered.root);
+        }
+      }
+      out.properties = { ...folded.properties, ...out.properties ?? {} };
+    }
   }
   return out;
+}
+var standInBuild = (external) => ({
+  external,
+  foreign: /* @__PURE__ */ new WeakMap(),
+  documents: /* @__PURE__ */ new WeakMap(),
+  documentCount: 0
+});
+function referenceKey(ref, root, build) {
+  if (!ref.startsWith("#")) return ref;
+  let document = build.documents.get(root);
+  if (document === void 0) {
+    document = build.documentCount++;
+    build.documents.set(root, document);
+  }
+  return `${document}${ref}`;
+}
+function enterStandInNode(schema4, root, build, open) {
+  let node = { schema: schema4, root };
+  let seen = open;
+  while (typeof node.schema.$ref === "string") {
+    const target = resolveRefIn(node.schema, node.root, build.external);
+    if (target.schema === node.schema) break;
+    const key2 = referenceKey(node.schema.$ref, node.root, build);
+    if (seen.has(key2)) return { schema: {}, root: node.root, open: seen };
+    seen = new Set(seen).add(key2);
+    node = target;
+  }
+  return { ...node, open: seen };
 }
 function liveValuePlaceholder(schema4) {
   const entry = readValueTypeSlot(schema4)?.entry;
@@ -39086,8 +39332,13 @@ function liveValuePlaceholder(schema4) {
   const binding = VALUE_TYPE_BINDINGS[entry.binding];
   return binding ? Object.create(binding.constructor.prototype) : void 0;
 }
-function celPlaceholderForSchema(rawSchema) {
-  const schema4 = foldedConstraints(rawSchema);
+function celPlaceholderForSchema(rawSchema, options = {}) {
+  return standIn(rawSchema, options.root ?? rawSchema, standInBuild(options.external), /* @__PURE__ */ new Set());
+}
+function standIn(rawSchema, base, build, open) {
+  const node = enterStandInNode(rawSchema, build.foreign.get(rawSchema) ?? base, build, open);
+  const schema4 = foldedConstraints(node.schema, node.root, build, node.open);
+  const descend3 = (child) => standIn(child, node.root, build, node.open);
   const placeholder = valueTypePlaceholder(schema4) ?? liveValuePlaceholder(schema4);
   if (placeholder !== void 0) return placeholder;
   if (hostAnchorOf(schema4) !== void 0) return "/";
@@ -39095,16 +39346,22 @@ function celPlaceholderForSchema(rawSchema) {
   if (format2 !== void 0) return format2.standIn;
   const jsonEntry = valueTypeOf(schema4);
   if (jsonEntry?.base !== void 0 && schema4.type === void 0) {
-    return celPlaceholderForSchema({ ...rawSchema, type: jsonEntry.base });
+    return descend3({ ...node.schema, type: jsonEntry.base });
   }
-  if (schema4.default !== void 0) return schema4.default;
+  if (schema4.default !== void 0 && fitsStandInConstraints(
+    schema4.default,
+    schema4,
+    (member, child) => defaultFits(member, child, node.root, build, node.open)
+  )) {
+    return schema4.default;
+  }
   if (Array.isArray(schema4.enum) && schema4.enum.length > 0) return schema4.enum[0];
   if ("const" in schema4) return schema4.const;
   if (schema4.type === void 0) {
     const branches = unionBranches(schema4);
     if (branches) {
       for (const branch of branches) {
-        const candidate = celPlaceholderForSchema(branch);
+        const candidate = descend3(branch);
         if (candidate !== null) return candidate;
       }
     }
@@ -39120,25 +39377,95 @@ function celPlaceholderForSchema(rawSchema) {
     case "array":
       return typeof schema4.minItems === "number" && schema4.minItems > 0 ? Array.from(
         { length: schema4.minItems },
-        () => celPlaceholderForSchema(schema4.items ?? {})
+        () => descend3(schema4.items ?? {})
       ) : [];
     case "object":
-      return objectPlaceholder(schema4);
+      return objectPlaceholder(schema4, descend3);
     default:
       return null;
   }
 }
-function producedPlaceholder(produced, slot) {
-  const format2 = produced.type === "string" ? teloFormatOf(foldedConstraints(slot)) : void 0;
+function defaultFits(value, rawSchema, base, build, open) {
+  const node = enterStandInNode(rawSchema, build.foreign.get(rawSchema) ?? base, build, open);
+  const schema4 = foldedConstraints(node.schema, node.root, build, node.open);
+  return fitsStandInConstraints(
+    value,
+    schema4,
+    (member, child) => defaultFits(member, child, node.root, build, node.open)
+  );
+}
+function fitsStandInConstraints(value, schema4, fits) {
+  const types = schema4.type === void 0 ? [] : Array.isArray(schema4.type) ? schema4.type : [schema4.type];
+  if (types.length > 0 && !types.some((type) => isOfJsonType(value, type))) return false;
+  if (Array.isArray(schema4.enum) && !schema4.enum.some((member) => deepEquals(member, value))) {
+    return false;
+  }
+  if ("const" in schema4 && !deepEquals(schema4.const, value)) return false;
+  if (types.length === 0) {
+    const branches = unionBranches(schema4);
+    if (branches && !branches.some((branch) => fits(value, branch))) return false;
+  }
+  if (typeof value === "number") {
+    if (typeof schema4.minimum === "number" && value < schema4.minimum) return false;
+    if (typeof schema4.exclusiveMinimum === "number" && value <= schema4.exclusiveMinimum) return false;
+    if (typeof schema4.maximum === "number" && value > schema4.maximum) return false;
+    if (typeof schema4.exclusiveMaximum === "number" && value >= schema4.exclusiveMaximum) return false;
+    return true;
+  }
+  if (typeof value === "string") {
+    return typeof schema4.minLength !== "number" || [...value].length >= schema4.minLength;
+  }
+  if (Array.isArray(value)) {
+    if (typeof schema4.minItems === "number" && value.length < schema4.minItems) return false;
+    const items = schema4.items;
+    if (!items || typeof items !== "object" || Array.isArray(items)) return true;
+    return value.every((item) => fits(item, items));
+  }
+  if (value !== null && typeof value === "object") {
+    const held = value;
+    const required = Array.isArray(schema4.required) ? schema4.required : [];
+    if (required.some((key2) => held[key2] === void 0)) return false;
+    const properties = schema4.properties ?? {};
+    return Object.entries(held).every(([key2, member]) => {
+      const child = properties[key2];
+      return !child || typeof child !== "object" || fits(member, child);
+    });
+  }
+  return true;
+}
+function isOfJsonType(value, type) {
+  switch (type) {
+    case "null":
+      return value === null;
+    case "boolean":
+      return typeof value === "boolean";
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number" || typeof value === "bigint";
+    case "integer":
+      return typeof value === "bigint" || typeof value === "number" && Number.isInteger(value);
+    case "array":
+      return Array.isArray(value);
+    case "object":
+      return value !== null && typeof value === "object" && !Array.isArray(value);
+    default:
+      return true;
+  }
+}
+function producedPlaceholder(produced, slot, options = {}) {
+  const format2 = produced.type === "string" ? teloFormatOf(
+    foldedConstraints(slot, options.root ?? slot, standInBuild(options.external), /* @__PURE__ */ new Set())
+  ) : void 0;
   return format2 !== void 0 ? format2.standIn : celPlaceholderForSchema(produced);
 }
-function objectPlaceholder(schema4) {
+function objectPlaceholder(schema4, standInFor) {
   const required = Array.isArray(schema4.required) ? schema4.required : [];
   if (required.length === 0) return {};
   const properties = schema4.properties ?? {};
   const out = {};
   for (const key2 of required) {
-    out[key2] = celPlaceholderForSchema(properties[key2] ?? {});
+    out[key2] = standInFor(properties[key2] ?? {});
   }
   return out;
 }
@@ -39256,15 +39583,15 @@ function substituteCelFields(data, schema4, rootSchema, options = {}) {
   }
   if (isTaggedSentinel(data)) {
     const produced = producedTypeOf(data.engine);
-    if (produced) return producedPlaceholder(produced, resolved);
+    if (produced) return producedPlaceholder(produced, resolved, { root, external });
   }
   if (isTaggedSentinel(data)) {
     mark();
-    return celPlaceholderForSchema(resolved);
+    return celPlaceholderForSchema(resolved, { root, external });
   }
   if (isCompiledValue(data)) {
     mark();
-    return celPlaceholderForSchema(resolved);
+    return celPlaceholderForSchema(resolved, { root, external });
   }
   if (Array.isArray(data)) {
     const item = resolveRefIn(resolved.items ?? {}, root, external);
@@ -40200,8 +40527,900 @@ function withTemplateSelf(contextSchema) {
   };
 }
 
+// ../../analyzer/nodejs/src/schema-projection.ts
+function isObject4(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function readSchemaProjection(definition) {
+  if (!isObject4(definition)) return void 0;
+  const raw = rawSchemaProjection(definition);
+  if (!isObject4(raw)) return void 0;
+  const entries = raw.entries;
+  const key2 = raw.key;
+  if (typeof entries !== "string" || typeof key2 !== "string") return void 0;
+  return {
+    entries,
+    key: key2,
+    nameField: typeof raw.name === "string" ? raw.name : void 0,
+    nullable: typeof raw.nullable === "string" ? raw.nullable : void 0,
+    array: typeof raw.array === "string" ? raw.array : void 0,
+    nested: typeof raw.nested === "string" ? raw.nested : void 0,
+    reference: readProjectionReference(raw.reference)
+  };
+}
+function readProjectionReference(raw) {
+  if (!isObject4(raw)) return void 0;
+  const { from, keyword, base, baseFrom } = raw;
+  if (typeof from !== "string" || typeof keyword !== "string") return void 0;
+  return {
+    from,
+    keyword,
+    base: isObject4(base) ? base : void 0,
+    baseFrom: typeof baseFrom === "string" ? baseFrom : void 0
+  };
+}
+function rawSchemaProjection(definition) {
+  if (!isObject4(definition)) return void 0;
+  const own = definition["x-telo-schema-projection"];
+  if (own !== void 0) return own;
+  const schema4 = definition.schema;
+  return isObject4(schema4) ? schema4["x-telo-schema-projection"] : void 0;
+}
+function schemaProjectionIsMisplaced(definition) {
+  if (!isObject4(definition)) return false;
+  if (definition["x-telo-schema-projection"] !== void 0) return false;
+  const schema4 = definition.schema;
+  return isObject4(schema4) && schema4["x-telo-schema-projection"] !== void 0;
+}
+function schemaMapBranch(node) {
+  if (!isObject4(node)) return void 0;
+  if (node["x-telo-schema-map"] !== void 0) return node;
+  for (const key2 of ["oneOf", "anyOf"]) {
+    const branches = node[key2];
+    if (!Array.isArray(branches)) continue;
+    for (const branch of branches) {
+      if (isObject4(branch) && branch["x-telo-schema-map"] !== void 0) return branch;
+    }
+  }
+  return void 0;
+}
+function readSchemaMap(node) {
+  return ownSchemaMap(schemaMapBranch(node));
+}
+function ownSchemaMap(node) {
+  if (!isObject4(node)) return void 0;
+  const raw = node["x-telo-schema-map"];
+  if (!isObject4(raw)) return void 0;
+  const entries = Object.entries(raw).filter(([, value]) => isObject4(value));
+  if (entries.length === 0) return void 0;
+  return Object.fromEntries(entries);
+}
+var PROJECTION_FROM = "x-telo-schema-projection-from";
+var PROJECTION_DERIVATION_KEYS = ["from", "pick", "omit"];
+function readProjectionDerivation(raw) {
+  if (raw === void 0) return void 0;
+  if (typeof raw === "string") return { derivation: { from: raw } };
+  if (!isObject4(raw)) {
+    return { invalid: `'${PROJECTION_FROM}' is a JSON Pointer, or an object '{ from, pick?, omit? }'.` };
+  }
+  const unknown = Object.keys(raw).filter((key2) => !PROJECTION_DERIVATION_KEYS.includes(key2));
+  if (unknown.length > 0) {
+    return {
+      invalid: `'${PROJECTION_FROM}' has no ${unknown.map((k) => `'${k}'`).join(", ")}. It declares ${PROJECTION_DERIVATION_KEYS.map((k) => `'${k}'`).join(", ")}.`
+    };
+  }
+  const { from, pick, omit } = raw;
+  if (typeof from !== "string") {
+    return { invalid: `'${PROJECTION_FROM}' needs 'from', a JSON Pointer to the declaration to project.` };
+  }
+  if (pick !== void 0 && typeof pick !== "string") {
+    return { invalid: `'pick' is a JSON Pointer to a field holding the one entry's name.` };
+  }
+  if (omit !== void 0 && !(Array.isArray(omit) && omit.every((p) => typeof p === "string"))) {
+    return { invalid: `'omit' is a list of JSON Pointers, each to a field holding an entry's name.` };
+  }
+  return {
+    derivation: {
+      from,
+      ...pick !== void 0 ? { pick } : {},
+      ...omit !== void 0 ? { omit } : {}
+    }
+  };
+}
+function readKindDerivation(definition) {
+  if (!isObject4(definition)) return void 0;
+  const read = readProjectionDerivation(definition[PROJECTION_FROM]);
+  if (!read || "invalid" in read) return read;
+  if (rawSchemaProjection(definition) !== void 0) {
+    return {
+      invalid: `a kind declares its projection once: '${PROJECTION_FROM}' derives it from another declaration and 'x-telo-schema-projection' reads it from this one's entries \u2014 keep one.`
+    };
+  }
+  if (read.derivation.pick !== void 0) {
+    return {
+      invalid: `'pick' types a slot as ONE entry; on a kind document the declaration must project to an object, so only 'from' and 'omit' apply here.`
+    };
+  }
+  return read;
+}
+function decodePointer(pointer) {
+  return pointer.split("/").filter((segment) => segment !== "").map(decodeSegment);
+}
+function navigate(root, pointer) {
+  let current = root;
+  for (const segment of decodePointer(pointer)) {
+    if (!isObject4(current)) return void 0;
+    current = current[segment];
+  }
+  return current;
+}
+var SCHEMA_PROJECTION_KEYS = [
+  "entries",
+  "key",
+  "name",
+  "nullable",
+  "array",
+  "nested",
+  "reference"
+];
+function decodeSegment(segment) {
+  return segment.replace(/~1/g, "/").replace(/~0/g, "~");
+}
+function resolveLocal(node, root) {
+  let current = node;
+  const seen = /* @__PURE__ */ new Set();
+  while (isObject4(current) && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
+    if (seen.has(current)) return void 0;
+    seen.add(current);
+    let target = root;
+    for (const segment of current.$ref.slice(1).split("/")) {
+      if (segment === "") continue;
+      if (!isObject4(target)) return void 0;
+      target = target[decodeSegment(segment)];
+    }
+    current = target;
+  }
+  return current;
+}
+function projectionCollectionSchema(kindSchema, entries) {
+  let node = resolveLocal(kindSchema, kindSchema);
+  for (const segment of entries.split("/")) {
+    if (segment === "") continue;
+    if (!isObject4(node) || !isObject4(node.properties)) return void 0;
+    node = resolveLocal(node.properties[decodeSegment(segment)], kindSchema);
+  }
+  return isObject4(node) ? node : void 0;
+}
+function collectionEntrySchema(collection, kindSchema) {
+  if (!isObject4(collection)) return void 0;
+  const raw = isObject4(collection.additionalProperties) ? collection.additionalProperties : isObject4(collection.items) ? collection.items : void 0;
+  const entry = resolveLocal(raw, kindSchema);
+  return isObject4(entry) ? entry : void 0;
+}
+function projectionEntryField(kindSchema, projection, field) {
+  const entry = collectionEntrySchema(
+    projectionCollectionSchema(kindSchema, projection.entries),
+    kindSchema
+  );
+  if (!entry || !isObject4(entry.properties)) return void 0;
+  const node = resolveLocal(entry.properties[field], kindSchema);
+  return isObject4(node) ? node : void 0;
+}
+function projectionKeyMap(kindSchema, projection) {
+  return readSchemaMap(projectionEntryField(kindSchema, projection, projection.key));
+}
+function failureAnchor(entryPointer, projection, options) {
+  return options?.pointer === "" ? entryPointer : options?.pointer ?? projection.entries;
+}
+function referencedNode(value, entryName, entryPointer, projection, map3, holder, options) {
+  const reference = projection.reference;
+  if (!reference || !isObject4(value)) return void 0;
+  const name = readProjectionRef(value)?.name ?? "<unnamed>";
+  const report = () => {
+    options?.failures?.push({
+      reason: "entry-reference",
+      pointer: failureAnchor(entryPointer, projection, options),
+      entry: entryName,
+      name
+    });
+    return {};
+  };
+  const found = options?.scope?.resolveManifest(value, holder);
+  if (!found || !("manifest" in found)) return report();
+  const values = found.manifest[reference.from];
+  if (!Array.isArray(values) || values.length === 0) return report();
+  let base = reference.base;
+  if (reference.baseFrom !== void 0) {
+    const declared = found.manifest[reference.baseFrom];
+    base = typeof declared === "string" ? map3[declared] : void 0;
+  }
+  if (!base) return report();
+  return { ...base, [reference.keyword]: values };
+}
+function branchDefault(branch, field, root) {
+  const node = resolveLocal(branch, root);
+  if (!isObject4(node) || !isObject4(node.properties)) return void 0;
+  const property = resolveLocal(node.properties[field], root);
+  return isObject4(property) && "default" in property ? { value: property.default } : void 0;
+}
+function modifierDefaultSites(entrySchema, field, root) {
+  const sites = [];
+  const own = isObject4(entrySchema.properties) ? resolveLocal(entrySchema.properties[field], root) : void 0;
+  if (isObject4(own) && "default" in own) {
+    sites.push({ kind: "field", path: `properties.${field}.default`, value: own.default });
+  }
+  const visit4 = (raw, path, seen) => {
+    const node = resolveLocal(raw, root);
+    if (!isObject4(node) || seen.has(node)) return;
+    seen.add(node);
+    if (node.if !== void 0) {
+      const thenDefault = branchDefault(node.then, field, root);
+      const elseDefault = branchDefault(node.else, field, root);
+      if (thenDefault || elseDefault) {
+        sites.push({
+          kind: "conditional",
+          path: path === "" ? "if" : `${path}.if`,
+          condition: node.if,
+          ...thenDefault ? { then: thenDefault } : {},
+          ...elseDefault ? { else: elseDefault } : {}
+        });
+      }
+    }
+    if (Array.isArray(node.allOf)) {
+      node.allOf.forEach(
+        (member, index) => visit4(member, path === "" ? `allOf[${index}]` : `${path}.allOf[${index}]`, seen)
+      );
+    }
+  };
+  visit4(entrySchema, "", /* @__PURE__ */ new Set());
+  return sites;
+}
+var compiledConditions = /* @__PURE__ */ new WeakMap();
+var conditionAjv;
+function compileDefaultCondition(condition) {
+  if (typeof condition === "boolean") return () => condition;
+  if (!isObject4(condition)) return { error: "an 'if' is a JSON Schema: an object or a boolean" };
+  const cached = compiledConditions.get(condition);
+  if (cached) return cached;
+  let check3;
+  try {
+    const validate2 = (conditionAjv ??= createAjv()).compile(condition);
+    check3 = (entry) => validate2(entry) === true;
+  } catch (error) {
+    check3 = { error: error instanceof Error ? error.message : String(error) };
+  }
+  compiledConditions.set(condition, check3);
+  return check3;
+}
+function applicableDefault(sites, entry) {
+  if (!sites || sites.length !== 1) return void 0;
+  const [site] = sites;
+  if (site.kind === "field") return site.value;
+  const check3 = compileDefaultCondition(site.condition);
+  if (typeof check3 !== "function") return void 0;
+  return (check3(entry) ? site.then : site.else)?.value;
+}
+function modifierDefaultSitesOf(projection, kindSchema) {
+  const sites = {};
+  if (kindSchema === void 0) return sites;
+  const entry = collectionEntrySchema(projectionCollectionSchema(kindSchema, projection.entries), kindSchema);
+  if (!entry) return sites;
+  for (const field of [projection.array, projection.nullable]) {
+    if (field !== void 0) sites[field] = modifierDefaultSites(entry, field, kindSchema);
+  }
+  return sites;
+}
+function projectCollection(collection, collectionPointer, run) {
+  const pairs2 = [];
+  const consider = (name, segment, entry) => {
+    if (!isObject4(entry) || typeof name !== "string") return;
+    const node = projectEntry(entry, name, `${collectionPointer}/${segment}`, run);
+    if (node) pairs2.push([name, node]);
+  };
+  const { nameField } = run.projection;
+  if (Array.isArray(collection)) {
+    collection.forEach(
+      (entry, index) => consider(isObject4(entry) && nameField ? entry[nameField] : void 0, String(index), entry)
+    );
+  } else if (isObject4(collection)) {
+    for (const [name, entry] of Object.entries(collection)) consider(name, name, entry);
+  } else {
+    return void 0;
+  }
+  return {
+    type: "object",
+    properties: Object.fromEntries(pairs2),
+    additionalProperties: false
+  };
+}
+function projectEntry(entry, name, entryPointer, run) {
+  const { projection, map: map3, options } = run;
+  const sub = projection.nested === void 0 ? void 0 : entry[projection.nested];
+  let mapped;
+  if (sub !== void 0) {
+    if (run.ancestors.has(entry)) {
+      options?.failures?.push({
+        reason: "nested-cycle",
+        pointer: failureAnchor(entryPointer, projection, options),
+        entry: name
+      });
+      return {};
+    }
+    run.ancestors.add(entry);
+    try {
+      mapped = projectCollection(sub, `${entryPointer}/${projection.nested}`, run);
+    } finally {
+      run.ancestors.delete(entry);
+    }
+  } else {
+    const key2 = entry[projection.key];
+    mapped = typeof key2 === "string" ? map3[key2] : referencedNode(key2, name, entryPointer, projection, map3, run.declaration, options);
+  }
+  if (!mapped) return void 0;
+  const modifier = (field) => entry[field] !== void 0 ? entry[field] : applicableDefault(run.defaultSites[field], entry);
+  let node = { ...mapped };
+  if (projection.array && modifier(projection.array) === true) {
+    node = { type: "array", items: node };
+  }
+  if (projection.nullable && modifier(projection.nullable) !== false) {
+    node = { anyOf: [node, { type: "null" }] };
+  }
+  return node;
+}
+function projectEntries(manifest, projection, map3, options) {
+  const entries = navigate(manifest, projection.entries);
+  if (entries === void 0) return void 0;
+  return projectCollection(entries, projection.entries, {
+    projection,
+    map: map3,
+    options,
+    defaultSites: modifierDefaultSitesOf(projection, options?.kindSchema),
+    ancestors: /* @__PURE__ */ new Set(),
+    declaration: isObject4(manifest) ? manifest : void 0
+  });
+}
+function readProjectionRef(value) {
+  if (!isObject4(value)) return void 0;
+  if (isRefSentinel(value)) {
+    const dot = value.source.indexOf(".");
+    return dot > 0 ? { name: value.source.slice(dot + 1), alias: value.source.slice(0, dot) } : { name: value.source };
+  }
+  const name = value.name;
+  if (typeof name !== "string") return void 0;
+  return {
+    name,
+    kind: typeof value.kind === "string" ? value.kind : void 0,
+    alias: typeof value.alias === "string" ? value.alias : void 0
+  };
+}
+var moduleOf = (manifest) => {
+  const module = manifest?.metadata?.module;
+  return typeof module === "string" ? module : void 0;
+};
+var scopeModuleOf = (manifest) => {
+  const declaring = manifest?.metadata?.declaringModule;
+  return typeof declaring === "string" ? declaring : moduleOf(manifest);
+};
+function manifestListScope(manifests, resolveDefinition, modules) {
+  const libraries = modules?.libraries;
+  const named = (name, module, kind) => manifests.filter(
+    (candidate) => candidate?.metadata?.name === name && moduleOf(candidate) === module && (kind === void 0 || candidate.kind === kind)
+  );
+  const scope = {
+    resolveDefinition,
+    referenceSlots: (declaration, holder) => modules?.referenceSlots(declaration, scopeModuleOf(declaration) ?? scopeModuleOf(holder)),
+    resolveManifest(value, holder, trail) {
+      const ref = readProjectionRef(value);
+      if (!ref) return void 0;
+      const module = scopeModuleOf(holder);
+      if (ref.alias && ref.alias !== "Self") {
+        const target = modules?.moduleForAlias(module, ref.alias);
+        if (target === void 0) return void 0;
+        const entry = named(ref.alias, module, "Telo.Import")[0] ?? (module !== void 0 ? libraries?.importOf(module, ref.alias) : void 0);
+        const entered = entry ? new Map(trail).set(target, entry) : trail;
+        return declaredIn2(ref.name, target, entered);
+      }
+      return declaredIn2(ref.name, module, trail);
+    }
+  };
+  function declaredIn2(name, module, trail) {
+    const own = named(name, module);
+    if (own.length > 1) return { ambiguous: true };
+    if (own.length === 1) {
+      return isInjectedDeclaration(own[0]) ? supplied(name, module, trail) : { manifest: own[0], trail };
+    }
+    if (module === void 0 || !libraries) return void 0;
+    if (libraries.isInput(module, name)) return supplied(name, module, trail);
+    const internal = libraries.declaration(module, name);
+    return internal ? { manifest: internal, trail } : void 0;
+  }
+  function supplied(name, module, trail) {
+    const entry = module === void 0 ? void 0 : trail?.get(module);
+    if (!entry) return { injected: true };
+    const value = readSuppliedResources(entry)[name];
+    return value === void 0 ? void 0 : scope.resolveManifest(value, entry, trail);
+  }
+  return scope;
+}
+function isReportedAtConsumer(failure) {
+  return failure.reason !== "injected" && failure.reason !== "invalid";
+}
+function isFailure(value) {
+  return isObject4(value) && typeof value.reason === "string" && typeof value.pointer === "string";
+}
+function isComputed(value) {
+  return isCompiledValue(value) || isTaggedSentinel(value) && !isRefSentinel(value);
+}
+var nameOf = (manifest) => String(manifest.metadata?.name ?? `the inline ${manifest.kind}`);
+function hopOf(holder, inner, run) {
+  return holder.declaration === run.consumer ? void 0 : { prefix: `/${inner.join("/")}`, holder: nameOf(holder.declaration) };
+}
+function referenceValueKind(value, run) {
+  if (run.scope.isLiveReference?.(value) === true || isRefSentinel(value)) return "reference";
+  if (!isObject4(value) || typeof value.kind !== "string") return "data";
+  return typeof value.name === "string" ? "reference" : "inline";
+}
+function followReference(value, holder, inner, anchor, run) {
+  const via = hopOf(holder, inner, run);
+  const hop = via ? { via } : {};
+  const kind = referenceValueKind(value, run);
+  if (kind === "data") return { reason: "no-ref", pointer: anchor, ...hop };
+  if (kind === "inline") {
+    return { declaration: value, scope: holder.scope, trail: holder.trail };
+  }
+  const name = readProjectionRef(value)?.name ?? "<unnamed>";
+  const found = run.scope.resolveManifest(value, holder.scope, holder.trail);
+  if (!found) return { reason: "unresolved", pointer: anchor, name, ...hop };
+  if ("ambiguous" in found) return { reason: "ambiguous", pointer: anchor, name, ...hop };
+  if ("injected" in found || isInjectedDeclaration(found.manifest)) {
+    return { reason: "injected", pointer: anchor, name, ...hop };
+  }
+  if (typeof found.manifest.kind !== "string") return { reason: "unresolved", pointer: anchor, name, ...hop };
+  return { declaration: found.manifest, scope: found.manifest, trail: found.trail };
+}
+function concretePath(segments, containers) {
+  let out = "";
+  segments.forEach((segment, index) => {
+    if (Array.isArray(containers[index])) out += `[${segment}]`;
+    else out = out === "" ? segment : `${out}.${segment}`;
+  });
+  return out;
+}
+function walk(start, pointer, anchor, run) {
+  let holder = start;
+  let value = start.declaration;
+  let prefix = "";
+  let inner = [];
+  let containers = [];
+  let atReference = false;
+  let left = anchor;
+  let slots = referenceSlotsOf(holder, [], run, left ?? "");
+  if (isFailure(slots)) return slots;
+  for (const segment of decodePointer(pointer)) {
+    if (atReference) {
+      left ??= prefix;
+      const next = followReference(value, holder, inner, left, run);
+      if (isFailure(next)) return next;
+      holder = next;
+      value = next.declaration;
+      inner = [];
+      containers = [];
+      slots = referenceSlotsOf(holder, inner, run, left);
+      if (isFailure(slots)) return slots;
+    }
+    if (!isObject4(value) && !Array.isArray(value)) {
+      const via = hopOf(holder, inner, run);
+      return { reason: "no-ref", pointer: left ?? prefix, ...via ? { via } : {} };
+    }
+    containers.push(value);
+    value = value[segment];
+    prefix = `${prefix}/${segment}`;
+    inner.push(segment);
+    const concrete = concretePath(inner, containers);
+    atReference = slots.includes(concrete);
+  }
+  return { value, holder, inner, atReference, anchor: left ?? prefix };
+}
+function declarationValuesAt(consumer, segments, scope) {
+  const run = { scope, consumer };
+  const out = [];
+  const start = { declaration: consumer, scope: consumer };
+  const ownSlots = referenceSlotsOf(start, [], run, "");
+  const slots = isFailure(ownSlots) ? [] : ownSlots;
+  const reach = (holder, value, inner, containers, holderSlots, atReference, rest) => {
+    if (rest.length === 0) {
+      if (value !== void 0) out.push({ value, holder: holder.declaration });
+      return;
+    }
+    if (atReference) {
+      const next = followReference(value, holder, inner, "", run);
+      if (isFailure(next)) return;
+      const nextSlots = referenceSlotsOf(next, [], run, "");
+      if (isFailure(nextSlots)) return;
+      reach(next, next.declaration, [], [], nextSlots, false, rest);
+      return;
+    }
+    const [segment, ...tail] = rest;
+    const into = (key2) => {
+      const nextInner = [...inner, key2];
+      const nextContainers = [...containers, value];
+      reach(
+        holder,
+        value[key2],
+        nextInner,
+        nextContainers,
+        holderSlots,
+        holderSlots.includes(concretePath(nextInner, nextContainers)),
+        tail
+      );
+    };
+    if (segment === "*") {
+      if (Array.isArray(value)) value.forEach((item, index) => into(String(index)));
+      return;
+    }
+    if (isObject4(value)) into(segment);
+  };
+  reach(start, consumer, [], [], slots, false, segments);
+  return out;
+}
+function referenceSlotsOf(holder, inner, run, anchor) {
+  const slots = run.scope.referenceSlots(holder.declaration, holder.scope);
+  if (slots) return slots;
+  const via = hopOf(holder, inner, run);
+  return {
+    reason: "no-definition",
+    pointer: anchor,
+    kind: String(holder.declaration.kind),
+    ...via ? { via } : {}
+  };
+}
+function derivedTarget(holder, pointer, anchor, run) {
+  if (pointer === "") return { holder, anchor: anchor ?? "" };
+  const walked = walk(holder, pointer, anchor, run);
+  if (isFailure(walked)) return walked;
+  if (!walked.atReference) {
+    const via = hopOf(walked.holder, walked.inner, run);
+    return { reason: "no-ref", pointer: walked.anchor, ...via ? { via } : {} };
+  }
+  const next = followReference(walked.value, walked.holder, walked.inner, walked.anchor, run);
+  return isFailure(next) ? next : { holder: next, anchor: walked.anchor };
+}
+function selectedEntry(holder, selector, anchor, run) {
+  const walked = walk(holder, selector, holder.declaration === run.consumer ? void 0 : anchor, run);
+  if (isFailure(walked)) return walked;
+  const written = run.scope.authored?.(walked.holder.declaration) ?? walked.holder.declaration;
+  let authored = written;
+  for (const segment of walked.inner) {
+    authored = isObject4(authored) || Array.isArray(authored) ? authored[segment] : void 0;
+  }
+  if (isComputed(authored) || isComputed(walked.value)) {
+    return { reason: "selector-computed", pointer: walked.anchor, selector };
+  }
+  if (typeof walked.value !== "string") {
+    return { reason: "selector-unset", pointer: walked.anchor, selector };
+  }
+  return walked.value;
+}
+function entriesOf(projected) {
+  return isObject4(projected.properties) ? projected.properties : {};
+}
+function withoutEntries(projected, holder, selectors, anchor, run) {
+  if (!selectors || selectors.length === 0) return projected;
+  const entries = { ...entriesOf(projected) };
+  for (const selector of selectors) {
+    const entry = selectedEntry(holder, selector, anchor, run);
+    if (typeof entry !== "string") return entry;
+    if (!Object.hasOwn(entries, entry)) {
+      return { reason: "selector-entry", pointer: anchor, selector, entry };
+    }
+    delete entries[entry];
+  }
+  return { ...projected, properties: entries };
+}
+function projectDeclaration(holder, anchor, run, failures, path) {
+  const declaration = holder.declaration;
+  if (typeof declaration.kind !== "string") return { reason: "no-ref", pointer: "" };
+  const kind = declaration.kind;
+  const definition = run.scope.resolveDefinition(kind, holder.scope);
+  if (!definition) return { reason: "no-projection", pointer: anchor, kind };
+  const derived = readKindDerivation(definition);
+  if (derived && "invalid" in derived) {
+    return { reason: "invalid", pointer: anchor, detail: `kind '${kind}': ${derived.invalid}` };
+  }
+  if (derived) {
+    if (path.has(declaration)) return { reason: "cycle", pointer: anchor, holder: nameOf(declaration) };
+    path.add(declaration);
+    const target = derivedTarget(holder, derived.derivation.from, anchor, run);
+    if (isFailure(target)) return target;
+    const projected2 = projectDeclaration(target.holder, anchor, run, failures, path);
+    if (!projected2 || isFailure(projected2)) return projected2;
+    return withoutEntries(projected2, holder, derived.derivation.omit, anchor, run);
+  }
+  const projection = readSchemaProjection(definition);
+  const map3 = projection && projectionKeyMap(definition.schema, projection);
+  const pointer = declaration === run.consumer ? "" : anchor === "" ? "/" : anchor;
+  const projected = projection && map3 ? projectEntries(declaration, projection, map3, {
+    scope: run.scope,
+    pointer,
+    failures,
+    kindSchema: definition.schema
+  }) : void 0;
+  if (projected) return projected;
+  if (!projection) return { reason: "no-projection", pointer: anchor, kind };
+  if (!map3) return { reason: "no-projection-map", pointer: anchor, kind };
+  return { reason: "no-entries", pointer: anchor, kind, entries: projection.entries };
+}
+function projectDerivation(consumer, derivation, scope, failures) {
+  const run = { scope, consumer };
+  const start = { declaration: consumer, scope: consumer };
+  const target = derivedTarget(start, derivation.from, void 0, run);
+  if (isFailure(target)) return target;
+  const projected = projectDeclaration(target.holder, target.anchor, run, failures, /* @__PURE__ */ new Set());
+  if (!projected || isFailure(projected)) return projected;
+  const kept = withoutEntries(projected, start, derivation.omit, target.anchor, run);
+  if (isFailure(kept) || derivation.pick === void 0) return kept;
+  const entry = selectedEntry(start, derivation.pick, target.anchor, run);
+  if (typeof entry !== "string") return entry;
+  const entries = entriesOf(kept);
+  if (!Object.hasOwn(entries, entry)) {
+    return { reason: "selector-entry", pointer: target.anchor, selector: derivation.pick, entry };
+  }
+  return entries[entry];
+}
+function describeProjectionFailure(failure) {
+  const subject = (via) => via ? `'${failure.pointer}' leads to '${via.prefix}' inside '${via.holder}', which` : `'${failure.pointer}'`;
+  switch (failure.reason) {
+    case "no-ref":
+      return failure.pointer === "" && !failure.via ? "this resource declares no 'kind:', so there is no definition to project it through." : `${subject(failure.via)} does not hold a reference, so there is no declaration to project.`;
+    case "unresolved":
+      return `${subject(failure.via)} references '${failure.name}', which resolves to no resource.`;
+    case "no-definition":
+      return `${subject(failure.via)} is a resource of kind '${failure.kind}', which resolves to no definition \u2014 so nothing says which of its fields hold references to continue through.`;
+    case "injected":
+      return `${subject(failure.via)} references '${failure.name}', a resource input this module does not declare \u2014 its entries belong to whoever supplies it.`;
+    case "ambiguous":
+      return `${subject(failure.via)} references '${failure.name}', which matches more than one resource in scope. Rename one of them so the reference names exactly one declaration.`;
+    case "no-projection":
+      return `'${failure.pointer}' references a resource of kind '${failure.kind}', which declares no 'x-telo-schema-projection' \u2014 so there is nothing for this slot to be typed from.`;
+    case "no-projection-map":
+      return `kind '${failure.kind}' declares an 'x-telo-schema-projection' whose key field carries no 'x-telo-schema-map', so there is no vocabulary to project its entries through and '${failure.pointer || "this declaration"}' cannot be typed from it.`;
+    case "no-entries":
+      return `'${failure.entries}' holds no entry collection on this ${failure.kind}, so the projection has nothing to type '${failure.pointer || "this declaration"}' from.`;
+    case "entry-reference":
+      return `entry '${failure.entry}' at '${failure.pointer}' references '${failure.name}', which resolves to no declaration this analysis can read \u2014 so that entry is projected as an open value and nothing typed from it is checked against the shape it was meant to have.`;
+    case "nested-cycle":
+      return `entry '${failure.entry}' at '${failure.pointer}' contains itself through its nested entries, so its projection would never end \u2014 it is projected as an open value. Replace the alias that points back at it with the entries themselves.`;
+    case "invalid":
+      return failure.detail;
+    case "cycle":
+      return `'${failure.pointer}' is projected through kind-level derivations that lead back to '${failure.holder}', so it never reaches a declaration whose kind declares 'x-telo-schema-projection'.`;
+    case "selector-computed":
+      return `'${failure.selector}' names the entry to select, but the value there is computed by an expression. An entry is selected by a literal name, known before anything runs.`;
+    case "selector-unset":
+      return `'${failure.selector}' names the entry to select, but holds no entry name.`;
+    case "selector-entry":
+      return `'${failure.selector}' names entry '${failure.entry}', which the projection of '${failure.pointer}' does not have.`;
+  }
+}
+function resolveSchemaProjections(schema4, manifest, scope, failures) {
+  if (Array.isArray(schema4)) {
+    let moved2 = false;
+    const items = schema4.map((item) => {
+      const next = resolveSchemaProjections(item, manifest, scope, failures);
+      if (next !== item) moved2 = true;
+      return next;
+    });
+    return moved2 ? items : schema4;
+  }
+  if (!isObject4(schema4)) return schema4;
+  const read = readProjectionDerivation(schema4[PROJECTION_FROM]);
+  if (read && manifest) {
+    const projected = "invalid" in read ? { reason: "invalid", pointer: "", detail: read.invalid } : projectDerivation(manifest, read.derivation, scope, failures);
+    if (isFailure(projected)) {
+      failures?.push(projected);
+    } else if (projected) {
+      const { [PROJECTION_FROM]: _dropped, ...rest } = schema4;
+      return { ...rest, ...projected };
+    }
+  }
+  let moved = false;
+  const entries = Object.entries(schema4).map(([key2, value]) => {
+    const next = key2.startsWith("x-telo-") ? value : resolveSchemaProjections(value, manifest, scope, failures);
+    if (next !== value) moved = true;
+    return [key2, next];
+  });
+  return moved ? Object.fromEntries(entries) : schema4;
+}
+
 // ../../analyzer/nodejs/src/value-schema-slot.ts
 var VALUE_SCHEMA_ANNOTATION = "x-telo-value-schema-from";
+function readValueSchemaLocation(raw) {
+  if (raw === void 0) return void 0;
+  if (typeof raw !== "string" || raw.length === 0) {
+    return { invalid: `'${VALUE_SCHEMA_ANNOTATION}' is a field name, or a JSON Pointer from the declaration.` };
+  }
+  if (!raw.startsWith("/")) return { segments: [raw] };
+  const segments = raw.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+  if (segments.some((segment) => segment.length === 0)) {
+    return { invalid: `'${raw}' holds an empty segment; a pointer names one field or '*' per segment.` };
+  }
+  return { segments };
+}
+function valueSchemaTypes(declaration, from, host) {
+  const location = readValueSchemaLocation(from);
+  if (!location || "invalid" in location) return [];
+  const types = [];
+  for (const { value, holder } of declarationValuesAt(declaration, location.segments, host.scope)) {
+    const schema4 = host.typeSchemaOf(value, holder);
+    if (schema4 && typeof schema4 === "object" && !types.includes(schema4)) types.push(schema4);
+  }
+  return types;
+}
+var DATA_KEYWORDS = /* @__PURE__ */ new Set(["default", "const", "enum", "examples"]);
+var NAME_MAP_KEYWORDS = /* @__PURE__ */ new Set([
+  "properties",
+  "patternProperties",
+  "$defs",
+  "definitions",
+  "dependentSchemas",
+  "dependencies"
+]);
+var isSchemaNode = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+function schemaChildren(node) {
+  const out = [];
+  for (const [keyword, value] of Object.entries(node)) {
+    if (keyword.startsWith("x-telo-") || DATA_KEYWORDS.has(keyword)) continue;
+    if (Array.isArray(value)) {
+      value.forEach((schema4, at2) => {
+        if (isSchemaNode(schema4)) out.push({ keyword, at: at2, schema: schema4 });
+      });
+    } else if (!isSchemaNode(value)) {
+      continue;
+    } else if (NAME_MAP_KEYWORDS.has(keyword)) {
+      for (const [at2, schema4] of Object.entries(value)) {
+        if (isSchemaNode(schema4)) out.push({ keyword, at: at2, schema: schema4 });
+      }
+    } else {
+      out.push({ keyword, schema: value });
+    }
+  }
+  return out;
+}
+function withSchemaChildren(node, map3) {
+  let out;
+  for (const { keyword, at: at2, schema: schema4 } of schemaChildren(node)) {
+    const next = map3(schema4);
+    if (next === schema4) continue;
+    out ??= { ...node };
+    if (at2 === void 0) {
+      out[keyword] = next;
+      continue;
+    }
+    if (out[keyword] === node[keyword]) {
+      out[keyword] = Array.isArray(node[keyword]) ? [...node[keyword]] : { ...node[keyword] };
+    }
+    out[keyword][at2] = next;
+  }
+  return out ?? node;
+}
+var REACHED_TYPE_KEY = "telo:value-schema-from:";
+function resolveContractValueSchemas(schema4, declaration, host) {
+  if (!declaration || !isSchemaNode(schema4) || !carriesAnnotation(schema4)) return schema4;
+  const taken = new Set(Object.keys(isSchemaNode(schema4.$defs) ? schema4.$defs : {}));
+  const reached = /* @__PURE__ */ new Map();
+  const entryOf = (type) => {
+    let key2 = reached.get(type);
+    if (key2 !== void 0) return key2;
+    let index = reached.size;
+    do
+      key2 = `${REACHED_TYPE_KEY}${index++}`;
+    while (taken.has(key2));
+    taken.add(key2);
+    reached.set(type, key2);
+    return key2;
+  };
+  const typed = (node) => {
+    const walked = withSchemaChildren(node, typed);
+    const types = valueSchemaTypes(declaration, node[VALUE_SCHEMA_ANNOTATION], host);
+    if (types.length === 0) return walked;
+    const { [VALUE_SCHEMA_ANNOTATION]: _dropped, ...rest } = walked;
+    return {
+      ...rest,
+      allOf: [
+        ...Array.isArray(rest.allOf) ? rest.allOf : [],
+        ...types.map((type) => ({ $ref: `#/$defs/${pointerSegment(entryOf(type))}` }))
+      ]
+    };
+  };
+  const root = typed(schema4);
+  if (reached.size === 0) return root;
+  const defs = { ...isSchemaNode(root.$defs) ? root.$defs : {} };
+  for (const [type, key2] of reached) defs[key2] = rebasedType(type, key2);
+  return { ...root, $defs: defs };
+}
+var pointerSegment = (key2) => key2.replace(/~/g, "~0").replace(/\//g, "~1");
+function rebasedType(type, key2) {
+  const entry = `#/$defs/${pointerSegment(key2)}`;
+  const rebase = (node) => {
+    const walked = withSchemaChildren(node, rebase);
+    const ref = walked.$ref;
+    if (typeof ref !== "string" || !(ref === "#" || ref.startsWith("#/"))) return walked;
+    return { ...walked, $ref: `${entry}${ref.slice(1)}` };
+  };
+  const { $id: _id, ...rebased } = rebase(type);
+  return rebased;
+}
+var annotationCarriers = /* @__PURE__ */ new WeakMap();
+function carriesAnnotation(schema4) {
+  const known = annotationCarriers.get(schema4);
+  if (known !== void 0) return known;
+  const seen = /* @__PURE__ */ new Set();
+  const carries = (node) => {
+    if (seen.has(node)) return false;
+    seen.add(node);
+    return node[VALUE_SCHEMA_ANNOTATION] !== void 0 || schemaChildren(node).some((child) => carries(child.schema));
+  };
+  const result = carries(schema4);
+  annotationCarriers.set(schema4, result);
+  return result;
+}
+function valueSchemaAnnotations(schema4, path = "") {
+  if (!isSchemaNode(schema4)) return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const join = (base, key2) => typeof key2 === "number" ? `${base}[${key2}]` : base === "" ? key2 : `${base}.${key2}`;
+  const walk5 = (node, at2) => {
+    if (seen.has(node)) return;
+    seen.add(node);
+    if (node[VALUE_SCHEMA_ANNOTATION] !== void 0) {
+      out.push({ path: at2, raw: node[VALUE_SCHEMA_ANNOTATION] });
+    }
+    for (const child of schemaChildren(node)) {
+      const under = join(at2, child.keyword);
+      walk5(child.schema, child.at === void 0 ? under : join(under, child.at));
+    }
+  };
+  walk5(schema4, path);
+  return out;
+}
+function schemaReachesLocation(schema4, segments) {
+  const reaches = (raw, rest, seen) => {
+    const node = localTarget(raw, schema4);
+    if (!node || seen.includes(node)) return false;
+    if (rest.length === 0) return true;
+    if (isRefSlot(node) || node["x-telo-schema-from"] !== void 0) return true;
+    if (typeof node.$ref === "string") return true;
+    const here = [...seen, node];
+    const [segment, ...tail] = rest;
+    if (segment === "*") {
+      if (node.items && typeof node.items === "object" && reaches(node.items, tail, [])) return true;
+    } else {
+      const property = node.properties?.[segment];
+      if (property !== void 0 && reaches(property, tail, [])) return true;
+      const additional = node.additionalProperties;
+      if (additional && typeof additional === "object" && reaches(additional, tail, [])) return true;
+      for (const pattern of Object.values(node.patternProperties ?? {})) {
+        if (reaches(pattern, tail, [])) return true;
+      }
+    }
+    for (const key2 of ["allOf", "anyOf", "oneOf"]) {
+      const branches = node[key2];
+      if (Array.isArray(branches) && branches.some((branch) => reaches(branch, rest, here))) return true;
+    }
+    return false;
+  };
+  return reaches(schema4, segments, []);
+}
+function localTarget(node, root) {
+  let current = node;
+  const seen = /* @__PURE__ */ new Set();
+  while (current && typeof current === "object" && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
+    if (seen.has(current)) return void 0;
+    seen.add(current);
+    current = resolveSchemaPointer(root, current.$ref);
+  }
+  return current && typeof current === "object" && !Array.isArray(current) ? current : void 0;
+}
 function valueSchemaSlots(schema4, path = "$") {
   if (!schema4 || typeof schema4 !== "object") return [];
   const out = [];
@@ -40718,6 +41937,14 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
         }
       }
     }
+    if (fromRoot && navigatePath(manifestRoot, fromRoot.split("/")) == null) {
+      const {
+        "x-telo-context-from-root": _fromRoot,
+        "x-telo-context-from-ref-kind": _fromRefKind,
+        ...own
+      } = schema4;
+      return own;
+    }
     return {};
   }
   const refFrom = schema4["x-telo-context-ref-from"];
@@ -40961,667 +42188,68 @@ function capabilityExtendsExecutable(capability, defs) {
   return false;
 }
 
-// ../../analyzer/nodejs/src/schema-projection.ts
-function isObject4(value) {
-  return !!value && typeof value === "object" && !Array.isArray(value);
+// ../../analyzer/nodejs/src/ref-sentinel-target.ts
+var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
+function isRefSourceSpelling(text) {
+  return REF_SOURCE_RE.test(text);
 }
-function readSchemaProjection(definition) {
-  if (!isObject4(definition)) return void 0;
-  const raw = rawSchemaProjection(definition);
-  if (!isObject4(raw)) return void 0;
-  const entries = raw.entries;
-  const key2 = raw.key;
-  if (typeof entries !== "string" || typeof key2 !== "string") return void 0;
-  return {
-    entries,
-    key: key2,
-    nameField: typeof raw.name === "string" ? raw.name : void 0,
-    nullable: typeof raw.nullable === "string" ? raw.nullable : void 0,
-    array: typeof raw.array === "string" ? raw.array : void 0,
-    nested: typeof raw.nested === "string" ? raw.nested : void 0,
-    reference: readProjectionReference(raw.reference)
-  };
+function refSentinelTarget(value) {
+  if (!isRefSentinel(value)) return void 0;
+  const source = value.source;
+  const dot = source.indexOf(".");
+  if (dot <= 0) return { source, name: source };
+  return { source, alias: source.slice(0, dot), name: source.slice(dot + 1) };
 }
-function readProjectionReference(raw) {
-  if (!isObject4(raw)) return void 0;
-  const { from, keyword, base, baseFrom } = raw;
-  if (typeof from !== "string" || typeof keyword !== "string") return void 0;
-  return {
-    from,
-    keyword,
-    base: isObject4(base) ? base : void 0,
-    baseFrom: typeof baseFrom === "string" ? baseFrom : void 0
-  };
-}
-function rawSchemaProjection(definition) {
-  if (!isObject4(definition)) return void 0;
-  const own = definition["x-telo-schema-projection"];
-  if (own !== void 0) return own;
-  const schema4 = definition.schema;
-  return isObject4(schema4) ? schema4["x-telo-schema-projection"] : void 0;
-}
-function schemaProjectionIsMisplaced(definition) {
-  if (!isObject4(definition)) return false;
-  if (definition["x-telo-schema-projection"] !== void 0) return false;
-  const schema4 = definition.schema;
-  return isObject4(schema4) && schema4["x-telo-schema-projection"] !== void 0;
-}
-function schemaMapBranch(node) {
-  if (!isObject4(node)) return void 0;
-  if (node["x-telo-schema-map"] !== void 0) return node;
-  for (const key2 of ["oneOf", "anyOf"]) {
-    const branches = node[key2];
-    if (!Array.isArray(branches)) continue;
-    for (const branch of branches) {
-      if (isObject4(branch) && branch["x-telo-schema-map"] !== void 0) return branch;
-    }
-  }
-  return void 0;
-}
-function readSchemaMap(node) {
-  return ownSchemaMap(schemaMapBranch(node));
-}
-function ownSchemaMap(node) {
-  if (!isObject4(node)) return void 0;
-  const raw = node["x-telo-schema-map"];
-  if (!isObject4(raw)) return void 0;
-  const entries = Object.entries(raw).filter(([, value]) => isObject4(value));
-  if (entries.length === 0) return void 0;
-  return Object.fromEntries(entries);
-}
-var PROJECTION_FROM = "x-telo-schema-projection-from";
-var PROJECTION_DERIVATION_KEYS = ["from", "pick", "omit"];
-function readProjectionDerivation(raw) {
-  if (raw === void 0) return void 0;
-  if (typeof raw === "string") return { derivation: { from: raw } };
-  if (!isObject4(raw)) {
-    return { invalid: `'${PROJECTION_FROM}' is a JSON Pointer, or an object '{ from, pick?, omit? }'.` };
-  }
-  const unknown = Object.keys(raw).filter((key2) => !PROJECTION_DERIVATION_KEYS.includes(key2));
-  if (unknown.length > 0) {
-    return {
-      invalid: `'${PROJECTION_FROM}' has no ${unknown.map((k) => `'${k}'`).join(", ")}. It declares ${PROJECTION_DERIVATION_KEYS.map((k) => `'${k}'`).join(", ")}.`
-    };
-  }
-  const { from, pick, omit } = raw;
-  if (typeof from !== "string") {
-    return { invalid: `'${PROJECTION_FROM}' needs 'from', a JSON Pointer to the declaration to project.` };
-  }
-  if (pick !== void 0 && typeof pick !== "string") {
-    return { invalid: `'pick' is a JSON Pointer to a field holding the one entry's name.` };
-  }
-  if (omit !== void 0 && !(Array.isArray(omit) && omit.every((p) => typeof p === "string"))) {
-    return { invalid: `'omit' is a list of JSON Pointers, each to a field holding an entry's name.` };
-  }
-  return {
-    derivation: {
-      from,
-      ...pick !== void 0 ? { pick } : {},
-      ...omit !== void 0 ? { omit } : {}
-    }
-  };
-}
-function readKindDerivation(definition) {
-  if (!isObject4(definition)) return void 0;
-  const read = readProjectionDerivation(definition[PROJECTION_FROM]);
-  if (!read || "invalid" in read) return read;
-  if (rawSchemaProjection(definition) !== void 0) {
-    return {
-      invalid: `a kind declares its projection once: '${PROJECTION_FROM}' derives it from another declaration and 'x-telo-schema-projection' reads it from this one's entries \u2014 keep one.`
-    };
-  }
-  if (read.derivation.pick !== void 0) {
-    return {
-      invalid: `'pick' types a slot as ONE entry; on a kind document the declaration must project to an object, so only 'from' and 'omit' apply here.`
-    };
-  }
-  return read;
-}
-function decodePointer(pointer) {
-  return pointer.split("/").filter((segment) => segment !== "").map(decodeSegment);
-}
-function navigate(root, pointer) {
-  let current = root;
-  for (const segment of decodePointer(pointer)) {
-    if (!isObject4(current)) return void 0;
-    current = current[segment];
-  }
-  return current;
-}
-var SCHEMA_PROJECTION_KEYS = [
-  "entries",
-  "key",
-  "name",
-  "nullable",
-  "array",
-  "nested",
-  "reference"
-];
-function decodeSegment(segment) {
-  return segment.replace(/~1/g, "/").replace(/~0/g, "~");
-}
-function resolveLocal(node, root) {
-  let current = node;
-  const seen = /* @__PURE__ */ new Set();
-  while (isObject4(current) && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
-    if (seen.has(current)) return void 0;
-    seen.add(current);
-    let target = root;
-    for (const segment of current.$ref.slice(1).split("/")) {
-      if (segment === "") continue;
-      if (!isObject4(target)) return void 0;
-      target = target[decodeSegment(segment)];
-    }
-    current = target;
-  }
-  return current;
-}
-function projectionCollectionSchema(kindSchema, entries) {
-  let node = resolveLocal(kindSchema, kindSchema);
-  for (const segment of entries.split("/")) {
-    if (segment === "") continue;
-    if (!isObject4(node) || !isObject4(node.properties)) return void 0;
-    node = resolveLocal(node.properties[decodeSegment(segment)], kindSchema);
-  }
-  return isObject4(node) ? node : void 0;
-}
-function collectionEntrySchema(collection, kindSchema) {
-  if (!isObject4(collection)) return void 0;
-  const raw = isObject4(collection.additionalProperties) ? collection.additionalProperties : isObject4(collection.items) ? collection.items : void 0;
-  const entry = resolveLocal(raw, kindSchema);
-  return isObject4(entry) ? entry : void 0;
-}
-function projectionEntryField(kindSchema, projection, field) {
-  const entry = collectionEntrySchema(
-    projectionCollectionSchema(kindSchema, projection.entries),
-    kindSchema
-  );
-  if (!entry || !isObject4(entry.properties)) return void 0;
-  const node = resolveLocal(entry.properties[field], kindSchema);
-  return isObject4(node) ? node : void 0;
-}
-function projectionKeyMap(kindSchema, projection) {
-  return readSchemaMap(projectionEntryField(kindSchema, projection, projection.key));
-}
-function failureAnchor(entryPointer, projection, options) {
-  return options?.pointer === "" ? entryPointer : options?.pointer ?? projection.entries;
-}
-function referencedNode(value, entryName, entryPointer, projection, map3, holder, options) {
-  const reference = projection.reference;
-  if (!reference || !isObject4(value)) return void 0;
-  const name = readProjectionRef(value)?.name ?? "<unnamed>";
-  const report = () => {
-    options?.failures?.push({
-      reason: "entry-reference",
-      pointer: failureAnchor(entryPointer, projection, options),
-      entry: entryName,
-      name
-    });
-    return {};
-  };
-  const found = options?.scope?.resolveManifest(value, holder);
-  if (!found || !("manifest" in found)) return report();
-  const values = found.manifest[reference.from];
-  if (!Array.isArray(values) || values.length === 0) return report();
-  let base = reference.base;
-  if (reference.baseFrom !== void 0) {
-    const declared = found.manifest[reference.baseFrom];
-    base = typeof declared === "string" ? map3[declared] : void 0;
-  }
-  if (!base) return report();
-  return { ...base, [reference.keyword]: values };
-}
-function branchDefault(branch, field, root) {
-  const node = resolveLocal(branch, root);
-  if (!isObject4(node) || !isObject4(node.properties)) return void 0;
-  const property = resolveLocal(node.properties[field], root);
-  return isObject4(property) && "default" in property ? { value: property.default } : void 0;
-}
-function modifierDefaultSites(entrySchema, field, root) {
-  const sites = [];
-  const own = isObject4(entrySchema.properties) ? resolveLocal(entrySchema.properties[field], root) : void 0;
-  if (isObject4(own) && "default" in own) {
-    sites.push({ kind: "field", path: `properties.${field}.default`, value: own.default });
-  }
-  const visit4 = (raw, path, seen) => {
-    const node = resolveLocal(raw, root);
-    if (!isObject4(node) || seen.has(node)) return;
-    seen.add(node);
-    if (node.if !== void 0) {
-      const thenDefault = branchDefault(node.then, field, root);
-      const elseDefault = branchDefault(node.else, field, root);
-      if (thenDefault || elseDefault) {
-        sites.push({
-          kind: "conditional",
-          path: path === "" ? "if" : `${path}.if`,
-          condition: node.if,
-          ...thenDefault ? { then: thenDefault } : {},
-          ...elseDefault ? { else: elseDefault } : {}
-        });
-      }
-    }
-    if (Array.isArray(node.allOf)) {
-      node.allOf.forEach(
-        (member, index) => visit4(member, path === "" ? `allOf[${index}]` : `${path}.allOf[${index}]`, seen)
-      );
-    }
-  };
-  visit4(entrySchema, "", /* @__PURE__ */ new Set());
-  return sites;
-}
-var compiledConditions = /* @__PURE__ */ new WeakMap();
-var conditionAjv;
-function compileDefaultCondition(condition) {
-  if (typeof condition === "boolean") return () => condition;
-  if (!isObject4(condition)) return { error: "an 'if' is a JSON Schema: an object or a boolean" };
-  const cached = compiledConditions.get(condition);
-  if (cached) return cached;
-  let check3;
-  try {
-    const validate2 = (conditionAjv ??= createAjv()).compile(condition);
-    check3 = (entry) => validate2(entry) === true;
-  } catch (error) {
-    check3 = { error: error instanceof Error ? error.message : String(error) };
-  }
-  compiledConditions.set(condition, check3);
-  return check3;
-}
-function applicableDefault(sites, entry) {
-  if (!sites || sites.length !== 1) return void 0;
-  const [site] = sites;
-  if (site.kind === "field") return site.value;
-  const check3 = compileDefaultCondition(site.condition);
-  if (typeof check3 !== "function") return void 0;
-  return (check3(entry) ? site.then : site.else)?.value;
-}
-function modifierDefaultSitesOf(projection, kindSchema) {
-  const sites = {};
-  if (kindSchema === void 0) return sites;
-  const entry = collectionEntrySchema(projectionCollectionSchema(kindSchema, projection.entries), kindSchema);
-  if (!entry) return sites;
-  for (const field of [projection.array, projection.nullable]) {
-    if (field !== void 0) sites[field] = modifierDefaultSites(entry, field, kindSchema);
-  }
-  return sites;
-}
-function projectCollection(collection, collectionPointer, run) {
-  const pairs2 = [];
-  const consider = (name, segment, entry) => {
-    if (!isObject4(entry) || typeof name !== "string") return;
-    const node = projectEntry(entry, name, `${collectionPointer}/${segment}`, run);
-    if (node) pairs2.push([name, node]);
-  };
-  const { nameField } = run.projection;
-  if (Array.isArray(collection)) {
-    collection.forEach(
-      (entry, index) => consider(isObject4(entry) && nameField ? entry[nameField] : void 0, String(index), entry)
-    );
-  } else if (isObject4(collection)) {
-    for (const [name, entry] of Object.entries(collection)) consider(name, name, entry);
-  } else {
+
+// ../../analyzer/nodejs/src/validate-value-schema-location.ts
+var ANNOTATION = "x-telo-value-schema-from";
+var ANNOTATED_FIELDS = ["schema", "inputType", "outputType"];
+function namedContractShape(typeField) {
+  if (typeof typeField === "string") return typeField.length > 0 ? { name: typeField } : void 0;
+  const tagged = refSentinelTarget(typeField);
+  if (tagged) return { name: tagged.name, alias: tagged.alias };
+  if (!typeField || typeof typeField !== "object" || Array.isArray(typeField)) return void 0;
+  const field = typeField;
+  if (field.schema !== void 0 || field.type !== void 0 || field.properties !== void 0) {
     return void 0;
   }
-  return {
-    type: "object",
-    properties: Object.fromEntries(pairs2),
-    additionalProperties: false
-  };
-}
-function projectEntry(entry, name, entryPointer, run) {
-  const { projection, map: map3, options } = run;
-  const sub = projection.nested === void 0 ? void 0 : entry[projection.nested];
-  let mapped;
-  if (sub !== void 0) {
-    if (run.ancestors.has(entry)) {
-      options?.failures?.push({
-        reason: "nested-cycle",
-        pointer: failureAnchor(entryPointer, projection, options),
-        entry: name
-      });
-      return {};
-    }
-    run.ancestors.add(entry);
-    try {
-      mapped = projectCollection(sub, `${entryPointer}/${projection.nested}`, run);
-    } finally {
-      run.ancestors.delete(entry);
-    }
-  } else {
-    const key2 = entry[projection.key];
-    mapped = typeof key2 === "string" ? map3[key2] : referencedNode(key2, name, entryPointer, projection, map3, run.declaration, options);
+  if (typeof field.name === "string") {
+    return { name: field.name, alias: typeof field.alias === "string" ? field.alias : void 0 };
   }
-  if (!mapped) return void 0;
-  const modifier = (field) => entry[field] !== void 0 ? entry[field] : applicableDefault(run.defaultSites[field], entry);
-  let node = { ...mapped };
-  if (projection.array && modifier(projection.array) === true) {
-    node = { type: "array", items: node };
-  }
-  if (projection.nullable && modifier(projection.nullable) !== false) {
-    node = { anyOf: [node, { type: "null" }] };
-  }
-  return node;
+  const canonical = parseCanonicalTypeSchemaId(field.$ref);
+  return canonical ? { name: canonical.typeName } : void 0;
 }
-function projectEntries(manifest, projection, map3, options) {
-  const entries = navigate(manifest, projection.entries);
-  if (entries === void 0) return void 0;
-  return projectCollection(entries, projection.entries, {
-    projection,
-    map: map3,
-    options,
-    defaultSites: modifierDefaultSitesOf(projection, options?.kindSchema),
-    ancestors: /* @__PURE__ */ new Set(),
-    declaration: isObject4(manifest) ? manifest : void 0
-  });
-}
-function readProjectionRef(value) {
-  if (!isObject4(value)) return void 0;
-  if (isRefSentinel(value)) {
-    const dot = value.source.indexOf(".");
-    return dot > 0 ? { name: value.source.slice(dot + 1), alias: value.source.slice(0, dot) } : { name: value.source };
-  }
-  const name = value.name;
-  if (typeof name !== "string") return void 0;
-  return {
-    name,
-    kind: typeof value.kind === "string" ? value.kind : void 0,
-    alias: typeof value.alias === "string" ? value.alias : void 0
-  };
-}
-var moduleOf = (manifest) => {
-  const module = manifest?.metadata?.module;
-  return typeof module === "string" ? module : void 0;
-};
-var scopeModuleOf = (manifest) => {
-  const declaring = manifest?.metadata?.declaringModule;
-  return typeof declaring === "string" ? declaring : moduleOf(manifest);
-};
-function manifestListScope(manifests, resolveDefinition, modules) {
-  const libraries = modules?.libraries;
-  const named = (name, module, kind) => manifests.filter(
-    (candidate) => candidate?.metadata?.name === name && moduleOf(candidate) === module && (kind === void 0 || candidate.kind === kind)
-  );
-  const scope = {
-    resolveDefinition,
-    referenceSlots: (declaration, holder) => modules?.referenceSlots(declaration, scopeModuleOf(declaration) ?? scopeModuleOf(holder)),
-    resolveManifest(value, holder, trail) {
-      const ref = readProjectionRef(value);
-      if (!ref) return void 0;
-      const module = scopeModuleOf(holder);
-      if (ref.alias && ref.alias !== "Self") {
-        const target = modules?.moduleForAlias(module, ref.alias);
-        if (target === void 0) return void 0;
-        const entry = named(ref.alias, module, "Telo.Import")[0] ?? (module !== void 0 ? libraries?.importOf(module, ref.alias) : void 0);
-        const entered = entry ? new Map(trail).set(target, entry) : trail;
-        return declaredIn2(ref.name, target, entered);
+function valueSchemaFromProblems(definition, schema4, resolveShape) {
+  const problems = [];
+  const kindName = String(definition.metadata?.name);
+  const unreachable = (raw, where) => `'${kindName}' declares \`${ANNOTATION}: ${String(raw)}\` ${where}, but its schema declares nothing at that location, so no resource of the kind can name a type there and the annotated node would be typed from nothing. Name a field the kind's \`schema:\` declares \u2014 by name, or by a JSON Pointer from the resource root, which may continue through a reference slot and range over a list with '*'.`;
+  for (const field of ANNOTATED_FIELDS) {
+    const written = definition[field];
+    for (const { path, raw } of valueSchemaAnnotations(written, field)) {
+      const at2 = `${path}.${ANNOTATION}`;
+      const location = readValueSchemaLocation(raw);
+      if (!location) continue;
+      if ("invalid" in location) {
+        problems.push({ path: at2, message: `'${kindName}' at '${at2}': ${location.invalid}` });
+      } else if (!schema4 || !schemaReachesLocation(schema4, location.segments)) {
+        problems.push({ path: at2, message: unreachable(raw, `at '${at2}'`) });
       }
-      return declaredIn2(ref.name, module, trail);
     }
-  };
-  function declaredIn2(name, module, trail) {
-    const own = named(name, module);
-    if (own.length > 1) return { ambiguous: true };
-    if (own.length === 1) {
-      return isInjectedDeclaration(own[0]) ? supplied(name, module, trail) : { manifest: own[0], trail };
-    }
-    if (module === void 0 || !libraries) return void 0;
-    if (libraries.isInput(module, name)) return supplied(name, module, trail);
-    const internal = libraries.declaration(module, name);
-    return internal ? { manifest: internal, trail } : void 0;
-  }
-  function supplied(name, module, trail) {
-    const entry = module === void 0 ? void 0 : trail?.get(module);
-    if (!entry) return { injected: true };
-    const value = readSuppliedResources(entry)[name];
-    return value === void 0 ? void 0 : scope.resolveManifest(value, entry, trail);
-  }
-  return scope;
-}
-function isReportedAtConsumer(failure) {
-  return failure.reason !== "injected" && failure.reason !== "invalid";
-}
-function isFailure(value) {
-  return isObject4(value) && typeof value.reason === "string" && typeof value.pointer === "string";
-}
-function isComputed(value) {
-  return isCompiledValue(value) || isTaggedSentinel(value) && !isRefSentinel(value);
-}
-var nameOf = (manifest) => String(manifest.metadata?.name ?? `the inline ${manifest.kind}`);
-function hopOf(holder, inner, run) {
-  return holder.declaration === run.consumer ? void 0 : { prefix: `/${inner.join("/")}`, holder: nameOf(holder.declaration) };
-}
-function referenceValueKind(value, run) {
-  if (run.scope.isLiveReference?.(value) === true || isRefSentinel(value)) return "reference";
-  if (!isObject4(value) || typeof value.kind !== "string") return "data";
-  return typeof value.name === "string" ? "reference" : "inline";
-}
-function followReference(value, holder, inner, anchor, run) {
-  const via = hopOf(holder, inner, run);
-  const hop = via ? { via } : {};
-  const kind = referenceValueKind(value, run);
-  if (kind === "data") return { reason: "no-ref", pointer: anchor, ...hop };
-  if (kind === "inline") {
-    return { declaration: value, scope: holder.scope, trail: holder.trail };
-  }
-  const name = readProjectionRef(value)?.name ?? "<unnamed>";
-  const found = run.scope.resolveManifest(value, holder.scope, holder.trail);
-  if (!found) return { reason: "unresolved", pointer: anchor, name, ...hop };
-  if ("ambiguous" in found) return { reason: "ambiguous", pointer: anchor, name, ...hop };
-  if ("injected" in found || isInjectedDeclaration(found.manifest)) {
-    return { reason: "injected", pointer: anchor, name, ...hop };
-  }
-  if (typeof found.manifest.kind !== "string") return { reason: "unresolved", pointer: anchor, name, ...hop };
-  return { declaration: found.manifest, scope: found.manifest, trail: found.trail };
-}
-function concretePath(segments, containers) {
-  let out = "";
-  segments.forEach((segment, index) => {
-    if (Array.isArray(containers[index])) out += `[${segment}]`;
-    else out = out === "" ? segment : `${out}.${segment}`;
-  });
-  return out;
-}
-function walk(start, pointer, anchor, run) {
-  let holder = start;
-  let value = start.declaration;
-  let prefix = "";
-  let inner = [];
-  let containers = [];
-  let atReference = false;
-  let left = anchor;
-  let slots = referenceSlotsOf(holder, [], run, left ?? "");
-  if (isFailure(slots)) return slots;
-  for (const segment of decodePointer(pointer)) {
-    if (atReference) {
-      left ??= prefix;
-      const next = followReference(value, holder, inner, left, run);
-      if (isFailure(next)) return next;
-      holder = next;
-      value = next.declaration;
-      inner = [];
-      containers = [];
-      slots = referenceSlotsOf(holder, inner, run, left);
-      if (isFailure(slots)) return slots;
-    }
-    if (!isObject4(value) && !Array.isArray(value)) {
-      const via = hopOf(holder, inner, run);
-      return { reason: "no-ref", pointer: left ?? prefix, ...via ? { via } : {} };
-    }
-    containers.push(value);
-    value = value[segment];
-    prefix = `${prefix}/${segment}`;
-    inner.push(segment);
-    const concrete = concretePath(inner, containers);
-    atReference = slots.includes(concrete);
-  }
-  return { value, holder, inner, atReference, anchor: left ?? prefix };
-}
-function referenceSlotsOf(holder, inner, run, anchor) {
-  const slots = run.scope.referenceSlots(holder.declaration, holder.scope);
-  if (slots) return slots;
-  const via = hopOf(holder, inner, run);
-  return {
-    reason: "no-definition",
-    pointer: anchor,
-    kind: String(holder.declaration.kind),
-    ...via ? { via } : {}
-  };
-}
-function derivedTarget(holder, pointer, anchor, run) {
-  if (pointer === "") return { holder, anchor: anchor ?? "" };
-  const walked = walk(holder, pointer, anchor, run);
-  if (isFailure(walked)) return walked;
-  if (!walked.atReference) {
-    const via = hopOf(walked.holder, walked.inner, run);
-    return { reason: "no-ref", pointer: walked.anchor, ...via ? { via } : {} };
-  }
-  const next = followReference(walked.value, walked.holder, walked.inner, walked.anchor, run);
-  return isFailure(next) ? next : { holder: next, anchor: walked.anchor };
-}
-function selectedEntry(holder, selector, anchor, run) {
-  const walked = walk(holder, selector, holder.declaration === run.consumer ? void 0 : anchor, run);
-  if (isFailure(walked)) return walked;
-  const written = run.scope.authored?.(walked.holder.declaration) ?? walked.holder.declaration;
-  let authored = written;
-  for (const segment of walked.inner) {
-    authored = isObject4(authored) || Array.isArray(authored) ? authored[segment] : void 0;
-  }
-  if (isComputed(authored) || isComputed(walked.value)) {
-    return { reason: "selector-computed", pointer: walked.anchor, selector };
-  }
-  if (typeof walked.value !== "string") {
-    return { reason: "selector-unset", pointer: walked.anchor, selector };
-  }
-  return walked.value;
-}
-function entriesOf(projected) {
-  return isObject4(projected.properties) ? projected.properties : {};
-}
-function withoutEntries(projected, holder, selectors, anchor, run) {
-  if (!selectors || selectors.length === 0) return projected;
-  const entries = { ...entriesOf(projected) };
-  for (const selector of selectors) {
-    const entry = selectedEntry(holder, selector, anchor, run);
-    if (typeof entry !== "string") return entry;
-    if (!Object.hasOwn(entries, entry)) {
-      return { reason: "selector-entry", pointer: anchor, selector, entry };
-    }
-    delete entries[entry];
-  }
-  return { ...projected, properties: entries };
-}
-function projectDeclaration(holder, anchor, run, failures, path) {
-  const declaration = holder.declaration;
-  if (typeof declaration.kind !== "string") return { reason: "no-ref", pointer: "" };
-  const kind = declaration.kind;
-  const definition = run.scope.resolveDefinition(kind, holder.scope);
-  if (!definition) return { reason: "no-projection", pointer: anchor, kind };
-  const derived = readKindDerivation(definition);
-  if (derived && "invalid" in derived) {
-    return { reason: "invalid", pointer: anchor, detail: `kind '${kind}': ${derived.invalid}` };
-  }
-  if (derived) {
-    if (path.has(declaration)) return { reason: "cycle", pointer: anchor, holder: nameOf(declaration) };
-    path.add(declaration);
-    const target = derivedTarget(holder, derived.derivation.from, anchor, run);
-    if (isFailure(target)) return target;
-    const projected2 = projectDeclaration(target.holder, anchor, run, failures, path);
-    if (!projected2 || isFailure(projected2)) return projected2;
-    return withoutEntries(projected2, holder, derived.derivation.omit, anchor, run);
-  }
-  const projection = readSchemaProjection(definition);
-  const map3 = projection && projectionKeyMap(definition.schema, projection);
-  const pointer = declaration === run.consumer ? "" : anchor === "" ? "/" : anchor;
-  const projected = projection && map3 ? projectEntries(declaration, projection, map3, {
-    scope: run.scope,
-    pointer,
-    failures,
-    kindSchema: definition.schema
-  }) : void 0;
-  if (projected) return projected;
-  if (!projection) return { reason: "no-projection", pointer: anchor, kind };
-  if (!map3) return { reason: "no-projection-map", pointer: anchor, kind };
-  return { reason: "no-entries", pointer: anchor, kind, entries: projection.entries };
-}
-function projectDerivation(consumer, derivation, scope, failures) {
-  const run = { scope, consumer };
-  const start = { declaration: consumer, scope: consumer };
-  const target = derivedTarget(start, derivation.from, void 0, run);
-  if (isFailure(target)) return target;
-  const projected = projectDeclaration(target.holder, target.anchor, run, failures, /* @__PURE__ */ new Set());
-  if (!projected || isFailure(projected)) return projected;
-  const kept = withoutEntries(projected, start, derivation.omit, target.anchor, run);
-  if (isFailure(kept) || derivation.pick === void 0) return kept;
-  const entry = selectedEntry(start, derivation.pick, target.anchor, run);
-  if (typeof entry !== "string") return entry;
-  const entries = entriesOf(kept);
-  if (!Object.hasOwn(entries, entry)) {
-    return { reason: "selector-entry", pointer: target.anchor, selector: derivation.pick, entry };
-  }
-  return entries[entry];
-}
-function describeProjectionFailure(failure) {
-  const subject = (via) => via ? `'${failure.pointer}' leads to '${via.prefix}' inside '${via.holder}', which` : `'${failure.pointer}'`;
-  switch (failure.reason) {
-    case "no-ref":
-      return failure.pointer === "" && !failure.via ? "this resource declares no 'kind:', so there is no definition to project it through." : `${subject(failure.via)} does not hold a reference, so there is no declaration to project.`;
-    case "unresolved":
-      return `${subject(failure.via)} references '${failure.name}', which resolves to no resource.`;
-    case "no-definition":
-      return `${subject(failure.via)} is a resource of kind '${failure.kind}', which resolves to no definition \u2014 so nothing says which of its fields hold references to continue through.`;
-    case "injected":
-      return `${subject(failure.via)} references '${failure.name}', a resource input this module does not declare \u2014 its entries belong to whoever supplies it.`;
-    case "ambiguous":
-      return `${subject(failure.via)} references '${failure.name}', which matches more than one resource in scope. Rename one of them so the reference names exactly one declaration.`;
-    case "no-projection":
-      return `'${failure.pointer}' references a resource of kind '${failure.kind}', which declares no 'x-telo-schema-projection' \u2014 so there is nothing for this slot to be typed from.`;
-    case "no-projection-map":
-      return `kind '${failure.kind}' declares an 'x-telo-schema-projection' whose key field carries no 'x-telo-schema-map', so there is no vocabulary to project its entries through and '${failure.pointer || "this declaration"}' cannot be typed from it.`;
-    case "no-entries":
-      return `'${failure.entries}' holds no entry collection on this ${failure.kind}, so the projection has nothing to type '${failure.pointer || "this declaration"}' from.`;
-    case "entry-reference":
-      return `entry '${failure.entry}' at '${failure.pointer}' references '${failure.name}', which resolves to no declaration this analysis can read \u2014 so that entry is projected as an open value and nothing typed from it is checked against the shape it was meant to have.`;
-    case "nested-cycle":
-      return `entry '${failure.entry}' at '${failure.pointer}' contains itself through its nested entries, so its projection would never end \u2014 it is projected as an open value. Replace the alias that points back at it with the entries themselves.`;
-    case "invalid":
-      return failure.detail;
-    case "cycle":
-      return `'${failure.pointer}' is projected through kind-level derivations that lead back to '${failure.holder}', so it never reaches a declaration whose kind declares 'x-telo-schema-projection'.`;
-    case "selector-computed":
-      return `'${failure.selector}' names the entry to select, but the value there is computed by an expression. An entry is selected by a literal name, known before anything runs.`;
-    case "selector-unset":
-      return `'${failure.selector}' names the entry to select, but holds no entry name.`;
-    case "selector-entry":
-      return `'${failure.selector}' names entry '${failure.entry}', which the projection of '${failure.pointer}' does not have.`;
-  }
-}
-function resolveSchemaProjections(schema4, manifest, scope, failures) {
-  if (Array.isArray(schema4)) {
-    let moved2 = false;
-    const items = schema4.map((item) => {
-      const next = resolveSchemaProjections(item, manifest, scope, failures);
-      if (next !== item) moved2 = true;
-      return next;
-    });
-    return moved2 ? items : schema4;
-  }
-  if (!isObject4(schema4)) return schema4;
-  const read = readProjectionDerivation(schema4[PROJECTION_FROM]);
-  if (read && manifest) {
-    const projected = "invalid" in read ? { reason: "invalid", pointer: "", detail: read.invalid } : projectDerivation(manifest, read.derivation, scope, failures);
-    if (isFailure(projected)) {
-      failures?.push(projected);
-    } else if (projected) {
-      const { [PROJECTION_FROM]: _dropped, ...rest } = schema4;
-      return { ...rest, ...projected };
+    const shape = field === "schema" ? void 0 : resolveShape?.(written);
+    if (!shape) continue;
+    for (const { path, raw } of valueSchemaAnnotations(shape.schema)) {
+      const within3 = path === "" ? "its root" : `'${path}'`;
+      const where = `through \`${field}\`, which names the shape '${shape.name}' carrying it at ${within3}`;
+      const location = readValueSchemaLocation(raw);
+      if (!location) continue;
+      if ("invalid" in location) {
+        problems.push({ path: field, message: `'${kindName}' ${where}: ${location.invalid}` });
+      } else if (!schema4 || !schemaReachesLocation(schema4, location.segments)) {
+        problems.push({ path: field, message: unreachable(raw, where) });
+      }
     }
   }
-  let moved = false;
-  const entries = Object.entries(schema4).map(([key2, value]) => {
-    const next = key2.startsWith("x-telo-") ? value : resolveSchemaProjections(value, manifest, scope, failures);
-    if (next !== value) moved = true;
-    return [key2, next];
-  });
-  return moved ? Object.fromEntries(entries) : schema4;
+  return problems;
 }
 
 // ../../analyzer/nodejs/src/invocation-contract.ts
@@ -41659,7 +42287,7 @@ function resolveContract(direction, manifest, definition, scope, projectionFailu
     const schema5 = resolveTypeFieldToSchema(own, scope.typeManifestsFor(definition));
     if (schema5) {
       return {
-        schema: projectionResolved(schema5, manifest, scope, definition, projectionFailures),
+        schema: declarationResolved(schema5, manifest, scope, definition, projectionFailures),
         origin: "instance"
       };
     }
@@ -41670,22 +42298,115 @@ function resolveContract(direction, manifest, definition, scope, projectionFailu
   const schema4 = resolveTypeFieldToSchema(declared, scope.typeManifestsFor(declarer));
   if (!schema4) return void 0;
   return {
-    schema: projectionResolved(schema4, manifest, scope, declarer, projectionFailures),
+    schema: declarationResolved(schema4, manifest, scope, declarer, projectionFailures),
     origin: "kind",
     declaredBy: declarer
   };
 }
-function projectionResolved(schema4, manifest, scope, declarer, failures) {
-  return resolveSchemaProjections(
-    schema4,
-    manifest,
-    manifestListScope(
-      scope.typeManifestsFor(declarer),
-      (kind, declaration) => scope.resolveDefinition(kind, declaration),
-      scope.projectionModules
-    ),
-    failures
+function declarationResolved(schema4, manifest, scope, declarer, failures) {
+  const host = valueSchemaHostOf(scope, declarer);
+  const projected = resolveSchemaProjections(schema4, manifest, host.scope, failures);
+  return resolveContractValueSchemas(projected, manifest, host);
+}
+function resolveNamedShape(typeField, holder, scope) {
+  const named = namedContractShape(typeField);
+  if (!named) return void 0;
+  const stamped = typeField && typeof typeField === "object" ? parseCanonicalTypeSchemaId(typeField.$ref) : null;
+  const holderMetadata = holder?.metadata;
+  const holderModule = typeof holderMetadata?.declaringModule === "string" ? holderMetadata.declaringModule : typeof holderMetadata?.module === "string" ? holderMetadata.module : void 0;
+  let module = holderModule;
+  if (stamped) {
+    module = stamped.moduleName;
+  } else if (named.alias !== void 0 && named.alias !== "Self") {
+    module = scope.modules?.moduleForAlias(holderModule, named.alias);
+    if (module === void 0) return void 0;
+  }
+  const name = stamped?.typeName ?? named.name;
+  const isShape = (candidate) => !!candidate && isTypeKind(candidate.kind, scope.typeManifests) && !!candidate.schema && typeof candidate.schema === "object";
+  const declared = scope.typeManifests.find((candidate) => {
+    const metadata = candidate?.metadata;
+    return metadata?.name === name && (metadata.module === module || module !== void 0 && metadata.declaringModule === module) && isShape(candidate);
+  }) ?? (module !== void 0 ? scope.modules?.libraries?.declaration(module, name) : void 0);
+  if (!isShape(declared)) return void 0;
+  const schema4 = resolveTypeFieldToSchema(
+    { schema: declared.schema, extends: declared.extends },
+    scope.typeManifests
   );
+  return schema4 ? { name: named.name, schema: schema4 } : void 0;
+}
+function valueSchemaHostOf(scope, declarer) {
+  const typeManifests = scope.typeManifestsFor(declarer);
+  const declarations = manifestListScope(
+    typeManifests,
+    (kind, declaration) => scope.resolveDefinition(kind, declaration),
+    scope.projectionModules
+  );
+  const shapes = { typeManifests, modules: scope.projectionModules };
+  return {
+    scope: declarations,
+    typeSchemaOf: (value, holder) => namedContractShape(value) ? resolveNamedShape(value, holder, shapes)?.schema : resolveTypeFieldToSchema(value, typeManifests)
+  };
+}
+function contractRefTarget(ref, document, resolveRef2) {
+  if (ref.startsWith("#")) {
+    const target2 = document ? resolveSchemaPointer(document, ref) : void 0;
+    return target2 && typeof target2 === "object" && !Array.isArray(target2) ? { target: target2, document } : void 0;
+  }
+  const target = resolveRef2?.(ref);
+  return target ? { target, document: void 0 } : void 0;
+}
+function withContractDefaults(value, schema4, resolveRef2, onFill) {
+  const deref2 = (node, chain, document) => {
+    if (!node || typeof node !== "object" || chain.includes(node)) return void 0;
+    const s = node;
+    if (typeof s.$ref !== "string" || !resolveRef2 && !s.$ref.startsWith("#")) {
+      return { s, document };
+    }
+    const followed = contractRefTarget(s.$ref, document, resolveRef2);
+    if (!followed || chain.includes(followed.target)) return void 0;
+    return { s: { ...followed.target, ...s, $ref: void 0 }, document: followed.document };
+  };
+  const fill = (data, node, path, chain, within3) => {
+    const entered = deref2(node, chain, within3);
+    if (!entered) return data;
+    const { s, document } = entered;
+    const here = [...chain, node];
+    let out = data;
+    if (Array.isArray(s.allOf)) {
+      for (const member of s.allOf) out = fill(out, member, path, here, document);
+    }
+    const properties = s.properties;
+    if (properties && isPlainRecord(out)) {
+      for (const [key2, child] of Object.entries(properties)) {
+        const at2 = path === "" ? key2 : `${path}.${key2}`;
+        const current = out[key2];
+        let next = current;
+        if (current === void 0) {
+          if (!child || typeof child !== "object" || !("default" in child)) continue;
+          onFill?.(at2);
+          next = structuredClone(child.default);
+        }
+        next = fill(next, child, at2, here, document);
+        if (next !== current) out = { ...out, [key2]: next };
+      }
+    }
+    if (s.items && !Array.isArray(s.items) && Array.isArray(out)) {
+      let moved = false;
+      const items = out.map((item, index) => {
+        const next = fill(item, s.items, `${path}[${index}]`, here, document);
+        if (next !== item) moved = true;
+        return next;
+      });
+      if (moved) out = items;
+    }
+    return out;
+  };
+  return fill(value, schema4, "", [], schema4);
+}
+function isPlainRecord(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 function sensitivePaths(schema4, resolveRef2, reached) {
   const out = [];
@@ -41736,14 +42457,16 @@ function sensitivePaths(schema4, resolveRef2, reached) {
 }
 function declaredScalarPaths(schema4, resolveRef2) {
   const out = [];
-  const walk5 = (node, path, chain) => {
+  const walk5 = (node, path, chain, within3) => {
     if (!node || typeof node !== "object") return;
     let s = node;
+    let document = within3;
     if (chain.includes(s)) return;
-    if (resolveRef2 && typeof s.$ref === "string") {
-      const target = resolveRef2(s.$ref);
-      if (!target || chain.includes(target)) return;
-      s = { ...target, ...s, $ref: void 0 };
+    if (typeof s.$ref === "string" && (resolveRef2 || s.$ref.startsWith("#"))) {
+      const followed = contractRefTarget(s.$ref, document, resolveRef2);
+      if (!followed || chain.includes(followed.target)) return;
+      s = { ...followed.target, ...s, $ref: void 0 };
+      document = followed.document;
     }
     const here = [...chain, node];
     const entry = valueTypeOf(s);
@@ -41753,15 +42476,17 @@ function declaredScalarPaths(schema4, resolveRef2) {
     if (form && path.length > 0) out.push({ path, form });
     const properties = s.properties;
     if (properties) {
-      for (const [key2, child] of Object.entries(properties)) walk5(child, [...path, key2], here);
+      for (const [key2, child] of Object.entries(properties)) {
+        walk5(child, [...path, key2], here, document);
+      }
     }
     for (const branch of ["allOf", "anyOf", "oneOf"]) {
       const list2 = s[branch];
-      if (Array.isArray(list2)) for (const child of list2) walk5(child, path, here);
+      if (Array.isArray(list2)) for (const child of list2) walk5(child, path, here, document);
     }
-    if (s.items) walk5(s.items, [...path, "[]"], here);
+    if (s.items) walk5(s.items, [...path, "[]"], here, document);
   };
-  walk5(schema4, [], []);
+  walk5(schema4, [], [], schema4);
   return out;
 }
 function normalizeDeclaredScalars(value, paths) {
@@ -41924,19 +42649,6 @@ function refSentinelsIn(value, path) {
   };
   walk5(value, path);
   return out;
-}
-
-// ../../analyzer/nodejs/src/ref-sentinel-target.ts
-var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
-function isRefSourceSpelling(text) {
-  return REF_SOURCE_RE.test(text);
-}
-function refSentinelTarget(value) {
-  if (!isRefSentinel(value)) return void 0;
-  const source = value.source;
-  const dot = source.indexOf(".");
-  if (dot <= 0) return { source, name: source };
-  return { source, alias: source.slice(0, dot), name: source.slice(dot + 1) };
 }
 
 // ../../analyzer/nodejs/src/cel-access-chains.ts
@@ -45893,7 +46605,7 @@ function throughBase(base, self, manifest) {
   for (let i = 0; i < self.length; i++) {
     const forwarded2 = selfForwardPath(node);
     if (forwarded2) return fromSelf(manifest, [...forwarded2, ...self.slice(i)]);
-    if (!isPlainObject5(node)) return void 0;
+    if (!isPlainObject6(node)) return void 0;
     node = node[self[i]];
     if (node === void 0) return void 0;
   }
@@ -45910,7 +46622,7 @@ function throughBase(base, self, manifest) {
     }
     if (isOpaque(value2)) return void 0;
     if (Array.isArray(value2)) return value2.map((item, i) => materialize2(item, [...at2, i]) ?? {});
-    if (isPlainObject5(value2)) {
+    if (isPlainObject6(value2)) {
       const out = {};
       for (const [key2, child] of Object.entries(value2)) {
         const materialized = materialize2(child, [...at2, key2]);
@@ -45945,7 +46657,7 @@ function place(view, entry, at2, value, canonicalKind) {
     let child = container[segment];
     if (!child || typeof child !== "object") {
       child = typeof at2[i + 1] === "number" ? [] : {};
-      const declared = isPlainObject5(literal) ? literal.kind : void 0;
+      const declared = isPlainObject6(literal) ? literal.kind : void 0;
       if (typeof declared === "string" && !Array.isArray(child)) {
         child.kind = canonicalKind(declared);
       }
@@ -45964,7 +46676,7 @@ function setAt(container, segment, value) {
 function navigate2(root, path) {
   let node = root;
   for (const key2 of path) {
-    if (!isPlainObject5(node)) return void 0;
+    if (!isPlainObject6(node)) return void 0;
     node = node[key2];
   }
   return node;
@@ -45990,7 +46702,7 @@ function isCompiled(value) {
 function isOpaque(value) {
   return isTaggedSentinel(value) || isRefSentinel(value) || isCompiled(value);
 }
-function isPlainObject5(value) {
+function isPlainObject6(value) {
   return !!value && typeof value === "object" && !Array.isArray(value) && !isOpaque(value);
 }
 
@@ -47342,14 +48054,25 @@ function templateCallSite(manifest, ctx) {
     contract: resolveContract("inputType", void 0, definition, scope)
   };
 }
+function resourceLocalHost(typeManifests) {
+  return {
+    scope: {
+      resolveManifest: () => void 0,
+      resolveDefinition: () => void 0,
+      referenceSlots: () => []
+    },
+    typeSchemaOf: (value) => resolveTypeFieldToSchema(value, typeManifests)
+  };
+}
 function valueSchemaSites(manifest, defSchema, ctx) {
   if (!defSchema) return [];
+  const host = ctx.valueSchemaHost ?? resourceLocalHost(ctx.typeManifests);
   const out = [];
   for (const { scope, from } of valueSchemaSlots(defSchema)) {
-    const schema4 = resolveTypeFieldToSchema(manifest[from], ctx.typeManifests);
-    if (!schema4 || typeof schema4 !== "object") continue;
-    for (const { path, value } of resolveScopeValues(manifest, scope)) {
-      out.push({ path, value, schema: schema4, from });
+    for (const schema4 of valueSchemaTypes(manifest, from, host)) {
+      for (const { path, value } of resolveScopeValues(manifest, scope)) {
+        out.push({ path, value, schema: schema4, from });
+      }
     }
   }
   return out;
@@ -47375,7 +48098,8 @@ function derivedSlotsOf(resource, ctx) {
   for (const call of calls) {
     if (call.contract) at2(call.path, call.values, call.contract.schema);
   }
-  for (const site of valueSchemaSites(manifest, schema4, ctx)) {
+  const valueSchemaHost = valueSchemaHostOf(contractScopeOf(ctx));
+  for (const site of valueSchemaSites(manifest, schema4, { typeManifests: ctx.typeManifests, valueSchemaHost })) {
     at2(site.path, site.value, site.schema);
   }
   visitManifest(
@@ -47403,6 +48127,10 @@ var missingRequired = (issue) => /is missing required property/.test(issue.messa
 function containerOf(path) {
   const dot = path.lastIndexOf(".");
   return dot === -1 ? "" : path.slice(0, dot);
+}
+function writtenAncestor(path, filled) {
+  const inside = filled.filter((f2) => path === f2 || path.startsWith(`${f2}.`) || path.startsWith(`${f2}[`)).sort((a, b) => a.length - b.length)[0];
+  return inside === void 0 ? path : containerOf(inside);
 }
 var declarationsByName = /* @__PURE__ */ new WeakMap();
 function byNameOf(allManifests) {
@@ -47508,9 +48236,19 @@ function checkCallSite(site, manifest, allManifests, defs, aliases, scopes, step
       });
     }
   }
-  for (const issue of defs.validateResourceConfig(substituted, contract.schema)) {
+  const filled = [];
+  const effective = withContractDefaults(
+    substituted,
+    contract.schema,
+    (ref) => defs.schemaForId(ref),
+    (path) => filled.push(path)
+  );
+  for (const issue of defs.validateResourceConfig(effective, contract.schema)) {
     if (celPaths.has(issue.path)) continue;
-    const anchor = missingRequired(issue) ? containerOf(issue.path) : issue.path;
+    const anchor = writtenAncestor(
+      missingRequired(issue) ? containerOf(issue.path) : issue.path,
+      filled
+    );
     out.push({
       path: anchor ? `${site.path}.${anchor}` : site.path,
       targetLabel: targetLabel2,
@@ -48805,6 +49543,22 @@ var AnalysisRegistry = class _AnalysisRegistry {
       aliasesByModule: this.aliasesByModule,
       libraries: this.libraries.current,
       ...host
+    });
+  }
+  /**
+   * The named shape a contract field of `holder` names, resolved as `telo
+   * check` resolves it — by module and name, across `holder`'s imports, with
+   * the shape's `extends` parents folded — against the declarations the host
+   * holds. Undefined when the field holds its schema itself or names nothing.
+   */
+  namedShapeOf(typeField, holder, host) {
+    return resolveNamedShape(typeField, holder, {
+      typeManifests: host.typeManifests,
+      modules: projectionModules(this.defs, this.aliases, {
+        aliasesByModule: this.aliasesByModule,
+        rootModules: host.rootModules,
+        libraries: this.libraries.current
+      })
     });
   }
   /** The named shape registered under a canonical `telo:<module>/<Type>` id by
@@ -52850,9 +53604,9 @@ function unreachedMarkPlace(written, capabilityOf) {
 }
 
 // ../../analyzer/nodejs/src/validate-sensitive-slots.ts
-var ANNOTATION = "x-telo-sensitive";
+var ANNOTATION2 = "x-telo-sensitive";
 function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
-  const marks = markedNodes(manifests, ANNOTATION);
+  const marks = markedNodes(manifests, ANNOTATION2);
   if (marks.size === 0) return [];
   const issues = [];
   const own = (written) => {
@@ -52864,14 +53618,14 @@ function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
   for (const site of contractSites(manifests)) sensitivePaths(site.schema, resolveRef2, reached);
   for (const [node, written] of marks) {
     if (!own(written)) continue;
-    const value = node[ANNOTATION];
+    const value = node[ANNOTATION2];
     const path = written.path.join(".");
     if (value !== true) {
       issues.push({
         code: "SENSITIVE_ANNOTATION_INVALID",
         manifest: written.manifest,
         path,
-        message: `'${ANNOTATION}' must be \`true\`; got ${JSON.stringify(value)}. It is a marker, not a level \u2014 a value other than \`true\` reads as "not sensitive".`
+        message: `'${ANNOTATION2}' must be \`true\`; got ${JSON.stringify(value)}. It is a marker, not a level \u2014 a value other than \`true\` reads as "not sensitive".`
       });
       continue;
     }
@@ -52882,7 +53636,7 @@ function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
       code: "SENSITIVE_ANNOTATION_MISPLACED",
       manifest: written.manifest,
       path,
-      message: `'${ANNOTATION}' is only read where a resource's declared contract (\`inputType\` / \`outputType\`) reaches it, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}. The kernel will not redact it, so the value would still reach trace payloads and the debug wire. Move the mark onto the contract property that carries the value.`
+      message: `'${ANNOTATION2}' is only read where a resource's declared contract (\`inputType\` / \`outputType\`) reaches it, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}. The kernel will not redact it, so the value would still reach trace payloads and the debug wire. Move the mark onto the contract property that carries the value.`
     });
   }
   return issues;
@@ -53254,10 +54008,11 @@ function formatSegments(segments) {
 }
 
 // ../../analyzer/nodejs/src/validate-value-schema.ts
-function collectValueSchemaIssues(manifest, defSchema, allManifests, validator) {
+function collectValueSchemaIssues(manifest, defSchema, allManifests, validator, valueSchemaHost) {
   const issues = [];
   for (const { path, value, schema: schema4, from } of valueSchemaSites(manifest, defSchema, {
-    typeManifests: allManifests
+    typeManifests: allManifests,
+    valueSchemaHost
   })) {
     const substituted = substituteDecodedCelFields(value, schema4, void 0, {
       external: validator.external
@@ -63865,6 +64620,10 @@ var StaticAnalyzer = class {
         projectionIssues2.push(...validateSchemaProjection(m));
       }
     }
+    const namedShapes = {
+      typeManifests: manifests,
+      modules: projectionModules(defs, aliases, { aliasesByModule, rootModules, libraries })
+    };
     for (const m of manifests) {
       if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
       const def = m;
@@ -63881,6 +64640,23 @@ var StaticAnalyzer = class {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCOPE_SLOT_MISPLACED",
+            source: SOURCE36,
+            message: `${m.kind} ${problem.message}`,
+            data: {
+              resource: { kind: m.kind, name: def.metadata?.name },
+              filePath: def.metadata?.source,
+              path: problem.path
+            }
+          });
+        }
+        for (const problem of valueSchemaFromProblems(
+          m,
+          effectiveAuthorSchema(m, (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k)),
+          (typeField) => resolveNamedShape(typeField, m, namedShapes)
+        )) {
+          scopeSlotDiagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "VALUE_SCHEMA_FROM_INVALID",
             source: SOURCE36,
             message: `${m.kind} ${problem.message}`,
             data: {
@@ -64412,6 +65188,14 @@ var StaticAnalyzer = class {
       (kind, declaration) => projectionDefs(kind, declaration),
       projectionModules(defs, aliases, { aliasesByModule, rootModules, libraries })
     );
+    const valueSchemaHost = valueSchemaHostOf(
+      analyzerContractScope(
+        defs,
+        aliases,
+        { aliasesByModule, rootModules, libraries },
+        allManifests
+      )
+    );
     for (const m of allManifests) {
       const filePath = m.metadata?.source;
       if (!m.kind || !m.metadata?.name) {
@@ -64537,7 +65321,8 @@ var StaticAnalyzer = class {
           m,
           schema4,
           allManifests,
-          shapeAwareValidator
+          shapeAwareValidator,
+          valueSchemaHost
         );
         const issues = [...ajvIssues, ...valueSchemaIssues];
         const inheritedRequired = inheritedRequiredFields(
@@ -65681,215 +66466,6 @@ function stagedFilesOf(owner) {
     patterns: readAssetPatterns(owner),
     sources
   });
-}
-
-// ../../analyzer/nodejs/src/migrations/match.ts
-var MATCH_ANY = "*";
-var SCALAR_SHAPES = ["lone-hole", "interpolated"];
-var MATCH_KEYS = [
-  "key",
-  "scalar",
-  "inKind",
-  "under",
-  "value",
-  "valueOneOf",
-  "withSibling",
-  "notUnder",
-  "inSchema"
-];
-function isPlainObject6(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function deepEquals(a, b) {
-  if (a === b) return true;
-  if (Array.isArray(a) || Array.isArray(b)) {
-    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
-    return a.every((item, i) => deepEquals(item, b[i]));
-  }
-  if (isPlainObject6(a) && isPlainObject6(b)) {
-    const aKeys = Object.keys(a);
-    if (aKeys.length !== Object.keys(b).length) return false;
-    return aKeys.every((k) => Object.hasOwn(b, k) && deepEquals(a[k], b[k]));
-  }
-  return false;
-}
-function requireStringList(describe4, raw, key2) {
-  const value = raw[key2];
-  if (!Array.isArray(value) || value.length === 0 || value.some((v) => typeof v !== "string")) {
-    throw new Error(`${describe4}: 'match.${key2}' must be a non-empty sequence of strings`);
-  }
-  return value;
-}
-function readMigrationMatch(describe4, raw, surface = "core") {
-  if (!isPlainObject6(raw)) throw new Error(`${describe4}: 'match' must be a mapping`);
-  for (const key2 of Object.keys(raw)) {
-    if (!MATCH_KEYS.includes(key2)) {
-      throw new Error(
-        `${describe4}: 'match' has no key '${key2}'. Known keys: ${MATCH_KEYS.join(", ")}.`
-      );
-    }
-  }
-  const bySelector = Object.hasOwn(raw, "key") ? "key" : Object.hasOwn(raw, "scalar") ? "scalar" : void 0;
-  if (bySelector === void 0 || Object.hasOwn(raw, "key") && Object.hasOwn(raw, "scalar")) {
-    throw new Error(`${describe4}: 'match' takes exactly one of 'key' or 'scalar'`);
-  }
-  if (bySelector === "key" && (typeof raw.key !== "string" || raw.key.length === 0)) {
-    throw new Error(`${describe4}: 'match.key' must be a non-empty string`);
-  }
-  if (bySelector === "scalar") {
-    if (!SCALAR_SHAPES.includes(raw.scalar)) {
-      throw new Error(
-        `${describe4}: 'match.scalar' must be one of ${SCALAR_SHAPES.join(", ")}`
-      );
-    }
-    for (const key2 of ["value", "valueOneOf", "withSibling"]) {
-      if (Object.hasOwn(raw, key2)) {
-        throw new Error(`${describe4}: 'match.${key2}' does not apply to a 'scalar' rule`);
-      }
-    }
-  }
-  if (Object.hasOwn(raw, "value") && Object.hasOwn(raw, "valueOneOf")) {
-    throw new Error(`${describe4}: 'match' takes at most one of 'value' or 'valueOneOf'`);
-  }
-  if (Object.hasOwn(raw, "valueOneOf") && !Array.isArray(raw.valueOneOf)) {
-    throw new Error(`${describe4}: 'match.valueOneOf' must be a sequence`);
-  }
-  if (Object.hasOwn(raw, "withSibling") && typeof raw.withSibling !== "string") {
-    throw new Error(`${describe4}: 'match.withSibling' must be a string`);
-  }
-  if (Object.hasOwn(raw, "notUnder") && (!Array.isArray(raw.notUnder) || raw.notUnder.some((k) => typeof k !== "string"))) {
-    throw new Error(`${describe4}: 'match.notUnder' must be a sequence of strings`);
-  }
-  if (Object.hasOwn(raw, "inSchema") && typeof raw.inSchema !== "boolean") {
-    throw new Error(`${describe4}: 'match.inSchema' must be a boolean`);
-  }
-  const wildcards = [
-    ...Array.isArray(raw.inKind) ? raw.inKind : [],
-    ...Array.isArray(raw.under) ? raw.under : []
-  ].filter((value) => value === MATCH_ANY);
-  if (wildcards.length > 0 && bySelector === "scalar") {
-    if (surface !== "core") {
-      throw new Error(
-        `${describe4}: a module's migration may not reach '${MATCH_ANY}' \u2014 it names only kinds it owns`
-      );
-    }
-  } else if (wildcards.length > 0) {
-    if (raw.inSchema !== true) {
-      throw new Error(
-        `${describe4}: 'match.inKind' / 'match.under' may only be '${MATCH_ANY}' together with 'inSchema: true' \u2014 the schema region is what bounds a walk the wildcard unbounds`
-      );
-    }
-    if (!raw.key.startsWith("x-telo-")) {
-      throw new Error(
-        `${describe4}: '${MATCH_ANY}' is legal only for a rule keyed on an 'x-telo-*' annotation, which is Telo vocabulary wherever it appears \u2014 '${raw.key}' could mean something else inside a resource's own configuration`
-      );
-    }
-  }
-  const match = {
-    ...bySelector === "key" ? { key: raw.key } : { scalar: raw.scalar },
-    inKind: requireStringList(describe4, raw, "inKind"),
-    under: requireStringList(describe4, raw, "under")
-  };
-  if (Object.hasOwn(raw, "value")) match.value = raw.value;
-  if (Object.hasOwn(raw, "valueOneOf")) match.valueOneOf = raw.valueOneOf;
-  if (Object.hasOwn(raw, "withSibling")) match.withSibling = raw.withSibling;
-  if (Object.hasOwn(raw, "notUnder")) match.notUnder = raw.notUnder;
-  if (raw.inSchema === true) match.inSchema = true;
-  return match;
-}
-function isHoleCandidate(value) {
-  return typeof value === "string" && value.includes("${{");
-}
-function buildMatchIndex(document, keys, roots, scalars = false) {
-  const index = /* @__PURE__ */ new Map();
-  const scalarSites = [];
-  const result = { byKey: index, scalars: scalarSites };
-  if (keys.size === 0 && !scalars || roots.size === 0 || !isPlainObject6(document)) return result;
-  const stack = [];
-  const record = (key2, value, parent) => {
-    const bucket2 = index.get(key2) ?? [];
-    bucket2.push({ path: [...stack], value, parent });
-    index.set(key2, bucket2);
-  };
-  const walk5 = (node) => {
-    if (Array.isArray(node)) {
-      for (let i = 0; i < node.length; i++) {
-        stack.push(i);
-        if (scalars && isHoleCandidate(node[i])) {
-          scalarSites.push({ path: [...stack], value: node[i], parent: node });
-        }
-        walk5(node[i]);
-        stack.pop();
-      }
-      return;
-    }
-    if (!isPlainObject6(node) || isTaggedSentinel(node)) return;
-    for (const [key2, value] of Object.entries(node)) {
-      stack.push(key2);
-      if (keys.has(key2)) record(key2, value, node);
-      if (scalars && isHoleCandidate(value)) {
-        scalarSites.push({ path: [...stack], value, parent: node });
-      }
-      walk5(value);
-      stack.pop();
-    }
-  };
-  const everywhere = roots.has(MATCH_ANY);
-  for (const [key2, value] of Object.entries(document)) {
-    if (!everywhere && !roots.has(key2)) continue;
-    stack.push(key2);
-    if (keys.has(key2)) record(key2, value, document);
-    if (scalars && isHoleCandidate(value)) {
-      scalarSites.push({ path: [...stack], value, parent: document });
-    }
-    walk5(value);
-    stack.pop();
-  }
-  return result;
-}
-function applicableRules(rules, kind) {
-  const applicable = [];
-  const keys = /* @__PURE__ */ new Set();
-  const roots = /* @__PURE__ */ new Set();
-  let scalars = false;
-  if (typeof kind !== "string") return { rules: applicable, keys, roots, scalars };
-  for (const rule of rules) {
-    if (!rule.match.inKind.includes(kind) && !rule.match.inKind.includes(MATCH_ANY)) continue;
-    applicable.push(rule);
-    if (rule.match.key !== void 0) keys.add(rule.match.key);
-    else scalars = true;
-    for (const root of rule.match.under) roots.add(root);
-  }
-  return { rules: applicable, keys, roots, scalars };
-}
-function valueMatches(match, value) {
-  if (Object.hasOwn(match, "value")) return deepEquals(match.value, value);
-  if (match.valueOneOf) return match.valueOneOf.some((candidate) => deepEquals(candidate, value));
-  return true;
-}
-function selectMatches(index, document, match) {
-  const kind = isPlainObject6(document) ? document.kind : void 0;
-  if (typeof kind !== "string") return [];
-  if (!match.inKind.includes(kind) && !match.inKind.includes(MATCH_ANY)) return [];
-  const sites = match.key !== void 0 ? index.byKey.get(match.key) : index.scalars;
-  if (!sites) return [];
-  const anyRoot = match.under.includes(MATCH_ANY);
-  const out = [];
-  for (const site of sites) {
-    const anchor = site.path[0];
-    if (!anyRoot && (typeof anchor !== "string" || !match.under.includes(anchor))) continue;
-    if (match.inSchema && !isInSchemaRegion(site.path)) continue;
-    if (match.notUnder?.some((segment) => site.path.includes(segment))) continue;
-    if (match.scalar !== void 0) {
-      if (interpolationShape(site.value) !== match.scalar) continue;
-      out.push(site.path);
-      continue;
-    }
-    if (!valueMatches(match, site.value)) continue;
-    if (match.withSibling !== void 0 && !Object.hasOwn(site.parent, match.withSibling)) continue;
-    out.push(site.path);
-  }
-  return out;
 }
 
 // ../../analyzer/nodejs/src/migrations/patch.ts
