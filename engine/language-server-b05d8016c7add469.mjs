@@ -25131,43 +25131,6 @@ function push(out, violation, at2) {
   });
 }
 
-// ../../analyzer/nodejs/src/module-metadata-scope.ts
-var DERIVED_METADATA_FIELDS = /* @__PURE__ */ new Set([
-  "source",
-  "sourceLine",
-  "module",
-  "moduleGlobals",
-  "exportedKinds",
-  "reExportedKinds",
-  "forwardedExport"
-]);
-function authoredModuleMetadata(metadata) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
-  const authored = {};
-  for (const [key2, value] of Object.entries(metadata)) {
-    if (DERIVED_METADATA_FIELDS.has(key2)) continue;
-    authored[key2] = value;
-  }
-  return authored;
-}
-function moduleMetadataSchema(metadata) {
-  const authored = authoredModuleMetadata(metadata);
-  const keys = Object.keys(authored);
-  if (keys.length === 0) return void 0;
-  const properties = {};
-  for (const key2 of keys) {
-    const value = authored[key2];
-    properties[key2] = Array.isArray(value) ? { type: "array" } : value !== null && typeof value === "object" ? { type: "object", additionalProperties: true } : {
-      type: typeof value === "number" ? "number" : typeof value === "boolean" ? "boolean" : "string"
-    };
-  }
-  return { type: "object", properties, additionalProperties: false };
-}
-
-// ../../analyzer/nodejs/src/schema-compat.ts
-var import_ajv = __toESM(require_ajv(), 1);
-var import_ajv_formats = __toESM(require_dist(), 1);
-
 // ../../node_modules/.pnpm/d3-format@3.1.2/node_modules/d3-format/src/formatDecimal.js
 function formatDecimal_default(x) {
   return Math.abs(x = Math.round(x)) >= 1e21 ? x.toLocaleString("en").replace(/,/g, "") : x.toString(10);
@@ -31177,10 +31140,10 @@ var RE2Set = class RE2Set2 {
     this.anchor = anchor;
     this.jsFlags = flags;
     this.maxMem = maxMem;
-    let re2Flags = RE2Flags.PERL;
-    if ((flags & PublicFlags.DISABLE_UNICODE_GROUPS) !== 0) re2Flags &= ~RE2Flags.UNICODE_GROUPS;
-    if ((flags & PublicFlags.LOOKBEHINDS) !== 0) re2Flags |= RE2Flags.LOOKBEHIND;
-    this.re2Flags = re2Flags;
+    let re2Flags2 = RE2Flags.PERL;
+    if ((flags & PublicFlags.DISABLE_UNICODE_GROUPS) !== 0) re2Flags2 &= ~RE2Flags.UNICODE_GROUPS;
+    if ((flags & PublicFlags.LOOKBEHINDS) !== 0) re2Flags2 |= RE2Flags.LOOKBEHIND;
+    this.re2Flags = re2Flags2;
     this.regexps = [];
     this.prog = null;
     this.dfa = null;
@@ -31507,11 +31470,11 @@ var RE2JS = class RE2JS2 {
     if ((flags & RE2JS2.DOTALL) !== 0) fregex = `(?s)${fregex}`;
     if ((flags & RE2JS2.MULTILINE) !== 0) fregex = `(?m)${fregex}`;
     if ((flags & ~(RE2JS2.MULTILINE | RE2JS2.DOTALL | RE2JS2.CASE_INSENSITIVE | RE2JS2.DISABLE_UNICODE_GROUPS | RE2JS2.LONGEST_MATCH | RE2JS2.LOOKBEHINDS)) !== 0) throw new RE2JSFlagsException("Flags should only be a combination of MULTILINE, DOTALL, CASE_INSENSITIVE, DISABLE_UNICODE_GROUPS, LONGEST_MATCH, LOOKBEHINDS");
-    let re2Flags = RE2Flags.PERL;
-    if ((flags & RE2JS2.DISABLE_UNICODE_GROUPS) !== 0) re2Flags &= ~RE2Flags.UNICODE_GROUPS;
-    if ((flags & RE2JS2.LOOKBEHINDS) !== 0) re2Flags |= RE2Flags.LOOKBEHIND;
+    let re2Flags2 = RE2Flags.PERL;
+    if ((flags & RE2JS2.DISABLE_UNICODE_GROUPS) !== 0) re2Flags2 &= ~RE2Flags.UNICODE_GROUPS;
+    if ((flags & RE2JS2.LOOKBEHINDS) !== 0) re2Flags2 |= RE2Flags.LOOKBEHIND;
     const p = new RE2JS2(regex, flags);
-    p.re2Input = RE2.compileImpl(fregex, re2Flags, (flags & RE2JS2.LONGEST_MATCH) !== 0);
+    p.re2Input = RE2.compileImpl(fregex, re2Flags2, (flags & RE2JS2.LONGEST_MATCH) !== 0);
     return p;
   }
   /**
@@ -32239,34 +32202,207 @@ function version(uuid) {
 }
 var version_default = version;
 
+// ../../templating/nodejs/src/cel/json-prefix-scan.ts
+var QUOTE = 34;
+var BACKSLASH = 92;
+var SIMPLE_ESCAPES = '"\\/bfnrt';
+var isWhitespace = (c) => c === " " || c === "	" || c === "\n" || c === "\r";
+var isDigit = (c) => c !== void 0 && c >= "0" && c <= "9";
+var isHexDigit = (c) => isDigit(c) || c >= "a" && c <= "f" || c >= "A" && c <= "F";
+function scanJsonPrefix(text) {
+  const length = text.length;
+  let at2 = 0;
+  const readString2 = () => {
+    at2++;
+    for (; ; ) {
+      if (at2 >= length) return length;
+      const code = text.charCodeAt(at2);
+      if (code === QUOTE) {
+        at2++;
+        return void 0;
+      }
+      if (code < 32) return at2;
+      at2++;
+      if (code !== BACKSLASH) continue;
+      if (at2 >= length) return length;
+      const escape2 = text[at2];
+      if (escape2 === "u") {
+        at2++;
+        for (let digit = 0; digit < 4; digit++, at2++) {
+          if (at2 >= length) return length;
+          if (!isHexDigit(text[at2])) return at2;
+        }
+      } else if (SIMPLE_ESCAPES.includes(escape2)) at2++;
+      else return at2;
+    }
+  };
+  const readDigits = () => {
+    if (!isDigit(text[at2])) return at2;
+    while (isDigit(text[at2])) at2++;
+    return void 0;
+  };
+  const readNumber = () => {
+    if (text[at2] === "-") at2++;
+    if (text[at2] === "0") at2++;
+    else {
+      const refused = readDigits();
+      if (refused !== void 0) return refused;
+    }
+    if (text[at2] === ".") {
+      at2++;
+      const refused = readDigits();
+      if (refused !== void 0) return refused;
+    }
+    if (text[at2] === "e" || text[at2] === "E") {
+      at2++;
+      if (text[at2] === "+" || text[at2] === "-") at2++;
+      return readDigits();
+    }
+    return void 0;
+  };
+  const readLiteral = (literal) => {
+    for (const expected of literal) {
+      if (text[at2] !== expected) return at2;
+      at2++;
+    }
+    return void 0;
+  };
+  const refusedAt = (offset) => ({ offset, endOfInput: offset >= length });
+  const open = [];
+  let state = "value";
+  for (; ; ) {
+    while (isWhitespace(text[at2])) at2++;
+    const c = text[at2];
+    if (state === "after") {
+      const container = open[open.length - 1];
+      if (container === void 0) return at2 === length ? void 0 : refusedAt(at2);
+      if (c === ",") {
+        at2++;
+        state = container === "{" ? "key" : "value";
+      } else if (c === (container === "{" ? "}" : "]")) {
+        at2++;
+        open.pop();
+      } else return refusedAt(at2);
+      continue;
+    }
+    if (state === "key" || state === "keyOrClose") {
+      if (state === "keyOrClose" && c === "}") {
+        at2++;
+        open.pop();
+        state = "after";
+        continue;
+      }
+      if (c !== '"') return refusedAt(at2);
+      const refused2 = readString2();
+      if (refused2 !== void 0) return refusedAt(refused2);
+      while (isWhitespace(text[at2])) at2++;
+      if (text[at2] !== ":") return refusedAt(at2);
+      at2++;
+      state = "value";
+      continue;
+    }
+    if (state === "valueOrClose" && c === "]") {
+      at2++;
+      open.pop();
+      state = "after";
+      continue;
+    }
+    if (c === "{" || c === "[") {
+      at2++;
+      open.push(c);
+      state = c === "{" ? "keyOrClose" : "valueOrClose";
+      continue;
+    }
+    let refused;
+    if (c === '"') refused = readString2();
+    else if (c === "-" || isDigit(c)) refused = readNumber();
+    else if (c === "t") refused = readLiteral("true");
+    else if (c === "f") refused = readLiteral("false");
+    else if (c === "n") refused = readLiteral("null");
+    else refused = at2;
+    if (refused !== void 0) return refusedAt(refused);
+    state = "after";
+  }
+}
+
 // ../../templating/nodejs/src/cel/catalog.ts
 var RE2_FLAG = {
   i: RE2JS.CASE_INSENSITIVE,
   m: RE2JS.MULTILINE,
   s: RE2JS.DOTALL
 };
-var compileRe2 = (fn, pattern, flags) => {
+var RE2_PATTERN_ERROR_KINDS = [
+  "missing closing )",
+  "missing closing ]",
+  "unexpected )",
+  "trailing backslash at end of expression",
+  "invalid escape sequence",
+  "invalid character class range",
+  "invalid named capture",
+  "duplicate capture group name",
+  "invalid or unsupported Perl syntax",
+  "missing argument to repetition operator",
+  "invalid nested repetition operator",
+  "invalid repeat count",
+  "expression nests too deeply",
+  "expression too large"
+];
+var CatalogRefusal = class extends Error {
+};
+Object.defineProperty(CatalogRefusal, "name", { value: "Error" });
+var re2Flags = (fn, flags) => {
   let bits = 0;
   for (const c of flags ?? "") {
     if (c === "g") continue;
     const bit = RE2_FLAG[c];
-    if (bit === void 0) throw new Error(`${fn}: unknown regex flag '${c}' (supported: i, m, s)`);
+    if (bit === void 0) throw new CatalogRefusal(`${fn}: unknown regex flag '${c}' (supported: i, m, s)`);
     bits |= bit;
   }
+  return bits;
+};
+var re2Pattern = (fn, pattern, bits) => {
   try {
     return RE2JS.compile(pattern, bits);
   } catch (e) {
-    throw new Error(
-      `${fn}: invalid RE2 pattern ${JSON.stringify(pattern)}: ${e instanceof Error ? e.message : String(e)}`
-    );
+    const kind = e instanceof RE2JSSyntaxException ? e.error : void 0;
+    if (kind === void 0 || !RE2_PATTERN_ERROR_KINDS.includes(kind)) {
+      throw new Error(
+        `${fn}: the RE2 compiler failed on pattern ${JSON.stringify(pattern)} with an error outside Telo's parse-error vocabulary`,
+        { cause: e }
+      );
+    }
+    throw new CatalogRefusal(`${fn}: invalid RE2 pattern ${JSON.stringify(pattern)}: ${kind}`);
   }
 };
+var compileRe2 = (fn, pattern, flags) => re2Pattern(fn, pattern, re2Flags(fn, flags));
 var literalGuard = (run) => {
   try {
     run();
     return void 0;
   } catch (e) {
-    return e instanceof Error ? e.message : String(e);
+    if (e instanceof CatalogRefusal) return e.message;
+    throw e;
+  }
+};
+var regexLiteralGuard = (fn, patternAt, flagsAt) => (literals) => literalGuard(() => {
+  const pattern = literals[patternAt];
+  const flags = literals[flagsAt];
+  const bits = typeof flags === "string" ? re2Flags(fn, flags) : 0;
+  if (typeof pattern === "string") re2Pattern(fn, pattern, bits);
+});
+var parseJsonText = (text) => {
+  try {
+    return JSON.parse(text);
+  } catch (hostRefusal) {
+    const refusal = scanJsonPrefix(text);
+    if (refusal === void 0) {
+      throw new Error("parseJson: the host JSON parser refused a text Telo's scan reads as valid JSON", {
+        cause: hostRefusal
+      });
+    }
+    throw new Error(
+      `parseJson: invalid JSON at offset ${refusal.offset}${refusal.endOfInput ? " (unexpected end of input)" : ""}`
+    );
   }
 };
 var num = (x) => Number(x);
@@ -32303,7 +32439,7 @@ var MAX_EXACT_INT = 9007199254740991n;
 var formattable = (fn, x) => {
   if (typeof x === "bigint") {
     if (x > MAX_EXACT_INT || x < -MAX_EXACT_INT) {
-      throw new Error(
+      throw new CatalogRefusal(
         `${fn}: integer ${x} exceeds 2^53-1 and cannot be formatted exactly as a double`
       );
     }
@@ -32311,7 +32447,7 @@ var formattable = (fn, x) => {
   }
   const n = Number(x);
   if (!Number.isFinite(n)) {
-    throw new Error(`${fn}: expected a finite number, got ${JSON.stringify(x)}`);
+    throw new CatalogRefusal(`${fn}: expected a finite number, got ${JSON.stringify(x)}`);
   }
   return n;
 };
@@ -32324,7 +32460,7 @@ var formatter = (fn, spec) => {
   if (cached) return cached;
   const type = text.slice(-1);
   if (text !== "" && /[a-zA-Z%]/.test(type) && !FORMAT_TYPES.has(type)) {
-    throw new Error(`${fn}: unknown format type '${type}' (one of ${[...FORMAT_TYPES].join("")})`);
+    throw new CatalogRefusal(`${fn}: unknown format type '${type}' (one of ${[...FORMAT_TYPES].join("")})`);
   }
   const precision = /\.(\d+)/.exec(text);
   if (precision) digitCount(fn, precision[1]);
@@ -32332,7 +32468,7 @@ var formatter = (fn, spec) => {
   try {
     built = FORMAT_LOCALE.format(text);
   } catch {
-    throw new Error(`${fn}: invalid format specifier ${JSON.stringify(text)}`);
+    throw new CatalogRefusal(`${fn}: invalid format specifier ${JSON.stringify(text)}`);
   }
   if (formatterCache.size >= FORMATTER_CACHE_MAX) formatterCache.clear();
   formatterCache.set(text, built);
@@ -32342,7 +32478,7 @@ var MAX_DECIMALS = 10;
 var digitCount = (fn, digits) => {
   const n = Number(digits);
   if (!Number.isInteger(n) || n < 0 || n > MAX_DECIMALS) {
-    throw new Error(
+    throw new CatalogRefusal(
       `${fn}: decimal places must be an integer 0-${MAX_DECIMALS}, got ${String(digits)}`
     );
   }
@@ -32351,11 +32487,11 @@ var digitCount = (fn, digits) => {
 var durationText = (minutes, minutesPerDay) => {
   const perDay = Math.round(formattable("formatDuration", minutesPerDay));
   if (!Number.isFinite(perDay) || perDay <= 0) {
-    throw new Error(`formatDuration: minutesPerDay must be a positive number, got ${perDay}`);
+    throw new CatalogRefusal(`formatDuration: minutesPerDay must be a positive number, got ${perDay}`);
   }
   const total = Math.round(formattable("formatDuration", minutes));
   if (!Number.isFinite(total)) {
-    throw new Error(`formatDuration: minutes must be a finite number`);
+    throw new CatalogRefusal(`formatDuration: minutes must be a finite number`);
   }
   const magnitude = Math.abs(total);
   const days = Math.floor(magnitude / perDay);
@@ -32373,7 +32509,7 @@ var assertZone = (fn, tz) => {
   try {
     new Intl.DateTimeFormat("en-US", { timeZone: tz });
   } catch {
-    throw new Error(`${fn}: unknown IANA time zone ${JSON.stringify(tz)}`);
+    throw new CatalogRefusal(`${fn}: unknown IANA time zone ${JSON.stringify(tz)}`);
   }
   return tz;
 };
@@ -32655,6 +32791,7 @@ var CEL_FUNCTIONS = [
     summary: "Replace every regex match (RE2 syntax) with a replacement ($1 backrefs); flags like 'i', 'm', 's'.",
     deterministic: true,
     hostBacked: false,
+    checkArgs: regexLiteralGuard("regexReplace", 1, 3),
     build: () => (s, pattern, replacement, flags) => compileRe2("regexReplace", pattern, flags).matcher(s).replaceAll(replacement)
   },
   {
@@ -32664,6 +32801,7 @@ var CEL_FUNCTIONS = [
     summary: "First whole match of a regex (RE2 syntax), or '' when there is none.",
     deterministic: true,
     hostBacked: false,
+    checkArgs: regexLiteralGuard("regexExtract", 1, 2),
     build: () => (s, pattern, flags) => {
       const m = compileRe2("regexExtract", pattern, flags).matcher(s);
       return m.find() ? m.group() ?? "" : "";
@@ -32676,6 +32814,7 @@ var CEL_FUNCTIONS = [
     summary: "Every whole match of a regex (RE2 syntax), in order.",
     deterministic: true,
     hostBacked: false,
+    checkArgs: regexLiteralGuard("regexExtractAll", 1, 2),
     build: () => (s, pattern, flags) => {
       const m = compileRe2("regexExtractAll", pattern, flags).matcher(s);
       const out = [];
@@ -32690,6 +32829,7 @@ var CEL_FUNCTIONS = [
     summary: "Capture groups of the first regex match (RE2 syntax); empty list when there is no match.",
     deterministic: true,
     hostBacked: false,
+    checkArgs: regexLiteralGuard("regexGroups", 1, 2),
     build: () => (s, pattern, flags) => {
       const m = compileRe2("regexGroups", pattern, flags).matcher(s);
       if (!m.find()) return [];
@@ -32857,7 +32997,7 @@ var CEL_FUNCTIONS = [
     summary: "Parse a JSON string into a value (numbers come back as doubles).",
     deterministic: true,
     hostBacked: false,
-    build: () => (s) => JSON.parse(s)
+    build: () => (s) => parseJsonText(s)
   },
   // Paths. The one way to extend a host path: `variables.dataDir.joinPath('reports')`
   // keeps it a `Telo.HostPath` (the analyzer types that overload), where `+`
@@ -33373,9 +33513,12 @@ var ENVIRONMENT_OPTIONS = {
   enableOptionalTypes: true,
   homogeneousAggregateLiterals: false
 };
+function buildCelLanguageEnvironment() {
+  return new Environment(ENVIRONMENT_OPTIONS);
+}
 function buildCelEnvironment(handlers = {}) {
   const h = { ...STUB_HANDLERS, ...handlers };
-  let env = new Environment(ENVIRONMENT_OPTIONS);
+  let env = buildCelLanguageEnvironment();
   for (const fn of CEL_FUNCTIONS) {
     const impl = fn.build(h);
     for (const sig of fn.register ?? deriveSignatures(fn.signature)) {
@@ -33876,6 +34019,22 @@ function compileExpression(expr, env, moduleNames) {
     ...callsNonDeterministic(ast2) ? { volatile: true } : {},
     call: (ctx) => fn(ctx)
   };
+}
+
+// ../../templating/nodejs/src/cel/value-brands.ts
+function registerValueBrands(env) {
+  for (const [brand, base] of Object.entries(valueBrandBases())) {
+    env.registerType(brand, { fields: {} });
+    env.registerFunction(`${base}(${brand}): ${base}`, (value) => value);
+    if (base !== "string") {
+      env.registerFunction(`string(${brand}): string`, (value) => String(value));
+    }
+    if (VALUE_TYPES.get(brand)?.fromHost !== void 0) {
+      env.registerFunction(`${brand}.joinPath(string): ${brand}`, () => {
+        throw new Error("joinPath() is evaluated by the runtime, not the analyzer.");
+      });
+    }
+  }
 }
 
 // ../../templating/nodejs/src/cel/interpolation-holes.ts
@@ -34515,6 +34674,11 @@ var includeBytesEngine = includeEngine(INCLUDE_BYTES_ENGINE, {
   "x-telo-type": "Telo.Bytes"
 });
 
+// ../../templating/nodejs/src/cel/verdict-codes.ts
+function celVerdictError(code, message) {
+  return new RuntimeError(code, message);
+}
+
 // ../../templating/nodejs/src/engines/hole-analysis.ts
 function requireHoles(tag, source) {
   const reading = readInterpolationHoles(source);
@@ -34642,7 +34806,7 @@ function stringConversion(env) {
       return program({ value });
     } catch (error) {
       if (!(error instanceof EvaluationError)) throw error;
-      throw new RuntimeError(
+      throw celVerdictError(
         "ERR_INTERPOLATION_HOLE_NOT_CONVERTIBLE",
         `the hole '\${{ ${hole.expr} }}' at offset ${hole.start} of !interpolate ${JSON.stringify(source)} evaluated to ${runtimeTypeOf(value)}, which CEL's string() cannot convert to text. Declare outputType on the resource producing it so the check sees its type, or guard it inside the hole.`
       );
@@ -36710,6 +36874,43 @@ function buildTagForEngine(engineName) {
     }
   };
 }
+
+// ../../analyzer/nodejs/src/module-metadata-scope.ts
+var DERIVED_METADATA_FIELDS = /* @__PURE__ */ new Set([
+  "source",
+  "sourceLine",
+  "module",
+  "moduleGlobals",
+  "exportedKinds",
+  "reExportedKinds",
+  "forwardedExport"
+]);
+function authoredModuleMetadata(metadata) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
+  const authored = {};
+  for (const [key2, value] of Object.entries(metadata)) {
+    if (DERIVED_METADATA_FIELDS.has(key2)) continue;
+    authored[key2] = value;
+  }
+  return authored;
+}
+function moduleMetadataSchema(metadata) {
+  const authored = authoredModuleMetadata(metadata);
+  const keys = Object.keys(authored);
+  if (keys.length === 0) return void 0;
+  const properties = {};
+  for (const key2 of keys) {
+    const value = authored[key2];
+    properties[key2] = Array.isArray(value) ? { type: "array" } : value !== null && typeof value === "object" ? { type: "object", additionalProperties: true } : {
+      type: typeof value === "number" ? "number" : typeof value === "boolean" ? "boolean" : "string"
+    };
+  }
+  return { type: "object", properties, additionalProperties: false };
+}
+
+// ../../analyzer/nodejs/src/schema-compat.ts
+var import_ajv = __toESM(require_ajv(), 1);
+var import_ajv_formats = __toESM(require_dist(), 1);
 
 // ../../analyzer/nodejs/src/manifest-navigation.ts
 function enclosingOf(root, concretePath2) {
@@ -39751,20 +39952,6 @@ function buildParameterCelEnvironment(baseEnv, contextSchema) {
 }
 function isKindDocument(manifest) {
   return manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract";
-}
-function registerValueBrands(env) {
-  for (const [brand, base] of Object.entries(VALUE_BRAND_BASE)) {
-    env.registerType(brand, { fields: {} });
-    env.registerFunction(`${base}(${brand}): ${base}`, (value) => value);
-    if (base !== "string") {
-      env.registerFunction(`string(${brand}): string`, (value) => String(value));
-    }
-    if (VALUE_TYPES.get(brand)?.fromHost !== void 0) {
-      env.registerFunction(`${brand}.joinPath(string): ${brand}`, () => {
-        throw new Error("joinPath() is evaluated by the runtime, not the analyzer.");
-      });
-    }
-  }
 }
 function valueBrandHint(readTypes) {
   const brand = readTypes?.find((type) => VALUE_BRAND_BASE[type] !== void 0);
