@@ -45478,7 +45478,14 @@ function collectionBindingWithheld(schema4, manifestRoot, allManifests) {
 function resolveContextAnnotations(schema4, manifestItem, opts) {
   if (!schema4 || typeof schema4 !== "object") return schema4;
   const normalizedOpts = Array.isArray(opts) ? { allManifests: opts } : opts ?? {};
-  const { manifestRoot = manifestItem, defs, aliases, aliasesByModule, allManifests } = normalizedOpts;
+  const {
+    manifestRoot = manifestItem,
+    contextHolder = manifestItem,
+    defs,
+    aliases,
+    aliasesByModule,
+    allManifests
+  } = normalizedOpts;
   const from = schema4["x-telo-context-from"];
   if (from) {
     const navigated = navigatePath(manifestItem, from.split("/"));
@@ -45572,11 +45579,9 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
   }
   const refFrom = schema4["x-telo-context-ref-from"];
   if (refFrom && allManifests) {
-    const slashIdx = refFrom.indexOf("/");
-    const refProp = slashIdx === -1 ? refFrom : refFrom.slice(0, slashIdx);
-    const subpath = slashIdx === -1 ? void 0 : refFrom.slice(slashIdx + 1);
-    const ref = manifestItem[refProp];
-    if (ref && typeof ref === "object" && typeof ref.kind === "string" && typeof ref.name === "string" && subpath) {
+    const reference = readContextRefFrom(refFrom, contextHolder);
+    if (reference) {
+      const { ref, subpath } = reference;
       const segments = subpath.split("/");
       const refManifest = allManifests.find(
         (m) => m.kind === ref.kind && m.metadata?.name === ref.name
@@ -45653,6 +45658,35 @@ function getManifestItem(exprPath, scope, manifest) {
     concrete += `${part}${index[0]}`;
   }
   return navigateConcretePath(manifest, concrete) ?? manifest;
+}
+function readContextRefFrom(annotation, holder) {
+  const slash = annotation.indexOf("/");
+  if (slash === -1) return void 0;
+  const subpath = annotation.slice(slash + 1);
+  const ref = holder[annotation.slice(0, slash)];
+  if (!subpath || !ref || typeof ref !== "object" || typeof ref.kind !== "string" || typeof ref.name !== "string") {
+    return void 0;
+  }
+  return { ref, subpath };
+}
+function getContextHolder(exprPath, scope, manifest) {
+  const stripped = scope.startsWith("$.") ? scope.slice(2) : scope;
+  const parts = stripped.split("[*]");
+  let remaining = exprPath;
+  let concrete = "";
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!remaining.startsWith(part)) return manifest;
+    remaining = remaining.slice(part.length);
+    const index = remaining.match(/^\[(\d+)\]/);
+    if (!index) return manifest;
+    remaining = remaining.slice(index[0].length);
+    concrete += `${part}${index[0]}`;
+  }
+  const tail = parts[parts.length - 1];
+  const cut = tail.lastIndexOf(".");
+  const holder = navigateConcretePath(manifest, cut > 0 ? concrete + tail.slice(0, cut) : concrete);
+  return holder && typeof holder === "object" && !Array.isArray(holder) ? holder : manifest;
 }
 function navigateConcretePath(root, path) {
   let cur = root;
@@ -48623,6 +48657,7 @@ var CelScopeResolver = class {
     );
     const resolved = resolveContextAnnotations(matched, manifestItem, {
       manifestRoot: rootForResolver,
+      contextHolder: localScope ? getContextHolder(localPath, localScope, rootManifest) : rootManifest,
       defs,
       aliases,
       aliasesByModule: scopes?.aliasesByModule,
@@ -48850,16 +48885,17 @@ var CelScopeQuery = class {
     }
     const refFrom = annotated["x-telo-context-ref-from"];
     if (typeof refFrom === "string") {
-      const slash = refFrom.indexOf("/");
-      if (slash === -1) return void 0;
-      const item = matchedScope ? getManifestItem(sitePath, matchedScope, root) : root;
-      const ref = item[refFrom.slice(0, slash)];
-      if (!ref?.kind || !ref.name) return void 0;
+      const reference = readContextRefFrom(
+        refFrom,
+        matchedScope ? getContextHolder(sitePath, matchedScope, root) : root
+      );
+      if (!reference) return void 0;
+      const { ref, subpath } = reference;
       const target = this.manifests.find(
         (m) => m.kind === ref.kind && m.metadata?.name === ref.name
       );
       if (!target) return void 0;
-      return { manifest: target, path: refFrom.slice(slash + 1).split("/").join("."), propertyMap: false };
+      return { manifest: target, path: subpath.split("/").join("."), propertyMap: false };
     }
     const fromRefKind = annotated["x-telo-context-from-ref-kind"];
     const slots = Array.isArray(fromRefKind) ? fromRefKind : [fromRefKind];
