@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.113.0";
+var TELO_ENGINE_VERSION = "0.114.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -17888,6 +17888,11 @@ var TELO_SCHEMA_ANNOTATIONS = {
   "x-telo-context-element-from": {
     title: "Context element from",
     description: "Type this binding from the ELEMENT of a sibling collection expression.",
+    type: "string"
+  },
+  "x-telo-context-element-from-item": {
+    title: "Context element from item",
+    description: "Type this binding from the ELEMENT of the collection the named field of the enclosing array item points at \u2014 a plain chain rooted at another binding of this context, or at inputs. Untyped when the chain does not resolve to a collection.",
     type: "string"
   },
   "x-telo-context-collection-from": {
@@ -30238,7 +30243,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.113.0";
+var ENGINE_VERSION = "0.114.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -42372,6 +42377,7 @@ var ANNOTATION_KEYWORDS = [
   "x-telo-context",
   "x-telo-context-collection-from",
   "x-telo-context-element-from",
+  "x-telo-context-element-from-item",
   "x-telo-context-from",
   "x-telo-context-from-ref-kind",
   "x-telo-context-from-root",
@@ -45430,10 +45436,31 @@ function schemaAtChain2(chain, root) {
 function resolveCollectionSchema(manifestRoot, field, allManifests) {
   const chain = purePathChain(manifestRoot?.[field]);
   if (!chain || chain[0] !== "inputs") return void 0;
-  const declared = resolveTypeFieldToSchema(manifestRoot.inputType, allManifests ?? []);
-  const root = declared && typeof declared === "object" ? declared : manifestRoot.inputs && typeof manifestRoot.inputs === "object" ? { type: "object", properties: manifestRoot.inputs } : void 0;
+  const root = inputsContractSchema(manifestRoot, allManifests);
   if (!root) return void 0;
   return schemaAtChain2(chain.slice(1), root);
+}
+function inputsContractSchema(manifestRoot, allManifests) {
+  const declared = resolveTypeFieldToSchema(manifestRoot.inputType, allManifests ?? []);
+  if (declared && typeof declared === "object") return declared;
+  return manifestRoot.inputs && typeof manifestRoot.inputs === "object" ? { type: "object", properties: manifestRoot.inputs } : void 0;
+}
+var ELEMENT_FROM_ITEM_ANNOTATION = "x-telo-context-element-from-item";
+function elementOfItemCollection(field, manifestItem, bindings, opts) {
+  const chain = purePathChain(manifestItem?.[field]);
+  if (!chain) return void 0;
+  const [rootName, ...members] = chain;
+  const schemaForId = opts.defs?.schemaForId?.bind(opts.defs);
+  const elementUnder = (root) => {
+    if (!root || typeof root !== "object") return void 0;
+    const typed = root;
+    return elementOfCollection(
+      schemaAtChain2(members, schemaForId ? inlineNamedShapes(typed, schemaForId) : typed)
+    );
+  };
+  const declared = Object.prototype.hasOwnProperty.call(bindings, rootName) ? elementUnder(bindings[rootName]) : void 0;
+  if (declared || rootName !== "inputs") return declared;
+  return elementUnder(inputsContractSchema(opts.manifestRoot ?? manifestItem, opts.allManifests));
 }
 function elementOfCollection(collection) {
   if (!collection || typeof collection !== "object") return void 0;
@@ -45493,6 +45520,7 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
   if (collectionFrom) {
     return resolveCollectionSchema(manifestRoot, collectionFrom, allManifests) ?? {};
   }
+  if (typeof schema4[ELEMENT_FROM_ITEM_ANNOTATION] === "string") return {};
   const fromRoot = schema4["x-telo-context-from-root"];
   const fromRefKindRaw = schema4["x-telo-context-from-ref-kind"];
   const fromRefKinds = fromRefKindRaw == null ? [] : Array.isArray(fromRefKindRaw) ? fromRefKindRaw : [fromRefKindRaw];
@@ -45588,9 +45616,22 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
   }
   if (schema4.properties) {
     const props = {};
+    const elementsFromItem = [];
     for (const [k, v] of Object.entries(schema4.properties)) {
       if (collectionBindingWithheld(v, manifestRoot, allManifests)) continue;
+      const fromItem = v?.[ELEMENT_FROM_ITEM_ANNOTATION];
+      if (typeof fromItem === "string") {
+        props[k] = {};
+        elementsFromItem.push([k, fromItem]);
+        continue;
+      }
       props[k] = resolveContextAnnotations(v, manifestItem, normalizedOpts);
+    }
+    for (const [k, field] of elementsFromItem) {
+      props[k] = elementOfItemCollection(field, manifestItem, props, {
+        ...normalizedOpts,
+        manifestRoot
+      }) ?? {};
     }
     return { ...schema4, properties: props };
   }
@@ -50359,7 +50400,7 @@ function evaluateResourceRules(manifest, definitionSchema, moduleNames, function
   return findings;
 }
 function resolvedView(manifest, rule, binder, kind) {
-  let self = manifest;
+  let self = binder?.view(manifest) ?? manifest;
   for (const pointer of rule.resolve ?? []) {
     if (!binder) return { ok: false, failure: { reason: "unknown-shape", at: pointer } };
     const resolved = binder.resolveReferences(manifest, kind, pointer);
@@ -50568,12 +50609,20 @@ var PeerBinder = class {
     this.env = env;
   }
   collections = /* @__PURE__ */ new WeakMap();
+  /** `declaration` as a rule reads it. Every declaration a rule binds goes
+   *  through here before anything scans it for dynamic values. */
+  view(declaration) {
+    return this.env.viewOf?.(declaration) ?? declaration;
+  }
   /** How an entry's references are read, over one manifest's sites. */
   resolver(siteAt) {
     const accepts = this.env.slotAccepts;
     return {
       siteAt,
-      lookup: this.env.declarationOf,
+      lookup: (reference) => {
+        const declaration = this.env.declarationOf(reference);
+        return declaration && this.view(declaration);
+      },
       refuses: (site, declaration) => {
         if (!accepts || site.kinds.length === 0) return false;
         const kind = declaration.kind;
@@ -50601,14 +50650,14 @@ var PeerBinder = class {
     if (at2 !== -1) return { ok: true, binding: { peers, entry: resolved.values[at2] } };
     const site = sites.get(slotPath);
     if (!site) {
-      if (navigatePath2(referrer, slotPath) === void 0) {
+      if (navigatePath2(this.view(referrer), slotPath) === void 0) {
         return { ok: true, binding: { peers, entry: void 0 } };
       }
       return { ok: false, failure: { reason: "unknown-shape", at: slotPath } };
     }
     const boundary = entryBoundary(slotPath, site.shape);
     const entry = resolveEntry(
-      navigatePath2(referrer, boundary),
+      navigatePath2(this.view(referrer), boundary),
       boundary,
       this.resolver((path) => sites.get(path))
     );
@@ -50626,7 +50675,7 @@ var PeerBinder = class {
     const shapes = this.env.refSlotsOf(kind);
     const sites = this.env.refSitesOf(manifest, kind);
     if (!shapes || !sites) return { ok: false, failure: { reason: "unknown-shape", at: path } };
-    const raw = resolvePointer(manifest, pointer);
+    const raw = resolvePointer(this.view(manifest), pointer);
     if (raw === void 0 || raw === null) return { ok: true, value: raw };
     const own2 = sites.get(path);
     if (own2) {
@@ -50656,7 +50705,7 @@ var PeerBinder = class {
     return resolved;
   }
   resolveCollection(referrer, pointer, collectionPath, shapes, sites) {
-    const raw = resolvePointer(referrer, pointer);
+    const raw = resolvePointer(this.view(referrer), pointer);
     if (raw === void 0 || raw === null) return { ok: true, keys: [], values: [] };
     if (!Array.isArray(raw) && !isObject7(raw)) {
       return { ok: false, failure: { reason: "no-collection", at: collectionPath } };
@@ -50707,7 +50756,7 @@ function bindingFailureReason(failure) {
       return `the reference at '${failure.at}' names a declaration of a kind that slot does not accept, which is already reported there.`;
   }
 }
-function analyzerPeerBinder(registry, aliases, manifests, slotAccepts) {
+function analyzerPeerBinder(registry, aliases, manifests, slotAccepts, viewOf) {
   const byName = /* @__PURE__ */ new Map();
   const byModuleAndName = /* @__PURE__ */ new Map();
   for (const m of manifests) {
@@ -50762,7 +50811,8 @@ function analyzerPeerBinder(registry, aliases, manifests, slotAccepts) {
     declarationOf,
     refSlotsOf,
     refSitesOf,
-    ...slotAccepts ? { slotAccepts } : {}
+    ...slotAccepts ? { slotAccepts } : {},
+    ...viewOf ? { viewOf } : {}
   });
 }
 function analyzerPeersTarget(registry) {
@@ -57191,7 +57241,8 @@ function validatePeersDeclaration(entry, at2, issue, context) {
 function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatches, context = {}) {
   const rules = readReferrerRules(definitionSchema);
   if (rules.length === 0) return [];
-  const self = manifest;
+  const view = (declaration) => context.peerBinder?.view(declaration) ?? declaration;
+  const self = view(manifest);
   const findings = [];
   for (const rule of rules) {
     const perEntry = rule.peers !== void 0;
@@ -57211,7 +57262,7 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
       }
       const scope = {
         self,
-        referrer: referrer.manifest,
+        referrer: view(referrer.manifest),
         ...context.functions ? { [MODULE_CALL_DISPATCH_KEY]: context.functions } : {}
       };
       if (perEntry) {
@@ -58348,6 +58399,87 @@ function accessorProblems(field, resolvedEarlier = () => false) {
   walk5(value2, path);
   return problems;
 }
+function readsOnlySelf(tag) {
+  const expressions = celExpressionsOf(tag.engine, tag.source);
+  return expressions.length > 0 && expressions.every((expression) => {
+    const chains = accessChains(expression);
+    return chains.length > 0 && chains.every((chain) => chain[0] === "self");
+  });
+}
+function accessorBindingOf(value2, resolvedEarlier = () => false) {
+  const tag = tagOf(value2);
+  if (tag && resolvedEarlier(tag)) return { value: value2 };
+  const chain = plainChainOf(value2);
+  if (chain === void 0) return { value: value2 };
+  const [root, ...path] = chain.split(".");
+  return { root, path };
+}
+function withAccessorBindings(resource, fields, resolvedEarlier) {
+  if (fields.length === 0) return resource;
+  const copied = /* @__PURE__ */ new Set();
+  const copy = (holder, key2) => {
+    const child = holder[key2];
+    if (copied.has(child)) return child;
+    const fresh = Array.isArray(child) ? [...child] : { ...child };
+    copied.add(fresh);
+    holder[key2] = fresh;
+    return fresh;
+  };
+  const root = { ...resource };
+  for (const { keys, value: value2 } of fields) {
+    let holder = root;
+    for (const key2 of keys.slice(0, -1)) holder = copy(holder, key2);
+    holder[keys[keys.length - 1]] = accessorBindingOf(value2, resolvedEarlier);
+  }
+  return root;
+}
+
+// ../../analyzer/nodejs/src/rule-declaration-view.ts
+function isPlainContainer(value2) {
+  if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return false;
+  if (Array.isArray(value2)) return true;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+}
+var RuleDeclarationViews = class {
+  constructor(sitesOf2) {
+    this.sitesOf = sitesOf2;
+  }
+  views = /* @__PURE__ */ new WeakMap();
+  of(declaration) {
+    const module = declaration.metadata?.module;
+    return this.view(declaration, module);
+  }
+  view(declaration, module) {
+    const cached = this.views.get(declaration);
+    if (cached) return cached;
+    const reading = typeof declaration.kind === "string" ? this.sitesOf(declaration, module) : void 0;
+    const fields = reading?.sites ? accessorFields(declaration, reading.sites) : [];
+    const bound = withAccessorBindings(
+      declaration,
+      fields,
+      reading?.bodyEntry ? readsOnlySelf : void 0
+    );
+    const written = new Set(fields.map((field) => field.path));
+    const walk5 = (node, path) => {
+      if (written.has(path) || !isPlainContainer(node)) return node;
+      if (Array.isArray(node)) {
+        const items = node.map((item, index) => walk5(item, `${path}[${index}]`));
+        return items.some((item, index) => item !== node[index]) ? items : node;
+      }
+      if (path !== "" && isInlineResource(node)) return this.view(node, module);
+      let copy;
+      for (const [key2, child] of Object.entries(node)) {
+        const read = walk5(child, path === "" ? key2 : `${path}.${key2}`);
+        if (read !== child) (copy ??= { ...node })[key2] = read;
+      }
+      return copy ?? node;
+    };
+    const view = walk5(bound, "");
+    this.views.set(declaration, view);
+    return view;
+  }
+};
 
 // ../../analyzer/nodejs/src/browser-export-slot.ts
 var BROWSER_EXPORT_ANNOTATION = "x-telo-browser-export";
@@ -65545,7 +65677,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.113.0";
+var TELO_SURFACE_VERSION = "0.114.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -67224,13 +67356,6 @@ function templateTargetProblems(definition, capability, nearest) {
 
 // ../../analyzer/nodejs/src/validate-template-body.ts
 var SOURCE29 = "telo-analyzer";
-function readsOnlySelf(tag) {
-  const expressions = celExpressionsOf(tag.engine, tag.source);
-  return expressions.length > 0 && expressions.every((expression) => {
-    const chains = accessChains(expression);
-    return chains.length > 0 && chains.every((chain) => chain[0] === "self");
-  });
-}
 var DISPATCH_SLOTS = ["invoke", "run", "provide", "mount"];
 function validateTemplateBody(manifests, registry, aliases, aliasesByModule, rootModules) {
   const out = [];
@@ -68968,6 +69093,17 @@ function collectCelValueSlots(data, schema4, path, external) {
   }));
 }
 var namedSlotShape = (slot, external) => slot.root ? shapeNamedBy(slot.schema, slot.root, external) : slot.schema;
+function conjunctsOf(node, external, seen = /* @__PURE__ */ new Set()) {
+  if (seen.has(node.schema)) return [];
+  seen.add(node.schema);
+  const out = [node];
+  for (const member of Array.isArray(node.schema.allOf) ? node.schema.allOf : []) {
+    if (member === null || typeof member !== "object" || Array.isArray(member)) continue;
+    out.push(...conjunctsOf(resolveRefIn(member, node.root, external), external, seen));
+  }
+  return out;
+}
+var isSchemaNode2 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 function declaredCelSlots(data, raw, path, base, external) {
   const slots = [];
   if (isTaggedSentinel(data)) {
@@ -69001,23 +69137,43 @@ function declaredCelSlots(data, raw, path, base, external) {
   }
   const selected = selectUnionBranch(schema4, data, root, external);
   const entered = selected === schema4 ? { schema: schema4, root } : resolveRefIn(selected, root, external);
-  const node = entered.schema;
+  const conjuncts = conjunctsOf(entered, external);
+  const childSlots = (child, childPath, declaredBy, undeclared) => {
+    const declaring2 = conjuncts.filter((conjunct) => isSchemaNode2(declaredBy(conjunct)));
+    if (declaring2.length === 0) {
+      return declaredCelSlots(child, undeclared.schema, childPath, undeclared.root, external);
+    }
+    return declaring2.flatMap(
+      (conjunct) => declaredCelSlots(
+        child,
+        declaredBy(conjunct),
+        childPath,
+        conjunct.root,
+        external
+      )
+    );
+  };
   if (Array.isArray(data)) {
-    const itemSchema = node.items ?? {};
     for (let i = 0; i < data.length; i++) {
-      slots.push(...declaredCelSlots(data[i], itemSchema, `${path}[${i}]`, entered.root, external));
+      slots.push(
+        ...childSlots(data[i], `${path}[${i}]`, (conjunct) => conjunct.schema.items, {
+          schema: {},
+          root: entered.root
+        })
+      );
     }
   } else if (data !== null && typeof data === "object") {
-    const props = node.properties ?? {};
-    const mapValueSchema = node.additionalProperties && typeof node.additionalProperties === "object" ? node.additionalProperties : {};
+    const mapConjunct = conjuncts.find(
+      (conjunct) => isSchemaNode2(conjunct.schema.additionalProperties)
+    );
+    const mapValue = mapConjunct ? { schema: mapConjunct.schema.additionalProperties, root: mapConjunct.root } : { schema: {}, root: entered.root };
     for (const [k, v] of Object.entries(data)) {
       slots.push(
-        ...declaredCelSlots(
+        ...childSlots(
           v,
-          props[k] ?? mapValueSchema,
           path ? `${path}.${k}` : k,
-          entered.root,
-          external
+          (conjunct) => conjunct.schema.properties?.[k],
+          mapValue
         )
       );
     }
@@ -69199,34 +69355,34 @@ var StaticAnalyzer = class {
       warning: DiagnosticSeverity2.Warning,
       information: DiagnosticSeverity2.Information
     };
-    const resourceRuleDiagnostic = (report) => ({
-      severity: SEVERITY[report.severity],
-      code: report.code,
+    const resourceRuleDiagnostic = (report2) => ({
+      severity: SEVERITY[report2.severity],
+      code: report2.code,
       source: SOURCE36,
-      message: report.message,
+      message: report2.message,
       data: {
         resource: {
-          kind: report.manifest.kind,
-          name: report.manifest.metadata?.name
+          kind: report2.manifest.kind,
+          name: report2.manifest.metadata?.name
         },
-        filePath: report.manifest.metadata?.source,
-        path: report.path,
-        rule: report.rule
+        filePath: report2.manifest.metadata?.source,
+        path: report2.path,
+        rule: report2.rule
       }
     });
-    const referrerRuleDiagnostic = (report) => ({
-      severity: SEVERITY[report.severity],
-      code: report.code,
+    const referrerRuleDiagnostic = (report2) => ({
+      severity: SEVERITY[report2.severity],
+      code: report2.code,
       source: SOURCE36,
-      message: report.message,
+      message: report2.message,
       data: {
         resource: {
-          kind: report.manifest.kind,
-          name: report.manifest.metadata?.name
+          kind: report2.manifest.kind,
+          name: report2.manifest.metadata?.name
         },
-        filePath: report.manifest.metadata?.source,
-        path: report.path,
-        rule: report.rule
+        filePath: report2.manifest.metadata?.source,
+        path: report2.path,
+        rule: report2.rule
       }
     });
     const ruleFailureLedger = new RuleFailureLedger();
@@ -69244,15 +69400,15 @@ var StaticAnalyzer = class {
         path: `imports.${alias}`
       });
     }
-    const ruleFailureDiagnostic = (report, declaringModule3, fallback) => {
+    const ruleFailureDiagnostic = (report2, declaringModule3, fallback) => {
       const anchor = declaringModule3 && !rootModules.has(declaringModule3) ? importAnchors.get(declaringModule3) : void 0;
       if (!anchor) return fallback;
       return {
-        severity: SEVERITY[report.severity],
-        code: report.code,
+        severity: SEVERITY[report2.severity],
+        code: report2.code,
         source: SOURCE36,
-        message: report.message,
-        data: { filePath: anchor.filePath, path: anchor.path, rule: report.rule }
+        message: report2.message,
+        data: { filePath: anchor.filePath, path: anchor.path, rule: report2.rule }
       };
     };
     const projectionIssues2 = [];
@@ -69660,6 +69816,38 @@ var StaticAnalyzer = class {
     if (options?.skipValidation) {
       return suppressUnreadableModuleDiagnostics(diagnostics, unreadableFiles);
     }
+    const ruleDef = (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k);
+    const ruleSites = /* @__PURE__ */ new WeakMap();
+    let bodyEntryModules;
+    const bodyEntryOf = (declaration) => {
+      if (!bodyEntryModules) {
+        bodyEntryModules = /* @__PURE__ */ new WeakMap();
+        for (const m of allManifests) {
+          const entries = m.resources;
+          if (m.kind !== "Telo.Definition" || !Array.isArray(entries)) continue;
+          const holder = { module: m.metadata?.module };
+          for (const entry of entries) {
+            if (entry && typeof entry === "object") bodyEntryModules.set(entry, holder);
+          }
+        }
+      }
+      return bodyEntryModules.get(declaration);
+    };
+    const ruleViews = new RuleDeclarationViews((declaration, module) => {
+      const bodyEntry = bodyEntryOf(declaration);
+      const definition = definitionInScope(
+        defs,
+        declaration.kind,
+        { module: bodyEntry ? bodyEntry.module : module },
+        aliases,
+        aliasesByModule
+      );
+      if (!definition) return bodyEntry && { bodyEntry: true };
+      if (!ruleSites.has(definition)) {
+        ruleSites.set(definition, governedCelEvalSites(definition, ruleDef));
+      }
+      return { sites: ruleSites.get(definition), bodyEntry: bodyEntry !== void 0 };
+    });
     const referrerRuleContext = {
       peerBinder: analyzerPeerBinder(
         defs,
@@ -69670,7 +69858,8 @@ var StaticAnalyzer = class {
         // resource is already reported there (`REFERENCE_KIND_MISMATCH`), and a
         // second diagnostic about the rule's internals would blame the kind's
         // author for the manifest author's mistake.
-        (slotKinds, declarationKind) => slotKinds.some((target) => kindSatisfies(declarationKind, target, defs))
+        (slotKinds, declarationKind) => slotKinds.some((target) => kindSatisfies(declarationKind, target, defs)),
+        (declaration) => ruleViews.of(declaration)
       )
     };
     const resolveMarkDef = (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k);
@@ -69824,10 +70013,11 @@ var StaticAnalyzer = class {
     const joinCallSite = (manifest, resource, filePath, site) => {
       let seen = callSiteSlots.get(manifest);
       if (!seen) callSiteSlots.set(manifest, seen = /* @__PURE__ */ new Map());
+      const enumerated = new Set(seen.keys());
       for (const slot of collectCelValueSlots(site.values, site.schema, site.path, namedShape)) {
-        if (seen.has(slot.path)) continue;
+        if (enumerated.has(slot.path)) continue;
         const joined = { manifest, resource, filePath, ...slot, callTarget: site.targetLabel };
-        seen.set(slot.path, joined);
+        if (!seen.has(slot.path)) seen.set(slot.path, joined);
         celReturnSlots.push(joined);
       }
     };
@@ -70061,7 +70251,7 @@ var StaticAnalyzer = class {
         }
       }
       const ruleDeclarer = definition.metadata?.module;
-      for (const report of reportResourceRules(
+      for (const report2 of reportResourceRules(
         m,
         definition,
         evaluateResourceRules(
@@ -70076,15 +70266,15 @@ var StaticAnalyzer = class {
         ),
         !ruleDeclarer || rootModules.has(ruleDeclarer)
       )) {
-        if (report.evaluationFailure) {
+        if (report2.evaluationFailure) {
           const declaringKind = `resource\0${ruleDeclarer ?? ""}.${definition.metadata?.name ?? ""}`;
-          if (!ruleFailureLedger.first(declaringKind, report.rule)) continue;
+          if (!ruleFailureLedger.first(declaringKind, report2.rule)) continue;
           diagnostics.push(
-            ruleFailureDiagnostic(report, ruleDeclarer, resourceRuleDiagnostic(report))
+            ruleFailureDiagnostic(report2, ruleDeclarer, resourceRuleDiagnostic(report2))
           );
           continue;
         }
-        diagnostics.push(resourceRuleDiagnostic(report));
+        diagnostics.push(resourceRuleDiagnostic(report2));
       }
       for (const rule of readResourceRules(schema4)) {
         const key2 = `${definition.metadata?.module}.${definition.metadata?.name}#${rule.code}`;
@@ -70104,7 +70294,7 @@ var StaticAnalyzer = class {
           ),
           functions: bodyEvaluators.dispatchFor(definition)
         };
-        for (const report of reportReferrerRules(
+        for (const report2 of reportReferrerRules(
           m,
           definition,
           evaluateReferrerRules(
@@ -70116,22 +70306,22 @@ var StaticAnalyzer = class {
           ),
           !ruleDeclarer || rootModules.has(ruleDeclarer)
         )) {
-          const owner = report.manifest.metadata?.module;
-          if (report.code === "REFERRER_RULE_VIOLATED" && owner && !rootModules.has(owner)) {
+          const owner = report2.manifest.metadata?.module;
+          if (report2.code === "REFERRER_RULE_VIOLATED" && owner && !rootModules.has(owner)) {
             continue;
           }
-          if (report.evaluationFailure) {
+          if (report2.evaluationFailure) {
             const declaringKind = `referrer\0${ruleDeclarer ?? ""}.${definition.metadata?.name ?? ""}`;
-            if (!ruleFailureLedger.first(declaringKind, report.rule)) continue;
+            if (!ruleFailureLedger.first(declaringKind, report2.rule)) continue;
             diagnostics.push(
-              ruleFailureDiagnostic(report, ruleDeclarer, referrerRuleDiagnostic(report))
+              ruleFailureDiagnostic(report2, ruleDeclarer, referrerRuleDiagnostic(report2))
             );
             continue;
           }
-          diagnostics.push(referrerRuleDiagnostic(report));
-          if (report.code === "REFERRER_RULE_VIOLATED") {
+          diagnostics.push(referrerRuleDiagnostic(report2));
+          if (report2.code === "REFERRER_RULE_VIOLATED") {
             const violated = referrerRuleExercise.get(
-              `${definition.metadata?.module}.${definition.metadata?.name}#${report.rule}`
+              `${definition.metadata?.module}.${definition.metadata?.name}#${report2.rule}`
             );
             if (violated) violated.exercised = true;
           }
@@ -70850,11 +71040,19 @@ var StaticAnalyzer = class {
       };
     };
     const callSiteVerdicts = /* @__PURE__ */ new Map();
+    const misfits = /* @__PURE__ */ new Map();
+    const report = (slot, verdict) => {
+      if (!verdict) return;
+      let paths = misfits.get(slot.manifest);
+      if (!paths) misfits.set(slot.manifest, paths = /* @__PURE__ */ new Set());
+      if (paths.has(slot.path)) return;
+      paths.add(slot.path);
+      diagnostics.push(verdict);
+    };
     for (const slot of celReturnSlots) {
       if (slot.callTarget !== void 0) {
         if (!callSiteVerdicts.has(slot)) callSiteVerdicts.set(slot, judgeSlot(slot));
-        const verdict2 = callSiteVerdicts.get(slot);
-        if (verdict2) diagnostics.push(verdict2);
+        report(slot, callSiteVerdicts.get(slot));
         continue;
       }
       const twin = callSiteSlots.get(slot.manifest)?.get(slot.path);
@@ -70862,8 +71060,7 @@ var StaticAnalyzer = class {
         if (!callSiteVerdicts.has(twin)) callSiteVerdicts.set(twin, judgeSlot(twin));
         if (callSiteVerdicts.get(twin)) continue;
       }
-      const verdict = judgeSlot(slot);
-      if (verdict) diagnostics.push(verdict);
+      report(slot, judgeSlot(slot));
     }
     diagnostics.push(
       ...validateReferences(
