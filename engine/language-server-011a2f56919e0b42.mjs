@@ -58478,15 +58478,22 @@ function isPlainContainer(value2) {
   return prototype === Object.prototype || prototype === null;
 }
 var RuleDeclarationViews = class {
-  constructor(sitesOf2) {
+  constructor(sitesOf2, forwardedReference) {
     this.sitesOf = sitesOf2;
+    this.forwardedReference = forwardedReference;
   }
   views = /* @__PURE__ */ new WeakMap();
   of(declaration) {
     const module = declaration.metadata?.module;
-    return this.view(declaration, module);
+    return this.view(
+      declaration,
+      module,
+      isForwardedDeclaration(declaration)
+    );
   }
-  view(declaration, module) {
+  /** `forwarded`: the declaration is a dependency's, or an inline declaration
+   *  beneath one. */
+  view(declaration, module, forwarded) {
     const cached = this.views.get(declaration);
     if (cached) return cached;
     const reading = typeof declaration.kind === "string" ? this.sitesOf(declaration, module) : void 0;
@@ -58497,13 +58504,19 @@ var RuleDeclarationViews = class {
       reading?.bodyEntry ? readsOnlySelf : void 0
     );
     const written = new Set(fields.map((field) => field.path));
+    const resolve = forwarded && typeof module === "string" ? this.forwardedReference : void 0;
     const walk5 = (node, path) => {
-      if (written.has(path) || !isPlainContainer(node)) return node;
+      if (written.has(path)) return node;
+      if (resolve) {
+        const target = refSentinelTarget(node);
+        if (target) return resolve(target, module) ?? node;
+      }
+      if (!isPlainContainer(node)) return node;
       if (Array.isArray(node)) {
         const items = node.map((item, index) => walk5(item, `${path}[${index}]`));
         return items.some((item, index) => item !== node[index]) ? items : node;
       }
-      if (path !== "" && isInlineResource(node)) return this.view(node, module);
+      if (path !== "" && isInlineResource(node)) return this.view(node, module, forwarded);
       let copy;
       for (const [key2, child] of Object.entries(node)) {
         const read = walk5(child, path === "" ? key2 : `${path}.${key2}`);
@@ -69869,6 +69882,28 @@ var StaticAnalyzer = class {
       }
       return bodyEntryModules.get(declaration);
     };
+    let declaredByModule;
+    const declaredIn2 = (module, name2) => {
+      if (!declaredByModule) {
+        declaredByModule = /* @__PURE__ */ new Map();
+        for (const m of allManifests) {
+          const owner = m.metadata?.module;
+          const declared = m.metadata?.name;
+          if (typeof owner !== "string" || typeof declared !== "string") continue;
+          if (REF_RESOLUTION_SKIP_KINDS.has(m.kind)) continue;
+          declaredByModule.set(`${owner}\0${declared}`, m);
+        }
+      }
+      return declaredByModule.get(`${module}\0${name2}`) ?? libraries.declaration(module, name2);
+    };
+    const forwardedReference = (target, module) => {
+      const local = target.alias === void 0 || target.alias === "Self";
+      const owner = local ? module : aliasesByModule.get(module)?.moduleForAlias(target.alias);
+      const declaration = owner === void 0 ? void 0 : declaredIn2(owner, target.name);
+      if (!owner || !declaration || typeof declaration.kind !== "string") return void 0;
+      const kind = declaration.kind.startsWith("Self.") ? `${owner}.${declaration.kind.slice("Self.".length)}` : aliasesByModule.get(owner)?.resolveKind(declaration.kind) ?? declaration.kind;
+      return { kind, name: target.name, ...local ? {} : { alias: target.alias } };
+    };
     const ruleViews = new RuleDeclarationViews((declaration, module) => {
       const bodyEntry = bodyEntryOf(declaration);
       const definition = definitionInScope(
@@ -69883,7 +69918,7 @@ var StaticAnalyzer = class {
         ruleSites.set(definition, governedCelEvalSites(definition, ruleDef));
       }
       return { sites: ruleSites.get(definition), bodyEntry: bodyEntry !== void 0 };
-    });
+    }, forwardedReference);
     const referrerRuleContext = {
       peerBinder: analyzerPeerBinder(
         defs,
