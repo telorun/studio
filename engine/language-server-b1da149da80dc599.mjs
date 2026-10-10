@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.114.0";
+var TELO_ENGINE_VERSION = "0.115.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -19805,13 +19805,15 @@ var FirstSyntaxDiagnostic = class {
   report(code, message, start, end) {
     this.held ??= { code, message, range: [start, end] };
   }
-  get reported() {
-    return this.held !== void 0;
-  }
-  list() {
-    return this.held ? [this.held] : [];
+  get first() {
+    return this.held;
   }
 };
+function firstInSourceOrder(lexed, parsed, cut) {
+  if (lexed && parsed) return [parsed.range[0] < cut ? parsed : lexed];
+  const only = lexed ?? parsed;
+  return only ? [only] : [];
+}
 
 // ../../cel/nodejs/src/lexer.ts
 var MAX_INT = 9223372036854775807n;
@@ -19872,8 +19874,10 @@ var Lexer = class {
         tokens.push(this.eof());
         return tokens;
       }
+      const start = this.at;
       const token = this.next();
       if (!token) {
+        this.at = start;
         tokens.push(this.eof());
         return tokens;
       }
@@ -19917,14 +19921,18 @@ var Lexer = class {
       this.at = start + 1;
       return { type: "punct", start, end: this.at, text: ch };
     }
+    const character = this.characterAt(start);
     this.diagnostics.report(
       "unexpected_character",
-      `unexpected character ${JSON.stringify(ch)}`,
+      `unexpected character ${JSON.stringify(character)}`,
       start,
-      start + 1
+      start + character.length
     );
-    this.at = start;
     return void 0;
+  }
+  /** The whole character at an offset: both code units of one outside the basic plane. */
+  characterAt(at2) {
+    return String.fromCodePoint(this.source.codePointAt(at2));
   }
   /**
    * A member name between backticks. cel-spec's `ESCAPED_IDENTIFIER` takes no escapes
@@ -20061,7 +20069,10 @@ var Lexer = class {
     this.diagnostics.report("unterminated_string", "unterminated string", start, at2);
     return void 0;
   }
-  /** A raw literal: a backslash takes the next character with it, both kept as written. */
+  /**
+   * A raw literal: a backslash takes the next character with it, both kept as written —
+   * except a line feed in a single-line literal, which ends it.
+   */
   scanRaw(from, terminator, triple, bytes3) {
     const source = this.source;
     const units = [];
@@ -20070,7 +20081,7 @@ var Lexer = class {
       if (source.startsWith(terminator, at2)) return { units, end: at2 + terminator.length };
       const ch = source[at2];
       if (!triple && ch === "\n") break;
-      if (ch === "\\" && at2 + 1 < source.length) {
+      if (ch === "\\" && at2 + 1 < source.length && (triple || source[at2 + 1] !== "\n")) {
         units.push(92);
         at2 += 1 + this.literalCharacter(at2 + 1, bytes3, units);
         continue;
@@ -20138,29 +20149,38 @@ var Lexer = class {
       return this.readUnicodeEscape(at2, ch === "u" ? 4 : 8, units);
     }
     if (isOctalDigit(ch)) return this.readOctalEscape(at2, units);
+    const character = this.characterAt(at2 + 1);
     this.diagnostics.report(
       "invalid_escape_sequence",
-      `\\${ch} is not an escape sequence`,
+      `\\${character} is not an escape sequence`,
       at2,
-      at2 + 2
+      at2 + 1 + character.length
     );
     return void 0;
   }
+  /** Where the digits an escape wrote end: the run `admits` takes from `from`, up to `width`. */
+  writtenDigitsEnd(from, width, admits) {
+    let end = from;
+    while (end < from + width && end < this.source.length && admits(this.source[end])) end += 1;
+    return end;
+  }
   readHexEscape(at2, units) {
-    const digits = this.source.slice(at2 + 2, at2 + 4);
-    if (digits.length < 2 || !isHexDigit(digits[0]) || !isHexDigit(digits[1])) {
-      this.diagnostics.report("invalid_hex_escape", "a \\x escape takes two hexadecimal digits", at2, at2 + 4);
+    const end = this.writtenDigitsEnd(at2 + 2, 2, isHexDigit);
+    if (end < at2 + 4) {
+      this.diagnostics.report("invalid_hex_escape", "a \\x escape takes two hexadecimal digits", at2, end);
       return void 0;
     }
+    const digits = this.source.slice(at2 + 2, end);
     units.push(Number.parseInt(digits, 16));
     return at2 + 4;
   }
   readOctalEscape(at2, units) {
-    const digits = this.source.slice(at2 + 1, at2 + 4);
-    if (digits.length < 3 || ![...digits].every(isOctalDigit)) {
-      this.diagnostics.report("invalid_octal_escape", "an octal escape takes three octal digits", at2, at2 + 4);
+    const end = this.writtenDigitsEnd(at2 + 1, 3, isOctalDigit);
+    if (end < at2 + 4) {
+      this.diagnostics.report("invalid_octal_escape", "an octal escape takes three octal digits", at2, end);
       return void 0;
     }
+    const digits = this.source.slice(at2 + 1, end);
     const value2 = Number.parseInt(digits, 8);
     if (value2 > 255) {
       this.diagnostics.report("octal_escape_out_of_range", `\\${digits} is above 255`, at2, at2 + 4);
@@ -20170,18 +20190,18 @@ var Lexer = class {
     return at2 + 4;
   }
   readUnicodeEscape(at2, width, units) {
-    const digits = this.source.slice(at2 + 2, at2 + 2 + width);
-    if (digits.length < width || ![...digits].every(isHexDigit)) {
+    const end = this.writtenDigitsEnd(at2 + 2, width, isHexDigit);
+    if (end < at2 + 2 + width) {
       this.diagnostics.report(
         "invalid_unicode_escape",
         `a \\${width === 4 ? "u" : "U"} escape takes ${width} hexadecimal digits`,
         at2,
-        at2 + 2 + width
+        end
       );
       return void 0;
     }
+    const digits = this.source.slice(at2 + 2, end);
     const point = Number.parseInt(digits, 16);
-    const end = at2 + 2 + width;
     if (point > 1114111) {
       this.diagnostics.report("invalid_unicode_escape", `U+${digits} is not a code point`, at2, end);
       return void 0;
@@ -20262,6 +20282,40 @@ function resolveParseLimits(limits) {
   return limits ? { ...DEFAULT_PARSE_LIMITS, ...limits } : DEFAULT_PARSE_LIMITS;
 }
 
+// ../../cel/nodejs/src/syntax-tree.ts
+function childNodes(node) {
+  switch (node.kind) {
+    case "literal":
+    case "ident":
+    case "unparsed":
+      return [];
+    case "list":
+      return node.elements.map((element) => element.value);
+    case "map":
+      return node.entries.flatMap((entry) => [entry.key, entry.value]);
+    case "select":
+      return [node.operand];
+    case "index":
+      return [node.operand, node.index];
+    case "call":
+      return node.args;
+    case "receiverCall":
+      return [node.receiver, ...node.args];
+    case "qcall":
+      return node.args;
+    case "unary":
+      return [node.operand];
+    case "binary":
+      return [node.left, node.right];
+    case "conditional":
+      return [node.condition, node.whenTrue, node.whenFalse];
+  }
+}
+function* walkTree(root) {
+  yield root;
+  for (const child of childNodes(root)) yield* walkTree(child);
+}
+
 // ../../cel/nodejs/src/parser.ts
 var RELATIONS = ["==", "!=", "<", "<=", ">", ">="];
 var ADDITIVE = ["+", "-"];
@@ -20273,12 +20327,13 @@ var Parser = class {
     this.diagnostics = diagnostics;
     this.limits = limits;
     this.optionalSyntax = optionalSyntax;
-    if (diagnostics.reported) this.stopped = true;
   }
   at = 0;
   nodes = 0;
   depth = 0;
   stopped = false;
+  /** The height of every node built that has a child; a node absent from it is 1 high. */
+  heights = /* @__PURE__ */ new Map();
   parse() {
     const root = this.conditional();
     if (!this.stopped && this.peek().type !== "eof") this.unexpected(this.peek());
@@ -20336,11 +20391,18 @@ var Parser = class {
     );
     this.stopped = true;
   }
-  /** Counts a node against the node budget. */
+  /** Counts a node against the node budget and measures it against the depth limit. */
   keep(node) {
     this.nodes += 1;
     if (this.nodes > this.limits.maxNodes && !this.stopped) {
       this.limit("nodes", this.limits.maxNodes, node.range[0], node.range[1]);
+    }
+    let tallest = 0;
+    for (const child of childNodes(node)) tallest = Math.max(tallest, this.heights.get(child) ?? 1);
+    if (tallest === 0) return node;
+    this.heights.set(node, tallest + 1);
+    if (tallest + 1 > this.limits.maxDepth && !this.stopped) {
+      this.limit("nesting", this.limits.maxDepth, node.range[0], node.range[1]);
     }
     return node;
   }
@@ -20382,7 +20444,7 @@ var Parser = class {
   }
   /**
    * The binary levels, lowest first: `||`, `&&`, the relations, `+ -`, `* / %`.
-   * One loop per level, each left-associative, so a long chain costs no depth.
+   * One loop per level, each left-associative.
    */
   binary(level) {
     if (level >= 5) return this.unary();
@@ -20511,12 +20573,18 @@ var Parser = class {
    */
   expectMemberName(token) {
     if (token.type === "ident" || token.type === "reserved" || token.type === "keyword") return true;
-    if (token.type === "quotedIdent") return true;
+    if (token.type === "quotedIdent") {
+      if (token.text !== "") return true;
+      this.unexpected(token, "a name between the backticks");
+      return false;
+    }
     return this.expectIdentifier(token);
   }
+  /** A name: no reserved word is one, the three read as literals elsewhere included. */
   expectIdentifier(token) {
-    if (token.type === "ident") return true;
-    if (token.type === "reserved") {
+    const literalWord = token.type === "ident" && wordReading(token.text) === "literal";
+    if (token.type === "ident" && !literalWord) return true;
+    if (token.type === "reserved" || literalWord) {
       this.diagnostics.report(
         "reserved_identifier",
         `${JSON.stringify(token.text)} is a reserved word and cannot be used as a name`,
@@ -20699,9 +20767,11 @@ var Parser = class {
 };
 function parseSyntax(source, options) {
   const limits = resolveParseLimits(options?.limits);
-  const { tokens, diagnostics } = tokenize(source);
-  const root = new Parser(source, tokens, diagnostics, limits, options?.optionalSyntax ?? false).parse();
-  return { source, root, diagnostics: diagnostics.list() };
+  const lexed = tokenize(source);
+  const diagnostics = new FirstSyntaxDiagnostic();
+  const root = new Parser(source, lexed.tokens, diagnostics, limits, options?.optionalSyntax ?? false).parse();
+  const cut = lexed.tokens.at(-1).start;
+  return { source, root, diagnostics: firstInSourceOrder(lexed.diagnostics.first, diagnostics.first, cut) };
 }
 
 // ../../cel/nodejs/src/cel-expression.ts
@@ -20717,40 +20787,6 @@ function parseExpression(source, options) {
 }
 function resolvedUnder(expression, namespaces) {
   return namespaceSetsEqual(expression.namespaces, normalizeNamespaces(namespaces));
-}
-
-// ../../cel/nodejs/src/syntax-tree.ts
-function childNodes(node) {
-  switch (node.kind) {
-    case "literal":
-    case "ident":
-    case "unparsed":
-      return [];
-    case "list":
-      return node.elements.map((element) => element.value);
-    case "map":
-      return node.entries.flatMap((entry) => [entry.key, entry.value]);
-    case "select":
-      return [node.operand];
-    case "index":
-      return [node.operand, node.index];
-    case "call":
-      return node.args;
-    case "receiverCall":
-      return [node.receiver, ...node.args];
-    case "qcall":
-      return node.args;
-    case "unary":
-      return [node.operand];
-    case "binary":
-      return [node.left, node.right];
-    case "conditional":
-      return [node.condition, node.whenTrue, node.whenFalse];
-  }
-}
-function* walkTree(root) {
-  yield root;
-  for (const child of childNodes(root)) yield* walkTree(child);
 }
 
 // ../../cel/nodejs/src/qualified-calls.ts
@@ -21034,11 +21070,17 @@ function writeLiteral(literal) {
       return "null";
   }
 }
-function write(node, needs) {
-  const text3 = writeNode(node);
+function write(node, needs, underMinus = false) {
+  if (underMinus && node.kind === "literal" && isFoldedUnderMinus(node.literal)) {
+    return `(${writeLiteral(node.literal)})`;
+  }
+  const text3 = writeNode(node, underMinus);
   return precedenceOf(node) < needs ? `(${text3})` : text3;
 }
-function writeNode(node) {
+function isFoldedUnderMinus(literal) {
+  return (literal.type === "int" || literal.type === "double") && !isNegativeNumber(literal);
+}
+function writeNode(node, underMinus) {
   switch (node.kind) {
     case "literal":
       return writeLiteral(node.literal);
@@ -21051,17 +21093,17 @@ function writeNode(node) {
         (entry) => `${entry.optional ? "?" : ""}${write(entry.key, PRECEDENCE.conditional)}: ${write(entry.value, PRECEDENCE.conditional)}`
       ).join(", ")}}`;
     case "select":
-      return `${write(node.operand, PRECEDENCE.postfix)}.${node.optional ? "?" : ""}${fieldName(node.field, node.quoted)}`;
+      return `${write(node.operand, PRECEDENCE.postfix, underMinus)}.${node.optional ? "?" : ""}${fieldName(node.field, node.quoted)}`;
     case "index":
-      return `${write(node.operand, PRECEDENCE.postfix)}[${node.optional ? "?" : ""}${write(node.index, PRECEDENCE.conditional)}]`;
+      return `${write(node.operand, PRECEDENCE.postfix, underMinus)}[${node.optional ? "?" : ""}${write(node.index, PRECEDENCE.conditional)}]`;
     case "call":
       return `${name(node.name, "function name")}(${writeArguments(node.args)})`;
     case "receiverCall":
-      return `${write(node.receiver, PRECEDENCE.postfix)}.${memberName(node.name, "function name")}(${writeArguments(node.args)})`;
+      return `${write(node.receiver, PRECEDENCE.postfix, underMinus)}.${memberName(node.name, "function name")}(${writeArguments(node.args)})`;
     case "qcall":
       return `${name(node.namespace, "namespace")}.${memberName(node.name, "function name")}(${writeArguments(node.args)})`;
     case "unary":
-      return `${node.operator}${writeUnaryOperand(node.operator, node.operand)}`;
+      return `${node.operator}${write(node.operand, PRECEDENCE.unary, node.operator === "-")}`;
     case "binary":
       return `${write(node.left, BINARY_PRECEDENCE[node.operator])} ${node.operator} ${write(node.right, BINARY_PRECEDENCE[node.operator] + 1)}`;
     case "conditional":
@@ -21069,14 +21111,6 @@ function writeNode(node) {
     case "unparsed":
       throw new CelSerializeError("an unparsed expression has no source to write");
   }
-}
-function writeUnaryOperand(operator, operand) {
-  if (operator === "-" && operand.kind === "literal" && !isNegativeNumber(operand.literal)) {
-    if (operand.literal.type === "int" || operand.literal.type === "double") {
-      return `(${writeLiteral(operand.literal)})`;
-    }
-  }
-  return write(operand, PRECEDENCE.unary);
 }
 function writeArguments(args) {
   return args.map((argument) => write(argument, PRECEDENCE.conditional)).join(", ");
@@ -30243,7 +30277,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.114.0";
+var ENGINE_VERSION = "0.115.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -65726,7 +65760,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.114.0";
+var TELO_SURFACE_VERSION = "0.115.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
