@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.115.0";
+var TELO_ENGINE_VERSION = "0.115.1+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -19709,94 +19709,93 @@ function namespaceSetsEqual(left, right) {
 }
 function resolveNamespaces(root, namespaces) {
   if (namespaces.length === 0) return root;
-  const resolved = mapChildren(root, (child) => resolveNamespaces(child, namespaces));
-  if (resolved.kind !== "receiverCall") return resolved;
-  const receiver = resolved.receiver;
-  if (receiver.kind !== "ident" || receiver.absolute || !namespaces.includes(receiver.name)) {
-    return resolved;
-  }
-  return {
-    kind: "qcall",
-    namespace: receiver.name,
-    namespaceRange: receiver.range,
-    name: resolved.name,
-    nameRange: resolved.nameRange,
-    args: resolved.args,
-    range: resolved.range
-  };
+  return resolveNode(root, namespaces);
 }
-function mapChildren(node, map3) {
+function resolveNode(node, namespaces) {
   switch (node.kind) {
     case "literal":
     case "ident":
     case "unparsed":
       return node;
     case "list": {
-      let moved = false;
-      const elements = node.elements.map((element) => {
-        const value2 = map3(element.value);
-        if (value2 === element.value) return element;
-        moved = true;
-        return { ...element, value: value2 };
-      });
-      return moved ? { ...node, elements } : node;
+      let elements;
+      for (let at2 = 0; at2 < node.elements.length; at2++) {
+        const element = node.elements[at2];
+        const value2 = resolveNode(element.value, namespaces);
+        if (value2 === element.value) continue;
+        elements ??= node.elements.slice();
+        elements[at2] = { ...element, value: value2 };
+      }
+      return elements ? { ...node, elements } : node;
     }
     case "map": {
-      let moved = false;
-      const entries = node.entries.map((entry) => {
-        const key2 = map3(entry.key);
-        const value2 = map3(entry.value);
-        if (key2 === entry.key && value2 === entry.value) return entry;
-        moved = true;
-        return { ...entry, key: key2, value: value2 };
-      });
-      return moved ? { ...node, entries } : node;
+      let entries;
+      for (let at2 = 0; at2 < node.entries.length; at2++) {
+        const entry = node.entries[at2];
+        const key2 = resolveNode(entry.key, namespaces);
+        const value2 = resolveNode(entry.value, namespaces);
+        if (key2 === entry.key && value2 === entry.value) continue;
+        entries ??= node.entries.slice();
+        entries[at2] = { ...entry, key: key2, value: value2 };
+      }
+      return entries ? { ...node, entries } : node;
     }
     case "select": {
-      const operand = map3(node.operand);
+      const operand = resolveNode(node.operand, namespaces);
       return operand === node.operand ? node : { ...node, operand };
     }
     case "index": {
-      const operand = map3(node.operand);
-      const index = map3(node.index);
+      const operand = resolveNode(node.operand, namespaces);
+      const index = resolveNode(node.index, namespaces);
       return operand === node.operand && index === node.index ? node : { ...node, operand, index };
     }
     case "call":
     case "qcall": {
-      const args = mapList(node.args, map3);
+      const args = resolveList(node.args, namespaces);
       return args ? { ...node, args } : node;
     }
     case "receiverCall": {
-      const receiver = map3(node.receiver);
-      const args = mapList(node.args, map3);
-      if (receiver === node.receiver && !args) return node;
-      return { ...node, receiver, args: args ?? node.args };
+      const receiver = resolveNode(node.receiver, namespaces);
+      const args = resolveList(node.args, namespaces) ?? node.args;
+      if (receiver.kind === "ident" && !receiver.absolute && namespaces.includes(receiver.name)) {
+        return {
+          kind: "qcall",
+          namespace: receiver.name,
+          namespaceRange: receiver.range,
+          name: node.name,
+          nameRange: node.nameRange,
+          args,
+          range: node.range
+        };
+      }
+      return receiver === node.receiver && args === node.args ? node : { ...node, receiver, args };
     }
     case "unary": {
-      const operand = map3(node.operand);
+      const operand = resolveNode(node.operand, namespaces);
       return operand === node.operand ? node : { ...node, operand };
     }
     case "binary": {
-      const left = map3(node.left);
-      const right = map3(node.right);
+      const left = resolveNode(node.left, namespaces);
+      const right = resolveNode(node.right, namespaces);
       return left === node.left && right === node.right ? node : { ...node, left, right };
     }
     case "conditional": {
-      const condition = map3(node.condition);
-      const whenTrue = map3(node.whenTrue);
-      const whenFalse = map3(node.whenFalse);
+      const condition = resolveNode(node.condition, namespaces);
+      const whenTrue = resolveNode(node.whenTrue, namespaces);
+      const whenFalse = resolveNode(node.whenFalse, namespaces);
       return condition === node.condition && whenTrue === node.whenTrue && whenFalse === node.whenFalse ? node : { ...node, condition, whenTrue, whenFalse };
     }
   }
 }
-function mapList(nodes, map3) {
-  let moved = false;
-  const mapped = nodes.map((node) => {
-    const next = map3(node);
-    if (next !== node) moved = true;
-    return next;
-  });
-  return moved ? mapped : void 0;
+function resolveList(nodes, namespaces) {
+  let resolved;
+  for (let at2 = 0; at2 < nodes.length; at2++) {
+    const next = resolveNode(nodes[at2], namespaces);
+    if (next === nodes[at2]) continue;
+    resolved ??= nodes.slice();
+    resolved[at2] = next;
+  }
+  return resolved;
 }
 
 // ../../cel/nodejs/src/syntax-diagnostic.ts
@@ -30277,7 +30276,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.115.0";
+var ENGINE_VERSION = "0.115.1+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -65760,7 +65759,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.115.0";
+var TELO_SURFACE_VERSION = "0.115.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
