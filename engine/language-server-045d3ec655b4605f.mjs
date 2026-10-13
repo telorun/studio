@@ -77788,7 +77788,7 @@ function requirementsOf(owner, graph) {
 
 // src/workspace-session.ts
 var TELO_KIND_RE = /^kind:\s+Telo\./m;
-var ANY_KIND_RE = /^kind:\s+/m;
+var QUALIFIED_KIND_RE = /^kind:\s+["']?[A-Za-z_]\w*\.\w/m;
 var LOAD = { desugarImports: true, migrate: true };
 var WorkspaceSession = class {
   constructor(source, markers, events) {
@@ -77887,7 +77887,7 @@ var WorkspaceSession = class {
   async analyzeDocument(source, done) {
     const text3 = this.texts.get(source);
     this.documentDiagnostics.delete(source);
-    if (!ANY_KIND_RE.test(text3)) {
+    if (!QUALIFIED_KIND_RE.test(text3)) {
       this.documentOwner.delete(source);
       return;
     }
