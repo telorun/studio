@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.115.1";
+var TELO_ENGINE_VERSION = "0.115.2+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -30276,7 +30276,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.115.1";
+var ENGINE_VERSION = "0.115.2+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -55227,6 +55227,15 @@ function creationOrder(resources, nodes, deps, aliases, aliasesByModule) {
       const target = declarationOf(declared, scope);
       if (target && target !== key2) set2.add(target);
     }
+    if (node.manifest.kind !== "Telo.Import") {
+      const imports = importsByScope.get(scope);
+      if (imports) {
+        for (const alias of referencedAliases(node.manifest)) {
+          const target = imports.get(alias);
+          if (target && target !== key2) set2.add(target);
+        }
+      }
+    }
     unmet.set(key2, set2);
     for (const dep of set2) {
       if (!dependents.has(dep)) dependents.set(dep, /* @__PURE__ */ new Set());
@@ -55257,6 +55266,33 @@ function creationOrder(resources, nodes, deps, aliases, aliasesByModule) {
     }
   }
   return order;
+}
+function referencedAliases(manifest) {
+  const found = /* @__PURE__ */ new Set();
+  const pending = [manifest];
+  while (pending.length > 0) {
+    const value2 = pending.pop();
+    if (Array.isArray(value2)) {
+      for (const item of value2) if (item !== null && typeof item === "object") pending.push(item);
+      continue;
+    }
+    if (value2 === null || typeof value2 !== "object") continue;
+    const sentinel = refSentinelTarget(value2);
+    if (sentinel) {
+      if (sentinel.alias && sentinel.alias !== "Self") found.add(sentinel.alias);
+      continue;
+    }
+    const proto = Object.getPrototypeOf(value2);
+    if (proto !== Object.prototype && proto !== null) continue;
+    const record = value2;
+    if (typeof record.alias === "string" && typeof record.name === "string" && record.alias !== "Self") {
+      found.add(record.alias);
+    }
+    for (const child of Object.values(record)) {
+      if (child !== null && typeof child === "object") pending.push(child);
+    }
+  }
+  return found;
 }
 var declaringModuleOf2 = (manifest) => manifest.metadata?.module;
 function findCycle(keys, deps, within3) {
@@ -65759,7 +65795,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.115.1";
+var TELO_SURFACE_VERSION = "0.115.2";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
