@@ -16114,7 +16114,7 @@ var require_strings = __commonJS({
     "use strict";
     var { compare: localeCompare } = new Intl.Collator();
     var regexSemverNumberedGroups = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
-    function isBlank(str) {
+    function isBlank2(str) {
       for (let i = 0, { length } = str; i < length; i += 1) {
         const code = str.charCodeAt(i);
         if (!// Whitespace characters according to ECMAScript spec:
@@ -16198,7 +16198,7 @@ var require_strings = __commonJS({
       return start === 0 ? str : str.slice(start);
     }
     module.exports = {
-      isBlank,
+      isBlank: isBlank2,
       isNonEmptyString,
       isSemverString,
       localeCompare,
@@ -16304,7 +16304,7 @@ var require_normalize = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/normalize.js"(exports, module) {
     "use strict";
     var { isObject: isObject14 } = require_objects();
-    var { isBlank } = require_strings();
+    var { isBlank: isBlank2 } = require_strings();
     function normalizeName(rawName) {
       return typeof rawName === "string" ? rawName.trim() : void 0;
     }
@@ -16374,7 +16374,7 @@ var require_normalize = __commonJS({
       if (length === 2 && segment.charCodeAt(0) === 46 && segment.charCodeAt(1) === 46) {
         return false;
       }
-      return !isBlank(segment);
+      return !isBlank2(segment);
     }
     module.exports = {
       normalizeName,
@@ -16925,7 +16925,7 @@ var require_package_url = __commonJS({
     "use strict";
     var { decodePurlComponent } = require_decode();
     var { isObject: isObject14, recursiveFreeze } = require_objects();
-    var { isBlank, isNonEmptyString, trimLeadingSlashes } = require_strings();
+    var { isBlank: isBlank2, isNonEmptyString, trimLeadingSlashes } = require_strings();
     var { PurlComponent } = require_purl_component();
     var { PurlQualifierNames } = require_purl_qualifier_names();
     var { PurlType } = require_purl_type();
@@ -16984,7 +16984,7 @@ var require_package_url = __commonJS({
         if (typeof purlStr !== "string") {
           throw new Error("A purl string argument is required.");
         }
-        if (isBlank(purlStr)) {
+        if (isBlank2(purlStr)) {
           return [
             void 0,
             void 0,
@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.115.2";
+var TELO_ENGINE_VERSION = "0.116.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -30276,7 +30276,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.115.2";
+var ENGINE_VERSION = "0.116.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -46261,6 +46261,62 @@ function residualEntrySchemaMap(entries) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/cel-access-chains.ts
+function accessChains(source, moduleNames) {
+  const parsed = parseCelSource(source, moduleNames);
+  return parsed ? extractAccessChains(parsed.root) : [];
+}
+function moduleCallsInSource(source, moduleNames) {
+  let spellsOne = false;
+  for (const name2 of moduleNames) {
+    if (source.includes(name2)) {
+      spellsOne = true;
+      break;
+    }
+  }
+  if (!spellsOne) return [];
+  const parsed = parseCelSource(source, moduleNames);
+  return parsed ? [...moduleCallNames(parsed.root)] : [];
+}
+function moduleCallSites(manifest, moduleNames) {
+  const out = [];
+  const seen = /* @__PURE__ */ new WeakSet();
+  const record = (path, calls) => {
+    for (const call of new Set(calls)) out.push({ path, call });
+  };
+  const visit3 = (value2, path) => {
+    if (!value2 || typeof value2 !== "object") return;
+    if (seen.has(value2)) return;
+    seen.add(value2);
+    const compiled2 = value2;
+    if (compiled2.__compiled === true) {
+      if (Array.isArray(compiled2.calls)) {
+        record(
+          path,
+          compiled2.calls.filter((call) => typeof call === "string")
+        );
+      }
+      return;
+    }
+    if (isTaggedSentinel(value2)) {
+      record(
+        path,
+        celExpressionsOf(value2.engine, value2.source).flatMap((x) => moduleCallsInSource(x, moduleNames))
+      );
+      return;
+    }
+    if (Array.isArray(value2)) {
+      value2.forEach((item, index) => visit3(item, `${path}[${index}]`));
+      return;
+    }
+    const proto = Object.getPrototypeOf(value2);
+    if (proto !== Object.prototype && proto !== null) return;
+    for (const [key2, child] of Object.entries(value2)) visit3(child, path ? `${path}.${key2}` : key2);
+  };
+  visit3(manifest, "");
+  return out;
+}
+
 // ../../analyzer/nodejs/src/host-path-slot.ts
 function holdsHostPath(schema4) {
   if (!schema4) return false;
@@ -46343,62 +46399,6 @@ function refSentinelsIn(value2, path) {
     }
   };
   walk5(value2, path);
-  return out;
-}
-
-// ../../analyzer/nodejs/src/cel-access-chains.ts
-function accessChains(source, moduleNames) {
-  const parsed = parseCelSource(source, moduleNames);
-  return parsed ? extractAccessChains(parsed.root) : [];
-}
-function moduleCallsInSource(source, moduleNames) {
-  let spellsOne = false;
-  for (const name2 of moduleNames) {
-    if (source.includes(name2)) {
-      spellsOne = true;
-      break;
-    }
-  }
-  if (!spellsOne) return [];
-  const parsed = parseCelSource(source, moduleNames);
-  return parsed ? [...moduleCallNames(parsed.root)] : [];
-}
-function moduleCallSites(manifest, moduleNames) {
-  const out = [];
-  const seen = /* @__PURE__ */ new WeakSet();
-  const record = (path, calls) => {
-    for (const call of new Set(calls)) out.push({ path, call });
-  };
-  const visit3 = (value2, path) => {
-    if (!value2 || typeof value2 !== "object") return;
-    if (seen.has(value2)) return;
-    seen.add(value2);
-    const compiled2 = value2;
-    if (compiled2.__compiled === true) {
-      if (Array.isArray(compiled2.calls)) {
-        record(
-          path,
-          compiled2.calls.filter((call) => typeof call === "string")
-        );
-      }
-      return;
-    }
-    if (isTaggedSentinel(value2)) {
-      record(
-        path,
-        celExpressionsOf(value2.engine, value2.source).flatMap((x) => moduleCallsInSource(x, moduleNames))
-      );
-      return;
-    }
-    if (Array.isArray(value2)) {
-      value2.forEach((item, index) => visit3(item, `${path}[${index}]`));
-      return;
-    }
-    const proto = Object.getPrototypeOf(value2);
-    if (proto !== Object.prototype && proto !== null) return;
-    for (const [key2, child] of Object.entries(value2)) visit3(child, path ? `${path}.${key2}` : key2);
-  };
-  visit3(manifest, "");
   return out;
 }
 
@@ -47665,6 +47665,24 @@ function observedStateRead(chain) {
   }
   return void 0;
 }
+function reportsFromInit(capability) {
+  return capability === "Telo.Provider";
+}
+function startupObservedStateReads(manifest, sites) {
+  if (sites.compile.length === 0) return [];
+  const reads = [];
+  walkCelExpressions(manifest, "", (source, path, engine) => {
+    if (!source.includes(OBSERVED_STATE_KEY)) return;
+    if (celEvalModeAt(sites, path) !== "compile") return;
+    for (const expression of celExpressionsOf(engine, source)) {
+      for (const chain of accessChains(expression)) {
+        const read = observedStateRead(chain);
+        if (read) reads.push(read);
+      }
+    }
+  });
+  return reads;
+}
 function collectRunReachableNames(graph) {
   const names = /* @__PURE__ */ new Set();
   for (const edge of graph.controlEdges()) names.add(edge.toName);
@@ -47676,12 +47694,15 @@ function forwardedResourceKey(module, name2) {
 function buildObservedStateIndex(manifests, defs, aliases, scopes) {
   const out = /* @__PURE__ */ new Map();
   const resolve = moduleScopedDefResolver(defs, aliases, scopes);
-  const record = (kind, key2, scoped, module, forwardedFrom) => {
-    const status = effectiveStatusSchema(resolve.in(kind, module), resolve);
+  const record = (kind, key2, scope, module, forwardedFrom) => {
+    const definition = resolve.in(kind, module);
+    const status = effectiveStatusSchema(definition, resolve);
+    const capability = inheritedCapability(definition, resolve);
     out.set(key2, {
       kind,
       ...status ? { status } : {},
-      ...scoped ? { scoped } : {},
+      ...capability ? { capability } : {},
+      ...scope ? { scoped: true, scope } : {},
       ...forwardedFrom !== void 0 ? { forwardedFrom } : {}
     });
   };
@@ -47693,7 +47714,7 @@ function buildObservedStateIndex(manifests, defs, aliases, scopes) {
     const forwardedFrom = isForwardedDeclaration(manifest) ? module : void 0;
     if (forwardedFrom === void 0 && isForwardedDeclaration(manifest)) continue;
     const keyOf = (n) => forwardedFrom === void 0 ? n : forwardedResourceKey(forwardedFrom, n);
-    if (name2) record(kind, keyOf(name2), false, module, forwardedFrom);
+    if (name2) record(kind, keyOf(name2), void 0, module, forwardedFrom);
     const schema4 = resolve(kind)?.schema;
     if (!schema4) continue;
     for (const site of reachSites(schema4, manifest)) {
@@ -47702,13 +47723,13 @@ function buildObservedStateIndex(manifests, defs, aliases, scopes) {
         const scopedKind = scopedEntry?.kind;
         const scopedName = scopedEntry?.metadata?.name;
         if (typeof scopedKind === "string" && typeof scopedName === "string") {
-          record(scopedKind, keyOf(scopedName), true, forwardedFrom, forwardedFrom);
+          record(scopedKind, keyOf(scopedName), { kind, name: name2, field: site.path }, forwardedFrom, forwardedFrom);
         }
       }
     }
   }
   for (const [alias, name2, kind, module] of importedExports(manifests, aliases)) {
-    record(kind, `${alias}.${name2}`, false, module);
+    record(kind, `${alias}.${name2}`, void 0, module);
   }
   return out;
 }
@@ -55137,6 +55158,13 @@ function buildDependencyGraph(resources, registry, aliases, aliasesByModule, cal
   }
   for (const key2 of nodes.keys()) if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
   addResourceInputEdges(resources, nodes, deps);
+  const statusReadAliases = addStartupStatusReadEdges(
+    nodes,
+    deps,
+    registry,
+    aliases,
+    aliasesByModule
+  );
   const inDegree = /* @__PURE__ */ new Map();
   const reverse = /* @__PURE__ */ new Map();
   for (const key2 of nodes.keys()) {
@@ -55163,7 +55191,9 @@ function buildDependencyGraph(resources, registry, aliases, aliasesByModule, cal
     }
   }
   if (sorted2.length === nodes.size) {
-    return { order: creationOrder(resources, nodes, deps, aliases, aliasesByModule) };
+    return {
+      order: creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases)
+    };
   }
   const cycleKeys = findCycle(nodes.keys(), deps);
   const toNodes = (keys) => keys.map((k) => nodes.get(k));
@@ -55185,7 +55215,7 @@ var DECLARATION_KINDS2 = /* @__PURE__ */ new Set([
   "Telo.Definition",
   "Telo.Abstract"
 ]);
-function creationOrder(resources, nodes, deps, aliases, aliasesByModule) {
+function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases) {
   const keyOf = /* @__PURE__ */ new Map();
   for (const [key2, node] of nodes) keyOf.set(node.manifest, key2);
   const all = /* @__PURE__ */ new Map();
@@ -55230,7 +55260,10 @@ function creationOrder(resources, nodes, deps, aliases, aliasesByModule) {
     if (node.manifest.kind !== "Telo.Import") {
       const imports = importsByScope.get(scope);
       if (imports) {
-        for (const alias of referencedAliases(node.manifest)) {
+        for (const alias of [
+          ...referencedAliases(node.manifest),
+          ...statusReadAliases.get(key2) ?? []
+        ]) {
           const target = imports.get(alias);
           if (target && target !== key2) set2.add(target);
         }
@@ -55409,6 +55442,44 @@ function addResourceInputEdges(resources, nodes, deps) {
       if (target && target !== key2) set2.add(target);
     }
   }
+}
+function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModule) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const entry of nodes) {
+    if (entry[1].kind === "Telo.Import") continue;
+    byName.set(entry[1].name, [...byName.get(entry[1].name) ?? [], entry]);
+  }
+  const resolveDef = (kind, from) => definitionInScope(registry, kind, from?.metadata, aliases, aliasesByModule);
+  const aliasReads = /* @__PURE__ */ new Map();
+  for (const [key2, node] of nodes) {
+    if (node.kind === "Telo.Import") continue;
+    const sites = governedCelEvalSites(
+      definitionInScope(registry, node.kind, node.manifest.metadata, aliases, aliasesByModule),
+      resolveDef
+    );
+    if (!sites) continue;
+    const fromModule = declaringModuleOf2(node.manifest);
+    for (const read of startupObservedStateReads(node.manifest, sites)) {
+      if (read.alias !== void 0) {
+        const importKey = nodeKey("Telo.Import", read.alias);
+        if (nodes.has(importKey)) {
+          if (importKey !== key2) deps.get(key2).add(importKey);
+        } else {
+          let set2 = aliasReads.get(key2);
+          if (!set2) aliasReads.set(key2, set2 = /* @__PURE__ */ new Set());
+          set2.add(read.alias);
+        }
+        continue;
+      }
+      const target = resolveScopedName(
+        byName.get(read.name),
+        ([, candidate]) => declaringModuleOf2(candidate.manifest),
+        fromModule
+      );
+      if (target) deps.get(key2).add(target[0]);
+    }
+  }
+  return aliasReads;
 }
 
 // ../../analyzer/nodejs/src/callable-binding.ts
@@ -61550,7 +61621,7 @@ function resolveBlockScalar(ctx, scalar2, onError) {
   }
   let trimIndent = scalar2.indent + header.indent;
   let offset = scalar2.offset + header.length;
-  let contentStart = 0;
+  let contentStart2 = 0;
   for (let i = 0; i < chompStart; ++i) {
     const [indent, content] = lines[i];
     if (content === "" || content === "\r") {
@@ -61563,7 +61634,7 @@ function resolveBlockScalar(ctx, scalar2, onError) {
       }
       if (header.indent === 0)
         trimIndent = indent.length;
-      contentStart = i;
+      contentStart2 = i;
       if (trimIndent === 0 && !ctx.atRoot) {
         const message = "Block scalar values in collections must be indented";
         onError(offset, "BAD_INDENT", message);
@@ -61579,9 +61650,9 @@ function resolveBlockScalar(ctx, scalar2, onError) {
   let value2 = "";
   let sep = "";
   let prevMoreIndented = false;
-  for (let i = 0; i < contentStart; ++i)
+  for (let i = 0; i < contentStart2; ++i)
     value2 += lines[i][0].slice(trimIndent) + "\n";
-  for (let i = contentStart; i < chompStart; ++i) {
+  for (let i = contentStart2; i < chompStart; ++i) {
     let [indent, content] = lines[i];
     offset += indent.length + content.length + 1;
     const crlf = content[content.length - 1] === "\r";
@@ -65795,7 +65866,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.115.2";
+var TELO_SURFACE_VERSION = "0.116.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -69193,6 +69264,23 @@ function pathCrossesNestedResource(root, path) {
   }
   return false;
 }
+function nestedResourceAt(root, path) {
+  const segments = [...path.matchAll(/\[(\d+)\]|([^.[\]]+)/g)].map(
+    (match) => match[1] !== void 0 ? Number(match[1]) : match[2]
+  );
+  let node = root;
+  let found;
+  for (let i = 0; i < segments.length - 1; i++) {
+    const key2 = segments[i];
+    node = Array.isArray(node) ? node[Number(key2)] : node?.[String(key2)];
+    if (node !== null && typeof node === "object" && !Array.isArray(node) && typeof node.kind === "string") {
+      found = { resource: node, at: i + 1 };
+    }
+  }
+  if (!found) return void 0;
+  const rest = segments.slice(found.at).map((key2) => typeof key2 === "number" ? `[${key2}]` : `.${key2}`).join("").replace(/^\./, "");
+  return { resource: found.resource, path: rest };
+}
 function celAccessChains(expr, moduleNames) {
   const parsed = parseCelSource(expr, moduleNames);
   return parsed ? extractAccessChains(parsed.root) : [];
@@ -70093,6 +70181,14 @@ var StaticAnalyzer = class {
     }
     const moduleScopes2 = { aliasesByModule, rootModules, libraries };
     const observedState = buildObservedStateIndex(allManifests, defs, aliases, moduleScopes2);
+    const scopedDefs = moduleScopedDefResolver(defs, aliases, moduleScopes2);
+    const nestedEvalModeAt = (host, path) => {
+      const nested = nestedResourceAt(host, path);
+      if (!nested) return void 0;
+      const module = host.metadata?.module;
+      const resolve = (kind) => scopedDefs.in(kind, module);
+      return celEvalModeAt(kindCelEvalSites(resolve(nested.resource.kind), resolve), nested.path);
+    };
     const reportsObservedState = [...observedState.values()].some((r) => r.status);
     const runReachable = reportsObservedState ? collectRunReachableNames(getCallGraph()) : /* @__PURE__ */ new Set();
     for (const m of allManifests) {
@@ -70885,6 +70981,22 @@ var StaticAnalyzer = class {
               const reported = observedState.get(
                 read.alias ? `${read.alias}.${read.name}` : readerModule !== void 0 ? forwardedResourceKey(readerModule, read.name) : read.name
               );
+              if (reportsFromInit(reported?.capability)) {
+                if (!reported?.scope) continue;
+                const { kind, name: name2, field } = reported.scope;
+                if (m.kind !== kind || m.metadata?.name !== name2) continue;
+                const readerOwnModule = m.metadata?.module;
+                if (readerOwnModule && !rootModules.has(readerOwnModule)) continue;
+                if (evalMode !== "compile" && nestedEvalModeAt(m, path) !== "compile") continue;
+                diagnostics.push({
+                  severity: DiagnosticSeverity2.Error,
+                  code: "OBSERVED_STATE_IN_STARTUP_FIELD",
+                  source: SOURCE36,
+                  message: `${m.kind}/${resource.name}: '${path}' is resolved once at startup, so '${chain2.join(".")}' cannot be read there \u2014 '${read.name}' is declared in the '${field}' scope of ${kind}/${name2 ?? "(unnamed)"}, which is created only when that scope opens. Read reported values where the call happens: a step's inputs:, a request's url, a route handler, or a returns: expression.`,
+                  data: { resource, filePath, path }
+                });
+                continue;
+              }
               if (evalMode === "compile") {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
@@ -72475,62 +72587,73 @@ function precompileDoc(doc, env, moduleNames, path = "") {
 
 // ../../analyzer/nodejs/src/scalar-offsets.ts
 function scalarRawOffsets(raw, style, parsed) {
-  const map3 = style === "QUOTE_DOUBLE" ? doubleQuoted2(raw) : style === "QUOTE_SINGLE" ? singleQuoted(raw) : style === "BLOCK_LITERAL" ? literalBlock(raw, parsed.length) : style === "PLAIN" && !/[\r\n]/.test(raw) ? [...Array(raw.length + 1).keys()] : void 0;
-  if (!map3 || map3.length < parsed.length + 1) return void 0;
-  const offsets = map3.slice(0, parsed.length + 1);
-  for (let i = 0; i < parsed.length; i++) {
-    const at2 = raw[offsets[i]];
-    if (at2 !== "\\" && at2 !== parsed[i]) return void 0;
-  }
-  return offsets;
-}
-function doubleQuoted2(raw) {
+  const start = contentStart(raw, style);
+  if (start === void 0) return void 0;
+  const quote = style === "QUOTE_DOUBLE" ? '"' : style === "QUOTE_SINGLE" ? "'" : void 0;
   const out = [];
-  let j = 1;
-  while (j < raw.length - 1) {
-    const c = raw[j];
-    if (c === "\n" || c === "\r") return void 0;
-    if (c !== "\\") {
-      out.push(j++);
+  let j = start;
+  let p = 0;
+  while (p < parsed.length) {
+    const r = raw[j];
+    const c = parsed[p];
+    if (r === void 0) return void 0;
+    if (quote === '"' && r === "\\") {
+      const next = raw[j + 1];
+      if (next === void 0) return void 0;
+      if (next === "\n" || next === "\r") {
+        j += 2;
+        continue;
+      }
+      const width = next === "x" ? 4 : next === "u" ? 6 : next === "U" ? 10 : 2;
+      out.push(j);
+      p++;
+      if (next === "U" && parseInt(raw.slice(j + 2, j + 10), 16) > 65535) {
+        out.push(j);
+        p++;
+      }
+      j += width;
       continue;
     }
-    const next = raw[j + 1];
-    if (next === void 0 || next === "\n" || next === "\r") return void 0;
-    const width = next === "x" ? 4 : next === "u" ? 6 : next === "U" ? 10 : 2;
-    out.push(j);
-    if (next === "U" && parseInt(raw.slice(j + 2, j + 10), 16) > 65535) out.push(j);
-    j += width;
+    if (quote === "'" && r === "'") {
+      if (c !== "'" || raw[j + 1] !== "'") return void 0;
+      out.push(j);
+      p++;
+      j += 2;
+      continue;
+    }
+    if (r === c) {
+      out.push(j++);
+      p++;
+      continue;
+    }
+    if (!isBlank(r)) return void 0;
+    if (isBlank(c)) {
+      out.push(j);
+      p++;
+    }
+    j++;
   }
   out.push(j);
   return out;
 }
-function singleQuoted(raw) {
-  const out = [];
-  let j = 1;
-  while (j < raw.length - 1) {
-    const c = raw[j];
-    if (c === "\n" || c === "\r") return void 0;
-    out.push(j);
-    j += c === "'" && raw[j + 1] === "'" ? 2 : 1;
+function contentStart(raw, style) {
+  switch (style) {
+    case "QUOTE_DOUBLE":
+    case "QUOTE_SINGLE":
+      return 1;
+    case "PLAIN":
+      return 0;
+    case "BLOCK_LITERAL":
+    case "BLOCK_FOLDED": {
+      const firstBreak = raw.indexOf("\n");
+      return firstBreak < 0 ? void 0 : firstBreak + 1;
+    }
+    default:
+      return void 0;
   }
-  out.push(j);
-  return out;
 }
-function literalBlock(raw, parsedLength) {
-  const firstBreak = raw.indexOf("\n");
-  if (firstBreak < 0) return void 0;
-  const lines = raw.slice(firstBreak + 1).split("\n");
-  const indent = lines.find((l) => l.trim() !== "")?.match(/^ */)?.[0].length ?? 0;
-  const out = [];
-  let lineStart = firstBreak + 1;
-  for (const line of lines) {
-    const content = Math.min(indent, line.length);
-    for (let k = content; k < line.length; k++) out.push(lineStart + k);
-    out.push(lineStart + line.length);
-    lineStart += line.length + 1;
-    if (out.length > parsedLength) break;
-  }
-  return out;
+function isBlank(c) {
+  return c === " " || c === "	" || c === "\n" || c === "\r";
 }
 
 // ../../analyzer/nodejs/src/cel-ast.ts
