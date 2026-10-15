@@ -15969,8 +15969,8 @@ var require_dist = __commonJS({
         return ajv2;
       }
       const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
-      const list4 = opts.formats || formats_1.formatNames;
-      addFormats2(ajv2, list4, formats, exportName);
+      const list5 = opts.formats || formats_1.formatNames;
+      addFormats2(ajv2, list5, formats, exportName);
       if (opts.keywords)
         (0, limit_1.default)(ajv2);
       return ajv2;
@@ -15982,11 +15982,11 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name2}"`);
       return f2;
     };
-    function addFormats2(ajv2, list4, fs, exportName) {
+    function addFormats2(ajv2, list5, fs, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv2.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
-      for (const f2 of list4)
+      for (const f2 of list5)
         ajv2.addFormat(f2, fs[f2]);
     }
     module.exports = exports = formatsPlugin;
@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.116.0";
+var TELO_ENGINE_VERSION = "0.117.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -18838,6 +18838,94 @@ var IMPORT_RESOURCE_INPUTS_SCHEMA = {
   type: "object",
   additionalProperties: {}
 };
+var NEED_ENTRY_PROPERTIES = {
+  kind: { type: "string" },
+  parameters: { type: "object" },
+  version: {
+    type: "string",
+    description: "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
+  },
+  features: {
+    type: "array",
+    description: "The features the fulfilment must carry \u2014 names the need type lists.",
+    items: { type: "string" },
+    uniqueItems: true
+  },
+  optional: { type: "boolean" },
+  description: { type: "string" }
+};
+var LIBRARY_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["kind"],
+    properties: { ...NEED_ENTRY_PROPERTIES, env: {} },
+    additionalProperties: false
+  }
+};
+var APPLICATION_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["kind"],
+    properties: {
+      ...NEED_ENTRY_PROPERTIES,
+      env: {
+        type: "object",
+        additionalProperties: { type: "string", minLength: 1 }
+      }
+    },
+    additionalProperties: false
+  }
+};
+var IMPORT_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {}
+};
+var NEED_TYPE_SCHEMA = withSchemaFragments({
+  type: "object",
+  properties: {
+    kind: { type: "string" },
+    metadata: {
+      type: "object",
+      properties: { name: { type: "string" }, description: { type: "string" } },
+      required: ["name"],
+      additionalProperties: true
+    },
+    fields: {
+      title: "Fields",
+      description: "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
+      type: "object",
+      additionalProperties: { $ref: manifestFragmentRef("JsonSchema7") }
+    },
+    required: {
+      title: "Required fields",
+      description: "The fields every fulfilment must yield.",
+      type: "array",
+      items: { type: "string" },
+      uniqueItems: true
+    },
+    parameters: {
+      title: "Parameters",
+      description: "JSON Schema of the literal parameters a need of this type may state.",
+      $ref: manifestFragmentRef("JsonSchema7")
+    },
+    version: {
+      title: "Version",
+      description: "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
+      enum: ["semver"]
+    },
+    features: {
+      title: "Features",
+      description: "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true
+    }
+  },
+  required: ["metadata", "fields"],
+  additionalProperties: false
+});
 var KERNEL_BUILTINS = [
   { kind: "Telo.Abstract", metadata: { name: "Template", module: "Telo" } },
   // "Control can be transferred to this" — the parent of Invocable and Runnable,
@@ -19090,6 +19178,12 @@ var KERNEL_BUILTINS = [
   },
   {
     kind: "Telo.Definition",
+    metadata: { name: "NeedType", module: "Telo" },
+    capability: "Telo.Template",
+    schema: NEED_TYPE_SCHEMA
+  },
+  {
+    kind: "Telo.Definition",
     metadata: { name: "Definition", module: "Telo" },
     capability: "Telo.Template",
     // Top-level shape stays open (`additionalProperties: true`) so this change
@@ -19250,6 +19344,7 @@ var KERNEL_BUILTINS = [
         variables: { type: "object" },
         secrets: { type: "object" },
         resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+        needs: IMPORT_NEEDS_SCHEMA,
         runtime: {
           oneOf: [
             { type: "string" },
@@ -19404,6 +19499,7 @@ var KERNEL_BUILTINS = [
                   variables: { type: "object" },
                   secrets: { type: "object" },
                   resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+                  needs: IMPORT_NEEDS_SCHEMA,
                   runtime: {
                     oneOf: [
                       { type: "string" },
@@ -19465,6 +19561,9 @@ var KERNEL_BUILTINS = [
             }
           }
         },
+        // What the application asks whoever runs it for — each read from the
+        // environment at load, under the name `env:` binds or the derived one.
+        needs: APPLICATION_NEEDS_SCHEMA,
         // Inbound ports the Application listens on. A name-keyed map mirroring
         // `variables`: each entry binds a host env var (`env:`) that supplies a
         // port integer (implicitly typed `integer`, 1–65535), with an optional
@@ -19555,6 +19654,9 @@ var KERNEL_BUILTINS = [
         // requires from whoever imports it. Library-only — an Application is a
         // root with no importer, so it owns its instances outright.
         resources: LIBRARY_RESOURCE_INPUTS_SCHEMA,
+        // What this library asks whoever runs it for — typed requests a need
+        // type describes, supplied at the import or bubbled to the root.
+        needs: LIBRARY_NEEDS_SCHEMA,
         include: {
           type: "array",
           items: { type: "string" }
@@ -19588,6 +19690,7 @@ var KERNEL_BUILTINS = [
                   variables: { type: "object" },
                   secrets: { type: "object" },
                   resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+                  needs: IMPORT_NEEDS_SCHEMA,
                   runtime: {
                     oneOf: [
                       { type: "string" },
@@ -30276,7 +30379,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.116.0";
+var ENGINE_VERSION = "0.117.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -36490,269 +36593,6 @@ function parameterSchemaOf(param, resolveSchema) {
   });
 }
 
-// ../../analyzer/nodejs/src/types.ts
-var DiagnosticSeverity2 = {
-  Error: 1,
-  Warning: 2,
-  Information: 3,
-  Hint: 4
-};
-var DiagnosticTag2 = {
-  Unnecessary: 1,
-  Deprecated: 2
-};
-var DEFAULT_MANIFEST_FILENAME = "telo.yaml";
-var FIX_TAGS = /* @__PURE__ */ new Set(["ref", "cel", "module-path"]);
-function diagnosticFix(d) {
-  const fix = d.data?.fix;
-  if (!fix || typeof fix.replacement !== "string") return void 0;
-  if (fix.tag !== void 0 && !FIX_TAGS.has(fix.tag)) return void 0;
-  return fix;
-}
-
-// ../../analyzer/nodejs/src/identifier-name.ts
-var CEL_RESERVED_WORDS = [
-  "as",
-  "break",
-  "const",
-  "continue",
-  "else",
-  "false",
-  "for",
-  "function",
-  "if",
-  "import",
-  "in",
-  "let",
-  "loop",
-  "namespace",
-  "null",
-  "package",
-  "return",
-  "true",
-  "var",
-  "void",
-  "while"
-];
-var RESERVED2 = new Set(CEL_RESERVED_WORDS);
-var CEL_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
-function isTypeLevelName(name2) {
-  const first = name2[0];
-  return first !== void 0 && first >= "A" && first <= "Z";
-}
-var TYPE_LEVEL_DOC_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Application",
-  "Telo.Library",
-  "Telo.Definition",
-  "Telo.Abstract",
-  "Telo.Import"
-]);
-function checkName(name2, level, surface) {
-  const subject = `${surface} '${name2}'`;
-  if (!CEL_IDENTIFIER_RE.test(name2)) {
-    return {
-      tier: "grammar",
-      code: "INVALID_NAME",
-      severity: DiagnosticSeverity2.Error,
-      message: `${subject} must match /^[A-Za-z_][A-Za-z0-9_]*$/ \u2014 ${grammarReason(name2, level)}`
-    };
-  }
-  if (RESERVED2.has(name2)) {
-    return {
-      tier: "reserved",
-      code: "INVALID_NAME",
-      severity: DiagnosticSeverity2.Error,
-      message: `${subject} is a CEL keyword, so no expression can reference it. Rename it.`
-    };
-  }
-  if (level === "type" && !isTypeLevelName(name2)) {
-    return {
-      tier: "case",
-      code: "INVALID_TYPE_NAME",
-      severity: DiagnosticSeverity2.Error,
-      message: `${subject} must start with an uppercase letter \u2014 it names a type, and the alias-qualified grammar of 'kind:' / 'extends:' accepts only PascalCase.`
-    };
-  }
-  const first = name2[0];
-  if (level === "value" && !(first >= "a" && first <= "z")) {
-    return {
-      tier: "case",
-      code: "NAME_CASE_CONVENTION",
-      severity: DiagnosticSeverity2.Warning,
-      message: `${subject} should start with a lowercase letter \u2014 camelCase names a value (read through a CEL scope), PascalCase names a type.`
-    };
-  }
-  return void 0;
-}
-function grammarReason(name2, level) {
-  if (level === "type") {
-    return name2.includes(".") ? `a '.' separates the two halves of every '<Alias>.<Kind>' reference, so a dotted name cannot appear in either.` : `that is the character set the alias-qualified '<Alias>.<Kind>' grammar accepts on both sides.`;
-  }
-  if (name2.includes("-")) {
-    return `it becomes a CEL identifier and CEL reads '-' as subtraction, so where a bare name is in scope this evaluates as arithmetic instead of failing.`;
-  }
-  if (name2.includes(".")) {
-    return `in a '!ref' the first '.' separates the import alias from the name.`;
-  }
-  return `it becomes a CEL identifier, so as written it cannot be referenced.`;
-}
-
-// ../../analyzer/nodejs/src/resource-input.ts
-var INJECTED = "xTeloInjected";
-function readResourceInputs(moduleDoc2) {
-  const raw = moduleDoc2?.resources;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
-  const out = [];
-  for (const [name2, value2] of Object.entries(raw)) {
-    if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) continue;
-    const kind = value2.kind;
-    if (typeof kind !== "string" || kind.length === 0) continue;
-    const description = value2.description;
-    out.push({
-      name: name2,
-      kind,
-      ...typeof description === "string" ? { description } : {}
-    });
-  }
-  return out;
-}
-function readSuppliedResources(importDoc) {
-  const raw = importDoc?.resources;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  return raw;
-}
-function isInjectedDeclaration(manifest) {
-  return manifest?.metadata?.[INJECTED] === true;
-}
-function injectedDeclarations(moduleDoc2, ownModule) {
-  const inputs = readResourceInputs(moduleDoc2);
-  if (inputs.length === 0) return [];
-  const meta = moduleDoc2.metadata;
-  return inputs.map((input) => ({
-    kind: input.kind,
-    metadata: {
-      name: input.name,
-      ...ownModule ? { module: ownModule } : {},
-      source: meta?.source ?? "",
-      sourceLine: meta?.sourceLine ?? 0,
-      [INJECTED]: true
-    }
-  }));
-}
-function readLibraryLifecycle(moduleDoc2) {
-  const doc = moduleDoc2;
-  if (doc?.kind !== "Telo.Library") return "isolated";
-  return doc.lifecycle === "shared" ? "shared" : "isolated";
-}
-
-// ../../analyzer/nodejs/src/validate-identifier-names.ts
-var SOURCE = "telo-analyzer";
-function validateIdentifierNames(manifests, registry, aliases, rootModules, graph, scopes) {
-  const out = [];
-  const resolveDef = moduleScopedDefResolver(registry, aliases, scopes);
-  for (const manifest of manifests) {
-    const metadata = manifest.metadata;
-    const name2 = typeof metadata?.name === "string" ? metadata.name : void 0;
-    if (!manifest.kind || !name2) continue;
-    if (metadata?.xTeloOrigin) continue;
-    if (isInjectedDeclaration(manifest)) continue;
-    const ownModule = metadata?.module;
-    if (ownModule && !rootModules.has(ownModule)) continue;
-    const level = levelFor(manifest, resolveDef, ownModule);
-    push(out, checkName(name2, level, surfaceFor(manifest.kind)), {
-      kind: manifest.kind,
-      name: name2,
-      filePath: metadata?.source,
-      path: "metadata.name"
-    });
-    if (manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") {
-      for (const field of ["variables", "secrets", "ports", "resources"]) {
-        const block = manifest[field];
-        if (!block || typeof block !== "object" || Array.isArray(block)) continue;
-        for (const key2 of Object.keys(block)) {
-          push(out, checkName(key2, "value", `${singular(field)} name`), {
-            kind: manifest.kind,
-            name: name2,
-            filePath: metadata?.source,
-            path: `${field}.${key2}`
-          });
-        }
-      }
-    }
-    for (const [index, param] of (signatureParamsOf(manifest, resolveDef, ownModule) ?? []).entries()) {
-      if (typeof param.name !== "string") continue;
-      push(out, checkName(param.name, "value", "parameter name"), {
-        kind: manifest.kind,
-        name: name2,
-        filePath: metadata?.source,
-        path: `params[${index}].name`
-      });
-    }
-  }
-  for (const node of graph.nodes.values()) {
-    if (node.type !== "step" || !node.name) continue;
-    const owner = graph.nodes.get(node.owner);
-    if (owner?.type !== "resource") continue;
-    const ownerMeta = owner.manifest.metadata;
-    if (ownerMeta?.xTeloOrigin) continue;
-    const ownModule = ownerMeta?.module;
-    if (ownModule && !rootModules.has(ownModule)) continue;
-    push(out, checkName(node.name, "value", "step name"), {
-      kind: owner.kind,
-      name: owner.name,
-      filePath: ownerMeta?.source,
-      path: `${node.path}.name`
-    });
-  }
-  return out;
-}
-function levelFor(manifest, resolveDef, ownModule) {
-  if (TYPE_LEVEL_DOC_KINDS.has(manifest.kind)) return "type";
-  const def = resolveDef.in(manifest.kind, ownModule);
-  return inheritedCapability(def, resolveDef) === "Telo.Type" ? "type" : "value";
-}
-function signatureParamsOf(manifest, resolveDef, ownModule) {
-  if (manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract") {
-    return isCallableKind(manifest, resolveDef) ? readParams(manifest) : void 0;
-  }
-  const def = resolveDef.in(manifest.kind, ownModule);
-  if (!isCallableKind(def, resolveDef) || !instanceDeclaresSignature(def, resolveDef, "params")) {
-    return void 0;
-  }
-  return readParams(manifest);
-}
-function surfaceFor(kind) {
-  switch (kind) {
-    case "Telo.Application":
-    case "Telo.Library":
-      return "module name";
-    case "Telo.Definition":
-    case "Telo.Abstract":
-      return "kind name";
-    case "Telo.Import":
-      return "import alias";
-    default:
-      return "resource name";
-  }
-}
-function singular(field) {
-  return field === "variables" ? "variable" : field === "secrets" ? "secret" : field === "ports" ? "port" : "resource input";
-}
-function push(out, violation, at2) {
-  if (!violation) return;
-  out.push({
-    severity: violation.severity,
-    code: violation.code,
-    source: SOURCE,
-    message: `${at2.kind}/${at2.name}: ${violation.message}`,
-    data: {
-      resource: { kind: at2.kind, name: at2.name },
-      filePath: at2.filePath,
-      path: at2.path
-    }
-  });
-}
-
 // ../../templating/nodejs/src/cel/environment.ts
 var stub = (name2) => () => {
   throw new Error(
@@ -39864,6 +39704,447 @@ function buildTagForEngine(engineName) {
   };
 }
 
+// ../../analyzer/nodejs/src/ref-sentinel-target.ts
+var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
+function isRefSourceSpelling(text3) {
+  return REF_SOURCE_RE.test(text3);
+}
+function refSentinelTarget(value2) {
+  if (!isRefSentinel(value2)) return void 0;
+  const source = value2.source;
+  const dot = source.indexOf(".");
+  if (dot <= 0) return { source, name: source };
+  return { source, alias: source.slice(0, dot), name: source.slice(dot + 1) };
+}
+
+// ../../analyzer/nodejs/src/resource-input.ts
+var INJECTED = "xTeloInjected";
+function readResourceInputs(moduleDoc2) {
+  const raw = moduleDoc2?.resources;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  const out = [];
+  for (const [name2, value2] of Object.entries(raw)) {
+    if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) continue;
+    const kind = value2.kind;
+    if (typeof kind !== "string" || kind.length === 0) continue;
+    const description = value2.description;
+    out.push({
+      name: name2,
+      kind,
+      ...typeof description === "string" ? { description } : {}
+    });
+  }
+  return out;
+}
+function readSuppliedResources(importDoc) {
+  const raw = importDoc?.resources;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw;
+}
+function isInjectedDeclaration(manifest) {
+  return manifest?.metadata?.[INJECTED] === true;
+}
+function injectedDeclarations(moduleDoc2, ownModule) {
+  const inputs = readResourceInputs(moduleDoc2);
+  if (inputs.length === 0) return [];
+  const meta = moduleDoc2.metadata;
+  return inputs.map((input) => ({
+    kind: input.kind,
+    metadata: {
+      name: input.name,
+      ...ownModule ? { module: ownModule } : {},
+      source: meta?.source ?? "",
+      sourceLine: meta?.sourceLine ?? 0,
+      [INJECTED]: true
+    }
+  }));
+}
+function readLibraryLifecycle(moduleDoc2) {
+  const doc = moduleDoc2;
+  if (doc?.kind !== "Telo.Library") return "isolated";
+  return doc.lifecycle === "shared" ? "shared" : "isolated";
+}
+
+// ../../analyzer/nodejs/src/need-type.ts
+var NEED_TYPE_KIND = "Telo.NeedType";
+var NEED_TYPE_CONTROLLER_ENTRY = "Telo.NeedType";
+var NEED_TYPE_MARKER = "needType";
+function isNeedTypeDoc(manifest) {
+  return manifest?.kind === NEED_TYPE_KIND;
+}
+function readNeedTypeShape(doc) {
+  const record = doc ?? {};
+  const fields = {};
+  const rawFields = record.fields;
+  if (rawFields && typeof rawFields === "object" && !Array.isArray(rawFields)) {
+    for (const [name2, schema4] of Object.entries(rawFields)) {
+      if (schema4 && typeof schema4 === "object" && !Array.isArray(schema4)) {
+        fields[name2] = schema4;
+      }
+    }
+  }
+  const required = Array.isArray(record.required) ? record.required.filter((r) => typeof r === "string") : [];
+  const parameters = record.parameters && typeof record.parameters === "object" && !Array.isArray(record.parameters) ? record.parameters : void 0;
+  const features = Array.isArray(record.features) ? record.features.filter((f2) => typeof f2 === "string") : void 0;
+  return {
+    fields,
+    required,
+    ...parameters ? { parameters } : {},
+    ...record.version === "semver" ? { version: "semver" } : {},
+    ...features ? { features } : {}
+  };
+}
+function needTypeDefinition(doc) {
+  const shape = readNeedTypeShape(doc);
+  const required = shape.required.filter((name2) => name2 in shape.fields);
+  return {
+    kind: "Telo.Definition",
+    metadata: { ...doc.metadata ?? {} },
+    capability: "Telo.Provider",
+    controllers: [{ runtime: "kernel", entry: NEED_TYPE_CONTROLLER_ENTRY }],
+    schema: {
+      type: "object",
+      properties: {
+        fields: {
+          type: "object",
+          properties: { ...shape.fields },
+          ...required.length > 0 ? { required } : {},
+          additionalProperties: false
+        }
+      },
+      ...required.length > 0 ? { required: ["fields"] } : {},
+      additionalProperties: false
+    },
+    [NEED_TYPE_MARKER]: shape
+  };
+}
+function needTableReportsFinding(issue) {
+  if (issue.keyword === "additionalProperties") return issue.path === "fields";
+  if (issue.keyword === "required") {
+    return issue.path === "fields" || issue.path === `fields.${issue.missingProperty}`;
+  }
+  return false;
+}
+function needTypeOf(def) {
+  const shape = def?.[NEED_TYPE_MARKER];
+  return shape && typeof shape === "object" ? shape : void 0;
+}
+function needReadingSchema(shape, optional2) {
+  const reading = {
+    type: "object",
+    properties: { ...shape.fields },
+    required: shape.required.filter((name2) => name2 in shape.fields),
+    additionalProperties: false
+  };
+  return optional2 ? { ...reading, type: ["object", "null"] } : reading;
+}
+function sensitiveNeedFields(shape) {
+  return Object.entries(shape.fields).filter(([, schema4]) => schema4["x-telo-sensitive"] === true).map(([name2]) => name2);
+}
+function isTextFieldSchema(schema4) {
+  const type = schema4.type;
+  if (type === "string") return true;
+  if (Array.isArray(type)) {
+    return type.includes("string") && type.every((t) => t === "string" || t === "null");
+  }
+  return false;
+}
+function readNeeds(moduleDoc2) {
+  const raw = moduleDoc2?.needs;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  const out = [];
+  for (const [name2, value2] of Object.entries(raw)) {
+    if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) continue;
+    const entry = value2;
+    if (typeof entry.kind !== "string" || entry.kind.length === 0) continue;
+    const env = readEnvBindings(entry.env);
+    out.push({
+      name: name2,
+      kind: entry.kind,
+      ...entry.parameters !== void 0 ? { parameters: entry.parameters } : {},
+      ...entry.version !== void 0 ? { version: entry.version } : {},
+      ...entry.features !== void 0 ? { features: entry.features } : {},
+      optional: entry.optional === true,
+      ...typeof entry.description === "string" ? { description: entry.description } : {},
+      declaresEnv: "env" in entry,
+      ...env ? { env } : {}
+    });
+  }
+  return out;
+}
+function readEnvBindings(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return void 0;
+  const out = {};
+  for (const [field, name2] of Object.entries(raw)) {
+    if (typeof name2 === "string" && name2.length > 0) out[field] = name2;
+  }
+  return out;
+}
+function readSuppliedNeeds(importDoc) {
+  const raw = importDoc?.needs;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  return raw;
+}
+function needSupplyOf(value2) {
+  if (isRefSentinel(value2)) {
+    const target = refSentinelTarget(value2);
+    return target ? { form: "whole", target } : { form: "invalid" };
+  }
+  if (value2 && typeof value2 === "object" && !Array.isArray(value2)) {
+    return { form: "fields", fields: value2 };
+  }
+  return { form: "invalid" };
+}
+var INJECTED_NEED = "xTeloNeed";
+function injectedNeedDeclarations(moduleDoc2, ownModule) {
+  const needs = readNeeds(moduleDoc2);
+  if (needs.length === 0) return [];
+  const meta = moduleDoc2.metadata;
+  return needs.map((need) => ({
+    kind: need.kind,
+    metadata: {
+      name: need.name,
+      ...ownModule ? { module: ownModule } : {},
+      source: meta?.source ?? "",
+      sourceLine: meta?.sourceLine ?? 0,
+      [INJECTED]: true,
+      [INJECTED_NEED]: { optional: need.optional }
+    }
+  }));
+}
+function injectedNeedOf(manifest) {
+  const marker = manifest?.metadata?.[INJECTED_NEED];
+  return marker && typeof marker === "object" ? marker : void 0;
+}
+
+// ../../analyzer/nodejs/src/kind-declaration.ts
+var synthesized = /* @__PURE__ */ new WeakMap();
+function kindDeclarationOf(doc) {
+  if (!doc) return void 0;
+  if (doc.kind === "Telo.Definition" || doc.kind === "Telo.Abstract") {
+    return doc;
+  }
+  if (!isNeedTypeDoc(doc)) return void 0;
+  let definition = synthesized.get(doc);
+  if (!definition) {
+    definition = needTypeDefinition(doc);
+    synthesized.set(doc, definition);
+  }
+  return definition;
+}
+function isKindDocument(doc) {
+  return kindDeclarationOf(doc) !== void 0;
+}
+
+// ../../analyzer/nodejs/src/types.ts
+var DiagnosticSeverity2 = {
+  Error: 1,
+  Warning: 2,
+  Information: 3,
+  Hint: 4
+};
+var DiagnosticTag2 = {
+  Unnecessary: 1,
+  Deprecated: 2
+};
+var DEFAULT_MANIFEST_FILENAME = "telo.yaml";
+var FIX_TAGS = /* @__PURE__ */ new Set(["ref", "cel", "module-path"]);
+function diagnosticFix(d) {
+  const fix = d.data?.fix;
+  if (!fix || typeof fix.replacement !== "string") return void 0;
+  if (fix.tag !== void 0 && !FIX_TAGS.has(fix.tag)) return void 0;
+  return fix;
+}
+
+// ../../analyzer/nodejs/src/identifier-name.ts
+var CEL_RESERVED_WORDS = [
+  "as",
+  "break",
+  "const",
+  "continue",
+  "else",
+  "false",
+  "for",
+  "function",
+  "if",
+  "import",
+  "in",
+  "let",
+  "loop",
+  "namespace",
+  "null",
+  "package",
+  "return",
+  "true",
+  "var",
+  "void",
+  "while"
+];
+var RESERVED2 = new Set(CEL_RESERVED_WORDS);
+var CEL_IDENTIFIER_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+function isTypeLevelName(name2) {
+  const first = name2[0];
+  return first !== void 0 && first >= "A" && first <= "Z";
+}
+function isTypeLevelDocument(doc) {
+  return doc.kind === "Telo.Application" || doc.kind === "Telo.Library" || doc.kind === "Telo.Import" || isKindDocument(doc);
+}
+function checkName(name2, level, surface) {
+  const subject = `${surface} '${name2}'`;
+  if (!CEL_IDENTIFIER_RE.test(name2)) {
+    return {
+      tier: "grammar",
+      code: "INVALID_NAME",
+      severity: DiagnosticSeverity2.Error,
+      message: `${subject} must match /^[A-Za-z_][A-Za-z0-9_]*$/ \u2014 ${grammarReason(name2, level)}`
+    };
+  }
+  if (RESERVED2.has(name2)) {
+    return {
+      tier: "reserved",
+      code: "INVALID_NAME",
+      severity: DiagnosticSeverity2.Error,
+      message: `${subject} is a CEL keyword, so no expression can reference it. Rename it.`
+    };
+  }
+  if (level === "type" && !isTypeLevelName(name2)) {
+    return {
+      tier: "case",
+      code: "INVALID_TYPE_NAME",
+      severity: DiagnosticSeverity2.Error,
+      message: `${subject} must start with an uppercase letter \u2014 it names a type, and the alias-qualified grammar of 'kind:' / 'extends:' accepts only PascalCase.`
+    };
+  }
+  const first = name2[0];
+  if (level === "value" && !(first >= "a" && first <= "z")) {
+    return {
+      tier: "case",
+      code: "NAME_CASE_CONVENTION",
+      severity: DiagnosticSeverity2.Warning,
+      message: `${subject} should start with a lowercase letter \u2014 camelCase names a value (read through a CEL scope), PascalCase names a type.`
+    };
+  }
+  return void 0;
+}
+function grammarReason(name2, level) {
+  if (level === "type") {
+    return name2.includes(".") ? `a '.' separates the two halves of every '<Alias>.<Kind>' reference, so a dotted name cannot appear in either.` : `that is the character set the alias-qualified '<Alias>.<Kind>' grammar accepts on both sides.`;
+  }
+  if (name2.includes("-")) {
+    return `it becomes a CEL identifier and CEL reads '-' as subtraction, so where a bare name is in scope this evaluates as arithmetic instead of failing.`;
+  }
+  if (name2.includes(".")) {
+    return `in a '!ref' the first '.' separates the import alias from the name.`;
+  }
+  return `it becomes a CEL identifier, so as written it cannot be referenced.`;
+}
+
+// ../../analyzer/nodejs/src/validate-identifier-names.ts
+var SOURCE = "telo-analyzer";
+function validateIdentifierNames(manifests, registry, aliases, rootModules, graph, scopes) {
+  const out = [];
+  const resolveDef = moduleScopedDefResolver(registry, aliases, scopes);
+  for (const manifest of manifests) {
+    const metadata = manifest.metadata;
+    const name2 = typeof metadata?.name === "string" ? metadata.name : void 0;
+    if (!manifest.kind || !name2) continue;
+    if (metadata?.xTeloOrigin) continue;
+    if (isInjectedDeclaration(manifest)) continue;
+    const ownModule = metadata?.module;
+    if (ownModule && !rootModules.has(ownModule)) continue;
+    const level = levelFor(manifest, resolveDef, ownModule);
+    push(out, checkName(name2, level, surfaceFor(manifest)), {
+      kind: manifest.kind,
+      name: name2,
+      filePath: metadata?.source,
+      path: "metadata.name"
+    });
+    if (manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") {
+      for (const field of ["variables", "secrets", "ports", "resources", "needs"]) {
+        const block = manifest[field];
+        if (!block || typeof block !== "object" || Array.isArray(block)) continue;
+        for (const key2 of Object.keys(block)) {
+          push(out, checkName(key2, "value", `${singular(field)} name`), {
+            kind: manifest.kind,
+            name: name2,
+            filePath: metadata?.source,
+            path: `${field}.${key2}`
+          });
+        }
+      }
+    }
+    for (const [index, param] of (signatureParamsOf(manifest, resolveDef, ownModule) ?? []).entries()) {
+      if (typeof param.name !== "string") continue;
+      push(out, checkName(param.name, "value", "parameter name"), {
+        kind: manifest.kind,
+        name: name2,
+        filePath: metadata?.source,
+        path: `params[${index}].name`
+      });
+    }
+  }
+  for (const node of graph.nodes.values()) {
+    if (node.type !== "step" || !node.name) continue;
+    const owner = graph.nodes.get(node.owner);
+    if (owner?.type !== "resource") continue;
+    const ownerMeta = owner.manifest.metadata;
+    if (ownerMeta?.xTeloOrigin) continue;
+    const ownModule = ownerMeta?.module;
+    if (ownModule && !rootModules.has(ownModule)) continue;
+    push(out, checkName(node.name, "value", "step name"), {
+      kind: owner.kind,
+      name: owner.name,
+      filePath: ownerMeta?.source,
+      path: `${node.path}.name`
+    });
+  }
+  return out;
+}
+function levelFor(manifest, resolveDef, ownModule) {
+  if (isTypeLevelDocument(manifest)) return "type";
+  const def = resolveDef.in(manifest.kind, ownModule);
+  return inheritedCapability(def, resolveDef) === "Telo.Type" ? "type" : "value";
+}
+function signatureParamsOf(manifest, resolveDef, ownModule) {
+  if (manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract") {
+    return isCallableKind(manifest, resolveDef) ? readParams(manifest) : void 0;
+  }
+  const def = resolveDef.in(manifest.kind, ownModule);
+  if (!isCallableKind(def, resolveDef) || !instanceDeclaresSignature(def, resolveDef, "params")) {
+    return void 0;
+  }
+  return readParams(manifest);
+}
+function surfaceFor(manifest) {
+  if (isKindDocument(manifest)) return "kind name";
+  switch (manifest.kind) {
+    case "Telo.Application":
+    case "Telo.Library":
+      return "module name";
+    case "Telo.Import":
+      return "import alias";
+    default:
+      return "resource name";
+  }
+}
+function singular(field) {
+  return field === "variables" ? "variable" : field === "secrets" ? "secret" : field === "ports" ? "port" : field === "needs" ? "need" : "resource input";
+}
+function push(out, violation, at2) {
+  if (!violation) return;
+  out.push({
+    severity: violation.severity,
+    code: violation.code,
+    source: SOURCE,
+    message: `${at2.kind}/${at2.name}: ${violation.message}`,
+    data: {
+      resource: { kind: at2.kind, name: at2.name },
+      filePath: at2.filePath,
+      path: at2.path
+    }
+  });
+}
+
 // ../../analyzer/nodejs/src/module-metadata-scope.ts
 var DERIVED_METADATA_FIELDS = /* @__PURE__ */ new Set([
   "source",
@@ -41550,12 +41831,12 @@ function rewriteOnce(text3) {
     const of = topLevel(argument, (i) => /\s/.test(argument[i - 1] ?? "") && /^of\s/i.test(argument.slice(i)))[0];
     if (of === void 0) continue;
     const listStart = open + 1 + of + 2;
-    const list4 = text3.slice(listStart, close);
-    if (topLevel(list4, (i) => list4[i] === ",").length === 0) continue;
+    const list5 = text3.slice(listStart, close);
+    if (topLevel(list5, (i) => list5[i] === ",").length === 0) continue;
     NTH_OF.lastIndex = close;
     out += text3.slice(cursor, listStart) + " :is(";
     insertions.push({ at: out.length - 5, length: 5 });
-    out += list4 + ")";
+    out += list5 + ")";
     insertions.push({ at: out.length - 1, length: 1 });
     cursor = close;
   }
@@ -43334,9 +43615,6 @@ function buildParameterCelEnvironment(baseEnv, contextSchema) {
   }
   return env;
 }
-function isKindDocument(manifest) {
-  return manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract";
-}
 function valueBrandHint(readTypes) {
   const brand = readTypes?.find((type) => VALUE_BRAND_BASE[type] !== void 0);
   if (!brand) return "";
@@ -43827,6 +44105,10 @@ function isRefUse(value2) {
 function transfersControl(use) {
   return use !== "schema" && use !== "dependency";
 }
+var NEED_CONSTRAINTS = ["version", "features"];
+function isNeedConstraint(value2) {
+  return value2 === "version" || value2 === "features";
+}
 function possibleUses(slot) {
   if (!slot.useCases) return slot.uses;
   const out = new Set(slot.uses);
@@ -43906,6 +44188,7 @@ function readRefSlot(node) {
   let inputs;
   let throwsThrough = false;
   let outputType;
+  const observes = /* @__PURE__ */ new Set();
   for (const carrier of nodes) {
     const annotation = carrier["x-telo-ref"];
     for (const kind of readKinds(annotation)) {
@@ -43918,6 +44201,9 @@ function readRefSlot(node) {
     if (typeof obj.inputs === "string") inputs ??= obj.inputs;
     if (obj.throwsThrough === true) throwsThrough = true;
     if (isSchemaObject(obj.outputType)) outputType ??= obj.outputType;
+    if (Array.isArray(obj.observes)) {
+      for (const token of obj.observes) if (isNeedConstraint(token)) observes.add(token);
+    }
   }
   const slot = {
     kinds,
@@ -43929,6 +44215,7 @@ function readRefSlot(node) {
   if (inputs !== void 0) slot.inputs = inputs;
   if (throwsThrough) slot.throwsThrough = true;
   if (outputType) slot.outputType = outputType;
+  if (observes.size > 0) slot.observes = NEED_CONSTRAINTS.filter((c) => observes.has(c));
   return slot;
 }
 function isSchemaObject(value2) {
@@ -43947,6 +44234,7 @@ function refSlotAnnotation(slot) {
   if (slot.inputs !== void 0) annotation.inputs = slot.inputs;
   if (slot.throwsThrough) annotation.throwsThrough = true;
   if (slot.outputType) annotation.outputType = slot.outputType;
+  if (slot.observes) annotation.observes = [...slot.observes];
   return annotation;
 }
 function rewriteRefSlotKinds(annotationHolder, map3) {
@@ -44043,27 +44331,29 @@ function mapValues(node, fn) {
 }
 
 // ../../analyzer/nodejs/src/template-body.ts
-function templateBodies(m, registry, aliases, scopes) {
+function templateBodyEntries(m) {
   if (m.kind !== "Telo.Definition") return [];
   const bodies = m.resources;
   if (!Array.isArray(bodies)) return [];
-  const scope = moduleAliasScope(m.metadata, aliases, scopes?.aliasesByModule);
   const out = [];
   for (let i = 0; i < bodies.length; i++) {
     const body2 = bodies[i];
     if (!body2 || typeof body2 !== "object" || Array.isArray(body2)) continue;
     const kind = body2.kind;
     if (typeof kind !== "string") continue;
-    const canonical = scope?.resolveKind(kind);
-    const definition = registry.resolve(kind) ?? (canonical ? registry.resolve(canonical) : void 0);
-    out.push({
-      prefix: `resources[${i}]`,
-      scopePrefix: `$.resources[${i}]`,
-      manifest: body2,
-      definition
-    });
+    out.push({ index: i, prefix: `resources[${i}]`, manifest: body2, kind });
   }
   return out;
+}
+function templateBodies(m, registry, aliases, scopes) {
+  const entries = templateBodyEntries(m);
+  if (entries.length === 0) return [];
+  const scope = moduleAliasScope(m.metadata, aliases, scopes?.aliasesByModule);
+  return entries.map(({ index, prefix, manifest, kind }) => {
+    const canonical = scope?.resolveKind(kind);
+    const definition = registry.resolve(kind) ?? (canonical ? registry.resolve(canonical) : void 0);
+    return { prefix, scopePrefix: `$.resources[${index}]`, manifest, definition };
+  });
 }
 function dispatchTargetOf(definition, slot) {
   const value2 = definition[slot];
@@ -45373,9 +45663,9 @@ function typeCapableNames(allManifests) {
   if (cached) return cached;
   const names = /* @__PURE__ */ new Set();
   for (const def of [...KERNEL_BUILTINS, ...allManifests]) {
-    if (def?.kind !== "Telo.Definition" && def?.kind !== "Telo.Abstract") continue;
-    if (def.capability !== "Telo.Type") continue;
-    const name2 = def.metadata?.name;
+    const declared = kindDeclarationOf(def);
+    if (declared?.capability !== "Telo.Type") continue;
+    const name2 = declared.metadata?.name;
     if (typeof name2 === "string") names.add(name2);
   }
   typeKindNames.set(allManifests, names);
@@ -45883,19 +46173,6 @@ function capabilityExtendsExecutable(capability, defs) {
   return false;
 }
 
-// ../../analyzer/nodejs/src/ref-sentinel-target.ts
-var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
-function isRefSourceSpelling(text3) {
-  return REF_SOURCE_RE.test(text3);
-}
-function refSentinelTarget(value2) {
-  if (!isRefSentinel(value2)) return void 0;
-  const source = value2.source;
-  const dot = source.indexOf(".");
-  if (dot <= 0) return { source, name: source };
-  return { source, alias: source.slice(0, dot), name: source.slice(dot + 1) };
-}
-
 // ../../analyzer/nodejs/src/validate-value-schema-location.ts
 var ANNOTATION = "x-telo-value-schema-from";
 var ANNOTATED_FIELDS = ["schema", "inputType", "outputType"];
@@ -46142,8 +46419,8 @@ function sensitivePaths(schema4, resolveRef2, reached) {
       else for (const child of Object.values(node2)) walk5(child, [...path, "{}"], document, here);
     }
     for (const branch of ["allOf", "anyOf", "oneOf"]) {
-      const list4 = s[branch];
-      if (Array.isArray(list4)) for (const child of list4) walk5(child, path, document, here);
+      const list5 = s[branch];
+      if (Array.isArray(list5)) for (const child of list5) walk5(child, path, document, here);
     }
     if (s.items) walk5(s.items, [...path, "[]"], document, here);
   };
@@ -46176,8 +46453,8 @@ function declaredScalarPaths(schema4, resolveRef2) {
       }
     }
     for (const branch of ["allOf", "anyOf", "oneOf"]) {
-      const list4 = s[branch];
-      if (Array.isArray(list4)) for (const child of list4) walk5(child, path, here, document);
+      const list5 = s[branch];
+      if (Array.isArray(list5)) for (const child of list5) walk5(child, path, here, document);
     }
     if (s.items) walk5(s.items, [...path, "[]"], here, document);
   };
@@ -46316,6 +46593,30 @@ function moduleCallSites(manifest, moduleNames) {
   visit3(manifest, "");
   return out;
 }
+function celResourceReads(manifest) {
+  const names = /* @__PURE__ */ new Set();
+  walkCelExpressions(manifest, "", (source, _path, engine) => {
+    for (const expression of celExpressionsOf(engine, source)) {
+      for (const name2 of resourceReadsOf(expression)) names.add(name2);
+    }
+  });
+  return [...names];
+}
+var RESOURCE_READS_CAPACITY = 4096;
+var resourceReadsBySource = /* @__PURE__ */ new Map();
+function resourceReadsOf(source) {
+  let reads = resourceReadsBySource.get(source);
+  if (reads) {
+    resourceReadsBySource.delete(source);
+  } else {
+    reads = accessChains(source).filter((chain) => chain[0] === "resources" && chain.length >= 2 && chain[1]).map((chain) => chain[1]);
+    if (resourceReadsBySource.size >= RESOURCE_READS_CAPACITY) {
+      resourceReadsBySource.delete(resourceReadsBySource.keys().next().value);
+    }
+  }
+  resourceReadsBySource.set(source, reads);
+  return reads;
+}
 
 // ../../analyzer/nodejs/src/host-path-slot.ts
 function holdsHostPath(schema4) {
@@ -46407,6 +46708,9 @@ function parseExportEntry(entry) {
   const dot = entry.indexOf(".");
   return dot > 0 ? { name: entry.slice(dot + 1), alias: entry.slice(0, dot) } : { name: entry };
 }
+function declaresKindOrImport(m) {
+  return m.kind === "Telo.Import" || isKindDocument(m);
+}
 function selectModuleManifestsForAnalysis(moduleManifests, isRoot) {
   if (isRoot) return moduleManifests;
   const libDoc = moduleManifests.find((m) => isModuleKind(m.kind));
@@ -46418,7 +46722,7 @@ function selectModuleManifestsForAnalysis(moduleManifests, isRoot) {
   const moduleGlobals = readModuleGlobals(libDoc);
   const out = [];
   for (const m of moduleManifests) {
-    if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract" || m.kind === "Telo.Import") {
+    if (declaresKindOrImport(m)) {
       out.push(withModuleGlobals(m, moduleGlobals));
     } else if (!isModuleKind(m.kind) && typeof m.metadata?.name === "string" && exportedResources.has(m.metadata.name)) {
       out.push({
@@ -46445,13 +46749,13 @@ function forwardedInternalCalls(moduleManifests, forwarded, libDoc, moduleGlobal
   for (const m of moduleManifests) {
     const name2 = m.metadata?.name;
     if (typeof name2 !== "string" || isModuleKind(m.kind)) continue;
-    if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract" || m.kind === "Telo.Import") {
-      continue;
-    }
+    if (declaresKindOrImport(m)) continue;
     byName.set(name2, m);
   }
   const present = new Set(
-    forwarded.filter((m) => !isModuleKind(m.kind) && m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract").map((m) => m.metadata?.name)
+    forwarded.filter(
+      (m) => !isModuleKind(m.kind) && !isKindDocument(m)
+    ).map((m) => m.metadata?.name)
   );
   const names = new Set([...moduleCallNamesOfFile(moduleManifests)].filter((n) => ownNames.has(n)));
   const out = [];
@@ -46486,9 +46790,7 @@ function forwardedContractShapes(moduleManifests, forwarded, libDoc) {
   for (const m of moduleManifests) {
     const name2 = m.metadata?.name;
     if (typeof name2 !== "string" || isModuleKind(m.kind)) continue;
-    if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract" || m.kind === "Telo.Import") {
-      continue;
-    }
+    if (declaresKindOrImport(m)) continue;
     byName.set(name2, m);
   }
   const present = new Set(
@@ -46698,6 +47000,7 @@ function forwardReExports(graph, result) {
   const kindModules = [];
   const declaredKinds = /* @__PURE__ */ new Map();
   const requiredResources = /* @__PURE__ */ new Map();
+  const requiredNeeds = /* @__PURE__ */ new Map();
   const sharedModules = /* @__PURE__ */ new Set();
   const declaredResources = /* @__PURE__ */ new Map();
   const hostPathInputs2 = /* @__PURE__ */ new Map();
@@ -46711,6 +47014,8 @@ function forwardReExports(graph, result) {
     kindModules.push({ module: moduleName2, exportsKinds: libDoc.exports?.kinds });
     const inputs = readResourceInputs(libDoc);
     if (inputs.length > 0) requiredResources.set(moduleName2, inputs);
+    const needs = readNeeds(libDoc);
+    if (needs.length > 0) requiredNeeds.set(moduleName2, needs);
     const hostPaths = hostPathInputs(libDoc);
     if (Object.keys(hostPaths).length > 0) hostPathInputs2.set(moduleName2, hostPaths);
     if (readLibraryLifecycle(libDoc) === "shared") sharedModules.add(moduleName2);
@@ -46742,6 +47047,7 @@ function forwardReExports(graph, result) {
   stampReExportedKinds(imports, exportedKinds);
   stampExportedKinds(imports, declaredKinds);
   stampRequiredResources(imports, requiredResources, aliasToModule);
+  stampRequiredNeeds(imports, requiredNeeds);
   stampSharedLifecycle(imports, sharedModules);
   stampDeclaredResources(imports, declaredResources);
   for (const { manifest, targetModule } of imports) {
@@ -46778,6 +47084,23 @@ function stampRequiredResources(imports, declared, aliasToModule) {
     manifest.metadata.requiredResources = table;
   }
 }
+function stampRequiredNeeds(imports, declared) {
+  for (const { manifest, targetModule } of imports) {
+    const needs = declared.get(targetModule);
+    if (!needs?.length) continue;
+    const table = {};
+    for (const need of needs) {
+      table[need.name] = {
+        kind: need.kind,
+        optional: need.optional,
+        ...need.parameters !== void 0 ? { parameters: need.parameters } : {},
+        ...need.version !== void 0 ? { version: need.version } : {},
+        ...need.features !== void 0 ? { features: need.features } : {}
+      };
+    }
+    manifest.metadata.requiredNeeds = table;
+  }
+}
 function canonicalizeInputKind(kind, ownModule, aliasToModule) {
   const dot = kind.indexOf(".");
   if (dot <= 0) return kind;
@@ -46800,7 +47123,6 @@ function collectModuleDocuments(graph) {
       if (typeof entry !== "string") continue;
       exportedNames.push(parseExportEntry(entry).name);
     }
-    if (exportedNames.length === 0) continue;
     out.push({
       module: moduleName2,
       sourceId: mod.owner.source,
@@ -46819,7 +47141,9 @@ function collectModuleManifests(mod) {
   const all = [...owner, ...partials];
   const moduleDoc2 = all.find((m) => isModuleKind(m.kind));
   if (moduleDoc2) {
-    all.push(...injectedDeclarations(moduleDoc2, moduleDoc2.metadata?.name));
+    const ownModule = moduleDoc2.metadata?.name;
+    all.push(...injectedDeclarations(moduleDoc2, ownModule));
+    all.push(...injectedNeedDeclarations(moduleDoc2, ownModule));
   }
   return all;
 }
@@ -46876,6 +47200,7 @@ function refFieldEntryOf(slot, node, path) {
   if (slot.inline) entry.inline = true;
   if (slot.throwsThrough) entry.throwsThrough = true;
   if (slot.outputType) entry.outputType = slot.outputType;
+  if (slot.observes) entry.observes = slot.observes;
   return entry;
 }
 function refSlotOfEntry(entry) {
@@ -46889,6 +47214,7 @@ function refSlotOfEntry(entry) {
   if (entry.inputs !== void 0) slot.inputs = entry.inputs;
   if (entry.throwsThrough) slot.throwsThrough = true;
   if (entry.outputType) slot.outputType = entry.outputType;
+  if (entry.observes) slot.observes = entry.observes;
   return slot;
 }
 var branchDocuments = /* @__PURE__ */ new WeakMap();
@@ -46957,12 +47283,12 @@ function traverse2(document, node, envelope) {
 function declare(walk5, path, node) {
   let nodes = walk5.declared.get(path);
   if (!nodes) walk5.declared.set(path, nodes = /* @__PURE__ */ new Set());
-  let list4 = walk5.reach.declarations.get(path);
-  if (!list4) walk5.reach.declarations.set(path, list4 = []);
-  if (nodes.has(node)) return list4.find((d) => d.node === node);
+  let list5 = walk5.reach.declarations.get(path);
+  if (!list5) walk5.reach.declarations.set(path, list5 = []);
+  if (nodes.has(node)) return list5.find((d) => d.node === node);
   nodes.add(node);
   const declaration = { node, branches: [...walk5.branches] };
-  list4.push(declaration);
+  list5.push(declaration);
   return declaration;
 }
 function isReferenceNode(node, document) {
@@ -47332,6 +47658,7 @@ function siteRefEntry(site) {
     if (slot.inline) entry.inline = true;
     if (slot.throwsThrough) entry.throwsThrough = true;
     if (slot.outputType && !entry.outputType) entry.outputType = slot.outputType;
+    if (slot.observes && !entry.observes) entry.observes = slot.observes;
     valueBranches.push(...slot.valueBranches);
   }
   if (valueBranches.length > 0) entry.valueBranches = valueBranches;
@@ -47634,13 +47961,7 @@ function joinPattern(base, rel) {
 }
 
 // ../../analyzer/nodejs/src/validate-observed-state.ts
-var SYSTEM_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Abstract",
-  "Telo.Import",
-  "Telo.Application",
-  "Telo.Library"
-]);
+var isSystemDocument = (m) => m.kind === "Telo.Import" || m.kind === "Telo.Application" || m.kind === "Telo.Library" || isKindDocument(m);
 function validateObservedStateDeclarations(manifests) {
   const out = [];
   for (const m of manifests) {
@@ -47694,13 +48015,15 @@ function forwardedResourceKey(module, name2) {
 function buildObservedStateIndex(manifests, defs, aliases, scopes) {
   const out = /* @__PURE__ */ new Map();
   const resolve = moduleScopedDefResolver(defs, aliases, scopes);
-  const record = (kind, key2, scope, module, forwardedFrom) => {
+  const record = (kind, key2, scope, module, forwardedFrom, optionalNeed = false) => {
     const definition = resolve.in(kind, module);
     const status = effectiveStatusSchema(definition, resolve);
     const capability = inheritedCapability(definition, resolve);
+    const needType = needTypeOf(definition);
     out.set(key2, {
       kind,
       ...status ? { status } : {},
+      ...needType ? { reading: needReadingSchema(needType, optionalNeed) } : {},
       ...capability ? { capability } : {},
       ...scope ? { scoped: true, scope } : {},
       ...forwardedFrom !== void 0 ? { forwardedFrom } : {}
@@ -47709,12 +48032,21 @@ function buildObservedStateIndex(manifests, defs, aliases, scopes) {
   for (const manifest of manifests) {
     const kind = manifest.kind;
     const name2 = manifest.metadata?.name;
-    if (!kind || SYSTEM_KINDS.has(kind)) continue;
+    if (!kind || isSystemDocument(manifest)) continue;
     const module = manifest.metadata?.module;
     const forwardedFrom = isForwardedDeclaration(manifest) ? module : void 0;
     if (forwardedFrom === void 0 && isForwardedDeclaration(manifest)) continue;
     const keyOf = (n) => forwardedFrom === void 0 ? n : forwardedResourceKey(forwardedFrom, n);
-    if (name2) record(kind, keyOf(name2), void 0, module, forwardedFrom);
+    if (name2) {
+      record(
+        kind,
+        keyOf(name2),
+        void 0,
+        module,
+        forwardedFrom,
+        injectedNeedOf(manifest)?.optional === true
+      );
+    }
     const schema4 = resolve(kind)?.schema;
     if (!schema4) continue;
     for (const site of reachSites(schema4, manifest)) {
@@ -47752,7 +48084,7 @@ function* importedExports(manifests, aliases) {
   for (const m of manifests) {
     const module = m.metadata?.module;
     const name2 = m.metadata?.name;
-    if (!module || !name2 || SYSTEM_KINDS.has(m.kind)) continue;
+    if (!module || !name2 || isSystemDocument(m)) continue;
     const forwarded = m.metadata?.forwardedExport;
     if (!forwarded && !declaredByModule.get(module)?.has(name2)) continue;
     let byName = exportsByModule.get(module);
@@ -47771,11 +48103,25 @@ function* importedExports(manifests, aliases) {
 }
 function buildObservedStateResourcesSchema(index, open) {
   const properties = {};
-  for (const [key2, { status, forwardedFrom }] of index) {
-    if (!status || forwardedFrom !== void 0) continue;
-    applyObservedStateNode(properties, key2, status);
+  for (const [key2, { status, reading, forwardedFrom }] of index) {
+    if (forwardedFrom !== void 0) continue;
+    if (reading) applyReadingNode(properties, key2, reading);
+    else if (status) applyObservedStateNode(properties, key2, status);
   }
   return open ? { type: "object", additionalProperties: true, properties } : { type: "object", properties };
+}
+function applyReadingNode(properties, key2, reading) {
+  const dot = key2.indexOf(".");
+  if (dot < 0) {
+    properties[key2] = reading;
+    return;
+  }
+  const aliasNode = properties[key2.slice(0, dot)] ??= {
+    type: "object",
+    additionalProperties: true,
+    properties: {}
+  };
+  (aliasNode.properties ??= {})[key2.slice(dot + 1)] = reading;
 }
 function applyObservedStateNode(properties, key2, status) {
   const dot = key2.indexOf(".");
@@ -47806,12 +48152,6 @@ var KERNEL_GLOBAL_NAMES = [
   "ports",
   "module"
 ];
-var SYSTEM_KINDS2 = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Application",
-  "Telo.Library",
-  "Telo.Abstract"
-]);
 function buildKernelGlobalsIndex(manifests, resources, functions) {
   const entryDoc = manifests.find((m) => m.kind === "Telo.Application") ?? manifests.find((m) => m.kind === "Telo.Library");
   const entrySchema = globalsSchema(
@@ -47867,7 +48207,7 @@ function buildResourcesSchema(manifests, resources, entryModule, functions) {
     if (m.kind === "Telo.Import" && entryModule !== void 0 && typeof module === "string" && module !== entryModule) {
       continue;
     }
-    if (SYSTEM_KINDS2.has(m.kind)) continue;
+    if (isKindDocument(m) || isModuleKind(m.kind)) continue;
     if (functions?.isFunction(m)) {
       withheld.add(name2);
       continue;
@@ -47877,11 +48217,13 @@ function buildResourcesSchema(manifests, resources, entryModule, functions) {
   for (const [key2, entry] of resources ?? []) {
     if (key2.includes(".") || entry.forwardedFrom !== void 0 || withheld.has(key2)) continue;
     resourceProps[key2] ??= { type: "object", additionalProperties: true };
-    if (entry.status) applyObservedStateNode(resourceProps, key2, entry.status);
+    if (entry.reading) applyReadingNode(resourceProps, key2, entry.reading);
+    else if (entry.status) applyObservedStateNode(resourceProps, key2, entry.status);
   }
   for (const [key2, entry] of resources ?? []) {
-    if (!key2.includes(".") || !entry.status || entry.forwardedFrom !== void 0) continue;
-    applyObservedStateNode(resourceProps, key2, entry.status);
+    if (!key2.includes(".") || entry.forwardedFrom !== void 0) continue;
+    if (entry.reading) applyReadingNode(resourceProps, key2, entry.reading);
+    else if (entry.status) applyObservedStateNode(resourceProps, key2, entry.status);
   }
   return { type: "object", properties: resourceProps, additionalProperties: false };
 }
@@ -48601,13 +48943,14 @@ var CelScopeResolver = class {
       return resolution?.status === "resolved" ? resolution : void 0;
     };
     const moduleNames = moduleCallNamesOf(this.inputs.moduleCallNames ?? NO_MODULE_CALL_NAMES, m);
-    const cached = contextSchema === null ? this.typedEnvByManifest.get(m) : void 0;
+    const importNeeds = m.kind === "Telo.Import" && site.path.startsWith("needs.");
+    const cached = contextSchema === null && !importNeeds ? this.typedEnvByManifest.get(m) : void 0;
     let env;
     if (cached) {
       env = cached;
     } else if (parameterScope) {
       env = buildParameterCelEnvironment(celEnv, contextSchema);
-    } else if (m.kind === "Telo.Import") {
+    } else if (m.kind === "Telo.Import" && !importNeeds) {
       env = buildImportInputCelEnvironment(
         celEnv,
         allManifests.find(
@@ -48626,7 +48969,7 @@ var CelScopeResolver = class {
           celType: entry.function.celType
         }))
       );
-      if (contextSchema === null) this.typedEnvByManifest.set(m, env);
+      if (contextSchema === null && !importNeeds) this.typedEnvByManifest.set(m, env);
     }
     return {
       env,
@@ -48797,7 +49140,7 @@ var CelScopeQuery = class {
     }
     const scopes = { aliasesByModule, rootModules, libraries };
     const observedState = buildObservedStateIndex(manifests, defs, aliases, scopes);
-    const reportsObservedState = [...observedState.values()].some((r) => r.status);
+    const reportsObservedState = [...observedState.values()].some((r) => r.status || r.reading);
     const moduleFunctions = new ModuleFunctionIndex(
       manifests,
       defs,
@@ -48971,7 +49314,7 @@ var CelScopeQuery = class {
       const owningModule = dot === -1 ? void 0 : canonical.slice(0, dot);
       const suffix = canonical.slice(dot + 1);
       const named = this.manifests.filter(
-        (m) => (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract") && m.metadata?.name === suffix
+        (m) => isKindDocument(m) && m.metadata?.name === suffix
       );
       const target = (owningModule ? named.find((m) => m.metadata?.module === owningModule) : void 0) ?? (owningModule && named.length > 1 ? void 0 : named[0]);
       if (!target || target[field] === void 0) continue;
@@ -49068,7 +49411,7 @@ function moduleScopes(options) {
   return options.aliasesByModule && options.rootModules ? { aliasesByModule: options.aliasesByModule, rootModules: options.rootModules } : void 0;
 }
 function visitManifest(resources, registry, visitor, options = {}) {
-  const { aliases, aliasesByModule, skipKinds, expand: expand3, discoverNestedRefs } = options;
+  const { aliases, aliasesByModule, skip, expand: expand3, discoverNestedRefs } = options;
   const wantsRefs = !!visitor.onRef;
   const wantsScope = !!visitor.onScope;
   const wantsSchemaFrom = !!visitor.onSchemaFrom;
@@ -49076,7 +49419,7 @@ function visitManifest(resources, registry, visitor, options = {}) {
   const wantsNested = wantsRefs && !!discoverNestedRefs;
   for (const r of resources) {
     if (!r.metadata?.name || !r.kind) continue;
-    if (skipKinds?.has(r.kind)) continue;
+    if (skip?.(r)) continue;
     const moduleScope = moduleAliasScope(r.metadata, aliases, aliasesByModule);
     const resolvedKind = moduleScope?.resolveKind(r.kind);
     const definition = registry.resolve(r.kind) ?? (resolvedKind ? registry.resolve(resolvedKind) : void 0);
@@ -49264,19 +49607,9 @@ function collectRefs2(node) {
 }
 
 // ../../analyzer/nodejs/src/system-kinds.ts
-var REF_VALIDATION_SKIP_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Abstract"
-]);
-var DEPENDENCY_GRAPH_SKIP_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Import"
-]);
-var REF_RESOLUTION_SKIP_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Abstract",
-  "Telo.Import"
-]);
+function isKindDocumentOrImport(doc) {
+  return isKindDocument(doc) || doc?.kind === "Telo.Import";
+}
 
 // ../../analyzer/nodejs/src/call-graph.ts
 var resourceId = (kind, name2) => `${kind}\0${name2}`;
@@ -49553,7 +49886,7 @@ function buildCallGraph(resources, registry, options = {}) {
   };
   for (const manifest of resources) {
     const name2 = manifest.metadata?.name;
-    if (!name2 || !manifest.kind || DEPENDENCY_GRAPH_SKIP_KINDS.has(manifest.kind)) continue;
+    if (!name2 || !manifest.kind || isKindDocumentOrImport(manifest)) continue;
     const node = {
       type: "resource",
       id: nodeIdFor(manifest),
@@ -49704,7 +50037,7 @@ function buildCallGraph(resources, registry, options = {}) {
     {
       aliases: options.aliases,
       aliasesByModule: options.aliasesByModule,
-      skipKinds: DEPENDENCY_GRAPH_SKIP_KINDS,
+      skip: isKindDocumentOrImport,
       expand: true,
       discoverNestedRefs: true
     }
@@ -50996,14 +51329,14 @@ function forEachStep(body2, schema4, visit3) {
 }
 
 // ../../analyzer/nodejs/src/normalize-inline-resources.ts
-var SYSTEM_KINDS3 = /* @__PURE__ */ new Set([
+var SYSTEM_KINDS = /* @__PURE__ */ new Set([
   "Telo.Definition",
   "Telo.Application",
   "Telo.Library",
   "Telo.Import"
 ]);
 function acceptsInline(resourceKind, entry) {
-  return !SYSTEM_KINDS3.has(resourceKind) || entry.inline === true;
+  return !SYSTEM_KINDS.has(resourceKind) || entry.inline === true;
 }
 function sanitizeName(raw) {
   return raw.replace(/[^a-zA-Z0-9_]/g, "_");
@@ -51099,7 +51432,7 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
       extractedAt.push(site.path);
       place2(manifest, scope?.declarations ?? home, parentModule, current.inBody);
     }
-    if (SYSTEM_KINDS3.has(resource.kind)) continue;
+    if (SYSTEM_KINDS.has(resource.kind)) continue;
     extractStepTargets(
       resource,
       view,
@@ -51313,8 +51646,8 @@ var TemplateForwardViews = class {
     this.manifests.push(entry.view);
     this.byView.set(entry.view, entry);
     this.byName.set(entry.view.metadata.name, entry);
-    const list4 = this.outgoing.get(entry.upstream);
-    if (list4) list4.push(entry);
+    const list5 = this.outgoing.get(entry.upstream);
+    if (list5) list5.push(entry);
     else this.outgoing.set(entry.upstream, [entry]);
   }
   /**
@@ -51423,8 +51756,8 @@ function buildTemplateForwardViews(manifests, registry, aliases, scopes) {
   for (const m of manifests) {
     const name2 = m.metadata?.name;
     if (typeof name2 !== "string") continue;
-    const list4 = byName.get(name2);
-    if (list4) list4.push(m);
+    const list5 = byName.get(name2);
+    if (list5) list5.push(m);
     else byName.set(name2, [m]);
   }
   const crossing = {
@@ -51692,13 +52025,7 @@ function edgeClassOf(use) {
   if (use.includes("dependency")) return "holds";
   return "shape";
 }
-var DECLARATION_KINDS = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Abstract",
-  "Telo.Import",
-  "Telo.Application",
-  "Telo.Library"
-]);
+var isDeclarationDocument = (manifest) => manifest.kind === "Telo.Import" || manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library" || isKindDocument(manifest);
 var moduleOf5 = (manifest) => manifest.metadata?.module;
 var canonicalKindOf2 = (definition) => {
   const metadata = definition?.metadata;
@@ -51810,7 +52137,7 @@ function buildModuleGraph(resources, callGraph, deps, options = {}) {
   const manifestById = /* @__PURE__ */ new Map();
   for (const manifest of resources) {
     const name2 = manifest.metadata?.name;
-    if (typeof name2 !== "string" || !manifest.kind || DECLARATION_KINDS.has(manifest.kind)) continue;
+    if (typeof name2 !== "string" || !manifest.kind || isDeclarationDocument(manifest)) continue;
     if (root && manifest === options.root) continue;
     if (isForwardedShape(manifest)) continue;
     const id = idOf(manifest);
@@ -51823,7 +52150,7 @@ function buildModuleGraph(resources, callGraph, deps, options = {}) {
   const scopedByOwner = /* @__PURE__ */ new Map();
   for (const graphNode of callGraph.nodes.values()) {
     if (graphNode.type !== "resource") continue;
-    if (DECLARATION_KINDS.has(graphNode.kind)) continue;
+    if (isDeclarationDocument(graphNode.manifest)) continue;
     if (graphNode.scoped) {
       const key2 = `${graphNode.scopeOwner ?? ""}#scope#${resourceId(graphNode.kind, graphNode.name)}`;
       const already = scopedIdByKey.get(key2);
@@ -51990,9 +52317,9 @@ function buildModuleGraph(resources, callGraph, deps, options = {}) {
     }
     return id;
   };
-  for (const [from, list4] of inlineEdgeSeeds) {
+  for (const [from, list5] of inlineEdgeSeeds) {
     const fromModule = byId.get(from)?.module;
-    for (const seed of list4) {
+    for (const seed of list5) {
       const to = seed.forward ? forwardTarget(seed.forward) : resolveName(seed.toName, fromModule) ?? byQualifiedName.get(seed.toName);
       const edge = {
         id: `${from}\0${seed.path}`,
@@ -52639,13 +52966,13 @@ function buildKindPlane(resources, nodes, deps, options) {
   }
   const out = [];
   for (const manifest of resources) {
-    const docKind = manifest.kind;
-    if (docKind !== "Telo.Definition" && docKind !== "Telo.Abstract") continue;
+    const declared = kindDeclarationOf(manifest);
+    if (!declared) continue;
     const name2 = manifest.metadata?.name;
     if (!name2) continue;
     const module = moduleOf5(manifest);
     const id = module ? `${module}.${name2}` : name2;
-    const record = manifest;
+    const record = declared;
     const extendsName = typeof record.extends === "string" ? record.extends : void 0;
     const parent = extendsName ? deps.definition(extendsName, module) : void 0;
     const parentModule = parent ? moduleOf5(parent) : void 0;
@@ -52653,7 +52980,7 @@ function buildKindPlane(resources, nodes, deps, options) {
     const kind = {
       id,
       name: name2,
-      abstract: docKind === "Telo.Abstract",
+      abstract: declared.kind === "Telo.Abstract",
       instances: instancesByKind.get(id) ?? [],
       template: TEMPLATE_FIELDS.some((f2) => record[f2] !== void 0),
       own: !!options.entryModule && module === options.entryModule
@@ -53087,7 +53414,7 @@ function derivedSlotsOf(resource, ctx) {
     {
       aliases: ctx.aliases,
       aliasesByModule: ctx.aliasesByModule,
-      skipKinds: REF_VALIDATION_SKIP_KINDS
+      skip: isKindDocument
     }
   );
   return out;
@@ -53111,8 +53438,8 @@ function byNameOf(allManifests) {
     for (const m of allManifests) {
       const name2 = m.metadata?.name;
       if (typeof name2 !== "string" || m.kind === "Telo.Import") continue;
-      const list4 = byName.get(name2);
-      if (list4) list4.push(m);
+      const list5 = byName.get(name2);
+      if (list5) list5.push(m);
       else byName.set(name2, [m]);
     }
     declarationsByName.set(allManifests, byName);
@@ -55117,11 +55444,12 @@ function libraryDeclarations(documents) {
       const name2 = manifest.metadata?.name;
       if (isModuleKind(manifest.kind)) {
         for (const input of readResourceInputs(manifest)) inputs.add(key(library.module, input.name));
+        for (const need of readNeeds(manifest)) inputs.add(key(library.module, need.name));
         continue;
       }
       if (typeof name2 !== "string") continue;
       if (manifest.kind === "Telo.Import") imports.set(key(library.module, name2), manifest);
-      else if (manifest.kind !== "Telo.Definition" && manifest.kind !== "Telo.Abstract") {
+      else if (!isKindDocument(manifest)) {
         declarations.set(key(library.module, name2), manifest);
       }
     }
@@ -55210,11 +55538,6 @@ function formatCycle(cycle) {
   }
   return lines.join("\n");
 }
-var DECLARATION_KINDS2 = /* @__PURE__ */ new Set([
-  "Telo.Import",
-  "Telo.Definition",
-  "Telo.Abstract"
-]);
 function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases) {
   const keyOf = /* @__PURE__ */ new Map();
   for (const [key2, node] of nodes) keyOf.set(node.manifest, key2);
@@ -55227,7 +55550,7 @@ function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusR
     if (typeof name2 !== "string" || typeof m.kind !== "string" || isModuleKind(m.kind)) continue;
     let key2 = keyOf.get(m);
     if (key2 === void 0) {
-      if (!DECLARATION_KINDS2.has(m.kind)) continue;
+      if (m.kind !== "Telo.Import" && !isKindDocument(m)) continue;
       key2 = nodeIdFor(m);
     }
     if (!all.has(key2)) all.set(key2, nodes.get(key2) ?? { kind: m.kind, name: name2, manifest: m });
@@ -55236,7 +55559,7 @@ function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusR
       let imports = importsByScope.get(scope);
       if (!imports) importsByScope.set(scope, imports = /* @__PURE__ */ new Map());
       imports.set(name2, key2);
-    } else if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract") {
+    } else if (isKindDocument(m)) {
       const module = declaringModuleOf2(m);
       if (module) definitions.set(`${module}.${name2}`, key2);
     }
@@ -55416,12 +55739,15 @@ function addResourceInputEdges(resources, nodes, deps) {
   for (const m of resources) {
     if (m.kind !== "Telo.Import") continue;
     const alias = m.metadata?.name;
-    const supplied = readSuppliedResources(m);
-    if (!alias || Object.keys(supplied).length === 0) continue;
+    const targets = [
+      ...Object.values(readSuppliedResources(m)).map(suppliedResourceTarget),
+      ...needSupplyTargets(readSuppliedNeeds(m))
+    ].filter((name2) => name2 !== void 0);
+    if (!alias || targets.length === 0) continue;
     const key2 = nodeKey(m.kind, alias);
     nodes.set(key2, { kind: m.kind, name: alias, manifest: m });
     if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
-    imports.push({ key: key2, supplied });
+    imports.push({ key: key2, targets });
   }
   if (imports.length === 0) return;
   const byName = /* @__PURE__ */ new Map();
@@ -55432,16 +55758,31 @@ function addResourceInputEdges(resources, nodes, deps) {
     const key2 = alias ? nodeKey(m.kind, alias) : void 0;
     if (alias && key2 && nodes.has(key2)) byName.set(alias, key2);
   }
-  for (const { key: key2, supplied } of imports) {
+  for (const { key: key2, targets } of imports) {
     const set2 = deps.get(key2);
-    for (const value2 of Object.values(supplied)) {
-      const ref = value2;
-      const alias = typeof ref?.alias === "string" ? ref.alias : void 0;
-      const targetName = alias && alias !== "Self" ? alias : typeof ref?.name === "string" ? ref.name : void 0;
-      const target = targetName ? byName.get(targetName) : void 0;
+    for (const targetName of targets) {
+      const target = byName.get(targetName);
       if (target && target !== key2) set2.add(target);
     }
   }
+}
+function suppliedResourceTarget(value2) {
+  const ref = value2;
+  const alias = typeof ref?.alias === "string" ? ref.alias : void 0;
+  return alias && alias !== "Self" ? alias : typeof ref?.name === "string" ? ref.name : void 0;
+}
+function needSupplyTargets(supplied) {
+  const out = [];
+  for (const value2 of Object.values(supplied)) {
+    const supply = needSupplyOf(value2);
+    if (supply.form === "whole") {
+      const { alias, name: name2 } = supply.target;
+      out.push(alias && alias !== "Self" ? alias : name2);
+    } else if (supply.form === "fields") {
+      out.push(...celResourceReads({ fields: supply.fields }));
+    }
+  }
+  return out;
 }
 function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModule) {
   const byName = /* @__PURE__ */ new Map();
@@ -55896,7 +56237,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
   const byName = /* @__PURE__ */ new Map();
   const byModuleName = /* @__PURE__ */ new Map();
   for (const r of resources) {
-    if (!r.metadata?.name || REF_RESOLUTION_SKIP_KINDS.has(r.kind)) continue;
+    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
     const name2 = r.metadata.name;
     if (isForeign(r)) {
       if (isForwardedExport(r)) byModuleName.set(`${moduleOf6(r)}\0${name2}`, r);
@@ -55905,7 +56246,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
     }
   }
   for (const r of crossModuleTargets) {
-    if (!r.metadata?.name || REF_RESOLUTION_SKIP_KINDS.has(r.kind) || !isForwardedExport(r)) continue;
+    if (!r.metadata?.name || isKindDocumentOrImport(r) || !isForwardedExport(r)) continue;
     byModuleName.set(`${moduleOf6(r)}\0${r.metadata.name}`, r);
   }
   const resolveTarget = (source) => {
@@ -55936,7 +56277,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
   };
   const byDeclaringModule = /* @__PURE__ */ new Map();
   for (const r of resources) {
-    if (!r.metadata?.name || REF_RESOLUTION_SKIP_KINDS.has(r.kind)) continue;
+    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
     byDeclaringModule.set(`${moduleOf6(r) ?? ""}\0${r.metadata.name}`, r);
   }
   const shapeResolverFor = (doc) => {
@@ -56016,7 +56357,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
       if (supplied) r.resources = walk5(supplied);
       continue;
     }
-    if (REF_RESOLUTION_SKIP_KINDS.has(r.kind)) {
+    if (isKindDocument(r)) {
       if (r.kind === "Telo.Definition" || r.kind === "Telo.Abstract") {
         walkShapeFields(r, KIND_SHAPE_FIELDS);
       }
@@ -56555,6 +56896,7 @@ function runZoneAnalysis(args) {
   const { manifests, graph, defs, aliases, aliasesByModule, rootModules } = args;
   const seeds = /* @__PURE__ */ new Map();
   for (const docs of args.moduleDocuments ?? []) {
+    if (docs.exportedNames.length === 0) continue;
     const contracts = deriveLibraryExportRequirements(
       docs,
       defs,
@@ -57656,7 +57998,14 @@ function checkAnnotation(annotation, manifest, path, issues) {
   }
   return declaredUses(use);
 }
-var REF_ANNOTATION_KEYS = /* @__PURE__ */ new Set(["kind", "use", "inputs", "throwsThrough", "outputType"]);
+var REF_ANNOTATION_KEYS = /* @__PURE__ */ new Set([
+  "kind",
+  "use",
+  "inputs",
+  "throwsThrough",
+  "outputType",
+  "observes"
+]);
 function carriesRefAnnotation(obj) {
   if (obj["x-telo-ref"] !== void 0) return true;
   for (const key2 of ["anyOf", "oneOf"]) {
@@ -57669,6 +58018,9 @@ function carriesRefAnnotation(obj) {
     }
   }
   return false;
+}
+function forEachRefSlotNode(schema4, path, onSlot) {
+  walkSchema2(schema4, path, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), onSlot);
 }
 function walkSchema2(node, path, visited, claimedBranches, onSlot) {
   if (!node || typeof node !== "object") return;
@@ -58023,8 +58375,15 @@ function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
   const reached = /* @__PURE__ */ new Set();
   const resolveRef2 = namedShapeResolver(manifests);
   for (const site of contractSites(manifests)) sensitivePaths(site.schema, resolveRef2, reached);
+  const needFields = /* @__PURE__ */ new Set();
+  for (const manifest of manifests) {
+    if (!isNeedTypeDoc(manifest)) continue;
+    for (const schema4 of Object.values(readNeedTypeShape(manifest).fields)) {
+      if (Object.hasOwn(schema4, ANNOTATION2)) needFields.add(schema4);
+    }
+  }
   for (const [node, written] of marks) {
-    if (!own2(written)) continue;
+    if (!own2(written) || needFields.has(node)) continue;
     const value2 = node[ANNOTATION2];
     const path = written.path.join(".");
     if (value2 !== true) {
@@ -58196,8 +58555,8 @@ function spanAttributePaths(schema4, resolveRef2) {
       }
     }
     for (const branch of ["allOf", "anyOf", "oneOf"]) {
-      const list4 = s[branch];
-      if (Array.isArray(list4)) for (const child of list4) walk5(child, path, document, collection, here);
+      const list5 = s[branch];
+      if (Array.isArray(list5)) for (const child of list5) walk5(child, path, document, collection, here);
     }
     const entered = collection ?? { node, path };
     if (s.additionalProperties && typeof s.additionalProperties === "object") {
@@ -63114,15 +63473,15 @@ var LineCounter = class {
 };
 
 // ../../node_modules/.pnpm/yaml@2.8.3/node_modules/yaml/browser/dist/parse/parser.js
-function includesToken(list4, type) {
-  for (let i = 0; i < list4.length; ++i)
-    if (list4[i].type === type)
+function includesToken(list5, type) {
+  for (let i = 0; i < list5.length; ++i)
+    if (list5[i].type === type)
       return true;
   return false;
 }
-function findNonEmptyIndex(list4) {
-  for (let i = 0; i < list4.length; ++i) {
-    switch (list4[i].type) {
+function findNonEmptyIndex(list5) {
+  for (let i = 0; i < list5.length; ++i) {
+    switch (list5[i].type) {
       case "space":
       case "comment":
       case "newline":
@@ -65192,8 +65551,8 @@ function walk3(node, path, found) {
     }
   }
   for (const key2 of SCHEMA_LISTS) {
-    const list4 = schema4[key2];
-    if (Array.isArray(list4)) list4.forEach((child, i) => walk3(child, `${path}.${key2}[${i}]`, found));
+    const list5 = schema4[key2];
+    if (Array.isArray(list5)) list5.forEach((child, i) => walk3(child, `${path}.${key2}[${i}]`, found));
   }
   for (const key2 of SCHEMA_NODES) walk3(schema4[key2], `${path}.${key2}`, found);
 }
@@ -65444,7 +65803,7 @@ function validateModuleMetadata(manifests, registry, aliases) {
   }
   for (const manifest of manifests) {
     const isModuleDoc = manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library";
-    const isKindDoc = manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract";
+    const isKindDoc = isKindDocument(manifest);
     if (!isModuleDoc && !isKindDoc) continue;
     const metadata = manifest.metadata;
     if (!metadata) continue;
@@ -65659,14 +66018,14 @@ function refuse(message, hint) {
 function hintedRefusal(message, version2) {
   return parseModuleVersion(version2) ? refuse(message, `>=${version2}`) : refuse(message);
 }
-function parseVersionRange(raw) {
+function parseVersionRange(raw, reading = "requires") {
   if (typeof raw !== "string" || raw.trim() === "") {
     return refuse(`expected a version range string, got ${describe3(raw)}`);
   }
   const text3 = raw.trim();
   if (text3.includes("||")) {
     return refuse(
-      `'${text3}' is a disjunction. A range must be a conjunction of comparators, because verification runs the CLI at its lowest and highest bound and a disjunction has neither`
+      reading === "need" ? `'${text3}' is a disjunction. A need's range must be a conjunction of comparators, because a need forwarded whole must state a range within the one it supplies, and containment is decided over the single interval a conjunction bounds` : `'${text3}' is a disjunction. A range must be a conjunction of comparators, because verification runs the CLI at its lowest and highest bound and a disjunction has neither`
     );
   }
   if (/\s-\s/.test(text3)) {
@@ -65683,8 +66042,8 @@ function parseVersionRange(raw) {
       const parsed2 = parseModuleVersion(version3);
       const upper = parsed2 && parsed2.major === 0 ? `0.${parsed2.minor + 1}.0` : `${(parsed2?.major ?? 0) + 1}.0.0`;
       return refuse(
-        `'${term}' is not accepted. Pre-1.0, '${term[0]}' allows only ${version3} up to ${upper}, and Telo ships breaking changes as minor bumps \u2014 so it pins this module to a single release generation, which is almost never what is meant`,
-        `>=${version3}`
+        reading === "need" ? `'${term}' is not accepted: '${term[0]}' would admit ${version3} up to ${upper}, and a need's range states both bounds as comparators` : `'${term}' is not accepted. Pre-1.0, '${term[0]}' allows only ${version3} up to ${upper}, and Telo ships breaking changes as minor bumps \u2014 so it pins this module to a single release generation, which is almost never what is meant`,
+        reading === "need" ? `>=${version3} <${upper}` : `>=${version3}`
       );
     }
     if (/(^|\.)[x*]$/i.test(term) || /(^|\.)[x*]\./i.test(term)) {
@@ -65735,14 +66094,14 @@ function lowerBound(range) {
 function upperBound(range) {
   return lowest(range.comparators.filter((c) => c.operator === "<=" || c.operator === "<"));
 }
-function highest(list4) {
-  return list4.reduce(
+function highest(list5) {
+  return list5.reduce(
     (best, c) => best === void 0 || compareParsedModuleVersions(c.parsed, best.parsed) > 0 ? c : best,
     void 0
   );
 }
-function lowest(list4) {
-  return list4.reduce(
+function lowest(list5) {
+  return list5.reduce(
     (best, c) => best === void 0 || compareParsedModuleVersions(c.parsed, best.parsed) < 0 ? c : best,
     void 0
   );
@@ -65759,6 +66118,22 @@ function rangeInterval(range) {
     ...low ? { min: { version: low.raw, inclusive: low.operator === ">=" } } : {},
     ...high ? { max: { version: high.raw, inclusive: high.operator === "<=" } } : {}
   };
+}
+function rangeWithin(inner, outer) {
+  const a = rangeInterval(inner);
+  const b = rangeInterval(outer);
+  const versionOf = (bound) => parseModuleVersion(bound.version);
+  if (b.min) {
+    if (!a.min) return false;
+    const cmp = compareParsedModuleVersions(versionOf(a.min), versionOf(b.min));
+    if (cmp < 0 || cmp === 0 && a.min.inclusive && !b.min.inclusive) return false;
+  }
+  if (b.max) {
+    if (!a.max) return false;
+    const cmp = compareParsedModuleVersions(versionOf(a.max), versionOf(b.max));
+    if (cmp > 0 || cmp === 0 && a.max.inclusive && !b.max.inclusive) return false;
+  }
+  return true;
 }
 function isUnsatisfiable(range) {
   const low = lowerBound(range);
@@ -65866,7 +66241,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.116.0";
+var TELO_SURFACE_VERSION = "0.117.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE20 = "telo-analyzer";
@@ -66564,6 +66939,867 @@ function validateProviderCoherence(manifests, registry, aliases) {
   return diagnostics;
 }
 
+// ../../analyzer/nodejs/src/need-env-name.ts
+var NEED_ENV_PREFIX = "TELO_NEED_";
+var isUpper = (c) => c !== void 0 && c >= "A" && c <= "Z";
+var isLower = (c) => c !== void 0 && c >= "a" && c <= "z";
+var isDigit3 = (c) => c !== void 0 && c >= "0" && c <= "9";
+function envNameSegment(name2) {
+  let out = "";
+  for (let i = 0; i < name2.length; i++) {
+    const c = name2[i];
+    if (i > 0 && isUpper(c)) {
+      const prev = name2[i - 1];
+      const next = name2[i + 1];
+      if (isLower(prev) || isDigit3(prev) || isUpper(prev) && isLower(next)) out += "_";
+    }
+    out += c.toUpperCase();
+  }
+  return out;
+}
+function derivedNeedEnvName(path, field) {
+  return NEED_ENV_PREFIX + [...path, field].map(envNameSegment).join("__");
+}
+
+// ../../analyzer/nodejs/src/need-table.ts
+var STATIC_TO_RUNTIME = {
+  DUPLICATE_RESOURCE_NAME: "ERR_DUPLICATE_RESOURCE",
+  SCHEMA_VIOLATION: "ERR_RESOURCE_SCHEMA_VALIDATION_FAILED",
+  UNRESOLVED_REFERENCE: "ERR_REF_UNRESOLVED"
+};
+function runtimeCodeOf(code) {
+  return STATIC_TO_RUNTIME[code] ?? `ERR_${code}`;
+}
+function sourceOf(m) {
+  return m?.metadata?.source;
+}
+function list4(names) {
+  const all = [...names];
+  return all.length > 0 ? all.join(", ") : "(none)";
+}
+function resolveNeedTable(graph) {
+  const problems = [];
+  const problem = (module, code, message, at2, reportedElsewhere) => {
+    const manifest = at2.manifest ?? module.doc;
+    problems.push({
+      code,
+      runtimeCode: runtimeCodeOf(code),
+      module: module.name,
+      message,
+      filePath: sourceOf(manifest),
+      resource: at2.resource ?? {
+        kind: manifest?.kind ?? "Telo.Library",
+        name: manifest?.metadata?.name ?? module.name
+      },
+      path: at2.path,
+      ...reportedElsewhere ? { reportedElsewhere } : {}
+    });
+  };
+  for (const module of graph.modules.values()) {
+    if (module.checked) checkModule(graph, module, problem);
+  }
+  checkConstraintsVerified(graph, problem);
+  const { entries, environment } = walkTree2(graph);
+  const root = graph.modules.get(graph.root);
+  if (root?.application) checkEnvNames(root, environment, problem);
+  return { entries, problems, environment };
+}
+function checkModule(graph, module, report) {
+  for (const doc of module.needTypes) {
+    const shape = readNeedTypeShape(doc);
+    const name2 = doc.metadata?.name;
+    shape.required.forEach((field, i) => {
+      if (field in shape.fields) return;
+      report(
+        module,
+        "NEED_FIELD_UNDECLARED",
+        `Telo.NeedType/${name2}: 'required' lists '${field}', which is not one of its fields. Fields: ${list4(Object.keys(shape.fields))}.`,
+        { manifest: doc, resource: { kind: NEED_TYPE_KIND, name: name2 }, path: `required[${i}]` }
+      );
+    });
+    for (const [field, schema4] of Object.entries(shape.fields)) {
+      if (!Object.hasOwn(schema4, "x-telo-sensitive")) continue;
+      const mark = schema4["x-telo-sensitive"];
+      if (mark !== true) {
+        report(
+          module,
+          "SENSITIVE_ANNOTATION_INVALID",
+          `'x-telo-sensitive' must be \`true\`; got ${JSON.stringify(mark)}. It is a marker, not a level \u2014 a value other than \`true\` reads as "not sensitive".`,
+          { manifest: doc, resource: { kind: NEED_TYPE_KIND, name: name2 }, path: `fields.${field}` }
+        );
+        continue;
+      }
+      if (isTextFieldSchema(schema4)) continue;
+      report(
+        module,
+        "SENSITIVE_ANNOTATION_INVALID",
+        `'x-telo-sensitive' on a need-type field requires a string field: the value is redacted by replacing its text wherever it is printed, which a ${JSON.stringify(
+          schema4.type ?? "untyped"
+        )} value has none of. Declare the field 'type: string', or remove the mark.`,
+        { manifest: doc, resource: { kind: NEED_TYPE_KIND, name: name2 }, path: `fields.${field}` }
+      );
+    }
+  }
+  for (const need of module.needs) {
+    const at2 = { path: `needs.${need.name}.kind` };
+    const shape = need.type ? graph.needType(need.type) : void 0;
+    if (!shape) {
+      report(
+        module,
+        "NEED_TYPE_UNRESOLVED",
+        need.type && graph.isKind(need.type) ? `Need '${need.name}' names kind '${need.kind}', which is not a need type. A need names a kind a Telo.NeedType document declares.` : `Need '${need.name}' names kind '${need.kind}', which does not resolve to a need type in this module's scope. Write it alias-qualified \u2014 '<Alias>.<Kind>' for a need type an import exports, or 'Self.<Kind>' for one this module declares.`,
+        at2
+      );
+    } else {
+      checkParameters(module, need, shape, report);
+      checkConstraints(module, need, shape, report);
+    }
+    checkEnvBindings(module, need, shape, report);
+    const collision = module.otherNames.get(need.name) ?? (module.declarations?.some((d) => d.name === need.name) ? `resource '${need.name}'` : void 0);
+    if (collision) {
+      report(
+        module,
+        "DUPLICATE_RESOURCE_NAME",
+        `Need '${need.name}' collides with ${collision} declared in module '${module.name}' \u2014 a need is a declaration in the module's one namespace. Rename one of them.`,
+        { path: `needs.${need.name}` },
+        true
+      );
+    }
+  }
+  const optionalNeeds = new Set(module.needs.filter((n) => n.optional).map((n) => n.name));
+  for (const reference of module.references ?? []) {
+    const local = reference.target.alias === void 0 || reference.target.alias === "Self";
+    if (!local || !optionalNeeds.has(reference.target.name)) continue;
+    const declaration = reference.declaration;
+    report(
+      module,
+      "NEED_OPTIONAL_REFERENCED",
+      `${declaration.kind}/${declaration.name}: '${reference.path}' references need '${reference.target.name}', which is optional and may be absent. A reference slot holds a fulfilment for the resource's whole life \u2014 read an optional need's fields through a guarded CEL expression, forward it to a need that is itself optional, or make it required.`,
+      {
+        manifest: declaration.manifest,
+        resource: { kind: declaration.kind, name: declaration.name },
+        path: reference.path
+      }
+    );
+  }
+  for (const input of module.resourceInputs) {
+    if (!input.type || !graph.needType(input.type)) continue;
+    report(
+      module,
+      "RESOURCE_INPUT_NEED_TYPE",
+      `Resource input '${input.name}' is constrained to need type '${input.kind}'. A resource input is a live instance the importer must hand over; a value any level up to the environment may supply is a need \u2014 declare it under 'needs:'.`,
+      { path: `resources.${input.name}.kind` }
+    );
+  }
+  for (const declaration of module.declarations ?? []) {
+    const shape = declaration.type ? graph.needType(declaration.type) : void 0;
+    if (!shape) continue;
+    const fields = declaration.manifest.fields;
+    const written = fields && typeof fields === "object" && !Array.isArray(fields) ? fields : {};
+    const resource = { kind: declaration.kind, name: declaration.name };
+    checkFields(
+      module,
+      written,
+      shape,
+      `${declaration.kind}/${declaration.name}`,
+      declaration.type,
+      "fields",
+      { manifest: declaration.manifest, resource },
+      report
+    );
+  }
+  for (const imp of module.imports) {
+    const target = imp.target ? graph.modules.get(imp.target) : void 0;
+    if (!target) continue;
+    checkSupply(graph, module, imp, target, report);
+  }
+}
+function checkParameters(module, need, shape, report) {
+  const path = `needs.${need.name}.parameters`;
+  if (!shape.parameters) {
+    if (need.parameters === void 0) return;
+    report(
+      module,
+      "NEED_PARAMETERS_INVALID",
+      `Need '${need.name}' states parameters, but need type '${need.kind}' declares none.`,
+      { path }
+    );
+    return;
+  }
+  const [issue] = validateAgainstSchema(need.parameters ?? {}, shape.parameters);
+  if (!issue) return;
+  report(
+    module,
+    "NEED_PARAMETERS_INVALID",
+    `Need '${need.name}': parameters do not satisfy need type '${need.kind}' \u2014 ${issue.path ? `at '${issue.path}': ` : ""}${issue.message}.`,
+    { path: issue.path ? `${path}.${issue.path}` : path }
+  );
+}
+function needVersionRange(need) {
+  if (typeof need.version !== "string") return void 0;
+  const parsed = parseVersionRange(need.version, "need");
+  return parsed.ok ? parsed.range : void 0;
+}
+function needFeatures(need) {
+  return Array.isArray(need.features) ? need.features.filter((f2) => typeof f2 === "string") : [];
+}
+function checkConstraints(module, need, shape, report) {
+  if (need.version !== void 0) {
+    const path = `needs.${need.name}.version`;
+    if (shape.version !== "semver") {
+      report(
+        module,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}' states a version, but need type '${need.kind}' is not versioned (it declares no 'version: semver'). Drop 'version:'.`,
+        { path }
+      );
+    } else {
+      const parsed = parseVersionRange(need.version, "need");
+      if (!parsed.ok) {
+        report(
+          module,
+          "NEED_PARAMETERS_INVALID",
+          `Need '${need.name}': 'version' is not a range of explicit comparators \u2014 ${parsed.error.message}${parsed.error.hint ? `. Write '${parsed.error.hint}'` : ""}.`,
+          { path }
+        );
+      } else if (isUnsatisfiable(parsed.range)) {
+        report(
+          module,
+          "NEED_PARAMETERS_INVALID",
+          `Need '${need.name}': version range '${parsed.range.raw}' admits no version.`,
+          { path }
+        );
+      }
+    }
+  }
+  if (need.features !== void 0) {
+    const path = `needs.${need.name}.features`;
+    const listed = new Set(shape.features ?? []);
+    if (!Array.isArray(need.features)) {
+      report(module, "NEED_PARAMETERS_INVALID", `Need '${need.name}': 'features' must be a list of feature names.`, { path });
+      return;
+    }
+    need.features.forEach((feature, i) => {
+      if (typeof feature === "string" && listed.has(feature)) return;
+      report(
+        module,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}': feature ${JSON.stringify(feature)} is not one need type '${need.kind}' lists. Features: ${list4(listed)}.`,
+        { path: `${path}[${i}]` }
+      );
+    });
+  }
+}
+function checkEnvBindings(module, need, shape, report) {
+  if (!need.declaresEnv) return;
+  const path = `needs.${need.name}.env`;
+  if (!module.application) {
+    report(
+      module,
+      "LIBRARY_ENV_KEY_REJECTED",
+      `Telo.Library needs/${need.name}: 'env:' is only permitted on Telo.Application needs. A library's need is read from its derived name when it reaches the root unsupplied; to choose the name, the application declares a need of its own with 'env:' and supplies it at the import ('needs: { ${need.name}: !ref <its need> }').`,
+      { path }
+    );
+    return;
+  }
+  if (!shape || !need.env) return;
+  for (const field of Object.keys(need.env)) {
+    if (field in shape.fields) continue;
+    report(
+      module,
+      "NEED_FIELD_UNDECLARED",
+      `Need '${need.name}': 'env:' binds field '${field}', which need type '${need.kind}' does not declare. Fields: ${list4(Object.keys(shape.fields))}.`,
+      { path: `${path}.${field}` }
+    );
+  }
+  const unbound = shape.required.filter((field) => field in shape.fields && !(field in need.env));
+  if (unbound.length === 0) return;
+  report(
+    module,
+    "NEED_SLOT_MISMATCH",
+    `Need '${need.name}': 'env:' does not bind ${unbound.length === 1 ? "the required field" : "the required fields"} ${unbound.map((f2) => `'${f2}'`).join(", ")} of need type '${need.kind}' \u2014 an 'env:' map names the variable of every required field.`,
+    { path }
+  );
+}
+function checkEnvNames(root, environment, report) {
+  const claimed = /* @__PURE__ */ new Map();
+  const doc = root.doc;
+  for (const block of ["variables", "secrets", "ports"]) {
+    const entries = doc?.[block];
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+    for (const [name2, entry] of Object.entries(entries)) {
+      const env = entry?.env;
+      if (typeof env === "string") claimed.set(env, `${block}.${name2}`);
+    }
+  }
+  for (const entry of environment) {
+    for (const [field, info] of Object.entries(entry.fields ?? {})) {
+      const subject = `need '${entry.path.join(".")}' field '${field}'`;
+      const first = claimed.get(info.env);
+      if (first === void 0) {
+        claimed.set(info.env, subject);
+        continue;
+      }
+      const own2 = entry.declaredBy === root.key;
+      report(
+        root,
+        "NEED_ENV_NAME_COLLISION",
+        `${subject.charAt(0).toUpperCase()}${subject.slice(1)} reads environment variable '${info.env}' (${info.envSource}), which ${first} reads too. Each environment name supplies one value \u2014 ` + (own2 ? `bind another name with 'env:', or rename the need.` : `rename an import alias or a need, or declare a need of this application with 'env:' and supply it at the import.`),
+        own2 ? {
+          path: info.envSource === "bound" ? `needs.${entry.need.name}.env.${field}` : `needs.${entry.need.name}`
+        } : entry.via ? {
+          manifest: entry.via.manifest,
+          resource: { kind: "Telo.Import", name: entry.via.alias },
+          path: ""
+        } : { path: "imports" }
+      );
+    }
+  }
+}
+function checkFields(module, written, shape, subject, type, at2, anchor, report) {
+  for (const key2 of Object.keys(written)) {
+    if (key2 in shape.fields) continue;
+    report(
+      module,
+      "NEED_FIELD_UNDECLARED",
+      `${subject}: field '${key2}' is not declared by need type '${type}'. Fields: ${list4(Object.keys(shape.fields))}.`,
+      { ...anchor, path: `${at2}.${key2}` }
+    );
+  }
+  const missing = shape.required.filter((field) => !(field in written));
+  if (missing.length === 0) return;
+  report(
+    module,
+    "NEED_SLOT_MISMATCH",
+    `${subject} does not yield ${missing.length === 1 ? "the required field" : "the required fields"} ${missing.map((f2) => `'${f2}'`).join(", ")} of need type '${type}' \u2014 a fulfilment is every required field of its type.`,
+    { ...anchor, path: at2 }
+  );
+}
+function checkSupply(graph, module, imp, target, report) {
+  const resource = { kind: "Telo.Import", name: imp.alias };
+  const anchor = { manifest: imp.manifest, resource };
+  const declared = new Map(target.needs.map((need) => [need.name, need]));
+  for (const [key2, value2] of Object.entries(imp.supplied)) {
+    const path = `needs.${key2}`;
+    const need = declared.get(key2);
+    if (!need) {
+      report(
+        module,
+        "NEED_UNDECLARED",
+        `Import '${imp.alias}' supplies need '${key2}', which module '${target.name}' does not declare. Declared needs: ${list4(declared.keys())}.`,
+        { ...anchor, path }
+      );
+      continue;
+    }
+    const shape = need.type ? graph.needType(need.type) : void 0;
+    const supply = needSupplyOf(value2);
+    if (supply.form === "invalid") {
+      report(
+        module,
+        "NEED_SLOT_MISMATCH",
+        `Import '${imp.alias}': need '${key2}' must be a '!ref' to a need or fulfilment this module declares, or a map of the fields of need type '${need.kind}'.`,
+        { ...anchor, path }
+      );
+      continue;
+    }
+    if (supply.form === "fields") {
+      if (!shape) continue;
+      checkFields(
+        module,
+        supply.fields,
+        shape,
+        `Import '${imp.alias}': need '${key2}'`,
+        need.type,
+        path,
+        anchor,
+        report
+      );
+      for (const [field, written] of Object.entries(supply.fields)) {
+        const schema4 = shape.fields[field];
+        if (!schema4 || findDynamicLeaf(written)) continue;
+        const [issue] = validateAgainstSchema(written, schema4);
+        if (!issue) continue;
+        report(
+          module,
+          "SCHEMA_VIOLATION",
+          `Import '${imp.alias}': need '${key2}': field '${field}' does not match need type '${need.type}' \u2014 ${issue.message.replace(/^\/\s*/, "")}.`,
+          { ...anchor, path: `${path}.${field}` }
+        );
+      }
+      continue;
+    }
+    const source = supply.target.source;
+    const local = supply.target.alias === void 0 || supply.target.alias === "Self";
+    const ownNeed = local ? module.needs.find((n) => n.name === supply.target.name) : void 0;
+    const ownDeclaration = local ? module.declarations?.find((d) => d.name === supply.target.name) : void 0;
+    if (!ownNeed && !ownDeclaration) {
+      if (local && module.declarations === void 0) continue;
+      report(
+        module,
+        "UNRESOLVED_REFERENCE",
+        `Import '${imp.alias}': need '${key2}' \u2192 '${source}' names no need or fulfilment module '${module.name}' declares. A need is supplied whole by a '!ref' to one of this module's own needs, or to a fulfilment it declares.`,
+        { ...anchor, path }
+      );
+      continue;
+    }
+    const suppliedType = ownNeed ? ownNeed.type : ownDeclaration.type;
+    const suppliedKind = ownNeed ? ownNeed.kind : ownDeclaration.kind;
+    if (!need.type || !suppliedType) continue;
+    if (suppliedType !== need.type) {
+      report(
+        module,
+        "REFERENCE_KIND_MISMATCH",
+        `Import '${imp.alias}': need '${key2}' is need type '${need.type}', and '${source}' is '${suppliedKind}' (resolved: '${suppliedType}'). A need is supplied by a need or fulfilment of its own type.`,
+        { ...anchor, path }
+      );
+      continue;
+    }
+    if (ownNeed?.optional && !need.optional) {
+      report(
+        module,
+        "NEED_FORWARD_INCOMPATIBLE",
+        `Import '${imp.alias}': need '${key2}' is required by module '${target.name}', and '${source}' is an optional need, which may be absent. Make '${source}' required, or supply '${key2}' another way.`,
+        { ...anchor, path }
+      );
+    }
+    if (!ownNeed) continue;
+    const wanted = needVersionRange(need);
+    if (wanted) {
+      const stated = needVersionRange(ownNeed);
+      if (!stated || !rangeWithin(stated, wanted)) {
+        report(
+          module,
+          "NEED_FORWARD_INCOMPATIBLE",
+          `Import '${imp.alias}': need '${key2}' of module '${target.name}' requires version '${wanted.raw}', and '${source}' ${stated ? `states '${stated.raw}', which is not within it` : "states no version"}. Give '${source}' a 'version:' within '${wanted.raw}'.`,
+          { ...anchor, path }
+        );
+      }
+    }
+    const missing = needFeatures(need).filter((f2) => !needFeatures(ownNeed).includes(f2));
+    if (missing.length > 0) {
+      report(
+        module,
+        "NEED_FORWARD_INCOMPATIBLE",
+        `Import '${imp.alias}': need '${key2}' of module '${target.name}' requires the features ${needFeatures(need).map((f2) => `'${f2}'`).join(", ")}, and '${source}' does not ask for ${missing.map((f2) => `'${f2}'`).join(", ")}. Add ${missing.length === 1 ? "it" : "them"} to its 'features:'.`,
+        { ...anchor, path }
+      );
+    }
+  }
+}
+function constraintObservations(graph) {
+  const memo = /* @__PURE__ */ new Map();
+  const inProgress = /* @__PURE__ */ new Set();
+  const observedOf = (moduleKey) => {
+    const known = memo.get(moduleKey);
+    if (known) return known;
+    const module = graph.modules.get(moduleKey);
+    const out = /* @__PURE__ */ new Map();
+    if (!module || inProgress.has(moduleKey)) return out;
+    inProgress.add(moduleKey);
+    for (const need of module.needs) {
+      if (!module.references) {
+        out.set(need.name, void 0);
+        continue;
+      }
+      out.set(need.name, /* @__PURE__ */ new Set());
+    }
+    const merge2 = (name2, from) => {
+      if (!out.has(name2)) return;
+      const into = out.get(name2);
+      if (!into) return;
+      if (!from) {
+        out.set(name2, void 0);
+        return;
+      }
+      for (const c of from) into.add(c);
+    };
+    for (const reference of module.references ?? []) {
+      const local = reference.target.alias === void 0 || reference.target.alias === "Self";
+      if (local) merge2(reference.target.name, new Set(reference.observes));
+    }
+    for (const imp of module.imports) {
+      const target = imp.target ? graph.modules.get(imp.target) : void 0;
+      for (const [key2, value2] of Object.entries(imp.supplied)) {
+        const supply = needSupplyOf(value2);
+        if (supply.form !== "whole") continue;
+        const local = supply.target.alias === void 0 || supply.target.alias === "Self";
+        if (!local || !out.has(supply.target.name)) continue;
+        merge2(supply.target.name, target ? observedOf(target.key).get(key2) : void 0);
+      }
+    }
+    inProgress.delete(moduleKey);
+    memo.set(moduleKey, out);
+    return out;
+  };
+  return observedOf;
+}
+function checkConstraintsVerified(graph, report) {
+  const observedOf = constraintObservations(graph);
+  for (const module of graph.modules.values()) {
+    if (!module.checked) continue;
+    const observed = observedOf(module.key);
+    for (const need of module.needs) {
+      const shape = need.type ? graph.needType(need.type) : void 0;
+      if (!shape) continue;
+      const stated = [];
+      if (shape.version === "semver" && needVersionRange(need)) stated.push("version");
+      if (needFeatures(need).some((f2) => shape.features?.includes(f2))) stated.push("features");
+      if (stated.length === 0 || !observed.has(need.name)) continue;
+      const reached = observed.get(need.name);
+      if (!reached) continue;
+      for (const constraint of stated) {
+        if (reached.has(constraint)) continue;
+        report(
+          module,
+          "NEED_CONSTRAINT_UNVERIFIED",
+          `Need '${need.name}' states '${constraint}', and nothing verifies it: no reference slot observing '${constraint}' holds this need, in module '${module.name}' or in any need it is forwarded to whole. Reference the need whole at a slot that observes it, or drop '${constraint}:' \u2014 a pure provisioning request belongs in the type's 'parameters'.`,
+          { path: `needs.${need.name}.${constraint}` }
+        );
+      }
+    }
+  }
+}
+function walkTree2(graph) {
+  const entries = [];
+  const sharedVisited = /* @__PURE__ */ new Set();
+  const add = (module, need, path, supply, via, link) => {
+    const typeModule = need.type ? graph.needTypeModule?.(need.type) : void 0;
+    entries.push({
+      path,
+      ...link?.forwardedFrom ? { forwardedFrom: link.forwardedFrom } : {},
+      ...link?.suppliedBy ? { suppliedBy: link.suppliedBy } : {},
+      declaredBy: module.key,
+      moduleName: module.name,
+      ...sourceOf(module.doc) !== void 0 ? { filePath: sourceOf(module.doc) } : {},
+      need,
+      supply,
+      ...typeModule !== void 0 ? { typeModule } : {},
+      ...supply === "environment" ? { fields: envFields(graph, need, path) } : {},
+      ...via ? { via } : {}
+    });
+  };
+  const root = graph.modules.get(graph.root);
+  if (root?.application) {
+    for (const need of root.needs) add(root, need, [need.name], "environment", void 0);
+  }
+  const visit3 = (moduleKey, prefix, stack, via) => {
+    const module = graph.modules.get(moduleKey);
+    if (!module || stack.has(moduleKey)) return;
+    const inner = new Set(stack).add(moduleKey);
+    for (const imp of module.imports) {
+      const target = imp.target ? graph.modules.get(imp.target) : void 0;
+      if (!target) continue;
+      if (target.shared && sharedVisited.has(target.key)) continue;
+      if (target.shared) sharedVisited.add(target.key);
+      const at2 = target.shared ? [target.name] : [...prefix, imp.alias];
+      const reachedVia = via ?? imp;
+      for (const need of target.needs) {
+        const value2 = imp.supplied[need.name];
+        const read = value2 === void 0 ? void 0 : needSupplyOf(value2);
+        const supply = read === void 0 ? "environment" : read.form === "whole" ? "whole" : "fields";
+        let link;
+        if (read?.form === "whole") {
+          const name2 = read.target.name;
+          link = module.needs.some((n) => n.name === name2) ? { forwardedFrom: [...prefix, name2] } : { suppliedBy: `declaration '${name2}' of module '${module.name}'` };
+        } else if (read) {
+          link = { suppliedBy: `the field-by-field supply at import '${imp.alias}' of module '${module.name}'` };
+        }
+        add(target, need, [...at2, need.name], supply, reachedVia, link);
+      }
+      visit3(target.key, at2, inner, reachedVia);
+    }
+  };
+  visit3(graph.root, [], /* @__PURE__ */ new Set(), void 0);
+  return { entries, environment: entries.filter((entry) => entry.supply === "environment") };
+}
+function envFields(graph, need, path) {
+  const shape = need.type ? graph.needType(need.type) : void 0;
+  if (!shape) return {};
+  const sensitive = new Set(sensitiveNeedFields(shape));
+  const out = {};
+  for (const field of Object.keys(shape.fields)) {
+    const bound = need.env?.[field];
+    out[field] = {
+      env: bound ?? derivedNeedEnvName(path, field),
+      envSource: bound !== void 0 ? "bound" : "derived",
+      required: shape.required.includes(field),
+      sensitive: sensitive.has(field)
+    };
+  }
+  return out;
+}
+function moduleUnit(key2, manifests, scope, targetOf) {
+  const doc = manifests.find((m) => isModuleKind(m.kind));
+  const name2 = doc?.metadata?.name;
+  if (!doc || typeof name2 !== "string") return void 0;
+  const resolve = (kind) => scope.resolveKind(name2, kind);
+  const otherNames = /* @__PURE__ */ new Map();
+  otherNames.set(name2, `this module's own name`);
+  const declarations = [];
+  const bodies = [];
+  const imports = [];
+  const needTypes = [];
+  for (const m of manifests) {
+    if (isModuleKind(m.kind) || isInjectedDeclaration(m)) continue;
+    const declared = m.metadata?.name;
+    if (typeof declared !== "string") continue;
+    if (m.kind === "Telo.Import") {
+      otherNames.set(declared, `import alias '${declared}'`);
+      imports.push({
+        alias: declared,
+        manifest: m,
+        target: targetOf(m, declared),
+        supplied: readSuppliedNeeds(m)
+      });
+      continue;
+    }
+    if (isNeedTypeDoc(m)) needTypes.push(m);
+    if (isKindDocument(m)) {
+      otherNames.set(declared, `${m.kind} '${declared}'`);
+      const entries = templateBodyEntries(m);
+      const holder = { name: declared, kind: m.kind, manifest: m };
+      const siblings = new Set(
+        entries.map((e) => e.manifest.metadata?.name).filter((n) => typeof n === "string")
+      );
+      for (const entry of entries) {
+        bodies.push({ holder, manifest: entry.manifest, type: resolve(entry.kind), prefix: entry.prefix, siblings });
+      }
+      continue;
+    }
+    declarations.push({ name: declared, kind: m.kind, type: resolve(m.kind), manifest: m });
+  }
+  const resourceInputs = readResourceInputs(doc).map((input) => {
+    otherNames.set(input.name, `resource input '${input.name}'`);
+    return { name: input.name, kind: input.kind, type: resolve(input.kind) };
+  });
+  return {
+    key: key2,
+    name: name2,
+    doc,
+    application: doc.kind === "Telo.Application",
+    shared: readLibraryLifecycle(doc) === "shared",
+    needs: readNeeds(doc).map((need) => ({ ...need, type: resolve(need.kind) })),
+    resourceInputs,
+    declarations,
+    ...scope.referenceSites ? { references: referencesOf(declarations, bodies, resolve, scope.referenceSites) } : {},
+    needTypes,
+    otherNames,
+    imports,
+    checked: true
+  };
+}
+function referenceTarget(value2) {
+  if (isRefSentinel(value2)) {
+    const target = refSentinelTarget(value2);
+    return target ? { name: target.name, ...target.alias ? { alias: target.alias } : {} } : void 0;
+  }
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  const ref = value2;
+  if (typeof ref.kind !== "string" || typeof ref.name !== "string") return void 0;
+  return { name: ref.name, ...typeof ref.alias === "string" ? { alias: ref.alias } : {} };
+}
+function referencesOf(declarations, bodies, resolve, sitesOf2) {
+  const out = [];
+  const visit3 = (declaration, manifest, type, prefix, siblings) => {
+    if (!type) return;
+    const view = manifest.kind === type ? manifest : { ...manifest, kind: type };
+    for (const site of sitesOf2(view)) {
+      const at2 = prefix ? `${prefix}.${site.path}` : site.path;
+      const nested = (value2, path) => {
+        if (!value2 || typeof value2 !== "object" || Array.isArray(value2) || isRefSentinel(value2)) return;
+        const inline = value2;
+        if (typeof inline.kind !== "string" || typeof inline.name === "string") return;
+        visit3(declaration, inline, resolve(inline.kind), path, siblings);
+      };
+      if (site.scopes.length > 0 && Array.isArray(site.data)) {
+        site.data.forEach((entry, i) => nested(entry, `${at2}[${i}]`));
+        continue;
+      }
+      if (site.refs.length === 0) continue;
+      const target = referenceTarget(site.data);
+      if (!target) {
+        nested(site.data, at2);
+        continue;
+      }
+      const local = target.alias === void 0 || target.alias === "Self";
+      if (local && siblings?.has(target.name)) continue;
+      const observes = /* @__PURE__ */ new Set();
+      for (const ref of site.refs) for (const c of ref.slot.observes ?? []) observes.add(c);
+      out.push({ declaration, path: at2, target, observes: [...observes] });
+    }
+  };
+  for (const declaration of declarations) {
+    visit3(declaration, declaration.manifest, declaration.type, "");
+  }
+  for (const body2 of bodies) {
+    visit3(body2.holder, body2.manifest, body2.type, body2.prefix, body2.siblings);
+  }
+  return out;
+}
+function needGraphFromManifests(manifests, rootModules, scope, libraries = []) {
+  const modules = /* @__PURE__ */ new Map();
+  const flatImports = /* @__PURE__ */ new Map();
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Import") continue;
+    const module = m.metadata?.module;
+    flatImports.set(`${module ?? ""}\0${m.metadata?.name}`, m);
+  }
+  const targetOfImport = (imp) => {
+    const meta = imp.metadata;
+    return meta.resolvedSource ?? meta.resolvedModuleName;
+  };
+  let root;
+  for (const doc of manifests) {
+    if (!isModuleKind(doc.kind)) continue;
+    const name2 = doc.metadata?.name;
+    if (typeof name2 !== "string" || rootModules.size > 0 && !rootModules.has(name2)) continue;
+    const own2 = manifests.filter(
+      (m) => m === doc || m.metadata?.module === name2 && !m.metadata.forwardedExport && !m.metadata.forwardedInternal && !m.metadata.forwardedShape
+    );
+    const unit = moduleUnit(name2, own2, scope, targetOfImport);
+    if (!unit) continue;
+    modules.set(name2, unit);
+    root ??= name2;
+  }
+  if (root === void 0) return void 0;
+  const documentsOf = (target, moduleName2) => libraries.find((l) => l.sourceId === target) ?? (moduleName2 !== void 0 ? libraries.find((l) => l.module === moduleName2) : void 0);
+  const pending = [...modules.values()];
+  while (pending.length > 0) {
+    const unit = pending.shift();
+    for (const imp of unit.imports) {
+      if (!imp.target || modules.has(imp.target)) continue;
+      const meta = imp.manifest.metadata;
+      const targetName = meta.resolvedModuleName ?? imp.target;
+      const documents = documentsOf(imp.target, meta.resolvedModuleName);
+      const whole = documents ? moduleUnit(imp.target, documents.manifests, scope, (libImport, alias) => {
+        const flat = flatImports.get(`${documents.module}\0${alias}`);
+        return flat ? targetOfImport(flat) : targetOfImport(libImport);
+      }) : void 0;
+      if (whole) {
+        modules.set(imp.target, whole);
+        pending.push(whole);
+        continue;
+      }
+      modules.set(imp.target, {
+        key: imp.target,
+        name: targetName,
+        application: false,
+        shared: meta.sharedLibrary === true,
+        needs: Object.entries(meta.requiredNeeds ?? {}).map(([name2, need]) => ({
+          name: name2,
+          kind: need.kind,
+          type: scope.resolveKind(targetName, need.kind),
+          optional: need.optional === true,
+          declaresEnv: false,
+          ...need.parameters !== void 0 ? { parameters: need.parameters } : {},
+          ...need.version !== void 0 ? { version: need.version } : {},
+          ...need.features !== void 0 ? { features: need.features } : {}
+        })),
+        resourceInputs: [],
+        needTypes: [],
+        otherNames: /* @__PURE__ */ new Map(),
+        imports: [],
+        checked: false
+      });
+    }
+  }
+  return { root, modules, needType: scope.needType, isKind: scope.isKind };
+}
+
+// ../../analyzer/nodejs/src/validate-needs.ts
+var SOURCE25 = "telo-analyzer";
+var NEED_TABLE_MARK = "needTable";
+function needTableDiagnostics(manifests, rootModules, resolveKind, resolveDefinition, libraries = [], referenceSites) {
+  const graph = needGraphFromManifests(
+    manifests,
+    rootModules,
+    {
+      resolveKind,
+      needType: (kind) => needTypeOf(resolveDefinition(kind)),
+      isKind: (kind) => resolveDefinition(kind) !== void 0,
+      ...referenceSites ? { referenceSites } : {}
+    },
+    libraries
+  );
+  if (!graph) return [];
+  const reaching = reachingImports(graph, rootModules);
+  const out = [];
+  const reported = /* @__PURE__ */ new Set();
+  for (const p of resolveNeedTable(graph).problems) {
+    if (rootModules.has(p.module)) {
+      if (p.reportedElsewhere) continue;
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: p.code,
+        source: SOURCE25,
+        message: p.message,
+        data: {
+          ...p.resource ? { resource: p.resource } : {},
+          filePath: p.filePath,
+          path: p.path,
+          [NEED_TABLE_MARK]: true
+        }
+      });
+      continue;
+    }
+    const via = reaching.get(p.module);
+    if (!via) continue;
+    const key2 = `${p.code}\0${p.module}\0${p.message}`;
+    if (reported.has(key2)) continue;
+    reported.add(key2);
+    out.push({
+      severity: DiagnosticSeverity2.Error,
+      code: p.code,
+      source: SOURCE25,
+      message: `Imported library '${p.module}', reached through import '${via.alias}': ${p.message} The repair is the library's \u2014 import a version of it that resolves this.`,
+      data: {
+        resource: { kind: "Telo.Import", name: via.alias },
+        filePath: via.manifest.metadata?.source,
+        path: "",
+        [NEED_TABLE_MARK]: true
+      }
+    });
+  }
+  return out;
+}
+function reachingImports(graph, rootModules) {
+  const out = /* @__PURE__ */ new Map();
+  for (const module of graph.modules.values()) {
+    if (!rootModules.has(module.name)) continue;
+    for (const imp of module.imports) {
+      const queue = imp.target ? [imp.target] : [];
+      const seen = /* @__PURE__ */ new Set();
+      while (queue.length > 0) {
+        const key2 = queue.shift();
+        if (seen.has(key2)) continue;
+        seen.add(key2);
+        const target = graph.modules.get(key2);
+        if (!target || rootModules.has(target.name)) continue;
+        if (!out.has(target.name)) out.set(target.name, imp);
+        for (const next of target.imports) if (next.target) queue.push(next.target);
+      }
+    }
+  }
+  return out;
+}
+function importNeedsSlotSchema(importDoc, resolveKind, resolveDefinition) {
+  if (importDoc.kind !== "Telo.Import") return void 0;
+  const meta = importDoc.metadata;
+  const target = meta.resolvedModuleName;
+  if (!target || !meta.requiredNeeds) return void 0;
+  const needs = {};
+  for (const [name2, value2] of Object.entries(readSuppliedNeeds(importDoc))) {
+    const declared = meta.requiredNeeds[name2];
+    if (!declared || needSupplyOf(value2).form !== "fields") continue;
+    const type = resolveKind(target, declared.kind);
+    const shape = type ? needTypeOf(resolveDefinition(type)) : void 0;
+    if (!shape) continue;
+    needs[name2] = { type: "object", properties: shape.fields };
+  }
+  if (Object.keys(needs).length === 0) return void 0;
+  return { type: "object", properties: { needs: { type: "object", properties: needs } } };
+}
+
 // ../../analyzer/nodejs/src/callable-slot.ts
 function callableSlotVerdict(referent, label2, targetKinds, ctx) {
   const targets = targetKinds.map((kind) => ctx.registry.resolve(ctx.registry.resolveRef(kind) ?? kind)).filter(
@@ -66612,9 +67848,10 @@ function analyzedTwin2(ctx, def) {
 }
 
 // ../../analyzer/nodejs/src/validate-references.ts
-var SOURCE25 = "telo-analyzer";
+var SOURCE26 = "telo-analyzer";
 function describeNamed(m, name2) {
   if (m.kind === "Telo.Import") return `import alias '${name2}'`;
+  if (injectedNeedOf(m)) return `need '${name2}'`;
   if (isModuleKind(m.kind)) return `this module's own name (${m.kind} '${name2}')`;
   return `resource ${m.kind}/${name2}`;
 }
@@ -66649,9 +67886,9 @@ function duplicateNameDiagnostics(resources, isForeign, moduleOf6) {
     else names.set(name2, [r]);
   }
   for (const names of byScope.values()) {
-    for (const [name2, list4] of names) {
-      if (list4.length <= 1) continue;
-      const [first, ...rest] = list4;
+    for (const [name2, list5] of names) {
+      if (list5.length <= 1) continue;
+      const [first, ...rest] = list5;
       for (const dup of rest) {
         if (dup.kind === "Telo.Import" && first.kind === "Telo.Import") continue;
         const dupMeta = dup.metadata;
@@ -66659,16 +67896,25 @@ function duplicateNameDiagnostics(resources, isForeign, moduleOf6) {
           start: { line: dupMeta.sourceLine, character: 0 },
           end: { line: dupMeta.sourceLine, character: Number.MAX_SAFE_INTEGER }
         } : void 0;
+        const needOwner = injectedNeedOf(dup) ? dup.metadata?.module : void 0;
+        const ownerDoc = needOwner ? resources.find((r) => isModuleKind(r.kind) && r.metadata?.name === needOwner) : void 0;
+        const needTable = injectedNeedOf(dup) || injectedNeedOf(first) ? { [NEED_TABLE_MARK]: true } : {};
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "DUPLICATE_RESOURCE_NAME",
-          source: SOURCE25,
+          source: SOURCE26,
           message: `${dup.kind}/${name2}: ${describeNamed(dup, name2)} collides with ${describeNamed(first, name2)} declared earlier \u2014 the kernel registers both under '${name2}' in one namespace, so boot fails with ERR_DUPLICATE_RESOURCE. Rename one of them.`,
-          ...range ? { range } : {},
-          data: {
+          ...range && !ownerDoc ? { range } : {},
+          data: ownerDoc ? {
+            resource: { kind: ownerDoc.kind, name: needOwner },
+            filePath: dupMeta?.source,
+            path: `needs.${name2}`,
+            ...needTable
+          } : {
             resource: { kind: dup.kind, name: name2 },
             filePath: dupMeta?.source,
-            path: "metadata.name"
+            path: "metadata.name",
+            ...needTable
           }
         });
       }
@@ -66731,7 +67977,7 @@ function validateReferences(resources, context, shared) {
       if (typeof m2 === "string") loadedModules.add(m2);
       continue;
     }
-    if (!r.metadata?.name || REF_VALIDATION_SKIP_KINDS.has(r.kind) || !isForwardedExport(r)) continue;
+    if (!r.metadata?.name || isKindDocument(r) || !isForwardedExport(r)) continue;
     const m = moduleOf6(r);
     if (!m) continue;
     byModuleName.set(`${m}\0${r.metadata.name}`, r);
@@ -66742,7 +67988,7 @@ function validateReferences(resources, context, shared) {
   const byNameAll = /* @__PURE__ */ new Map();
   const seen = /* @__PURE__ */ new Set();
   for (const r of resources) {
-    if (!r.metadata?.name || REF_VALIDATION_SKIP_KINDS.has(r.kind) || r.kind === "Telo.Import" || isForeign(r))
+    if (!r.metadata?.name || isKindDocument(r) || r.kind === "Telo.Import" || isForeign(r))
       continue;
     const name2 = r.metadata.name;
     const meta = r.metadata;
@@ -66755,7 +68001,7 @@ function validateReferences(resources, context, shared) {
   }
   diagnostics.push(...duplicateNameDiagnostics(resources, isForeign, moduleOf6));
   const byName = /* @__PURE__ */ new Map();
-  for (const [name2, list4] of byNameAll) byName.set(name2, list4[0]);
+  for (const [name2, list5] of byNameAll) byName.set(name2, list5[0]);
   let callableSlots;
   const callableSlotContext = () => {
     if (!callableSlots) {
@@ -66825,7 +68071,7 @@ function validateReferences(resources, context, shared) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "UNRESOLVED_REFERENCE",
-              source: SOURCE25,
+              source: SOURCE26,
               message: `${resourceLabel}: reference at '${concretePath2}' \u2192 '${refName3}' is not exported by module '${module ?? aliasPrefix}' (add it to exports.resources)`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             });
@@ -66838,7 +68084,7 @@ function validateReferences(resources, context, shared) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "UNRESOLVED_REFERENCE",
-              source: SOURCE25,
+              source: SOURCE26,
               message: `${resourceLabel}: reference at '${concretePath2}' \u2192 resource '${localName2}' not found`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             });
@@ -66854,7 +68100,7 @@ function validateReferences(resources, context, shared) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "REFERENCE_KIND_MISMATCH",
-              source: SOURCE25,
+              source: SOURCE26,
               message: `${resourceLabel}: reference at '${concretePath2}' \u2192 ${kindErrors2.join("; ")}`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             });
@@ -66873,7 +68119,7 @@ function validateReferences(resources, context, shared) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "INVALID_REFERENCE",
-            source: SOURCE25,
+            source: SOURCE26,
             message: `${resourceLabel}: reference at '${concretePath2}' must have string 'kind' and 'name' fields`,
             data: { resource: resourceData, filePath, path: concretePath2 }
           });
@@ -66892,7 +68138,7 @@ function validateReferences(resources, context, shared) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "REFERENCE_KIND_MISMATCH",
-            source: SOURCE25,
+            source: SOURCE26,
             message: `${resourceLabel}: reference at '${concretePath2}' \u2192 ${kindErrors.join("; ")}`,
             data: { resource: resourceData, filePath, path: concretePath2 }
           });
@@ -66908,7 +68154,7 @@ function validateReferences(resources, context, shared) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "UNRESOLVED_REFERENCE",
-            source: SOURCE25,
+            source: SOURCE26,
             message: `${resourceLabel}: reference at '${concretePath2}' \u2192 resource '${refVal.name}' not found`,
             data: { resource: resourceData, filePath, path: concretePath2 }
           });
@@ -66924,14 +68170,14 @@ function validateReferences(resources, context, shared) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCOPE_ENTRY_NOT_INLINE",
-            source: SOURCE25,
+            source: SOURCE26,
             message: `${resourceLabel}: scope entry at '${concretePath2}' is a reference (\`!ref ${refName3}\`), but a scope declares inline resource definitions (a \`kind:\` with its config). Declare the resource inline under '${scopeField}:', or reference an outer resource from a sibling field such as 'targets:'.`,
             data: { resource: resourceData, filePath, path: concretePath2 }
           });
         }
       }
     },
-    { aliases, aliasesByModule, skipKinds: REF_VALIDATION_SKIP_KINDS, expand: true }
+    { aliases, aliasesByModule, skip: isKindDocument, expand: true }
   );
   const reportedSlotFailures = /* @__PURE__ */ new Set();
   const schemaFromContext = (r) => ({
@@ -66961,7 +68207,7 @@ function validateReferences(resources, context, shared) {
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: failure.code,
-      source: SOURCE25,
+      source: SOURCE26,
       message: failure.message,
       data: {
         resource: { kind: r.kind, name: r.metadata.name },
@@ -67015,7 +68261,7 @@ function validateReferences(resources, context, shared) {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "DEPENDENT_SCHEMA_MISMATCH",
-                source: SOURCE25,
+                source: SOURCE26,
                 message: `${resourceLabel}: '${site.path}' does not match ${against}: ${issue}`,
                 data: { resource: resourceData, filePath, path: site.path }
               });
@@ -67026,7 +68272,7 @@ function validateReferences(resources, context, shared) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "DEPENDENT_SCHEMA_MISMATCH",
-              source: SOURCE25,
+              source: SOURCE26,
               message: `${resourceLabel}: '${site.path}' does not match schema from '${site.source}': ${issue.message}`,
               data: {
                 resource: resourceData,
@@ -67039,7 +68285,7 @@ function validateReferences(resources, context, shared) {
         }
       }
     },
-    { aliases, aliasesByModule, skipKinds: REF_VALIDATION_SKIP_KINDS }
+    { aliases, aliasesByModule, skip: isKindDocument }
   );
   return diagnostics;
 }
@@ -67050,7 +68296,7 @@ function carriesDeclaredBranchKeys(value2, branches) {
 }
 
 // ../../analyzer/nodejs/src/validate-reference-forms.ts
-var SOURCE26 = "telo-analyzer";
+var SOURCE27 = "telo-analyzer";
 function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
   if (!aliases) return [];
   const diagnostics = [];
@@ -67073,7 +68319,7 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "INVALID_REFERENCE_FORM",
-            source: SOURCE26,
+            source: SOURCE27,
             message: `${resourceLabel}: string reference at '${path}' \u2192 '${value2}' is not supported; write it as '!ref ${hint}'`,
             data: {
               resource: resourceData,
@@ -67092,7 +68338,7 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "INVALID_REFERENCE_FORM",
-              source: SOURCE26,
+              source: SOURCE27,
               message: `${resourceLabel}: object reference '{ kind, name }' at '${path}' is not supported; write it as '!ref ${obj.name}'`,
               data: { resource: resourceData, filePath, path }
             });
@@ -67103,7 +68349,7 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
     {
       aliases,
       aliasesByModule,
-      skipKinds: REF_VALIDATION_SKIP_KINDS,
+      skip: isKindDocument,
       expand: true,
       discoverNestedRefs: true
     }
@@ -67116,8 +68362,141 @@ function refHint(value2) {
   return value2;
 }
 
+// ../../analyzer/nodejs/src/observing-slot.ts
+var OBSERVATION_DEADLINES = {
+  "Telo.Provider": "init",
+  "Telo.Service": "run",
+  "Telo.Runnable": "run",
+  "Telo.Invocable": "invoke"
+};
+function observationDeadline(capability) {
+  return capability ? OBSERVATION_DEADLINES[capability] : void 0;
+}
+function observingCarriers(node, path) {
+  const carriers = [];
+  const own2 = node["x-telo-ref"];
+  if (own2 && typeof own2 === "object" && !Array.isArray(own2)) {
+    carriers.push({ annotation: own2, at: `${path}.x-telo-ref` });
+  }
+  for (const key2 of ["anyOf", "oneOf"]) {
+    const branches = node[key2];
+    if (!Array.isArray(branches)) continue;
+    branches.forEach((branch, i) => {
+      const ann = branch?.["x-telo-ref"];
+      if (ann && typeof ann === "object" && !Array.isArray(ann)) {
+        carriers.push({ annotation: ann, at: `${path}.${key2}[${i}].x-telo-ref` });
+      }
+    });
+  }
+  return carriers.filter((c) => c.annotation.observes !== void 0);
+}
+function observingSlots(schema4) {
+  const out = /* @__PURE__ */ new Map();
+  forEachRefSlotNode(schema4, "schema", (node, path) => {
+    const [first] = observingCarriers(node, path);
+    if (first) out.set(path, first.at);
+  });
+  return out;
+}
+function observesProblems(definition, ownSchema, mergedSchema, resolve) {
+  const problems = [];
+  const pending = [];
+  const name2 = `${definition.kind} '${definition.metadata?.name}'`;
+  forEachRefSlotNode(ownSchema, "schema", (node, path) => {
+    const observing = observingCarriers(node, path);
+    if (observing.length === 0) return;
+    for (const { annotation, at: at2 } of observing) {
+      const raw = annotation.observes;
+      const tokens = Array.isArray(raw) ? raw : void 0;
+      if (!tokens || tokens.length === 0 || tokens.some((t) => !NEED_CONSTRAINTS.includes(t))) {
+        problems.push({
+          code: "X_TELO_REF_INVALID_OBSERVES",
+          path: `${at2}.observes`,
+          message: `${name2}: x-telo-ref at '${path}' declares 'observes: ${JSON.stringify(raw)}'. It lists the need constraints the kind reports for the fulfilment it opens at this slot \u2014 a non-empty list of ${NEED_CONSTRAINTS.join(", ")}.`
+        });
+      }
+    }
+    const slot = readRefSlot(node);
+    const observes = slot?.observes ?? [];
+    for (const kind of slot?.kinds ?? []) {
+      const target = resolve(kind, definition);
+      if (!target) {
+        pending.push(kind);
+        continue;
+      }
+      const shape = needTypeOf(target);
+      if (!shape) {
+        problems.push({
+          code: "X_TELO_REF_INVALID_OBSERVES",
+          path: `${observing[0].at}.observes`,
+          message: `${name2}: x-telo-ref at '${path}' declares 'observes', and its kind '${kind}' is not a need type. Only a slot holding a need's fulfilment observes one.`
+        });
+        continue;
+      }
+      for (const constraint of observes) {
+        const declared = constraint === "version" ? shape.version === "semver" : (shape.features?.length ?? 0) > 0;
+        if (declared) continue;
+        problems.push({
+          code: "X_TELO_REF_INVALID_OBSERVES",
+          path: `${observing[0].at}.observes`,
+          message: `${name2}: x-telo-ref at '${path}' observes '${constraint}', which need type '${kind}' does not declare (${constraint === "version" ? "it has no 'version: semver'" : "it lists no 'features'"}), so no need of it can state one.`
+        });
+      }
+    }
+  });
+  const held = observingSlots(mergedSchema);
+  if (held.size === 0) return { problems, pending };
+  const kindProblem = observingKindProblem(definition, resolve);
+  if (!kindProblem) return { problems, pending };
+  const own2 = observingSlots(ownSchema);
+  for (const [path, at2] of held) {
+    const ownAt = own2.get(path);
+    if (ownAt !== void 0) {
+      problems.push({
+        code: "X_TELO_REF_INVALID_OBSERVES",
+        path: `${ownAt}.observes`,
+        message: `${name2}: x-telo-ref at '${path}' declares 'observes', but ${kindProblem}`
+      });
+      continue;
+    }
+    const declarer = declaringAncestor(definition, path, resolve);
+    problems.push({
+      code: "X_TELO_REF_INVALID_OBSERVES",
+      path: definition.extends !== void 0 ? "extends" : `${at2}.observes`,
+      message: `${name2}: x-telo-ref at '${path}', inherited from ${declarer ? `${declarer.kind} '${declarer.metadata?.name}'` : "an ancestor"}, declares 'observes', but ${kindProblem}`
+    });
+  }
+  return { problems, pending };
+}
+function declaringAncestor(definition, path, resolve) {
+  let found;
+  const seen = /* @__PURE__ */ new Set([definition]);
+  let current = definition;
+  while (current?.extends !== void 0 && current.base == null) {
+    const parent = resolve(current.extends, current);
+    if (!parent || seen.has(parent)) break;
+    seen.add(parent);
+    if (observingSlots(parent.schema).has(path)) found = parent;
+    current = parent;
+  }
+  return found;
+}
+function observingKindProblem(definition, resolve) {
+  if (definition.kind === "Telo.Abstract") return void 0;
+  const capability = inheritedCapability(definition, resolve);
+  if (!observationDeadline(capability)) {
+    return `kind capability '${capability ?? "(none)"}' has no moment the observation is due \u2014 only ${Object.keys(OBSERVATION_DEADLINES).join(", ")} kinds observe. Hold a resource of a kind that opens the fulfilment and observes at its own slot (a Telo.Provider) instead.`;
+  }
+  const bearer = hasOwnControllerOrTemplate(definition) ? definition : controllerBearingAncestor(definition, resolve);
+  const controllers = bearer?.controllers;
+  if (!Array.isArray(controllers) || controllers.length === 0) {
+    return `its instances are served by ${bearer ? "the kernel's template controller" : "no controller"}, which has no code to report an observation. Observe in a kind whose controller opens the fulfilment (a Telo.Provider).`;
+  }
+  return void 0;
+}
+
 // ../../analyzer/nodejs/src/validate-resource-inputs.ts
-var SOURCE27 = "telo-analyzer";
+var SOURCE28 = "telo-analyzer";
 var declaringModule2 = (m) => m.metadata?.module;
 function validateResourceInputs(manifests, registry, aliases, rootModules, acceptsKind) {
   const out = [];
@@ -67137,7 +68516,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "RESOURCE_INPUT_EXPORTED",
-          source: SOURCE27,
+          source: SOURCE28,
           message: `Resource input '${input.name}' is also listed in 'exports.resources'. An input is an instance the importer supplies, not one this library declares, so there is nothing to export \u2014 remove it from 'exports.resources', or rename the input.`,
           data: {
             resource: { kind: m.kind, name: moduleName2 },
@@ -67152,7 +68531,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "RESOURCE_INPUT_KIND_UNRESOLVED",
-        source: SOURCE27,
+        source: SOURCE28,
         message: `Resource input '${input.name}' is constrained to kind '${input.kind}', which does not resolve in this library's scope. Write it alias-qualified \u2014 '<Alias>.<Kind>' for an import declared in this file, 'Self.<Kind>' for a kind this library owns, or 'Telo.<Kind>' for a built-in. An unresolvable constraint accepts anything.`,
         data: {
           resource: { kind: m.kind, name: moduleName2 },
@@ -67174,7 +68553,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "SHARED_LIBRARY_OVERRIDE",
-          source: SOURCE27,
+          source: SOURCE28,
           message: `Import '${alias}' declares '${field}:', but module '${meta.resolvedModuleName}' is 'lifecycle: shared' \u2014 one instantiation for the whole application, so a per-import override cannot apply to it. Remove it, or make the library 'lifecycle: isolated'.`,
           data: {
             resource: { kind: m.kind, name: alias },
@@ -67194,7 +68573,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "RESOURCE_INPUT_MISSING",
-        source: SOURCE27,
+        source: SOURCE28,
         message: `Import '${alias}' does not supply the resource input '${entryName}', which module '${meta.resolvedModuleName}' requires (kind '${entryKind}'). Add \`resources: { ${entryName}: !ref <name> }\` to the import.`,
         data: { resource, filePath, path: "resources" }
       });
@@ -67207,7 +68586,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "RESOURCE_INPUT_UNKNOWN",
-          source: SOURCE27,
+          source: SOURCE28,
           message: `Import '${alias}' supplies a resource input '${name2}', which module '${meta.resolvedModuleName}' does not declare. Declared inputs: ${known}.`,
           data: { resource, filePath, path }
         });
@@ -67217,7 +68596,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "RESOURCE_INPUT_UNRESOLVED",
-          source: SOURCE27,
+          source: SOURCE28,
           message: `Import '${alias}': resource input '${name2}' \u2192 resource '${value2.source}' not found`,
           data: { resource, filePath, path }
         });
@@ -67227,7 +68606,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "RESOURCE_INPUT_UNRESOLVED",
-          source: SOURCE27,
+          source: SOURCE28,
           message: `Import '${alias}': resource input '${name2}' must be a '!ref' to a resource this module declares.`,
           data: { resource, filePath, path }
         });
@@ -67244,7 +68623,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "RESOURCE_INPUT_KIND_MISMATCH",
-        source: SOURCE27,
+        source: SOURCE28,
         message: `Import '${alias}': resource input '${name2}' is '${suppliedKind}' (resolved: '${canonical}'), which does not satisfy the declared constraint '${entry}'.`,
         data: { resource, filePath, path }
       });
@@ -67253,7 +68632,7 @@ function validateResourceInputs(manifests, registry, aliases, rootModules, accep
   out.push(...sharedLibraryConflicts(manifests, isOwn));
   return out;
 }
-var SUPPLIED_BLOCKS = ["variables", "secrets", "resources"];
+var SUPPLIED_BLOCKS = ["variables", "secrets", "resources", "needs"];
 function sharedLibraryConflicts(manifests, isOwn) {
   const out = [];
   const byTarget = /* @__PURE__ */ new Map();
@@ -67289,11 +68668,14 @@ function sharedLibraryConflicts(manifests, isOwn) {
         const b = later.blocks.get(block);
         for (const key2 of /* @__PURE__ */ new Set([...Object.keys(a), ...Object.keys(b)])) {
           if (findDynamicLeaf(a[key2]) || findDynamicLeaf(b[key2])) continue;
+          if (block === "needs" && (isRefSentinel(a[key2]) || isRefSentinel(b[key2])) && first.module !== later.module) {
+            continue;
+          }
           if (sameSuppliedValue(a[key2], b[key2])) continue;
           out.push({
             severity: DiagnosticSeverity2.Error,
             code: "SHARED_LIBRARY_CONFLICT",
-            source: SOURCE27,
+            source: SOURCE28,
             message: `Import '${later.alias}' and import '${first.alias}' both reach a 'lifecycle: shared' library \u2014 one instantiation for the whole application \u2014 but they supply different values for ${block}.${key2}. Make the two imports agree, or make the library 'lifecycle: isolated'.`,
             data: isOwn(later.module) ? {
               resource: { kind: "Telo.Import", name: later.alias },
@@ -67349,7 +68731,7 @@ function nearestName(target, candidates) {
 }
 
 // ../../analyzer/nodejs/src/validate-exports.ts
-var SOURCE28 = "telo-analyzer";
+var SOURCE29 = "telo-analyzer";
 function validateExports(manifests, registry, aliases, rootModules) {
   const out = [];
   for (const lib of manifests) {
@@ -67379,14 +68761,15 @@ function validateExports(manifests, registry, aliases, rootModules) {
         continue;
       }
       if (!own2(m)) continue;
-      if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract") declaredKinds.add(name2);
-      else if (m.kind === "Telo.Import") importAliases.set(name2, meta.resolvedModuleName);
+      if (isKindDocument(m)) {
+        declaredKinds.add(name2);
+      } else if (m.kind === "Telo.Import") importAliases.set(name2, meta.resolvedModuleName);
       else if (m.kind !== "Telo.Library" && m.kind !== "Telo.Application") instances.add(name2);
     }
     const report = (code, path, message, fix) => out.push({
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE28,
+      source: SOURCE29,
       message: `Telo.Library/${moduleName2}: ${message}`,
       data: { resource, filePath, path, ...fix ? { fix: { replacement: fix } } : {} }
     });
@@ -67433,7 +68816,7 @@ function validateExports(manifests, registry, aliases, rootModules) {
         report(
           "EXPORT_KIND_UNKNOWN",
           path,
-          `'exports.kinds: ${name2}' names no Telo.Definition or Telo.Abstract of this library. Declared: ${[...declaredKinds].join(", ") || "(none)"}.` + (suggestion ? ` Did you mean '${suggestion}'?` : ""),
+          `'exports.kinds: ${name2}' names no Telo.Definition or Telo.Abstract of this library (nor a Telo.NeedType). Declared: ${[...declaredKinds].join(", ") || "(none)"}.` + (suggestion ? ` Did you mean '${suggestion}'?` : ""),
           suggestion
         );
       });
@@ -67544,7 +68927,7 @@ function templateTargetProblems(definition, capability, nearest) {
 }
 
 // ../../analyzer/nodejs/src/validate-template-body.ts
-var SOURCE29 = "telo-analyzer";
+var SOURCE30 = "telo-analyzer";
 var DISPATCH_SLOTS = ["invoke", "run", "provide", "mount"];
 function validateTemplateBody(manifests, registry, aliases, aliasesByModule, rootModules) {
   const out = [];
@@ -67559,7 +68942,7 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
       if (resolved) importedModules.add(resolved);
       continue;
     }
-    if (m.kind === "Telo.Definition" || m.kind === "Telo.Abstract") continue;
+    if (isKindDocument(m)) continue;
     if (m.kind === "Telo.Library" || m.kind === "Telo.Application") continue;
     const mod = m.metadata?.module;
     let set2 = instancesByModule.get(mod);
@@ -67579,7 +68962,7 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
     const report = (code, path, message, fix) => out.push({
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE29,
+      source: SOURCE30,
       message: `${label2}: ${message}`,
       data: {
         resource: resourceRef,
@@ -67591,7 +68974,7 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
     const deprecate = (code, path, message) => out.push({
       severity: DiagnosticSeverity2.Warning,
       code,
-      source: SOURCE29,
+      source: SOURCE30,
       message: `${label2}: ${message}`,
       tags: [DiagnosticTag2.Deprecated],
       data: { resource: resourceRef, filePath, path }
@@ -67813,7 +69196,7 @@ function describeRefName(name2) {
 }
 
 // ../../analyzer/nodejs/src/validate-template-forward.ts
-var SOURCE30 = "telo-analyzer";
+var SOURCE31 = "telo-analyzer";
 function validateTemplateForwards(manifests, registry, aliases, aliasesByModule, rootModules) {
   const out = [];
   const scopes = { aliasesByModule, rootModules };
@@ -67848,7 +69231,7 @@ function validateTemplateForwards(manifests, registry, aliases, aliasesByModule,
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "TEMPLATE_FORWARD_INCOMPATIBLE",
-          source: SOURCE30,
+          source: SOURCE31,
           message: `Telo.Definition/${meta.name}: '${selfPath}' is forwarded by '!cel "self.${selfPath}"' into the ${body2.manifest.kind} entry '${typeof entryName === "string" ? entryName : body2.prefix}' at '${at2}', but the schema declared for it here is not assignable to that field's: ${issues.join("; ")}. A consumer's value is checked against the entry's field, so a declaration disagreeing with it describes values the entry refuses: align it with the entry's field.`,
           data: {
             resource: { kind: m.kind, name: meta.name },
@@ -67949,7 +69332,7 @@ function materialize(node, root, registry, scope, seen) {
 }
 
 // ../../analyzer/nodejs/src/validate-unused-declarations.ts
-var SOURCE31 = "telo-analyzer";
+var SOURCE32 = "telo-analyzer";
 var NAMESPACES = ["variables", "secrets", "ports"];
 function validateUnusedDeclarations(manifests) {
   const moduleManifest = manifests.find((m) => m.kind === "Telo.Application");
@@ -67992,7 +69375,7 @@ function validateUnusedDeclarations(manifests) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Warning,
         code: "UNUSED_DECLARATION",
-        source: SOURCE31,
+        source: SOURCE32,
         message: `${ns}.${name2} is declared but never referenced in any CEL expression.`,
         data: { filePath, path: `${ns}.${name2}` }
       });
@@ -68002,7 +69385,7 @@ function validateUnusedDeclarations(manifests) {
 }
 
 // ../../analyzer/nodejs/src/validate-module-call-names.ts
-var SOURCE32 = "telo-analyzer";
+var SOURCE33 = "telo-analyzer";
 function validateModuleCallNames(manifests, registry, aliases, aliasesByModule, rootModules) {
   const importsByModule = /* @__PURE__ */ new Map();
   for (const m of manifests) {
@@ -68053,7 +69436,7 @@ function validateModuleCallNames(manifests, registry, aliases, aliasesByModule, 
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "IMPORT_ALIAS_SHADOWS_CONTEXT",
-        source: SOURCE32,
+        source: SOURCE33,
         message: `Import alias '${name2}' is also a CEL variable ${m.kind} puts in scope. A call written '${name2}.f(\u2026)' resolves to the imported module, so the variable cannot be reached through one. Rename the alias.`,
         data: {
           resource: { kind: "Telo.Import", name: name2 },
@@ -68077,7 +69460,7 @@ var TEMPLATE_BODY_KEYS = ["resources", "invoke", "run", "targets", "provide", "m
 function isObject13(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
-var SOURCE33 = "telo-analyzer";
+var SOURCE34 = "telo-analyzer";
 function validateCallableDeclarations(manifests, registry, aliases, aliasesByModule, rootModules) {
   const diagnostics = [];
   const resolveDef = (kind, from) => {
@@ -68098,7 +69481,7 @@ function validateCallableDeclarations(manifests, registry, aliases, aliasesByMod
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: issue.code,
-        source: SOURCE33,
+        source: SOURCE34,
         message: issue.message,
         data: {
           resource: { kind: m.kind, name: name2 },
@@ -68388,18 +69771,12 @@ function callableSlotKinds(schema4, path, from, resolve) {
 }
 
 // ../../analyzer/nodejs/src/validate-scope-reach.ts
-var SOURCE34 = "telo-analyzer";
-var DECLARATION_KINDS3 = /* @__PURE__ */ new Set([
-  "Telo.Definition",
-  "Telo.Abstract",
-  "Telo.Application",
-  "Telo.Library",
-  "Telo.Import"
-]);
+var SOURCE35 = "telo-analyzer";
+var isDeclarationDocument2 = (m) => m.kind === "Telo.Application" || m.kind === "Telo.Library" || m.kind === "Telo.Import" || isKindDocument(m);
 function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, rootModules, accessChains2) {
   const out = [];
   for (const root of manifests) {
-    if (!root.kind || DECLARATION_KINDS3.has(root.kind) || isForwardedDeclaration(root)) continue;
+    if (!root.kind || isDeclarationDocument2(root) || isForwardedDeclaration(root)) continue;
     const meta = root.metadata;
     if (typeof meta?.name !== "string") continue;
     const module = typeof meta.module === "string" ? meta.module : void 0;
@@ -68409,7 +69786,7 @@ function validateScopedNameReach(manifests, registry, aliases, aliasesByModule, 
     const report = (path, name2, scope) => out.push({
       severity: DiagnosticSeverity2.Error,
       code: "SCOPED_NAME_OUT_OF_REACH",
-      source: SOURCE34,
+      source: SOURCE35,
       message: `${scope.ownerKind}/${scope.ownerName}: '${name2}' is declared in '${scope.field}:', but the inline declaration referencing it is created where '${scope.ownerName}' is declared, outside that scope, so the reference cannot reach it. Declare the referencing resource under '${scope.field}:' with a name of its own and point at it with '!ref'.`,
       data: { resource, filePath, path }
     });
@@ -68542,8 +69919,8 @@ function buildEnclosers(manifests, definitionOf, moduleOf6, ctx) {
       if (driven.kind !== "ref" || !driven.slots.some(({ slot }) => slot.throwsThrough)) return;
       const target = resolveRefManifest(driven.data, ctx, moduleOf6(manifest));
       if (!target || target === manifest) return;
-      const list4 = enclosers.get(target);
-      if (list4) list4.push(manifest);
+      const list5 = enclosers.get(target);
+      if (list5) list5.push(manifest);
       else enclosers.set(target, [manifest]);
     });
   }
@@ -68582,7 +69959,7 @@ function enclosingCoverage(manifest, ownScope, enclosers, memo = /* @__PURE__ */
 }
 
 // ../../analyzer/nodejs/src/validate-throws-coverage.ts
-var SOURCE35 = "telo-analyzer";
+var SOURCE36 = "telo-analyzer";
 function collectOutcomeLists(manifest, schema4, onReturns, onCatches) {
   if (!schema4) return;
   walkSchemaData(schema4, manifest, "", {
@@ -68690,7 +70067,7 @@ function checkCatchAllPlacement(entries, resource, channel, filePath, arrayPath,
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "CATCHALL_NOT_LAST",
-        source: SOURCE35,
+        source: SOURCE36,
         message: `${channel}: catch-all entry (no \`when:\`) at index ${i} must be last \u2014 entries after it are unreachable.`,
         data: { resource: routing, filePath, path: `${arrayPath}[${i}]` }
       });
@@ -68727,7 +70104,7 @@ function checkUndeclaredCodes(entries, union2, resource, filePath, arrayPath, en
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "UNDECLARED_THROW_CODE",
-        source: SOURCE35,
+        source: SOURCE36,
         message: `catches[${i}] references code '${c}' which is not in ${denominator} {${[...declaredCodes].sort().join(", ") || "\u2205"}} (ambient kernel codes ${AMBIENT_CONTRACT_ERROR_CODES.join(", ")} may also be named)${union2.unbounded ? "; the union is unbounded, so a catch-all is required" : ""}.`,
         data: { resource: routing, filePath, path: `${arrayPath}[${i}].when` }
       });
@@ -68742,7 +70119,7 @@ function checkCoverage(union2, resource, filePath, arrayPath, handler, covered, 
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "UNBOUNDED_UNION_NEEDS_CATCHALL",
-      source: SOURCE35,
+      source: SOURCE36,
       message: `The handler's throw union is unbounded (inherit/passthrough resolution couldn't enumerate all codes). A catch-all entry (no \`when:\`) is required \u2014 on this catches: list or on an enclosing one.`,
       data: { resource: routing, filePath, path: arrayPath }
     });
@@ -68752,7 +70129,7 @@ function checkCoverage(union2, resource, filePath, arrayPath, handler, covered, 
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "UNCOVERED_THROW_CODE",
-      source: SOURCE35,
+      source: SOURCE36,
       message: `handler ${handler?.name ? `\`!ref ${handler.name}\`` : `\`${handler?.kind ?? "?"}\``} can throw ${uncovered.length} code${uncovered.length === 1 ? "" : "s"} that no catches: entry handles \u2014 at this list or any enclosing scope: ${uncovered.map((c) => `'${c}'`).join(", ")}. Give each a matching \`when:\` (e.g. \`when: !cel "error.code == '${uncovered[0]}'"\`), or add a catch-all entry \u2014 one with no \`when:\`, placed last.`,
       data: { resource: routing, filePath, path: arrayPath, uncovered }
     });
@@ -68842,7 +70219,7 @@ function checkCelChainAgainstDataSchema(entry, dataSchema, resource, filePath, e
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "CEL_UNKNOWN_FIELD",
-        source: SOURCE35,
+        source: SOURCE36,
         message: `${resource.kind}/${resource.name}: CEL at '${entry.path}': error.data.${err}`,
         data: { resource: routing, filePath, path: entry.path }
       });
@@ -68871,7 +70248,7 @@ function validateThrowsDeclarations(manifests) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_VIOLATION",
-          source: SOURCE35,
+          source: SOURCE36,
           message: `Telo.Abstract/${name2}: ${atThrows(issue.message)}`,
           data: { resource: { kind: m.kind, name: name2 }, filePath, path: issue.path ? `throws.${issue.path}` : "throws" }
         });
@@ -68883,7 +70260,7 @@ function validateThrowsDeclarations(manifests) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "THROWS_ON_NON_DISPATCH_CAPABILITY",
-        source: SOURCE35,
+        source: SOURCE36,
         message: `${m.kind} '${name2}' declares throws: but its capability is '${capability}'. A throw union describes what a CALLER can catch, so it is only meaningful on ${THROWS_CAPABLE_CAPABILITIES.join(" or ")}; on '${capability}' a thrown error is a boot-time failure with no caller to render it. The kernel refuses this definition at create(), so a manifest carrying it cannot start.`,
         data: { resource: { kind: m.kind, name: name2 }, filePath, path: "throws" }
       });
@@ -68895,7 +70272,7 @@ function validateThrowsDeclarations(manifests) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "INHERIT_WITHOUT_STEP_CONTEXT",
-          source: SOURCE35,
+          source: SOURCE36,
           message: `Telo.Definition '${name2}' declares throws.inherit: true but its schema dispatches nothing a failure can come back through. inherit makes the kind's union the union of what it dispatches, so the schema needs a step body (an array field with 'items: { $ref: "telo://manifest#/$defs/Step" }', or the legacy x-telo-step-context annotation) or a reference slot whose use includes 'call' or 'trigger.consumer' (for a use case map, in any case; a slot declaring no use counts as 'call'). 'detached' and 'trigger.inbound' run where no caller awaits them, and 'dependency' / 'schema' dispatch nothing.`,
           data: { resource: { kind: m.kind, name: name2 }, filePath, path: "throws.inherit" }
         });
@@ -68949,7 +70326,7 @@ function validateThrowsCoverage(manifests, defs, aliases, env, aliasesByModule =
   );
   for (const manifest of allManifests) {
     if (!manifest.kind || !manifest.metadata?.name) continue;
-    if (manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract") continue;
+    if (isKindDocument(manifest)) continue;
     const enclosing = scopedBy.get(manifest);
     const anchor = enclosing?.owner ?? manifest;
     const pathPrefix = enclosing ? `${enclosing.path}.` : "";
@@ -69074,7 +70451,7 @@ function handlerRefUnion(handlerRef, manifests, ctx, scopeResolver) {
 function assertManifestPositions(manifests) {
   for (let i = 0; i < manifests.length; i++) {
     const m = manifests[i];
-    if (REF_VALIDATION_SKIP_KINDS.has(m.kind)) continue;
+    if (isKindDocument(m)) continue;
     const meta = m.metadata;
     const okSource = typeof meta?.source === "string" && meta.source.length > 0;
     const okLine = typeof meta?.sourceLine === "number";
@@ -69089,7 +70466,7 @@ function assertManifestPositions(manifests) {
     );
   }
 }
-var SOURCE36 = "telo-analyzer";
+var SOURCE37 = "telo-analyzer";
 var STEPS_ROOT = "steps.";
 function contractOwnerLabel(definition, contract) {
   const declaredBy = contract.declaredBy;
@@ -69108,7 +70485,7 @@ function refSlotIssueDiagnostic(issue) {
   return {
     severity: DiagnosticSeverity2.Error,
     code: issue.code,
-    source: SOURCE36,
+    source: SOURCE37,
     message: issue.message,
     data: {
       resource: { kind: issue.manifest.kind, name: issue.manifest.metadata?.name },
@@ -69121,7 +70498,7 @@ function ruleIssueDiagnostic(issue) {
   return {
     severity: DiagnosticSeverity2.Error,
     code: issue.code,
-    source: SOURCE36,
+    source: SOURCE37,
     message: issue.message,
     data: {
       resource: { kind: issue.manifest.kind, name: issue.manifest.metadata?.name },
@@ -69174,7 +70551,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
       continue;
     }
     const meta = r.metadata;
-    if (typeof meta?.name !== "string" || REF_VALIDATION_SKIP_KINDS.has(r.kind)) continue;
+    if (typeof meta?.name !== "string" || isKindDocument(r)) continue;
     if (isForwardedDeclaration(r)) {
       if (typeof meta.module === "string") loadedModules.add(meta.module);
       continue;
@@ -69193,7 +70570,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "UNRESOLVED_REFERENCE",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 '${refName3}' is not an exported instance of module '${module ?? aliasPrefix}' (reference a declared instance, not a kind)`,
           data: { resource, filePath, path }
         });
@@ -69204,7 +70581,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "UNRESOLVED_REFERENCE",
-        source: SOURCE36,
+        source: SOURCE37,
         message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 resource '${localName2}' not found`,
         data: { resource, filePath, path }
       });
@@ -69218,7 +70595,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "REFERENCE_KIND_MISMATCH",
-        source: SOURCE36,
+        source: SOURCE37,
         message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 '${kind}' is a ${capability} and cannot be invoked in a step \u2014 it has no invoke or run method (runtime ERR_RESOURCE_NOT_INVOKABLE)`,
         data: { resource, filePath, path }
       });
@@ -69226,7 +70603,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
   };
   for (const m of allManifests) {
     const meta = m.metadata;
-    if (typeof meta?.name !== "string" || REF_VALIDATION_SKIP_KINDS.has(m.kind) || isForwardedDeclaration(m))
+    if (typeof meta?.name !== "string" || isKindDocument(m) || isForwardedDeclaration(m))
       continue;
     const def = defs.resolve(aliases.resolveKind(m.kind) ?? m.kind);
     const defSchema = def?.schema;
@@ -69510,7 +70887,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "DUPLICATE_IMPORT_ALIAS",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `Duplicate import alias '${alias}'. An alias may be declared once per module \u2014 across both inline 'imports:' entries and 'Telo.Import' documents. Rename or remove the duplicate.`,
               data: {
                 resource: { kind: "Telo.Import", name: alias },
@@ -69535,7 +70912,7 @@ var StaticAnalyzer = class {
       }
     }
     for (const m of manifests) {
-      if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
+      if (!isKindDocument(m)) continue;
       const ownModule = m.metadata?.module;
       if (!ownModule || rootModules.has(ownModule)) continue;
       let libResolver = aliasesByModule.get(ownModule);
@@ -69564,7 +70941,7 @@ var StaticAnalyzer = class {
     const resourceRuleDiagnostic = (report2) => ({
       severity: SEVERITY[report2.severity],
       code: report2.code,
-      source: SOURCE36,
+      source: SOURCE37,
       message: report2.message,
       data: {
         resource: {
@@ -69579,7 +70956,7 @@ var StaticAnalyzer = class {
     const referrerRuleDiagnostic = (report2) => ({
       severity: SEVERITY[report2.severity],
       code: report2.code,
-      source: SOURCE36,
+      source: SOURCE37,
       message: report2.message,
       data: {
         resource: {
@@ -69612,7 +70989,7 @@ var StaticAnalyzer = class {
       return {
         severity: SEVERITY[report2.severity],
         code: report2.code,
-        source: SOURCE36,
+        source: SOURCE37,
         message: report2.message,
         data: { filePath: anchor.filePath, path: anchor.path, rule: report2.rule }
       };
@@ -69636,7 +71013,12 @@ var StaticAnalyzer = class {
       modules: projectionModules(defs, aliases, { aliasesByModule, rootModules, libraries })
     };
     for (const m of manifests) {
-      if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
+      const declared = kindDeclarationOf(m);
+      if (!declared) continue;
+      if (needTypeOf(declared)) {
+        defs.register(declared);
+        continue;
+      }
       const def = m;
       const ownModule = def.metadata?.module;
       const scopeResolver = declaringModuleScope(ownModule, aliases, {
@@ -69651,7 +71033,7 @@ var StaticAnalyzer = class {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCOPE_SLOT_MISPLACED",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `${m.kind} ${problem.message}`,
             data: {
               resource: { kind: m.kind, name: def.metadata?.name },
@@ -69668,7 +71050,7 @@ var StaticAnalyzer = class {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "VALUE_SCHEMA_FROM_INVALID",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `${m.kind} ${problem.message}`,
             data: {
               resource: { kind: m.kind, name: def.metadata?.name },
@@ -69701,7 +71083,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "CAPABILITY_NOT_DECLARABLE",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `'${def.metadata?.name}' declares capability: Telo.Executable, which is an x-telo-ref slot constraint (the parent Telo.Invocable and Telo.Runnable extend), not a declarable lifecycle role. Declare 'Telo.Invocable' (invoke) or 'Telo.Runnable' (run) instead.`,
           data: {
             resource: { kind: m.kind, name: m.metadata?.name },
@@ -69749,6 +71131,21 @@ var StaticAnalyzer = class {
       );
     }
     if (!options?.skipValidation) {
+      const resolveDef = (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k);
+      for (const declarer of ownRuleDeclarers) {
+        const module = declarer.metadata?.module;
+        const registered = (module ? defs.resolve(`${module}.${declarer.metadata?.name}`) : void 0) ?? declarer;
+        for (const problem of observesProblems(
+          registered,
+          declarer.schema,
+          effectiveAuthorSchema(declarer, resolveDef),
+          resolveDef
+        ).problems) {
+          refSlotIssues.push({ ...problem, manifest: declarer });
+        }
+      }
+    }
+    if (!options?.skipValidation) {
       for (const declarer of ownRuleDeclarers) {
         referrerRuleIssues.push(
           ...validateReferrerRuleDeclarations(declarer, {
@@ -69771,7 +71168,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "REFERRER_RULE_INVALID",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `x-telo-referrer-rules 'referrer: ${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in. A filter that matches nothing leaves the rule inert. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -69781,7 +71178,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "ZONE_PROVIDER_UNRESOLVED",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `x-telo-requires-zone '${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in. An unresolvable zone would leave the requirement silently unenforced. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -69791,7 +71188,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Warning,
             code: "X_TELO_REF_LEGACY_IDENTITY",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' uses the deprecated '<namespace>/<module>#<Kind>' form. Write the target as an alias-qualified kind instead \u2014 '<Alias>.<Kind>' for a module declared in this file's 'imports:' map, 'Self.<Kind>' for a kind in this library, or 'Telo.<Kind>' for a built-in capability.`,
             data
           });
@@ -69799,7 +71196,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "KIND_NOT_EXPORTED",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' targets a kind module '${issue.gate?.module}' does not export. Add '${issue.ref.slice(issue.ref.indexOf(".") + 1)}' to that module's exports.kinds. Exported kinds: ${issue.gate?.exported.join(", ") || "(none)"}.`,
             data
           });
@@ -69807,7 +71204,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "X_TELO_REF_UNRESOLVED",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in capability. An unresolvable constraint would leave the slot accepting any resource. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -69820,7 +71217,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE36,
+          source: SOURCE37,
           message: issue.message,
           data: {
             resource: {
@@ -69840,7 +71237,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE36,
+          source: SOURCE37,
           message: issue.message,
           data: {
             resource: {
@@ -69856,7 +71253,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE36,
+          source: SOURCE37,
           message: issue.message,
           data: {
             resource: {
@@ -69948,7 +71345,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "DUPLICATE_SCHEMA_ID",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `Type '${typeName2}' collides with the kind '${ownModule}.${typeName2}': both claim the schema id '${canonicalTypeSchemaId(ownModule, typeName2)}'. A '$ref' to it would resolve to the kind's schema. Rename one of them.`,
           data: {
             resource: { kind: m.kind, name: typeName2 },
@@ -70047,7 +71444,7 @@ var StaticAnalyzer = class {
           const owner = m.metadata?.module;
           const declared = m.metadata?.name;
           if (typeof owner !== "string" || typeof declared !== "string") continue;
-          if (REF_RESOLUTION_SKIP_KINDS.has(m.kind)) continue;
+          if (isKindDocumentOrImport(m)) continue;
           declaredByModule.set(`${owner}\0${declared}`, m);
         }
       }
@@ -70102,7 +71499,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: issue.code,
-        source: SOURCE36,
+        source: SOURCE37,
         message: issue.message,
         data: {
           resource: {
@@ -70125,7 +71522,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_COMPILE_ERROR",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${m.kind}/${name2}: definition schema failed to compile: ${compileError}`,
           data: {
             resource: { kind: m.kind, name: name2 },
@@ -70149,7 +71546,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "LIBRARY_ENV_KEY_REJECTED",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `Telo.Library ${block}/${entryName}: 'env:' is only permitted on Telo.Application entries. Libraries must receive values from importers via the parent manifest's variables / secrets block.`,
               data: { resource, filePath, path: `${block}.${entryName}.env` }
             });
@@ -70158,7 +71555,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "LIBRARY_ARG_KEY_REJECTED",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `Telo.Library ${block}/${entryName}: 'arg:' is only permitted on Telo.Application entries \u2014 only the application being run reads the command line. Libraries must receive values from importers via the parent manifest's variables / secrets block.`,
               data: { resource, filePath, path: `${block}.${entryName}.arg` }
             });
@@ -70172,7 +71569,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "INVALID_EXPORT",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `Telo.Library exports.resources[${i}]: write the exported name as a plain string \u2014 'Name' to export a local instance, or 'Alias.Name' to re-export an imported one. The '!ref' tag is not allowed in exports.resources.`,
             data: { resource, filePath, path: `exports.resources.${i}` }
           });
@@ -70189,7 +71586,7 @@ var StaticAnalyzer = class {
       const resolve = (kind) => scopedDefs.in(kind, module);
       return celEvalModeAt(kindCelEvalSites(resolve(nested.resource.kind), resolve), nested.path);
     };
-    const reportsObservedState = [...observedState.values()].some((r) => r.status);
+    const reportsObservedState = [...observedState.values()].some((r) => r.status || r.reading);
     const runReachable = reportsObservedState ? collectRunReachableNames(getCallGraph()) : /* @__PURE__ */ new Set();
     for (const m of allManifests) {
       if (isInjectedDeclaration(m)) runReachable.add(m.metadata?.name);
@@ -70316,7 +71713,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "MISSING_KIND_OR_NAME",
-          source: SOURCE36,
+          source: SOURCE37,
           message: "Resource is missing required 'kind' or 'metadata.name' field.",
           data: { filePath, path: !m.kind ? "kind" : "metadata.name" }
         });
@@ -70337,7 +71734,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "KIND_NOT_EXPORTED",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `Kind '${m.kind}' is not exported by module '${kindResult.module}'. Add '${m.kind.slice(m.kind.indexOf(".") + 1)}' to that module's exports.kinds to make it importable. Exported kinds: ${kindResult.exported.join(", ") || "(none)"}.`,
           data: { resource, filePath, path: "kind" }
         });
@@ -70351,7 +71748,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "UNDEFINED_KIND",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `No Telo.Definition found for kind '${m.kind}'.${hint}`,
           // `suggestedKind` is kept beside the generic `fix` because it names
           // what the replacement IS; the fix is how to apply it.
@@ -70373,7 +71770,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "ABSTRACT_KIND_INSTANTIATED",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `Kind ${kindInfo} is abstract and cannot be instantiated directly; ${hint}.`,
           data: { resource, filePath, path: "kind" }
         });
@@ -70390,7 +71787,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Warning,
           code: "DEPRECATED_KIND",
-          source: SOURCE36,
+          source: SOURCE37,
           // Warning-grade AND a deprecation: the severity says it must
           // eventually be dealt with, the tag says what it is, and an editor
           // strikes the kind through on the strength of the second.
@@ -70403,6 +71800,16 @@ var StaticAnalyzer = class {
       if (Object.keys(schema4).length > 0) {
         for (const slot of collectCelValueSlots(m, schema4, "", namedShape)) {
           celReturnSlots.push({ manifest: m, resource, filePath, ...slot });
+        }
+        const needSlots = importNeedsSlotSchema(
+          m,
+          (module, kind) => declaringModuleScope(module, aliases, { aliasesByModule, rootModules }).resolveKind(kind),
+          (kind) => defs.resolve(kind)
+        );
+        if (needSlots) {
+          for (const slot of collectCelValueSlots(m, needSlots, "", namedShape)) {
+            celReturnSlots.push({ manifest: m, resource, filePath, ...slot });
+          }
         }
         const projectionFailures = [];
         const projected = resolveSchemaProjections(
@@ -70417,7 +71824,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "SCHEMA_PROJECTION_FROM_UNRESOLVED",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `${m.kind}/${resource.name}: ${describeProjectionFailure(failure)}`,
               data: { resource, filePath, path: pointerToPath(failure.pointer) }
             });
@@ -70447,7 +71854,9 @@ var StaticAnalyzer = class {
           (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k)
         );
         const parentKind = definition?.extends;
+        const fulfilment = needTypeOf(definition) !== void 0;
         for (const issue of issues) {
+          if (fulfilment && needTableReportsFinding(issue)) continue;
           const inherited = issue.keyword === "required" && issue.missingProperty !== void 0 ? inheritedRequired.filter((f2) => f2 === issue.missingProperty) : [];
           const hint = inherited.length > 0 && parentKind ? ` \u2014 ${inherited.map((f2) => `'${f2}'`).join(", ")} ${inherited.length > 1 ? "come" : "comes"} from '${parentKind}', which this kind extends without a 'base:' mapping, so the parent's required fields stay on this kind's author surface. Add 'base:' to set them internally; that also narrows the surface to this kind's own schema.` : "";
           if (issue.valueType && VALUE_TYPES.get(issue.valueType)?.fromHost !== void 0) {
@@ -70457,7 +71866,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "HOST_PATH_UNTYPED_SOURCE",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${resource.name}: '${issue.path}' is a Telo.HostPath, but !${written.engine} produces a plain string. ${HOST_PATH_SOURCES}${alsoAccepts(slotSchema)}`,
                 data: { resource, filePath, path: issue.path }
               });
@@ -70466,7 +71875,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "HOST_PATH_RELATIVE",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `${m.kind}/${resource.name}: ${issue.message}.${alsoAccepts(slotSchema)}`,
               data: {
                 resource,
@@ -70480,7 +71889,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCHEMA_VIOLATION",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `${m.kind}/${resource.name}: ${issue.message}${hint}`,
             data: { resource, filePath, path: issue.path }
           });
@@ -70631,7 +72040,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "TEMPLATE_TARGET_MISMATCH",
-            source: SOURCE36,
+            source: SOURCE37,
             message: `${m.kind}/${name2}: ${path} does not satisfy ${targetKind}'s contract: ${issue.message}`,
             data: { resource, filePath, path: issue.path ? `${path}.${issue.path}` : path }
           });
@@ -70691,7 +72100,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_PROJECTION_FROM_UNRESOLVED",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${md.kind}: ${describeProjectionFailure(failure)}`,
           data: {
             resource: { kind: md.kind, name: md.metadata?.name },
@@ -70756,7 +72165,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "REFERENCE_OUTPUT_MISMATCH",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${stepName}: at '${issue.path}', ${issue.message}`,
                 data: {
                   resource: { kind: m.kind, name: stepName ?? "" },
@@ -70795,7 +72204,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: issue.code ?? "CONTRACT_INPUTS_MISMATCH",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: issue.code === "LIVE_VALUE_RETRIED" ? `${m.kind}/${stepName}: at '${issue.path}', ${issue.message}` : `${m.kind}/${stepName}: inputs at '${issue.path}' do not satisfy ${issue.targetLabel}'s declared inputType: ${issue.message}`,
                 data: {
                   resource: { kind: m.kind, name: stepName ?? "" },
@@ -70815,7 +72224,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "BINDING_FIELD_AMBIGUOUS",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${bindingsName}: the kind's schema points '${BINDINGS_ANNOTATION}' at more than one field (${celBindingSites.fields.join(", ")}). Every annotated context must name the same bindings field.`,
                 data: { resource: resourceRef, filePath: bindingsFile, path: celBindingSites.field }
               });
@@ -70828,7 +72237,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "BINDING_CYCLE",
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${bindingsName}: '${celBindingSites.field}' has a cycle \u2014 ${cycle.join(" \u2192 ")}. A binding is resolved from the ones it references, so it cannot reference itself, directly or through others.`,
                   data: {
                     resource: resourceRef,
@@ -70852,7 +72261,7 @@ var StaticAnalyzer = class {
                   diagnostics.push({
                     severity: DiagnosticSeverity2.Error,
                     code: "BINDING_NAME_RESERVED",
-                    source: SOURCE36,
+                    source: SOURCE37,
                     message: shadows ? `${m.kind}/${bindingsName}: binding '${name2}' shadows a variable already in scope here (${[...inScope].sort().join(", ")}). Rename the binding \u2014 a scope variable always wins, so this one would never be read.` : namesModule ? `${m.kind}/${bindingsName}: binding '${name2}' names a module here (an imports: alias, Self, or this module's own name), so a call written '${name2}.f(\u2026)' resolves to that module's function. Rename the binding.` : `${m.kind}/${bindingsName}: binding '${name2}' is a CEL keyword, so no expression can read it as a reference. Rename the binding.`,
                     data: {
                       resource: resourceRef,
@@ -70867,7 +72276,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: violation.severity,
                   code: violation.code,
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${bindingsName}: ${violation.message}`,
                   data: {
                     resource: resourceRef,
@@ -70898,7 +72307,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "ACCESSOR_NOT_PLAIN_CHAIN",
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${m.metadata?.name}: ${problem.message}`,
                   data: {
                     resource: { kind: m.kind, name: m.metadata?.name },
@@ -70917,7 +72326,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: problem.code,
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${m.metadata?.name}: ${problem.message}`,
                   data: {
                     resource: { kind: m.kind, name: m.metadata?.name },
@@ -70936,7 +72345,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "REF_SLOT_COMPUTED",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${m.metadata?.name}: ${refSlotComputedReason(slot)}`,
                 data: {
                   resource: { kind: m.kind, name: m.metadata?.name },
@@ -70964,7 +72373,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "CEL_IN_NON_EVAL_FIELD",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `${m.kind}/${resource.name}: CEL at '${path}' is never evaluated \u2014 the field has no x-telo-eval / x-telo-context annotation, so its value is read as a literal. Annotate the field as a CEL slot or remove the !${engineName} tag.`,
               data: { resource, filePath, path }
             });
@@ -70991,7 +72400,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_IN_STARTUP_FIELD",
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${resource.name}: '${path}' is resolved once at startup, so '${chain2.join(".")}' cannot be read there \u2014 '${read.name}' is declared in the '${field}' scope of ${kind}/${name2 ?? "(unnamed)"}, which is created only when that scope opens. Read reported values where the call happens: a step's inputs:, a request's url, a route handler, or a returns: expression.`,
                   data: { resource, filePath, path }
                 });
@@ -71001,7 +72410,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_IN_STARTUP_FIELD",
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${resource.name}: '${path}' is resolved once at startup, so '${chain2.join(".")}' does not exist yet \u2014 '${read.name}' reports it only while the application is running. Read reported values where the call happens: a step's inputs:, a request's url, a route handler, or a returns: expression.`,
                   data: { resource, filePath, path }
                 });
@@ -71011,7 +72420,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_NEVER_RUN",
-                  source: SOURCE36,
+                  source: SOURCE37,
                   message: `${m.kind}/${resource.name}: '${read.name}' reports '${read.field ?? OBSERVED_STATE_KEY}' only while it is running, and nothing starts it. Add '!ref ${read.name}' to a targets: list, or invoke it from a step.`,
                   data: { resource, filePath, path }
                 });
@@ -71023,7 +72432,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "UNKNOWN_ENGINE",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `${m.kind}/${resource.name}: no templating engine registered for '!${engineName}' at '${path}'.`,
               data: { resource, filePath, path }
             });
@@ -71133,7 +72542,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Warning,
                 code: "CEL_NONDETERMINISTIC_IN_COMPILE_FIELD",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${resource.name}: '${path}' is evaluated once at startup, so ${volatile.map((n) => `\`${n}\``).join(", ")} ${volatile.length === 1 ? "is" : "are"} baked in at load and never re-evaluated. Move the expression to a field evaluated per call (x-telo-eval: runtime) if it should change over time.`,
                 data: { resource, filePath, path }
               });
@@ -71144,7 +72553,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "ACCESSOR_NOT_PLAIN_CHAIN",
-              source: SOURCE36,
+              source: SOURCE37,
               message: `${m.kind}/${resource.name}: ${unbound.message}`,
               data: { resource, filePath, path }
             });
@@ -71157,7 +72566,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "CEL_SYNTAX_ERROR",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `CEL syntax error: ${f2.message}`,
                 data
               });
@@ -71165,7 +72574,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "ENGINE_DIAGNOSTIC",
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${resource.name}: !${engineName}: ${f2.message}`,
                 data
               });
@@ -71173,7 +72582,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: f2.code,
-                source: SOURCE36,
+                source: SOURCE37,
                 message: `${m.kind}/${resource.name}: !${engineName}: ${f2.message}` + (f2.code === "CEL_TYPE_ERROR" ? valueBrandHint(result.readTypes) : ""),
                 data
               });
@@ -71210,7 +72619,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: leading2 !== void 0 ? "HOST_PATH_RELATIVE" : "HOST_PATH_UNTYPED_SOURCE",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but ` + (leading2 !== void 0 ? `this expression builds a path starting with '${leading2}', which is relative.` : `this expression produces a plain '${type}'.`) + ` ${HOST_PATH_SOURCES}${alsoAccepts(target)}`,
           data
         };
@@ -71220,13 +72629,13 @@ var StaticAnalyzer = class {
         return result ? {
           severity: DiagnosticSeverity2.Error,
           code: "FUNCTION_RETURN_MISMATCH",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' returns '${type}' but '${slot.schema[RETURNS_FROM_ANNOTATION]}' declares '${expected}'.`,
           data
         } : {
           severity: DiagnosticSeverity2.Error,
           code: "CEL_TYPE_ERROR",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' returns '${type}' but ${holder} expects '${expected}'.`,
           data
         };
@@ -71237,7 +72646,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "CEL_TYPE_ERROR",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' reads '${chain}', which may be null, but ${holder} expects '${describeSlotType(target)}', which does not admit null. Guard it: '${chain} != null ? ${chain} : <a value for the null case>'.`,
           data
         };
@@ -71247,7 +72656,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "HOST_PATH_RELATIVE",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but this expression builds a path starting with '${leading}', which is relative. ${HOST_PATH_SOURCES}${alsoAccepts(target)}`,
           data
         };
@@ -71258,7 +72667,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "HOST_PATH_UNTYPED_SOURCE",
-          source: SOURCE36,
+          source: SOURCE37,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but the value it reads is declared '${produced["x-telo-type"] ?? produced.type ?? "a union with no host-path branch"}', so a relative path reaches it unresolved and is refused when the resource is created. Declare the source 'x-telo-type: Telo.HostPath' \u2014 a variable resolves a relative value against the working directory; any other source must already hold an absolute one.`,
           data
         };
@@ -71272,7 +72681,7 @@ var StaticAnalyzer = class {
       return result ? {
         severity: DiagnosticSeverity2.Error,
         code: "FUNCTION_RETURN_MISMATCH",
-        source: SOURCE36,
+        source: SOURCE37,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' produces a value whose declared shape disagrees with '${slot.schema[RETURNS_FROM_ANNOTATION]}': ${issues.join("; ")}.`,
         data
       } : conflicts.every((conflict) => conflict.beneathTypeArgument) ? {
@@ -71280,13 +72689,13 @@ var StaticAnalyzer = class {
         // both sides name; one outside makes it a shape misfit.
         severity: DiagnosticSeverity2.Error,
         code: "CEL_TYPE_ARGUMENT_MISMATCH",
-        source: SOURCE36,
+        source: SOURCE37,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' produces a value whose type arguments disagree with ${slot.callTarget !== void 0 ? holder : "the field's"}: ${issues.join("; ")}.`,
         data
       } : {
         severity: DiagnosticSeverity2.Error,
         code: "CEL_TYPE_ERROR",
-        source: SOURCE36,
+        source: SOURCE37,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' reads '${expression.trim()}', whose declared shape does not fit what ${holder} expects: ${issues.join("; ")}.`,
         data
       };
@@ -71337,7 +72746,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "DEPENDENCY_CYCLE",
-        source: SOURCE36,
+        source: SOURCE37,
         message: formatCycle(cycle),
         data: {
           resource: { kind: anchor.kind, name: anchor.name },
@@ -71351,7 +72760,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "OBSERVED_STATE_REQUIRED_FORBIDDEN",
-        source: SOURCE36,
+        source: SOURCE37,
         message: issue.message,
         data: {
           resource: { kind: issue.kind, name: issue.name },
@@ -71396,6 +72805,16 @@ var StaticAnalyzer = class {
         aliases,
         rootModules,
         (supplied, required, isDeclaration) => kindSatisfies(supplied, required, defs, isDeclaration)
+      )
+    );
+    diagnostics.push(
+      ...needTableDiagnostics(
+        allManifests,
+        rootModules,
+        (module, kind) => declaringModuleScope(module, aliases, { aliasesByModule, rootModules }).resolveKind(kind),
+        (kind) => defs.resolve(kind),
+        options?.moduleDocuments ?? [],
+        (manifest) => defs.referenceSites(manifest, aliases, aliasesByModule)
       )
     );
     diagnostics.push(
@@ -71500,7 +72919,7 @@ function isOciRef(ref) {
 }
 
 // ../../analyzer/nodejs/src/import-resolution-diagnostics.ts
-var SOURCE37 = "telo-analyzer";
+var SOURCE38 = "telo-analyzer";
 function isRecognizedSourceShape(source) {
   return isOciRef(source) || source.startsWith("http://") || source.startsWith("https://") || isLocalPathSource(source);
 }
@@ -71531,7 +72950,7 @@ function importResolutionDiagnostics(graph) {
     return {
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE37,
+      source: SOURCE38,
       message: messageFor(e, code),
       data
     };
@@ -71629,6 +73048,7 @@ function inlineImportManifests(moduleManifest, modulePosition) {
       ...entry.variables !== void 0 ? { variables: entry.variables } : {},
       ...entry.secrets !== void 0 ? { secrets: entry.secrets } : {},
       ...entry.resources !== void 0 ? { resources: entry.resources } : {},
+      ...entry.needs !== void 0 ? { needs: entry.needs } : {},
       ...entry.runtime !== void 0 ? { runtime: entry.runtime } : {},
       ...entry.logging !== void 0 ? { logging: entry.logging } : {}
     };
@@ -72968,7 +74388,7 @@ function parseLoadedFile(source, requestedUrl, text3, options, shared) {
 }
 
 // ../../analyzer/nodejs/src/reconcile-module-versions.ts
-var SOURCE38 = "telo-analyzer";
+var SOURCE39 = "telo-analyzer";
 function refIdentity(ref) {
   const base = ref.split("#")[0];
   if (!base || base.startsWith(".") || base.startsWith("/") || base.startsWith("file:")) {
@@ -73012,7 +74432,7 @@ function hoistDiagnostic(identity, importerSource, alias, loser, winner, conflic
     return {
       severity: DiagnosticSeverity2.Error,
       code: "MODULE_VERSION_CONFLICT",
-      source: SOURCE38,
+      source: SOURCE39,
       message: `Module '${identity}' is imported at incompatible major versions: ${loser.version || "<unknown>"} here and ${winner.version} elsewhere in the same graph. Major versions can carry breaking changes and cannot be reconciled automatically \u2014 align every importer on one major.`,
       data
     };
@@ -73022,7 +74442,7 @@ function hoistDiagnostic(identity, importerSource, alias, loser, winner, conflic
     return {
       severity: DiagnosticSeverity2.Warning,
       code: "MODULE_VERSION_HOISTED",
-      source: SOURCE38,
+      source: SOURCE39,
       message: `Module '${identity}@${winner.version}' is imported from two sources whose contents differ ('${loser.source}' and '${winner.source}'). Using '${winner.source}' for every importer \u2014 pin a single source to remove the ambiguity.`,
       data
     };
@@ -73048,8 +74468,8 @@ function reconcileModuleVersions(modules, importEdges) {
     const info = moduleIdentityOf(mod, identity);
     if (!info) continue;
     infoBySource.set(info.source, info);
-    const list4 = groups.get(info.identity);
-    if (list4) list4.push(info);
+    const list5 = groups.get(info.identity);
+    if (list5) list5.push(info);
     else groups.set(info.identity, [info]);
   }
   const conflictByIdentity = /* @__PURE__ */ new Map();
@@ -73135,7 +74555,7 @@ function importTargetIdentity(target, importSource) {
   const namespace = library.metadata?.namespace;
   return { name: name2, namespace: typeof namespace === "string" ? namespace : null };
 }
-var SYSTEM_KINDS4 = /* @__PURE__ */ new Set([
+var SYSTEM_KINDS2 = /* @__PURE__ */ new Set([
   "Telo.Application",
   "Telo.Library",
   "Telo.Import",
@@ -73486,7 +74906,7 @@ var Loader = class {
     for (const m of file.manifests) {
       if (!m) continue;
       const kind = m.kind;
-      if (typeof kind === "string" && SYSTEM_KINDS4.has(kind)) {
+      if (typeof kind === "string" && SYSTEM_KINDS2.has(kind)) {
         throw new Error(
           `Included file '${file.source}' contains '${kind}' which is not allowed in partial files. Only the owner telo.yaml may declare ${kind} resources.`
         );
@@ -74825,10 +76245,10 @@ function describeFunction(fn, flags) {
 // ../ide-support/src/completions/cel-completions.ts
 function describeOverloads(signatures, description) {
   if (signatures.length <= 1) return description;
-  const list4 = signatures.map((s) => `- \`${s}\``).join("\n");
+  const list5 = signatures.map((s) => `- \`${s}\``).join("\n");
   return description ? `${description}
 
-${list4}` : list4;
+${list5}` : list5;
 }
 function toResult(symbol, replaceRange) {
   return {
@@ -75365,7 +76785,7 @@ function findPositions(graph, diagnosticData) {
   const data = diagnosticData;
   if (!data) return void 0;
   if (data.resource?.kind && data.resource.name) {
-    const result = findByResource(graph, data.resource.kind, data.resource.name);
+    const result = (data.filePath !== void 0 ? findByResource(graph, data.resource.kind, data.resource.name, data.filePath) : void 0) ?? findByResource(graph, data.resource.kind, data.resource.name);
     if (result) return result;
   }
   if (data.filePath) {
@@ -75374,9 +76794,10 @@ function findPositions(graph, diagnosticData) {
   }
   return void 0;
 }
-function findByResource(graph, kind, name2) {
+function findByResource(graph, kind, name2, inFile) {
   for (const mod of graph.modules.values()) {
     for (const file of [mod.owner, ...mod.partials]) {
+      if (inFile !== void 0 && file.source !== inFile) continue;
       for (let i = 0; i < file.manifests.length; i++) {
         const m = file.manifests[i];
         if (!m) continue;
@@ -75968,9 +77389,9 @@ function locateImport(mod, alias) {
 // ../ide-support/src/definition/resolve-export-chain.ts
 function exportList(mod, block) {
   const exports = moduleDoc(mod)?.exports;
-  const list4 = exports?.[block];
-  if (!Array.isArray(list4)) return void 0;
-  return list4.filter((e) => typeof e === "string");
+  const list5 = exports?.[block];
+  if (!Array.isArray(list5)) return void 0;
+  return list5.filter((e) => typeof e === "string");
 }
 function modulesByName(graph) {
   const byName = /* @__PURE__ */ new Map();
@@ -76897,7 +78318,7 @@ async function resolveVersions(baseRefs, listVersions, failures) {
 }
 
 // ../ide-support/src/workspace/workspace-marker.ts
-var SOURCE39 = "telo-workspace";
+var SOURCE40 = "telo-workspace";
 function workspaceDiagnostics(text3, env) {
   const doc = parseDocument(text3);
   const { config, diagnostics } = readWorkspaceConfig(text3, "telo-workspace.yaml");
@@ -76989,7 +78410,7 @@ function normalize2(diagnostic, doc, text3) {
   );
 }
 function make(code, message, path, doc, text3, severity) {
-  return { range: rangeOf(doc, text3, path), severity, code, source: SOURCE39, message };
+  return { range: rangeOf(doc, text3, path), severity, code, source: SOURCE40, message };
 }
 function rangeOf(doc, text3, path) {
   const span2 = offsetsOf(doc, path);
@@ -78111,22 +79532,22 @@ var WorkspaceSession = class {
    *  report its diagnostics once. */
   publish() {
     const merged = /* @__PURE__ */ new Map();
-    const add = (file, list4) => {
+    const add = (file, list5) => {
       const bucket2 = merged.get(file) ?? /* @__PURE__ */ new Map();
-      for (const d of list4) bucket2.set(JSON.stringify(d), d);
+      for (const d of list5) bucket2.set(JSON.stringify(d), d);
       merged.set(file, bucket2);
     };
     for (const state of this.owners.values()) {
-      for (const [file, list4] of state.diagnostics) add(file, list4);
+      for (const [file, list5] of state.diagnostics) add(file, list5);
     }
-    for (const [file, list4] of this.documentDiagnostics) add(file, list4);
+    for (const [file, list5] of this.documentDiagnostics) add(file, list5);
     for (const source of this.texts.keys()) add(source, []);
     for (const [file, bucket2] of merged) {
-      const list4 = [...bucket2.values()];
-      const key2 = JSON.stringify(list4);
+      const list5 = [...bucket2.values()];
+      const key2 = JSON.stringify(list5);
       if (this.published.get(file) === key2) continue;
       this.published.set(file, key2);
-      this.events.publishDiagnostics(file, list4);
+      this.events.publishDiagnostics(file, list5);
     }
     for (const file of [...this.published.keys()]) {
       if (merged.has(file)) continue;
