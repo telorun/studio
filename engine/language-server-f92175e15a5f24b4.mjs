@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.117.0";
+var TELO_ENGINE_VERSION = "0.118.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -30402,7 +30402,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.117.0";
+var ENGINE_VERSION = "0.118.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -31087,7 +31087,7 @@ function asHeader(parsed) {
   const body2 = parsed.body;
   return typeof body2 === "string" ? { ...identity, body: body2 } : void 0;
 }
-function verifyStoredText(text3, expected) {
+function verifyStoredText(text3, expected, digest2 = sha256OfText) {
   const held = headerAndBody(text3);
   if (!held) return { refused: "the stored text carries no integrity header" };
   let parsed;
@@ -31100,7 +31100,7 @@ function verifyStoredText(text3, expected) {
   if (!header) return { refused: "the stored text's integrity header is not an emitted module's" };
   const mismatch = identityRefusal(header, expected);
   if (mismatch) return { refused: mismatch };
-  const body2 = sha256OfText(held.body);
+  const body2 = digest2(held.body);
   if (body2 !== header.body) {
     return {
       refused: `the stored module's body does not match the digest its header declares (${header.body} against ${body2})`
@@ -31123,7 +31123,7 @@ function identityRefusal(held, expected) {
   }
   return void 0;
 }
-function emitModule(target, environmentDigest2, expressions) {
+function emitModule(target, environmentDigest2, expressions, digest2 = sha256OfText) {
   const emitter = new ModuleEmitter(target);
   const functions = expressions.map((expression) => emitter.emitFunction(expression.root));
   const sources = expressions.map((expression) => expression.source);
@@ -31140,7 +31140,7 @@ function emitModule(target, environmentDigest2, expressions) {
     "}",
     ""
   ].join("\n");
-  const header = { ...identity, body: sha256OfText(body2) };
+  const header = { ...identity, body: digest2(body2) };
   const text3 = [
     "// @telorun/cel: an emitted module. Generated - edit the expression, not this.",
     "// The runtime is the factory's argument; this module imports nothing.",
@@ -31151,12 +31151,13 @@ function emitModule(target, environmentDigest2, expressions) {
 }
 function storedEmittedModule(target, environmentDigest2, sources, expressions, store) {
   const identity = emittedModuleIdentity(environmentDigest2, sources);
+  const digest2 = store.digest ? (text3) => store.digest(text3) : sha256OfText;
   const held = store.read(identity.key);
-  const verdict = held === void 0 ? void 0 : verifyStoredText(held, identity);
+  const verdict = held === void 0 ? void 0 : verifyStoredText(held, identity, digest2);
   if (verdict && "header" in verdict) {
     return { key: identity.key, header: verdict.header, text: held, sources, emitted: false };
   }
-  const written = emitModule(target, environmentDigest2, expressions());
+  const written = emitModule(target, environmentDigest2, expressions(), digest2);
   store.write(written.key, written.text);
   return { ...written, ...verdict ? { refused: verdict.refused } : {}, emitted: true };
 }
@@ -37317,17 +37318,28 @@ function repeatableExpression(expr, environment) {
   if (parsed.diagnostics.length > 0) return false;
   return !callsNonDeterministic(parsed.root) && !callsOnBareReceiver(parsed.root);
 }
-function compileExpression2(expr, environment, moduleNames) {
+function siteEnvironment(environment, moduleNames) {
   const namespaces = moduleNames === void 0 ? NO_NAMESPACES : celNamespaceNames(moduleNames);
-  if (namespaces.size === 0) {
-    return compiledValueOf(expr, environment.parse(expr), environment);
-  }
+  if (namespaces.size === 0) return environment;
+  const declared = new Set(environment.namespaces());
+  if ([...namespaces].every((name2) => declared.has(name2))) return environment;
   const site = environment.clone();
   for (const name2 of namespaces) site.registerNamespace(name2);
-  return compiledValueOf(expr, site.parse(expr), site);
+  return site;
 }
-function compiledValueOf(expr, parsed, environment) {
-  const program = environment.compile(parsed);
+function compileExpression2(expr, environment, moduleNames, programSites) {
+  const site = siteEnvironment(environment, moduleNames);
+  return compiledValueOf(expr, site.parse(expr), site, programSites);
+}
+function compiledValueOf(expr, parsed, environment, programSites) {
+  let program = programSites && parsed.diagnostics.length === 0 ? void 0 : environment.compile(parsed);
+  programSites?.push({
+    source: expr,
+    environment,
+    use: (replacement) => {
+      program = replacement;
+    }
+  });
   const calls = qualifiedCalls(parsed.root).map((call) => call.qualifiedName);
   return {
     __compiled: true,
@@ -37339,7 +37351,11 @@ function compiledValueOf(expr, parsed, environment) {
     // the owning scope bound on the activation. Evaluating without it reaches no function at
     // all: the engine would answer its own `unbound_function` for every qualified call,
     // whatever the kernel bound, so the whole dispatch is silently dead.
-    call: (ctx) => hostValueOf(program.evaluate(ctx, { namespaceFunction: dispatchFrom(ctx) }))
+    call: (ctx) => hostValueOf(
+      (program ??= environment.compile(parsed)).evaluate(ctx, {
+        namespaceFunction: dispatchFrom(ctx)
+      })
+    )
   };
 }
 function dispatchFrom(activation) {
@@ -37971,7 +37987,7 @@ var celEngine = {
   name: "cel",
   language: "cel",
   compile(source, env) {
-    return compileExpression2(source, env.celEnv, env.moduleNames);
+    return compileExpression2(source, env.celEnv, env.moduleNames, env.programSites);
   },
   analyze(source, env) {
     return analyzeCelExpression(source, env);
@@ -38106,7 +38122,7 @@ function requireHoles(tag, source) {
   return reading.holes;
 }
 function compileHoles(holes, env) {
-  const compiled2 = holes.map((h) => compileExpression2(h.expr, env.celEnv, env.moduleNames));
+  const compiled2 = holes.map((h) => compileExpression2(h.expr, env.celEnv, env.moduleNames, env.programSites));
   const refs = /* @__PURE__ */ new Set();
   const calls = /* @__PURE__ */ new Set();
   let volatile = false;
@@ -67122,7 +67138,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.117.0";
+var TELO_SURFACE_VERSION = "0.118.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE21 = "telo-analyzer";
@@ -74895,14 +74911,14 @@ function buildPositionIndex(doc, lineOffsets) {
 }
 
 // ../../analyzer/nodejs/src/precompile.ts
-function precompileDoc(doc, env, moduleNames, path = "") {
+function precompileDoc(doc, env, moduleNames, path = "", programSites) {
   if (isRefSentinel(doc)) return doc;
   if (isTaggedSentinel(doc)) {
     const engine = defaultRegistry().get(doc.engine);
     if (!engine) {
       throw new Error(`Unknown templating engine: !${doc.engine}`);
     }
-    const compiled2 = engine.compile(doc.source, { celEnv: env, moduleNames });
+    const compiled2 = engine.compile(doc.source, { celEnv: env, moduleNames, programSites });
     if (isCompiledValue(compiled2)) {
       return {
         __tagged: true,
@@ -74934,12 +74950,12 @@ function precompileDoc(doc, env, moduleNames, path = "") {
     return doc;
   }
   if (Array.isArray(doc)) {
-    return doc.map((item, i) => precompileDoc(item, env, moduleNames, `${path}[${i}]`));
+    return doc.map((item, i) => precompileDoc(item, env, moduleNames, `${path}[${i}]`, programSites));
   }
   if (isCelRecord(doc)) {
     const result = {};
     for (const [k, v] of Object.entries(doc)) {
-      result[k] = precompileDoc(v, env, moduleNames, path ? `${path}.${k}` : k);
+      result[k] = precompileDoc(v, env, moduleNames, path ? `${path}.${k}` : k, programSites);
     }
     return result;
   }
@@ -75291,14 +75307,16 @@ function parseLoadedFile(source, requestedUrl, text3, options, shared) {
     if (manifest) expandManifestFragments(manifest);
   }
   let env;
+  let celProgramSites;
   if (options?.compile) {
     const moduleNames = moduleCallNamesOfFile(manifests, options.moduleNames);
+    celProgramSites = [];
     for (let i = 0; i < manifests.length; i++) {
       const raw = manifests[i];
       if (raw === null) continue;
-      env ??= options.celEnv ?? buildCelEnvironment();
+      env ??= siteEnvironment(options.celEnv ?? buildCelEnvironment(), moduleNames);
       try {
-        manifests[i] = precompileDoc(raw, env, moduleNames);
+        manifests[i] = precompileDoc(raw, env, moduleNames, "", celProgramSites);
       } catch (error) {
         const message = `Failed to compile manifest in ${source}: ${error instanceof Error ? error.message : String(error)}`;
         if (error instanceof RuntimeError) throw new RuntimeError(error.code, message);
@@ -75308,7 +75326,16 @@ function parseLoadedFile(source, requestedUrl, text3, options, shared) {
   }
   if (restoredParses.has(parsed)) {
     return Object.defineProperties(
-      { source, requestedUrl, text: text3, manifests, positions, parseErrors, migrations },
+      {
+        source,
+        requestedUrl,
+        text: text3,
+        manifests,
+        positions,
+        parseErrors,
+        migrations,
+        ...celProgramSites ? { celProgramSites } : {}
+      },
       {
         documents: { get: () => parsed.documents, enumerable: true },
         astDocuments: { get: () => parsed.astDocuments, enumerable: true }
@@ -75324,7 +75351,8 @@ function parseLoadedFile(source, requestedUrl, text3, options, shared) {
     manifests,
     positions,
     parseErrors,
-    migrations
+    migrations,
+    ...celProgramSites ? { celProgramSites } : {}
   };
 }
 
