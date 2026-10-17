@@ -18520,1225 +18520,6 @@ var ABSTRACT_THROWS_SCHEMA = {
 };
 var THROWS_CAPABLE_CAPABILITIES = ["Telo.Invocable", "Telo.Runnable"];
 
-// ../../analyzer/nodejs/src/builtins.ts
-var kindSchemaSlot = {
-  title: "Schema",
-  description: "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
-  $ref: manifestFragmentRef("KindSchema")
-};
-var signatureTypeSlot = {
-  title: "Type",
-  description: "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
-  // The string branch is admitted so a bare name reaches the ONE diagnostic that
-  // knows what it is — `FUNCTION_TYPE_NAME_FORM`, which carries the `!ref`
-  // repair — rather than also producing a schema violation that says only
-  // "must be object" about the same node.
-  anyOf: [{ $ref: manifestFragmentRef("JsonSchema7") }, { type: "string" }]
-};
-var SIGNATURE_PARAMS_SCHEMA = {
-  title: "Parameters",
-  description: "Ordered parameters this callable accepts. Optional parameters come last.",
-  type: "array",
-  items: {
-    type: "object",
-    required: ["name", "schema"],
-    properties: {
-      name: { type: "string" },
-      description: { type: "string" },
-      schema: signatureTypeSlot,
-      // Shorthand for a union with `{type: "null"}` — for an argument that
-      // genuinely IS null, as opposed to one that may be omitted.
-      nullable: { type: "boolean" },
-      optional: { type: "boolean" }
-    },
-    additionalProperties: false
-  }
-};
-var SIGNATURE_RETURNS_SCHEMA = {
-  title: "Result",
-  description: "What a call to this callable evaluates to.",
-  type: "object",
-  required: ["schema"],
-  properties: {
-    description: { type: "string" },
-    schema: signatureTypeSlot,
-    nullable: { type: "boolean" }
-  },
-  additionalProperties: false
-};
-var DETERMINISTIC_SCHEMA = {
-  title: "Deterministic",
-  // No `type: boolean`: a non-boolean is `CALLABLE_DEFINITION_INVALID`, which
-  // says what the value reads as and why, and the kernel refuses it under the
-  // same rule. A schema type here would report the one mistake twice.
-  description: "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
-};
-var observedStateSlot = {
-  title: "Observed state",
-  description: "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
-  $ref: manifestFragmentRef("JsonSchema7")
-};
-var dispatchSelfContext = {
-  type: "object",
-  additionalProperties: false,
-  properties: { self: { "x-telo-context-from-root": "schema" } }
-};
-function dispatchSlot(title, description) {
-  return {
-    title,
-    description,
-    anyOf: [
-      // `!ref <entry>` — the spelling to write.
-      {
-        type: "object",
-        required: ["__tagged", "engine", "source"],
-        properties: {
-          __tagged: { const: true },
-          engine: { const: "ref" },
-          source: { type: "string", minLength: 1 }
-        },
-        additionalProperties: false
-      },
-      // Legacy: a name template expanded against `self`. Read forever, because
-      // published artifacts carry it; `DEPRECATED_TEMPLATE_DISPATCH_FORM` is
-      // what moves an author off it.
-      { type: "string", "x-telo-context": dispatchSelfContext },
-      // Legacy: `{ kind?, name }`, where `name` is that same template.
-      {
-        type: "object",
-        required: ["name"],
-        properties: {
-          kind: { type: "string" },
-          name: { type: "string", "x-telo-context": dispatchSelfContext }
-        },
-        additionalProperties: true
-      }
-    ]
-  };
-}
-var PROVENANCE_METADATA = {
-  description: { type: "string" },
-  repository: { type: "string" },
-  license: { type: "string" },
-  documentation: { type: "string" }
-};
-var REQUIRES_SCHEMA = {
-  type: "object",
-  properties: {
-    host: { type: "object" }
-  },
-  additionalProperties: true
-};
-var ASSETS_FILES_SCHEMA = {
-  type: "array",
-  items: { type: "string" }
-};
-var LIBRARY_CANDIDATES_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["specifier", "format", "path"],
-    properties: {
-      specifier: { type: "string" },
-      format: { type: "string" },
-      path: { type: "string" },
-      source: { type: "string" },
-      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
-    },
-    additionalProperties: false
-  }
-};
-var NATIVE_ENTRIES_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["name", "format", "os", "arch", "path"],
-    properties: {
-      name: { type: "string" },
-      format: { type: "string" },
-      path: { type: "string" },
-      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
-    },
-    additionalProperties: false
-  }
-};
-var SOURCES_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["version", "url", "archive", "notices", "entries"],
-    properties: {
-      version: { type: "string" },
-      url: { type: "string" },
-      archive: { enum: ["tar.gz"] },
-      notices: { type: "array", minItems: 1, items: { type: "string" } },
-      build: {
-        type: "object",
-        required: ["cargo"],
-        properties: { cargo: { type: "string" }, inputs: { type: "string" } },
-        additionalProperties: false
-      },
-      entries: {
-        type: "object",
-        additionalProperties: {
-          type: "object",
-          anyOf: [{ required: ["upstream", "member"] }, { required: ["target"] }],
-          properties: {
-            upstream: { type: "string" },
-            member: { type: "string" },
-            sha256: { type: "string" },
-            executable: { type: "boolean" },
-            target: { type: "string" }
-          },
-          additionalProperties: false
-        }
-      }
-    },
-    additionalProperties: false
-  }
-};
-var LAYER_INDEX_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["role", "blob", "integrity"],
-    properties: {
-      role: { type: "string", minLength: 1 },
-      selector: {},
-      blob: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
-      integrity: { type: "string", pattern: "^sha256-[A-Za-z0-9_-]{43}$" }
-    },
-    additionalProperties: false
-  }
-};
-var LEGACY_FILES_INTEGRITY_SCHEMA = { type: "string" };
-var LOG_LEVEL_ENUM = ["trace", "debug", "info", "warn", "error", "fatal"];
-var DURATION_PATTERN = "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$";
-var LOG_SINK_COMMON_PROPERTIES = {
-  level: { type: "string", enum: LOG_LEVEL_ENUM },
-  buffer: { type: "integer", minimum: 1 },
-  on_full: { type: "string", enum: ["block", "drop_new", "drop_old"] },
-  flush_interval: { type: "string", pattern: DURATION_PATTERN }
-};
-var ARG_FLAG_SCHEMA = { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$" };
-var ARG_BINDING_SCHEMA = {
-  anyOf: [
-    ARG_FLAG_SCHEMA,
-    {
-      type: "object",
-      required: ["flag"],
-      properties: { flag: ARG_FLAG_SCHEMA, short: { type: "string", pattern: "^[A-Za-z]$" } },
-      additionalProperties: false
-    },
-    {
-      type: "object",
-      required: ["position"],
-      properties: { position: { type: "integer", minimum: 0 } },
-      additionalProperties: false
-    }
-  ]
-};
-var LOGGING_SCOPE_PROPERTIES = {
-  level: { type: "string", enum: LOG_LEVEL_ENUM },
-  attributes: { type: "object" },
-  redact: {
-    type: "object",
-    properties: {
-      paths: { type: "array", items: { type: "string" } },
-      censor: { type: "string" },
-      // Deletion destroys schema stability and hides that a field was present
-      // at all, so §14 offers this but never as the default.
-      remove: { type: "boolean" }
-    },
-    additionalProperties: false
-  },
-  sampling: {
-    type: "object",
-    properties: {
-      first: { type: "integer", minimum: 0 },
-      thereafter: { type: "integer", minimum: 0 },
-      tick: { type: "string", pattern: DURATION_PATTERN },
-      sampleErrors: { type: "boolean" }
-    },
-    additionalProperties: false
-  }
-};
-var IMPORT_LOGGING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  properties: LOGGING_SCOPE_PROPERTIES,
-  additionalProperties: false
-};
-function sinkListSchema(sinkKind) {
-  const sink = {
-    type: "object",
-    // Resolved reference or inline declaration — both carry `kind`, which is
-    // what keeps a malformed `{ sink, when }` from passing as a sink.
-    required: ["kind"],
-    "x-telo-ref": { kind: sinkKind, use: "dependency" },
-    "x-telo-inline": true
-  };
-  return {
-    type: "array",
-    items: {
-      anyOf: [
-        sink,
-        {
-          type: "object",
-          required: ["sink"],
-          properties: {
-            sink,
-            // Resolved once at load with the rest of the block; `false` leaves
-            // the sink created and unattached.
-            when: { type: "boolean", default: true }
-          },
-          additionalProperties: false
-        }
-      ]
-    }
-  };
-}
-var ROOT_LOGGING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  // Resolved while the application is loaded, before any resource — and so any
-  // function — exists.
-  "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-  properties: {
-    ...LOGGING_SCOPE_PROPERTIES,
-    // A list rather than a keyed map because sinks are root-only and therefore
-    // never merged; with no merge to disambiguate, a list matches how Telo
-    // spells every other ref-or-inline collection.
-    sinks: sinkListSchema("Telo.LogSink")
-  },
-  additionalProperties: false
-};
-var ROOT_TRACING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-  properties: {
-    sinks: sinkListSchema("Telo.TraceSink")
-  },
-  additionalProperties: false
-};
-var LIBRARY_RESOURCE_INPUTS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: {
-      kind: { type: "string" },
-      description: { type: "string" }
-    },
-    additionalProperties: false
-  }
-};
-var IMPORT_RESOURCE_INPUTS_SCHEMA = {
-  type: "object",
-  additionalProperties: {}
-};
-var NEED_ENTRY_PROPERTIES = {
-  kind: { type: "string" },
-  parameters: { type: "object" },
-  version: {
-    type: "string",
-    description: "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
-  },
-  features: {
-    type: "array",
-    description: "The features the fulfilment must carry \u2014 names the need type lists.",
-    items: { type: "string" },
-    uniqueItems: true
-  },
-  optional: { type: "boolean" },
-  description: { type: "string" }
-};
-var LIBRARY_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: { ...NEED_ENTRY_PROPERTIES, env: {} },
-    additionalProperties: false
-  }
-};
-var APPLICATION_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: {
-      ...NEED_ENTRY_PROPERTIES,
-      env: {
-        type: "object",
-        additionalProperties: { type: "string", minLength: 1 }
-      }
-    },
-    additionalProperties: false
-  }
-};
-var IMPORT_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {}
-};
-var NEED_TYPE_SCHEMA = withSchemaFragments({
-  type: "object",
-  properties: {
-    kind: { type: "string" },
-    metadata: {
-      type: "object",
-      properties: { name: { type: "string" }, description: { type: "string" } },
-      required: ["name"],
-      additionalProperties: true
-    },
-    fields: {
-      title: "Fields",
-      description: "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
-      type: "object",
-      additionalProperties: { $ref: manifestFragmentRef("JsonSchema7") }
-    },
-    required: {
-      title: "Required fields",
-      description: "The fields every fulfilment must yield.",
-      type: "array",
-      items: { type: "string" },
-      uniqueItems: true
-    },
-    parameters: {
-      title: "Parameters",
-      description: "JSON Schema of the literal parameters a need of this type may state.",
-      $ref: manifestFragmentRef("JsonSchema7")
-    },
-    version: {
-      title: "Version",
-      description: "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
-      enum: ["semver"]
-    },
-    features: {
-      title: "Features",
-      description: "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
-      type: "array",
-      items: { type: "string", minLength: 1 },
-      uniqueItems: true
-    }
-  },
-  required: ["metadata", "fields"],
-  additionalProperties: false
-});
-var KERNEL_BUILTINS = [
-  { kind: "Telo.Abstract", metadata: { name: "Template", module: "Telo" } },
-  // "Control can be transferred to this" — the parent of Invocable and Runnable,
-  // and the only thing a slot that accepts either needs to say. It is a SLOT
-  // CONSTRAINT, never a lifecycle role: `capability: Telo.Executable` is rejected
-  // because it is absent from the kernel's `KNOWN_CAPABILITIES` enum, which is
-  // what keeps "what a resource is" and "what a slot does with it" separate.
-  //
-  // `Telo.Service` is deliberately NOT under it. A Service's `run()` is a
-  // lifecycle start the kernel dispatches differently (no ambient scope, so
-  // inbound work roots its own trace), and admitting it here would make every
-  // step's `invoke:` slot accept a service. Boot-target slots that genuinely take
-  // `Runnable | Service` stay kind lists — the honest shape for a heterogeneous
-  // set.
-  { kind: "Telo.Abstract", metadata: { name: "Executable", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Runnable", module: "Telo" }, extends: "Telo.Executable" },
-  { kind: "Telo.Abstract", metadata: { name: "Service", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Invocable", module: "Telo" }, extends: "Telo.Executable" },
-  { kind: "Telo.Abstract", metadata: { name: "Mount", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Type", module: "Telo" } },
-  // A function: `call(args)`, synchronous, reached from CEL through a module
-  // name. Deliberately NOT under `Telo.Executable` — `call()` receives no
-  // context, so no zone, cancellation or trace reaches it, and a step's
-  // `invoke:` must refuse it. A callable publishes no reading either, so
-  // `resources.<fn>` reads as absent.
-  { kind: "Telo.Abstract", metadata: { name: "Callable", module: "Telo" } },
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "Provider", module: "Telo" },
-    schema: { "x-telo-eval": "compile" }
-  },
-  // The sink lifecycle role: attach, write a record, flush, detach. Deliberately
-  // payload-opaque — it carries no filtering and no encoding — so a future
-  // `Telo.TraceSink` reuses the same capability with a different record type.
-  // Scoped to record-stream sinks; metrics aggregate rather than stream and are
-  // not covered. See kernel/specs/logging.md §10.
-  { kind: "Telo.Abstract", metadata: { name: "Sink", module: "Telo" } },
-  // The abstract every *log* sink kind extends, carrying the log-specific
-  // configuration. A kernel built-in resolvable without an import, so a sink
-  // author depends on the kernel contract rather than on a standard-library
-  // module version and kernel↔module skew never becomes a compatibility surface
-  // for "where do logs go".
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "LogSink", module: "Telo" },
-    capability: "Telo.Sink",
-    schema: {
-      type: "object",
-      properties: LOG_SINK_COMMON_PROPERTIES,
-      additionalProperties: true
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "ConsoleSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.LogSink",
-    schema: {
-      type: "object",
-      properties: {
-        ...LOG_SINK_COMMON_PROPERTIES,
-        destination: { type: "string", enum: ["stderr", "stdout"] },
-        encoding: { type: "string", enum: ["auto", "pretty", "json"] },
-        color: { type: "string", enum: ["auto", "always", "never"] }
-      },
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "FileSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.LogSink",
-    schema: {
-      type: "object",
-      properties: {
-        ...LOG_SINK_COMMON_PROPERTIES,
-        destination: { type: "string" },
-        encoding: { type: "string", enum: ["json", "pretty"] }
-      },
-      required: ["destination"],
-      additionalProperties: false
-    }
-  },
-  // The abstract every trace sink kind extends: where finished spans go. The
-  // same `Telo.Sink` capability as a log sink, with a span as the record.
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "TraceSink", module: "Telo" },
-    capability: "Telo.Sink",
-    schema: {
-      type: "object",
-      additionalProperties: true
-    }
-  },
-  // Each finished span as one structured record through the logging pipeline —
-  // tracing with no collector, read wherever the logs already go.
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "LogTraceSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.TraceSink",
-    schema: {
-      type: "object",
-      properties: {
-        level: { type: "string", enum: LOG_LEVEL_ENUM, default: "info", "x-telo-eval": "compile" }
-      },
-      additionalProperties: false
-    }
-  },
-  {
-    // Telo.JsonSchema — the concrete data-shape kind, in the kernel rather than
-    // in an installable module for the same reason the mandatory sinks are:
-    // declaring a shape is not optional. Every kind with an invocation contract
-    // needs one, so requiring an import to write `inputType:` would put a tax on
-    // the one thing the contract wants authors to do more of — and a library
-    // declaring a contract would have to import a module purely to describe
-    // itself. `type.JsonSchema` remains as a deprecated alias of this kind.
-    kind: "Telo.Definition",
-    metadata: { name: "JsonSchema", module: "Telo" },
-    capability: "Telo.Type",
-    // Declared so the kind reads as controller-BEARING, which is what lets
-    // another definition inherit it by delegation (`extends: Telo.JsonSchema`
-    // with no controller of its own). The entry is never loaded from — the
-    // kernel registers this controller directly at boot, before any lazy
-    // resolution — it states truthfully who provides it.
-    controllers: [{ runtime: "kernel", entry: "Telo.JsonSchema" }],
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        schema: {
-          title: "Schema",
-          description: "JSON Schema definition for the declared data type.",
-          $ref: manifestFragmentRef("JsonSchema7")
-        },
-        extends: {
-          title: "Extends",
-          description: "Parent type name or list of parent type names to inherit from.",
-          oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
-        },
-        rules: {
-          title: "Rules",
-          description: "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              condition: {
-                type: "string",
-                description: "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
-                // Plain text evaluated as CEL against the value alone, wherever
-                // the shape is validated — not in the module that declared it.
-                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
-              },
-              code: {
-                type: "string",
-                description: "Machine-readable error code surfaced on validation failure."
-              },
-              message: {
-                type: "string",
-                description: "Optional human-readable hint for the validation failure."
-              }
-            },
-            required: ["condition", "code"]
-          }
-        }
-      },
-      required: ["schema"],
-      additionalProperties: false
-    })
-  },
-  {
-    // Telo.Function — the built-in callable kind for a function written in CEL,
-    // in the kernel rather than an installable module for the reason
-    // `Telo.JsonSchema` is: a module must be able to declare a function without
-    // importing one to do it. It carries a signature and a body and nothing
-    // else — native code is written as a callable `Telo.Definition` plus
-    // instances, so there is one way to write a native function and no document
-    // that is half kind, half instance.
-    //
-    // The schema is CLOSED, which is what makes `deterministic:` here a
-    // SCHEMA_VIOLATION: a body's determinism is DERIVED from everything it
-    // calls, so an author-written flag would be a second source of truth for a
-    // fact the analyzer can already compute.
-    kind: "Telo.Definition",
-    metadata: { name: "Function", module: "Telo" },
-    capability: "Telo.Callable",
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        body: {
-          title: "Body",
-          // No `type:` — a CEL field's schema states what the expression
-          // PRODUCES, and a body produces whatever `returns:` declares, which
-          // differs per function. Checking the result against it is the
-          // signature's job, not this field's.
-          description: "The expression this function evaluates, over its parameters.",
-          // The value it produces is the function's result, so it must satisfy
-          // the signature's `returns:` — read through the one annotation that
-          // names a result declaration, so nothing here knows what a function is.
-          "x-telo-returns-from": "returns",
-          // A body sees its PARAMETERS. The names come from `params:` through the
-          // one annotation that reads an ordered parameter list, so nothing here
-          // knows what a function is — a kind declaring a parameter list of the
-          // same shape gets the same scope.
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            "x-telo-context-parameters-from": "params"
-          }
-        }
-      },
-      required: ["body"],
-      additionalProperties: false
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Abstract", module: "Telo" },
-    capability: "Telo.Template",
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: { name: { type: "string" } },
-          required: ["name"],
-          additionalProperties: true
-        },
-        capability: { type: "string" },
-        schema: kindSchemaSlot,
-        status: observedStateSlot,
-        // The callable signature, declared on a contract with no implementation.
-        // `deterministic: true` here is a REQUIREMENT every implementation must
-        // meet, checked like a covariant result.
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        deterministic: DETERMINISTIC_SCHEMA,
-        throws: ABSTRACT_THROWS_SCHEMA
-      },
-      required: ["metadata"],
-      // Telo.Abstract is an extension point by design — it must accept forward-compatible
-      // fields (e.g. inputType/outputType from the typed-abstracts plan) without requiring
-      // the analyzer to enumerate them here.
-      additionalProperties: true
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "NeedType", module: "Telo" },
-    capability: "Telo.Template",
-    schema: NEED_TYPE_SCHEMA
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Definition", module: "Telo" },
-    capability: "Telo.Template",
-    // Top-level shape stays open (`additionalProperties: true`) so this change
-    // attaches x-telo-context annotations to known template-body fields without
-    // tightening the Telo.Definition shape itself. The annotations drive
-    // static CEL validation of expressions inside `resources:` / `invoke:` /
-    // `run:` / `provide:` / top-level `inputs:` / top-level `result:` against
-    // `self` (typed from `schema:`) and `inputs` (typed from `inputType:`,
-    // falling back to the extends-declared abstract).
-    //
-    // `inputs:` and `result:` live as top-level siblings of `invoke:` / `provide:`,
-    // matching how Run.Sequence steps factor dispatch from data. The dispatch
-    // entry-point (`invoke` / `provide` / `run`) determines how `inputs`/`result`
-    // are interpreted at runtime. See analyzer/nodejs/plans/template-internal-cel-validation.md.
-    schema: withSchemaFragments({
-      type: "object",
-      additionalProperties: true,
-      properties: {
-        // The kind's own configuration contract. Declared as a slot for the
-        // first time here: it was reachable only as an unnamed extra property,
-        // so nothing could say what belonged in it — no completion inside a
-        // `schema:` block, and a misspelled keyword surviving to a runtime
-        // failure that named a different field.
-        schema: kindSchemaSlot,
-        status: observedStateSlot,
-        // The callable signature and the native determinism claim. Declared here
-        // so the editor offers them and so `x-telo-*` inside a signature is
-        // walked; what a callable kind may actually carry is enforced by
-        // `callableKindIssues` in both halves.
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        deterministic: DETERMINISTIC_SCHEMA,
-        throws: THROWS_SCHEMA,
-        resources: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: true,
-            // A `resources:` entry is a DECLARATION of another kind, so the
-            // CEL inside it belongs to THAT kind: its `x-telo-context` regions
-            // are rebased under this entry's path and take precedence (they are
-            // deeper), which is what puts `inputs`, `item`, `request`, `steps`
-            // and a `catch:`'s `error` in scope exactly where the nested kind
-            // declares them — see `analyzer/nodejs/src/template-body.ts`.
-            //
-            // What stays here is `self` alone, in force throughout the entry:
-            // it is how a body reaches the configuration its enclosing template
-            // was given, and no nested kind knows about it. The four names that
-            // used to sit beside it (`request` / `result` / `steps` / `error`)
-            // were a fixed permissive stand-in for the nested kind's own
-            // regions — which is why `error` was offered outside every `catch:`
-            // while `inputs` and `item` were undefined wherever a body actually
-            // reads them.
-            "x-telo-context": {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                self: { "x-telo-context-from-root": "schema" }
-              }
-            }
-          }
-        },
-        // A dispatch slot names the `resources:` entry that receives the call,
-        // as `!ref <entry>` — the one spelling every reference in Telo has. The
-        // string and `{ kind, name }` forms it used to admit (a CEL name
-        // template matched against CEL-named entries) were the removed
-        // reference object surviving in the one place nothing resolved it;
-        // `validate-template-body` is what resolves this slot, so the schema
-        // stays open here rather than reporting the same defect twice.
-        invoke: dispatchSlot(
-          "Invoke target",
-          "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`."
-        ),
-        provide: dispatchSlot(
-          "Provide target",
-          "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`."
-        ),
-        run: dispatchSlot(
-          "Run target",
-          "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`."
-        ),
-        // The template twin of an Application's boot sequence. Its shape is
-        // `templateTargetProblems`' to check (shared with the kernel), so the
-        // schema states none — a second check would report the same line twice.
-        targets: {
-          title: "Targets",
-          description: "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
-        },
-        // The named child stays persistent so the produced mount's routes can
-        // `!ref` its siblings.
-        mount: dispatchSlot(
-          "Mount target",
-          "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`."
-        ),
-        inputs: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" },
-              inputs: { "x-telo-context-from-root": "inputType" }
-            }
-          }
-        },
-        result: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" },
-              // Typed from the dispatch target's declared output: the slot
-              // holds a `!ref` to a `resources:` entry, resolved to that
-              // entry's kind (or its own `outputType`, where it narrows one).
-              result: {
-                "x-telo-context-from-ref-kind": ["provide#outputType", "invoke#outputType"]
-              }
-            }
-          }
-        },
-        // `base:` ("super(...)") — construction mapping for an inherited
-        // (concrete-`extends`) definition. Its CEL is evaluated once against
-        // `self` (typed from this definition's `schema:`) to build the parent
-        // kind's config. Same `self`-only scope as a resource body.
-        base: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" }
-            }
-          }
-        }
-      }
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Import", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: { name: { type: "string" } },
-          required: ["name"],
-          additionalProperties: true
-        },
-        source: { type: "string" },
-        integrity: { type: "string" },
-        variables: { type: "object" },
-        secrets: { type: "object" },
-        resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-        needs: IMPORT_NEEDS_SCHEMA,
-        runtime: {
-          oneOf: [
-            { type: "string" },
-            { type: "array", items: { type: "string" } }
-          ]
-        },
-        logging: IMPORT_LOGGING_SCHEMA
-      },
-      required: ["metadata", "source"],
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Application", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            version: { type: "string" },
-            source: { type: "string" },
-            module: { type: "string" },
-            ...PROVENANCE_METADATA
-          },
-          required: ["name"],
-          additionalProperties: true
-        },
-        lifecycle: {
-          type: "string",
-          enum: ["shared", "isolated"],
-          default: "shared"
-        },
-        targets: {
-          // Boot targets form a step list: a later target reads an earlier one's
-          // result as `steps.<name>.result`, exactly as a sequence step does, so
-          // the same annotation types that context and drives the call-site
-          // contract check.
-          "x-telo-step-context": { invoke: "invoke", outputType: "outputType" },
-          type: "array",
-          items: {
-            // A genuinely heterogeneous set stays a kind list: `Telo.Service` is
-            // deliberately outside `Telo.Executable`, since a service's `run()`
-            // is a lifecycle start the kernel dispatches without an ambient
-            // scope.
-            "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
-            anyOf: [
-              { type: "string" },
-              // Post-resolution shape that `resolveRefSentinels`
-              // substitutes a `!ref <name>` sentinel into. The
-              // adjacent `x-telo-ref` constraint governs the kind
-              // check; this branch only admits the structural form so
-              // AJV doesn't reject a resolved ref.
-              {
-                type: "object",
-                required: ["kind", "name"],
-                properties: {
-                  kind: { type: "string" },
-                  name: { type: "string" }
-                },
-                additionalProperties: true
-              },
-              // Gated reference: run() a Runnable/Service only when the
-              // `when` CEL guard holds. Discriminated by the `ref` key. `ref`
-              // is a `!ref` that resolves to the `{ kind, name }` shape below.
-              {
-                type: "object",
-                required: ["ref"],
-                properties: {
-                  ref: {
-                    "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
-                    anyOf: [
-                      { type: "string" },
-                      {
-                        type: "object",
-                        required: ["kind", "name"],
-                        properties: {
-                          kind: { type: "string" },
-                          name: { type: "string" }
-                        },
-                        additionalProperties: true
-                      }
-                    ]
-                  },
-                  when: {
-                    title: "When",
-                    description: "CEL guard \u2014 the target runs only when it evaluates true.",
-                    "x-telo-topology-role": "predicate",
-                    type: "boolean"
-                  }
-                },
-                additionalProperties: false
-              },
-              // Inline flat invoke step, discriminated by the `invoke` key —
-              // THE dispatch site, shared with every `Run` step array rather
-              // than restated here. Restating it is what made `retry:` a schema
-              // error at boot while working one line away in a sequence: not a
-              // decision about boot, just a copy that never grew the field.
-              // Control flow (if/while/switch/try) is still not available here —
-              // reach for Run.Sequence.
-              // An expanded, stamped COPY. `builtins.ts` is not a manifest, so it
-              // never passes through the loader's expansion — embedding the
-              // fragment object itself would leave the nested `retry` as an
-              // unresolved `$ref` with no `x-telo-fragment` stamp, which is
-              // exactly what made LIVE_VALUE_RETRIED silently skip every boot
-              // target. A copy, because this is a module-level singleton and
-              // `resolveSchemaRefKinds` rewrites the `x-telo-ref` inside it.
-              manifestFragment("InvokeStep")
-            ]
-          }
-        },
-        include: {
-          type: "array",
-          items: { type: "string" }
-        },
-        // Files bundled alongside `telo.yaml` into the module's artifact —
-        // controller bundles, static assets served by Http.Static, templates,
-        // etc. Ordered `.gitignore`-style patterns resolved against the manifest
-        // dir at publish time. Analyzer-only role: accept the field (the schema
-        // is additionalProperties:false); the analyzer never reads the payload.
-        files: {
-          type: "array",
-          items: { type: "string" }
-        },
-        assets: ASSETS_FILES_SCHEMA,
-        native: NATIVE_ENTRIES_SCHEMA,
-        sources: SOURCES_SCHEMA,
-        layers: LAYER_INDEX_SCHEMA,
-        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
-        // Inline imports — name-keyed map sugar for separate `Telo.Import`
-        // documents. The key is the PascalCase alias (the import's
-        // `metadata.name`). Each value is either a bare source string
-        // (shorthand for `{ source }`) or the full object form. The loader
-        // desugars each entry into a synthetic `Telo.Import` before discovery;
-        // authored `Telo.Import` docs keep working alongside this. See
-        // analyzer/nodejs/src/inline-imports.ts.
-        imports: {
-          type: "object",
-          additionalProperties: {
-            oneOf: [
-              { type: "string" },
-              {
-                type: "object",
-                required: ["source"],
-                properties: {
-                  source: { type: "string" },
-                  integrity: { type: "string" },
-                  variables: { type: "object" },
-                  secrets: { type: "object" },
-                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-                  needs: IMPORT_NEEDS_SCHEMA,
-                  runtime: {
-                    oneOf: [
-                      { type: "string" },
-                      { type: "array", items: { type: "string" } }
-                    ]
-                  },
-                  // Threshold / redaction / sampling override for this import's
-                  // subtree. Attached to the import rather than to a map keyed
-                  // by module name because an alias is already uniqueness-
-                  // enforced, while module names collide (§12.2, D9).
-                  logging: IMPORT_LOGGING_SCHEMA
-                },
-                additionalProperties: false
-              }
-            ]
-          }
-        },
-        // Application-level input contract. Each entry binds one or both host
-        // channels — `env:` (the source env var) and `arg:` (a command-line flag
-        // or position) — plus `default:` (optional, used when no channel
-        // supplies a value) on top of an open JSON Schema property schema.
-        // `type:` constrains the coercion rule applied to the raw text (scalars
-        // per-type; an env value of type `object` / `array` via JSON.parse, a
-        // repeated flag per `items.type`). All other JSON Schema keywords are
-        // passed through unchanged and applied to the coerced value via the
-        // standard schema validator. The rules relating several `arg:` bindings
-        // are `validate-application-arguments.ts`. See
-        // kernel/nodejs/src/application-env.ts and
-        // kernel/specs/application-arguments.md.
-        variables: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["type"],
-            anyOf: [{ required: ["env"] }, { required: ["arg"] }],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              arg: ARG_BINDING_SCHEMA,
-              type: {
-                type: "string",
-                enum: ["string", "integer", "number", "boolean", "object", "array"]
-              },
-              default: {}
-            }
-          }
-        },
-        secrets: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["env", "type"],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              type: {
-                type: "string",
-                enum: ["string", "integer", "number", "boolean", "object", "array"]
-              },
-              default: {}
-            }
-          }
-        },
-        // What the application asks whoever runs it for — each read from the
-        // environment at load, under the name `env:` binds or the derived one.
-        needs: APPLICATION_NEEDS_SCHEMA,
-        // Inbound ports the Application listens on. A name-keyed map mirroring
-        // `variables`: each entry binds a host env var (`env:`) that supplies a
-        // port integer (implicitly typed `integer`, 1–65535), with an optional
-        // `default:` used when the env var is unset. `protocol:` (default `tcp`)
-        // selects the transport — the runner reads this list to know the
-        // exposed ports before launch, and the analyzer brands the resolved
-        // `ports.<name>` value (tcp → TcpPort, udp → UdpPort) for static wiring
-        // checks. Application-only. See kernel/nodejs/src/application-env.ts.
-        // `env:` stays required beside `arg:`: a runner publishes a port before
-        // boot and supplies it through the environment, so a port the command
-        // line alone could set is one a runner could never expose.
-        ports: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["env"],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              arg: ARG_BINDING_SCHEMA,
-              protocol: {
-                type: "string",
-                enum: ["tcp", "udp"],
-                default: "tcp"
-              },
-              default: { type: "integer", minimum: 1, maximum: 65535 }
-            },
-            additionalProperties: false
-          }
-        },
-        // Structured logging configuration. The manifest is the only
-        // configuration source — there is no TELO_LOG_* variable and no logging
-        // CLI flag — so a level derived from the host environment goes through a
-        // `variables:` entry read with `!cel`. See kernel/specs/logging.md §12.
-        logging: ROOT_LOGGING_SCHEMA,
-        // Trace export: at least one attached sink turns tracing on. See
-        // kernel/specs/tracing.md.
-        tracing: ROOT_TRACING_SCHEMA,
-        // The runtime range this module is verified against. See
-        // `analyzer/nodejs/src/requires-block.ts`.
-        requires: REQUIRES_SCHEMA
-      },
-      required: ["metadata"],
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Library", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            version: { type: "string" },
-            source: { type: "string" },
-            module: { type: "string" },
-            ...PROVENANCE_METADATA
-          },
-          required: ["name"],
-          additionalProperties: true
-        },
-        variables: { type: "object" },
-        secrets: { type: "object" },
-        // How many times this library is instantiated in one application.
-        //
-        // `isolated` (the default) is what every published module was written
-        // against: each import declaration builds its own child scope with its
-        // own instances, so two libraries importing a third get two of
-        // everything in it. `shared` makes the library a SINGLETON — every
-        // import of it resolves to one instantiation, owned by the root and
-        // torn down after everything that borrowed it.
-        //
-        // Default `isolated` rather than `shared` — the opposite of the
-        // Application field's — because flipping it would silently collapse
-        // every existing app's resource graph and turn per-import `variables:`
-        // into a conflict. The `exports.kinds` precedent: private-by-default is
-        // the better end state and still needs the ecosystem republished first.
-        lifecycle: {
-          type: "string",
-          enum: ["shared", "isolated"],
-          default: "isolated"
-        },
-        // The inward half of `exports.resources`: instances this library
-        // requires from whoever imports it. Library-only — an Application is a
-        // root with no importer, so it owns its instances outright.
-        resources: LIBRARY_RESOURCE_INPUTS_SCHEMA,
-        // What this library asks whoever runs it for — typed requests a need
-        // type describes, supplied at the import or bubbled to the root.
-        needs: LIBRARY_NEEDS_SCHEMA,
-        include: {
-          type: "array",
-          items: { type: "string" }
-        },
-        // Files bundled into the module's artifact — same semantics as the
-        // Telo.Application `files` field above (a library may ship bundled
-        // controllers, templates, migrations, seed data).
-        files: {
-          type: "array",
-          items: { type: "string" }
-        },
-        assets: ASSETS_FILES_SCHEMA,
-        native: NATIVE_ENTRIES_SCHEMA,
-        sources: SOURCES_SCHEMA,
-        layers: LAYER_INDEX_SCHEMA,
-        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
-        // Inline imports — same name-keyed map sugar as Telo.Application; the
-        // loader desugars each entry into a synthetic Telo.Import. See the
-        // Application schema above and analyzer/nodejs/src/inline-imports.ts.
-        imports: {
-          type: "object",
-          additionalProperties: {
-            oneOf: [
-              { type: "string" },
-              {
-                type: "object",
-                required: ["source"],
-                properties: {
-                  source: { type: "string" },
-                  integrity: { type: "string" },
-                  variables: { type: "object" },
-                  secrets: { type: "object" },
-                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-                  needs: IMPORT_NEEDS_SCHEMA,
-                  runtime: {
-                    oneOf: [
-                      { type: "string" },
-                      { type: "array", items: { type: "string" } }
-                    ]
-                  },
-                  // Threshold / redaction / sampling override for this import's
-                  // subtree. Attached to the import rather than to a map keyed
-                  // by module name because an alias is already uniqueness-
-                  // enforced, while module names collide (§12.2, D9).
-                  logging: IMPORT_LOGGING_SCHEMA
-                },
-                additionalProperties: false
-              }
-            ]
-          }
-        },
-        exports: {
-          type: "object",
-          properties: {
-            // Titled because these two ARE a library's public surface, and the
-            // module graph draws them as the root's lists — where an Application
-            // draws its boot targets. The view reads the title off the schema, so
-            // naming them here is what keeps resource-kind knowledge out of it.
-            kinds: { type: "array", title: "Exported kinds", items: { type: "string" } },
-            // An entry is a bare name (`Db`, a locally-owned export) or a dotted `Alias.Name`
-            // (re-export of the instance reached via this library's import aliased `Alias`,
-            // under the name `Name`) — mirroring `exports.kinds`. `variables` / `secrets` are
-            // reserved on the resources.<Alias> value-flow surface, so they may not be exported.
-            resources: {
-              type: "array",
-              title: "Exported resources",
-              items: { type: "string", not: { enum: ["variables", "secrets"] } }
-            },
-            code: LIBRARY_CANDIDATES_SCHEMA
-          },
-          additionalProperties: true
-        },
-        // The runtime range this module is verified against. See
-        // `analyzer/nodejs/src/requires-block.ts`.
-        requires: REQUIRES_SCHEMA
-      },
-      required: ["metadata"],
-      additionalProperties: false
-    }
-  }
-];
-
 // ../../cel/nodejs/src/reserved-words.ts
 var RESERVED_WORDS = [
   "as",
@@ -36312,6 +35093,26 @@ var telo_url_default = {
       name: "scheme",
       member: "scheme",
       description: "A schema the scheme must satisfy (`scheme: { enum: [postgres, postgresql] }`). Omitted means any scheme."
+    },
+    {
+      name: "user",
+      member: "user",
+      description: "A schema the user name must satisfy when present; `{ not: {} }` refuses one."
+    },
+    {
+      name: "password",
+      member: "password",
+      description: "A schema the password must satisfy when present; `{ not: {} }` refuses one."
+    },
+    {
+      name: "path",
+      member: "path",
+      description: 'A schema the path must satisfy when present (`path: { enum: ["/"] }` for an origin).'
+    },
+    {
+      name: "query",
+      member: "query",
+      description: "A schema the query must satisfy when present; `{ not: {} }` refuses one."
     }
   ],
   description: "A URL that may carry credentials, held as its members \u2014 scheme, host, port, user, password, path and query \u2014 each read in CEL as a field. Written as its text (`postgres://app:secret@db:5432/orders`) or as an object of members, which are escaped by RFC 3986 component rules, so a password holding `@` or `/` needs no hand escaping. The password and the whole text are redacted in logs; `string(url)` is its text."
@@ -36771,10 +35572,10 @@ var RuntimeError = class extends Error {
 };
 
 // ../../sdk/nodejs/src/duration.ts
-var DURATION_PATTERN2 = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)$/;
+var DURATION_PATTERN = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)$/;
 var UNIT_MS = { ms: 1, s: 1e3, m: 6e4, h: 36e5, d: 864e5 };
 function tryParseDurationMs(value2) {
-  const match = DURATION_PATTERN2.exec(value2.trim());
+  const match = DURATION_PATTERN.exec(value2.trim());
   if (!match) return null;
   return Number(match[1]) * UNIT_MS[match[2]];
 }
@@ -36961,200 +35762,6 @@ function buildRegistry2() {
 var ZONE_ATTRIBUTES = buildRegistry2();
 function zoneAttributeNames() {
   return [...ZONE_ATTRIBUTES.keys()];
-}
-
-// ../../analyzer/nodejs/src/extends-resolution.ts
-var body = (def) => def ?? {};
-function resolveParent(def, resolve) {
-  const ext = body(def).extends;
-  if (typeof ext !== "string" || ext.length === 0) return void 0;
-  return resolve(ext, def);
-}
-function ancestorChain(def, resolve) {
-  const chain = [];
-  const seen = /* @__PURE__ */ new Set();
-  let cur = resolveParent(def, resolve);
-  while (cur && !seen.has(cur)) {
-    seen.add(cur);
-    chain.push(cur);
-    cur = resolveParent(cur, resolve);
-  }
-  return chain;
-}
-function hasOwnControllerOrTemplate(def) {
-  const d = body(def);
-  return !!(d.controllers && d.controllers.length || d.invoke || d.run || d.targets || d.provide || d.mount || d.resources);
-}
-function controllerBearingAncestor(def, resolve) {
-  for (const a of ancestorChain(def, resolve)) {
-    if (a.kind === "Telo.Abstract") continue;
-    if (hasOwnControllerOrTemplate(a)) return a;
-  }
-  return void 0;
-}
-function isInheritedDelegation(def, resolve) {
-  if (!body(def).extends || hasOwnControllerOrTemplate(def)) return false;
-  return controllerBearingAncestor(def, resolve) !== void 0;
-}
-function inheritedCapability(def, resolve) {
-  if (body(def).capability) return body(def).capability;
-  for (const a of ancestorChain(def, resolve)) {
-    if (body(a).capability) return body(a).capability;
-  }
-  return void 0;
-}
-function effectiveAuthorSchema(def, resolve) {
-  const own2 = body(def).schema ?? {};
-  const parent = resolveParent(def, resolve);
-  if (!parent) return own2;
-  if (body(def).base) return own2;
-  const parentSchema = effectiveAuthorSchema(parent, resolve);
-  return mergeTypeSchemas([parentSchema, own2]);
-}
-function inheritedRequiredFields(def, resolve) {
-  if (!body(def).extends || body(def).base) return [];
-  const parent = resolveParent(def, resolve);
-  if (!parent) return [];
-  const required = effectiveAuthorSchema(parent, resolve).required;
-  if (!Array.isArray(required)) return [];
-  const own2 = (body(def).schema ?? {}).properties ?? {};
-  return required.filter((f2) => typeof f2 === "string" && !(f2 in own2));
-}
-function effectiveContractField(def, resolve, direction) {
-  const own2 = body(def)[direction];
-  if (own2 !== void 0 && own2 !== null) return own2;
-  for (const a of ancestorChain(def, resolve)) {
-    const inherited = body(a)[direction];
-    if (inherited !== void 0 && inherited !== null) return inherited;
-  }
-  return void 0;
-}
-function contractDeclarer(def, resolve, direction) {
-  if (!def) return void 0;
-  const own2 = body(def)[direction];
-  if (own2 !== void 0 && own2 !== null) return def;
-  for (const a of ancestorChain(def, resolve)) {
-    const inherited = body(a)[direction];
-    if (inherited !== void 0 && inherited !== null) return a;
-  }
-  return void 0;
-}
-function needsContractMapping(def, resolve, direction) {
-  const own2 = body(def)[direction];
-  if (own2 === void 0 || own2 === null) return false;
-  if (hasOwnControllerOrTemplate(def)) return false;
-  return controllerBearingAncestor(def, resolve) !== void 0;
-}
-function mappingFieldFor(direction) {
-  return direction === "inputType" ? "inputs" : "result";
-}
-function effectiveStatusSchema(def, resolve) {
-  const own2 = body(def).status;
-  const parent = resolveParent(def, resolve);
-  if (!parent) return own2;
-  const parentStatus = effectiveStatusSchema(parent, resolve);
-  if (body(def).base) return parentStatus;
-  if (!parentStatus) return own2;
-  if (!own2) return parentStatus;
-  return mergeTypeSchemas([parentStatus, own2]);
-}
-
-// ../../analyzer/nodejs/src/callable-signature.ts
-var CALLABLE_CAPABILITY = "Telo.Callable";
-var FUNCTION_KIND = "Telo.Function";
-function isObject(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-function readParams(doc) {
-  if (!isObject(doc)) return void 0;
-  const raw = doc.params;
-  if (!Array.isArray(raw)) return void 0;
-  return raw.map((entry) => isObject(entry) ? entry : {});
-}
-function readReturns(doc) {
-  if (!isObject(doc)) return void 0;
-  const raw = doc.returns;
-  return isObject(raw) ? raw : void 0;
-}
-function readDeterministic(doc) {
-  return isObject(doc) ? doc.deterministic : void 0;
-}
-function claimsDeterministic(doc) {
-  return readDeterministic(doc) === true;
-}
-function requiresDeterminism(def, resolve) {
-  if (!def) return false;
-  if (claimsDeterministic(def)) return true;
-  return ancestorChain(def, resolve).some((ancestor) => claimsDeterministic(ancestor));
-}
-function isCallableKind(def, resolve) {
-  return inheritedCapability(def, resolve) === CALLABLE_CAPABILITY;
-}
-function resolveSignature(manifest, definition, resolve) {
-  const ownParams = instanceDeclaresSignature(definition, resolve, "params") ? readParams(manifest) : void 0;
-  const ownReturns = instanceDeclaresSignature(definition, resolve, "returns") ? readReturns(manifest) : void 0;
-  return {
-    params: ownParams ?? effectiveContractField(definition, resolve, "params"),
-    returns: ownReturns ?? effectiveContractField(definition, resolve, "returns")
-  };
-}
-function instanceDeclaresSignature(definition, resolve, half) {
-  const properties = effectiveAuthorSchema(definition, resolve)?.properties;
-  return !!properties && typeof properties === "object" && half in properties;
-}
-function signatureDeclarer(definition, resolve, half) {
-  return contractDeclarer(definition, resolve, half);
-}
-function signatureSchemaOf(slot) {
-  if (!slot) return void 0;
-  const schema4 = slot.schema;
-  if (!isObject(schema4)) return void 0;
-  return slot.nullable === true ? withNull(schema4) : schema4;
-}
-function withNull(schema4) {
-  if (typeof schema4.type === "string") return { ...schema4, type: [schema4.type, "null"] };
-  if (Array.isArray(schema4.type)) {
-    return schema4.type.includes("null") ? schema4 : { ...schema4, type: [...schema4.type, "null"] };
-  }
-  return { anyOf: [schema4, { type: "null" }] };
-}
-var RETURNS_FROM_ANNOTATION = "x-telo-returns-from";
-function callableBodyField(definition, resolve) {
-  const properties = effectiveAuthorSchema(definition, resolve)?.properties;
-  for (const [field, schema4] of Object.entries(properties ?? {})) {
-    if (typeof schema4?.[RETURNS_FROM_ANNOTATION] === "string") return field;
-  }
-  return void 0;
-}
-function declaredResultSchemaAt(slotSchema, manifestRoot, resolveSchema) {
-  const field = slotSchema?.[RETURNS_FROM_ANNOTATION];
-  if (typeof field !== "string" || field.length === 0) return void 0;
-  let declared = manifestRoot;
-  for (const segment of field.split("/")) {
-    declared = isObject(declared) ? declared[segment] : void 0;
-  }
-  const result = readReturns({ returns: declared });
-  if (!result || !isObject(result.schema)) return void 0;
-  const schema4 = result.schema;
-  return signatureSchemaOf({ ...result, schema: resolveSchema?.(schema4) ?? schema4 });
-}
-function parameterContextProperties(params, resolveSchema) {
-  const properties = {};
-  for (const param of params ?? []) {
-    if (typeof param.name !== "string" || param.name.length === 0) continue;
-    properties[param.name] = parameterSchemaOf(param, resolveSchema) ?? {};
-  }
-  return properties;
-}
-function parameterSchemaOf(param, resolveSchema) {
-  const declared = isObject(param.schema) ? param.schema : void 0;
-  const resolved = declared ? resolveSchema?.(declared) ?? declared : void 0;
-  const omittedReadsNull = param.optional === true && !(resolved && "default" in resolved);
-  return signatureSchemaOf({
-    ...param,
-    schema: resolved,
-    ...omittedReadsNull ? { nullable: true } : {}
-  });
 }
 
 // ../../templating/nodejs/src/cel/value-types.ts
@@ -37549,6 +36156,7 @@ function extractChain(node, boundVars) {
   return null;
 }
 var EACH_SEGMENT = "[]";
+var PRESENCE_SEGMENT = "?";
 function extractReadChains(node) {
   const chains = [];
   visitReads(node, chains, /* @__PURE__ */ new Map());
@@ -37580,6 +36188,14 @@ function visitReads(node, chains, bound) {
     chains.push(chain[chain.length - 1] === EACH_SEGMENT ? chain.slice(0, -1) : chain);
     return;
   }
+  const presence = presenceOperand(node);
+  if (presence) {
+    const owner = readChainOf(presence, bound);
+    if (owner !== null) {
+      chains.push([...owner, PRESENCE_SEGMENT]);
+      return;
+    }
+  }
   const moduleCall = moduleCallOf(node);
   if (moduleCall) {
     for (const arg of moduleCall.args) visitReads(arg, chains, bound);
@@ -37601,6 +36217,11 @@ function visitReads(node, chains, bound) {
     return;
   }
   for (const child of childNodes(node)) visitReads(child, chains, bound);
+}
+function presenceOperand(node) {
+  if (node.kind !== "call" || node.name !== "has" || node.args.length !== 1) return void 0;
+  const arg = node.args[0];
+  return arg.kind === "select" && !arg.optional ? arg.operand : void 0;
 }
 function extractCallResultAccesses(node) {
   const out = [];
@@ -40324,6 +38945,99 @@ function buildTagForEngine(engineName) {
   };
 }
 
+// ../../analyzer/nodejs/src/members-value-slot.ts
+function membersSlotOf(schema4) {
+  const slot = readValueTypeSlot(schema4);
+  const entry = slot?.entry;
+  if (!entry?.members || entry.encoding === void 0 || entry.binding === void 0) return void 0;
+  const encoding = PLAIN_ENCODINGS[entry.encoding];
+  const binding = VALUE_TYPE_BINDINGS[entry.binding];
+  if (!encoding?.members || !binding) return void 0;
+  return { entry, args: slot.args, encoding, codec: encoding.members, binding };
+}
+function memberSlotSchema(slot, member) {
+  const own2 = slot.entry.members[member];
+  if (!own2) return void 0;
+  const argument = boundArgument(slot, member);
+  return argument ? { ...own2, ...argument } : { ...own2 };
+}
+function memberSlotSchemas(slot) {
+  return Object.fromEntries(
+    Object.keys(slot.entry.members).map((member) => [member, memberSlotSchema(slot, member)])
+  );
+}
+function boundArgument(slot, member) {
+  const parameter = slot.entry.parameters.find((p) => p.member === member);
+  const argument = parameter ? slot.args[parameter.name] : void 0;
+  return argument && typeof argument === "object" && !Array.isArray(argument) ? argument : void 0;
+}
+function memberForbidden(slot, member) {
+  const parameter = slot.entry.parameters.find((p) => p.member === member);
+  const argument = parameter ? slot.args[parameter.name] : void 0;
+  if (argument === false) return true;
+  if (!argument || typeof argument !== "object" || Array.isArray(argument)) return false;
+  const not = argument.not;
+  return not === true || not !== null && typeof not === "object" && !Array.isArray(not) && Object.keys(not).length === 0;
+}
+function isExpression(value2) {
+  return isCompiledValue(value2) || isTaggedSentinel(value2);
+}
+function holdsExpression(value2) {
+  if (isExpression(value2)) return true;
+  if (Array.isArray(value2)) return value2.some(holdsExpression);
+  if (isCelRecord(value2)) return Object.values(value2).some(holdsExpression);
+  return false;
+}
+function readMembersLiteral(slot, written) {
+  if (typeof written === "string") return slot.encoding.decode(written);
+  if (!isCelRecord(written) || holdsExpression(written)) return void 0;
+  const built = slot.codec.compose(written);
+  return "value" in built ? built.value : void 0;
+}
+function readMembersValue(slot, value2) {
+  if (slot.binding.holds(value2)) return { value: value2 };
+  if (typeof value2 === "string") {
+    const decoded = slot.encoding.decode(value2);
+    return decoded === void 0 ? { refusal: slot.encoding.refusal?.(value2) ?? `it is not ${slot.encoding.form}` } : { value: decoded };
+  }
+  if (isCelRecord(value2)) return slot.codec.compose(value2);
+  return {
+    refusal: `it is ${describeKind(value2)}, where ${slot.entry.name} is written as text or as an object of its members`
+  };
+}
+function membersValueRefusal(slot, value2) {
+  const read = readMembersValue(slot, value2);
+  if ("refusal" in read) return read.refusal;
+  return boundArgumentRefusal(slot, read.value) ?? `it does not satisfy the slot's type arguments`;
+}
+function boundArgumentRefusal(slot, value2) {
+  for (const parameter of slot.entry.parameters) {
+    if (parameter.member === void 0) continue;
+    const argument = boundArgument(slot, parameter.member);
+    if (!argument) continue;
+    const held = value2[parameter.member];
+    if (held === void 0) continue;
+    if (Array.isArray(argument.enum) && !argument.enum.includes(held)) {
+      return `its ${parameter.member} must be one of ${argument.enum.map((item) => String(item)).join(", ")}`;
+    }
+    if ("const" in argument && argument.const !== held) {
+      return `its ${parameter.member} must be ${String(argument.const)}`;
+    }
+    if (isRefusingEverything(argument)) return `it must have no ${parameter.member}`;
+  }
+  return void 0;
+}
+function isRefusingEverything(argument) {
+  const not = argument.not;
+  return Object.keys(argument).length === 1 && !!not && typeof not === "object" && !Array.isArray(not) && Object.keys(not).length === 0;
+}
+function describeKind(value2) {
+  if (value2 === null) return "null";
+  if (Array.isArray(value2)) return "a list";
+  if (typeof value2 === "object") return "a value of another type";
+  return `${/^[aeiou]/.test(typeof value2) ? "an" : "a"} ${typeof value2}`;
+}
+
 // ../../analyzer/nodejs/src/ref-sentinel-target.ts
 var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
 function isRefSourceSpelling(text3) {
@@ -40411,7 +39125,8 @@ function readNeedTypeShape(doc) {
     required,
     ...parameters ? { parameters } : {},
     ...record.version === "semver" ? { version: "semver" } : {},
-    ...features ? { features } : {}
+    ...features ? { features } : {},
+    ...record.supply === "root" ? { supply: "root" } : {}
   };
 }
 function needTypeDefinition(doc) {
@@ -40463,7 +39178,9 @@ function sensitiveNeedFields(shape) {
 }
 function holdsSensitiveMembers(schema4) {
   const entry = valueTypeOf(schema4);
-  return entry !== void 0 && sensitiveMembersOf(entry).length > 0;
+  if (entry === void 0) return false;
+  const slot = membersSlotOf(schema4);
+  return sensitiveMembersOf(entry).some((member) => !slot || !memberForbidden(slot, member));
 }
 function isTextFieldSchema(schema4) {
   const entry = valueTypeOf(schema4);
@@ -40541,6 +39258,1523 @@ function injectedNeedDeclarations(moduleDoc2, ownModule) {
 function injectedNeedOf(manifest) {
   const marker = manifest?.metadata?.[INJECTED_NEED];
   return marker && typeof marker === "object" ? marker : void 0;
+}
+
+// ../../analyzer/nodejs/src/public-address.ts
+var PUBLIC_URL_TYPE = "Telo.PublicUrl";
+var PUBLIC_HOST_PATTERN_TYPE = "Telo.PublicHostPattern";
+function isAddressNeedType(type) {
+  return type === PUBLIC_URL_TYPE || type === PUBLIC_HOST_PATTERN_TYPE;
+}
+var LABEL = "[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?";
+var HOST = `${LABEL}(?:\\.${LABEL})*`;
+var HOST_PATTERN_ORIGIN = `^https?://\\*[A-Za-z0-9-]*\\.${HOST}(?::[0-9]{1,5})?$`;
+var PUBLIC_URL_PARAMETERS = {
+  type: "object",
+  properties: {
+    port: {
+      type: "string",
+      minLength: 1,
+      description: "The key of the root's `ports:` this address is served on, a `tcp` port."
+    },
+    primary: {
+      type: "boolean",
+      description: "Marks the application's main address. At most one per application."
+    },
+    customDomains: {
+      type: "boolean",
+      description: "Lets the host route further domains to this need's port, ones the application is never told about. At most one per port."
+    }
+  },
+  additionalProperties: false
+};
+var PUBLIC_HOST_PATTERN_PARAMETERS = {
+  type: "object",
+  properties: {
+    port: {
+      type: "string",
+      minLength: 1,
+      description: "The key of the root's `ports:` these hosts are served on, a `tcp` port."
+    }
+  },
+  additionalProperties: false
+};
+var PUBLIC_ADDRESS_NEED_TYPE_DOCS = [
+  {
+    kind: "Telo.NeedType",
+    metadata: {
+      name: "PublicUrl",
+      module: "Telo",
+      description: "One public address an application is reached at: an http or https origin the host routes to a port, with the request's host and path unchanged."
+    },
+    fields: {
+      url: {
+        description: "The address: an http or https origin \u2014 a host and an optional port, with no path, query or credentials.",
+        "x-telo-type": {
+          name: "Telo.Url",
+          scheme: { enum: ["http", "https"] },
+          path: { enum: ["/"] },
+          query: { not: {} },
+          user: { not: {} },
+          password: { not: {} }
+        }
+      }
+    },
+    required: ["url"],
+    parameters: PUBLIC_URL_PARAMETERS,
+    supply: "root"
+  },
+  {
+    kind: "Telo.NeedType",
+    metadata: {
+      name: "PublicHostPattern",
+      module: "Telo",
+      description: "A family of public hosts an application is reached at \u2014 tenant subdomains \u2014 as a pattern origin the host routes every matching host of to a port."
+    },
+    fields: {
+      pattern: {
+        type: "string",
+        pattern: HOST_PATTERN_ORIGIN,
+        description: "The hosts as a pattern origin: `https://*.tenants.example` (one or more whole labels) or `https://*-tenants.example` (a prefix of the first label)."
+      }
+    },
+    required: ["pattern"],
+    parameters: PUBLIC_HOST_PATTERN_PARAMETERS,
+    supply: "root"
+  }
+];
+function addressNeedPorts(moduleDoc2) {
+  const needs = moduleDoc2.needs;
+  if (!needs || typeof needs !== "object" || Array.isArray(needs)) return [];
+  const ports = [];
+  for (const need of Object.values(needs)) {
+    if (!need || typeof need !== "object") continue;
+    const { kind, parameters } = need;
+    if (typeof kind !== "string" || !isAddressNeedType(kind)) continue;
+    const port = parameters?.port;
+    if (typeof port === "string") ports.push(port);
+  }
+  return ports;
+}
+
+// ../../analyzer/nodejs/src/builtins.ts
+var kindSchemaSlot = {
+  title: "Schema",
+  description: "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
+  $ref: manifestFragmentRef("KindSchema")
+};
+var signatureTypeSlot = {
+  title: "Type",
+  description: "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
+  // The string branch is admitted so a bare name reaches the ONE diagnostic that
+  // knows what it is — `FUNCTION_TYPE_NAME_FORM`, which carries the `!ref`
+  // repair — rather than also producing a schema violation that says only
+  // "must be object" about the same node.
+  anyOf: [{ $ref: manifestFragmentRef("JsonSchema7") }, { type: "string" }]
+};
+var SIGNATURE_PARAMS_SCHEMA = {
+  title: "Parameters",
+  description: "Ordered parameters this callable accepts. Optional parameters come last.",
+  type: "array",
+  items: {
+    type: "object",
+    required: ["name", "schema"],
+    properties: {
+      name: { type: "string" },
+      description: { type: "string" },
+      schema: signatureTypeSlot,
+      // Shorthand for a union with `{type: "null"}` — for an argument that
+      // genuinely IS null, as opposed to one that may be omitted.
+      nullable: { type: "boolean" },
+      optional: { type: "boolean" }
+    },
+    additionalProperties: false
+  }
+};
+var SIGNATURE_RETURNS_SCHEMA = {
+  title: "Result",
+  description: "What a call to this callable evaluates to.",
+  type: "object",
+  required: ["schema"],
+  properties: {
+    description: { type: "string" },
+    schema: signatureTypeSlot,
+    nullable: { type: "boolean" }
+  },
+  additionalProperties: false
+};
+var DETERMINISTIC_SCHEMA = {
+  title: "Deterministic",
+  // No `type: boolean`: a non-boolean is `CALLABLE_DEFINITION_INVALID`, which
+  // says what the value reads as and why, and the kernel refuses it under the
+  // same rule. A schema type here would report the one mistake twice.
+  description: "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
+};
+var observedStateSlot = {
+  title: "Observed state",
+  description: "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
+  $ref: manifestFragmentRef("JsonSchema7")
+};
+var dispatchSelfContext = {
+  type: "object",
+  additionalProperties: false,
+  properties: { self: { "x-telo-context-from-root": "schema" } }
+};
+function dispatchSlot(title, description) {
+  return {
+    title,
+    description,
+    anyOf: [
+      // `!ref <entry>` — the spelling to write.
+      {
+        type: "object",
+        required: ["__tagged", "engine", "source"],
+        properties: {
+          __tagged: { const: true },
+          engine: { const: "ref" },
+          source: { type: "string", minLength: 1 }
+        },
+        additionalProperties: false
+      },
+      // Legacy: a name template expanded against `self`. Read forever, because
+      // published artifacts carry it; `DEPRECATED_TEMPLATE_DISPATCH_FORM` is
+      // what moves an author off it.
+      { type: "string", "x-telo-context": dispatchSelfContext },
+      // Legacy: `{ kind?, name }`, where `name` is that same template.
+      {
+        type: "object",
+        required: ["name"],
+        properties: {
+          kind: { type: "string" },
+          name: { type: "string", "x-telo-context": dispatchSelfContext }
+        },
+        additionalProperties: true
+      }
+    ]
+  };
+}
+var PROVENANCE_METADATA = {
+  description: { type: "string" },
+  repository: { type: "string" },
+  license: { type: "string" },
+  documentation: { type: "string" }
+};
+var REQUIRES_SCHEMA = {
+  type: "object",
+  properties: {
+    host: { type: "object" }
+  },
+  additionalProperties: true
+};
+var ASSETS_FILES_SCHEMA = {
+  type: "array",
+  items: { type: "string" }
+};
+var LIBRARY_CANDIDATES_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    required: ["specifier", "format", "path"],
+    properties: {
+      specifier: { type: "string" },
+      format: { type: "string" },
+      path: { type: "string" },
+      source: { type: "string" },
+      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
+    },
+    additionalProperties: false
+  }
+};
+var NATIVE_ENTRIES_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    required: ["name", "format", "os", "arch", "path"],
+    properties: {
+      name: { type: "string" },
+      format: { type: "string" },
+      path: { type: "string" },
+      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
+    },
+    additionalProperties: false
+  }
+};
+var SOURCES_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["version", "url", "archive", "notices", "entries"],
+    properties: {
+      version: { type: "string" },
+      url: { type: "string" },
+      archive: { enum: ["tar.gz"] },
+      notices: { type: "array", minItems: 1, items: { type: "string" } },
+      build: {
+        type: "object",
+        required: ["cargo"],
+        properties: { cargo: { type: "string" }, inputs: { type: "string" } },
+        additionalProperties: false
+      },
+      entries: {
+        type: "object",
+        additionalProperties: {
+          type: "object",
+          anyOf: [{ required: ["upstream", "member"] }, { required: ["target"] }],
+          properties: {
+            upstream: { type: "string" },
+            member: { type: "string" },
+            sha256: { type: "string" },
+            executable: { type: "boolean" },
+            target: { type: "string" }
+          },
+          additionalProperties: false
+        }
+      }
+    },
+    additionalProperties: false
+  }
+};
+var LAYER_INDEX_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    required: ["role", "blob", "integrity"],
+    properties: {
+      role: { type: "string", minLength: 1 },
+      selector: {},
+      blob: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
+      integrity: { type: "string", pattern: "^sha256-[A-Za-z0-9_-]{43}$" }
+    },
+    additionalProperties: false
+  }
+};
+var LEGACY_FILES_INTEGRITY_SCHEMA = { type: "string" };
+var LOG_LEVEL_ENUM = ["trace", "debug", "info", "warn", "error", "fatal"];
+var DURATION_PATTERN2 = "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$";
+var LOG_SINK_COMMON_PROPERTIES = {
+  level: { type: "string", enum: LOG_LEVEL_ENUM },
+  buffer: { type: "integer", minimum: 1 },
+  on_full: { type: "string", enum: ["block", "drop_new", "drop_old"] },
+  flush_interval: { type: "string", pattern: DURATION_PATTERN2 }
+};
+var ARG_FLAG_SCHEMA = { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$" };
+var ARG_BINDING_SCHEMA = {
+  anyOf: [
+    ARG_FLAG_SCHEMA,
+    {
+      type: "object",
+      required: ["flag"],
+      properties: { flag: ARG_FLAG_SCHEMA, short: { type: "string", pattern: "^[A-Za-z]$" } },
+      additionalProperties: false
+    },
+    {
+      type: "object",
+      required: ["position"],
+      properties: { position: { type: "integer", minimum: 0 } },
+      additionalProperties: false
+    }
+  ]
+};
+var LOGGING_SCOPE_PROPERTIES = {
+  level: { type: "string", enum: LOG_LEVEL_ENUM },
+  attributes: { type: "object" },
+  redact: {
+    type: "object",
+    properties: {
+      paths: { type: "array", items: { type: "string" } },
+      censor: { type: "string" },
+      // Deletion destroys schema stability and hides that a field was present
+      // at all, so §14 offers this but never as the default.
+      remove: { type: "boolean" }
+    },
+    additionalProperties: false
+  },
+  sampling: {
+    type: "object",
+    properties: {
+      first: { type: "integer", minimum: 0 },
+      thereafter: { type: "integer", minimum: 0 },
+      tick: { type: "string", pattern: DURATION_PATTERN2 },
+      sampleErrors: { type: "boolean" }
+    },
+    additionalProperties: false
+  }
+};
+var IMPORT_LOGGING_SCHEMA = {
+  type: "object",
+  "x-telo-eval": "compile",
+  properties: LOGGING_SCOPE_PROPERTIES,
+  additionalProperties: false
+};
+function sinkListSchema(sinkKind) {
+  const sink = {
+    type: "object",
+    // Resolved reference or inline declaration — both carry `kind`, which is
+    // what keeps a malformed `{ sink, when }` from passing as a sink.
+    required: ["kind"],
+    "x-telo-ref": { kind: sinkKind, use: "dependency" },
+    "x-telo-inline": true
+  };
+  return {
+    type: "array",
+    items: {
+      anyOf: [
+        sink,
+        {
+          type: "object",
+          required: ["sink"],
+          properties: {
+            sink,
+            // Resolved once at load with the rest of the block; `false` leaves
+            // the sink created and unattached.
+            when: { type: "boolean", default: true }
+          },
+          additionalProperties: false
+        }
+      ]
+    }
+  };
+}
+var ROOT_LOGGING_SCHEMA = {
+  type: "object",
+  "x-telo-eval": "compile",
+  // Resolved while the application is loaded, before any resource — and so any
+  // function — exists.
+  "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+  properties: {
+    ...LOGGING_SCOPE_PROPERTIES,
+    // A list rather than a keyed map because sinks are root-only and therefore
+    // never merged; with no merge to disambiguate, a list matches how Telo
+    // spells every other ref-or-inline collection.
+    sinks: sinkListSchema("Telo.LogSink")
+  },
+  additionalProperties: false
+};
+var ROOT_TRACING_SCHEMA = {
+  type: "object",
+  "x-telo-eval": "compile",
+  "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+  properties: {
+    sinks: sinkListSchema("Telo.TraceSink")
+  },
+  additionalProperties: false
+};
+var LIBRARY_RESOURCE_INPUTS_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["kind"],
+    properties: {
+      kind: { type: "string" },
+      description: { type: "string" }
+    },
+    additionalProperties: false
+  }
+};
+var IMPORT_RESOURCE_INPUTS_SCHEMA = {
+  type: "object",
+  additionalProperties: {}
+};
+var NEED_ENTRY_PROPERTIES = {
+  kind: { type: "string" },
+  parameters: { type: "object" },
+  version: {
+    type: "string",
+    description: "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
+  },
+  features: {
+    type: "array",
+    description: "The features the fulfilment must carry \u2014 names the need type lists.",
+    items: { type: "string" },
+    uniqueItems: true
+  },
+  optional: { type: "boolean" },
+  description: { type: "string" }
+};
+var LIBRARY_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["kind"],
+    properties: { ...NEED_ENTRY_PROPERTIES, env: {} },
+    additionalProperties: false
+  }
+};
+var APPLICATION_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {
+    type: "object",
+    required: ["kind"],
+    properties: {
+      ...NEED_ENTRY_PROPERTIES,
+      env: {
+        type: "object",
+        additionalProperties: { type: "string", minLength: 1 }
+      }
+    },
+    additionalProperties: false
+  }
+};
+var IMPORT_NEEDS_SCHEMA = {
+  type: "object",
+  additionalProperties: {}
+};
+var NEED_TYPE_SCHEMA = withSchemaFragments({
+  type: "object",
+  properties: {
+    kind: { type: "string" },
+    metadata: {
+      type: "object",
+      properties: { name: { type: "string" }, description: { type: "string" } },
+      required: ["name"],
+      additionalProperties: true
+    },
+    fields: {
+      title: "Fields",
+      description: "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
+      type: "object",
+      additionalProperties: { $ref: manifestFragmentRef("JsonSchema7") }
+    },
+    required: {
+      title: "Required fields",
+      description: "The fields every fulfilment must yield.",
+      type: "array",
+      items: { type: "string" },
+      uniqueItems: true
+    },
+    parameters: {
+      title: "Parameters",
+      description: "JSON Schema of the literal parameters a need of this type may state.",
+      $ref: manifestFragmentRef("JsonSchema7")
+    },
+    version: {
+      title: "Version",
+      description: "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
+      enum: ["semver"]
+    },
+    features: {
+      title: "Features",
+      description: "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
+      type: "array",
+      items: { type: "string", minLength: 1 },
+      uniqueItems: true
+    },
+    supply: {
+      title: "Supply",
+      description: "`root` when a need of this type is fulfilled only through a root need, forwarded whole: a self-supplied fulfilment, a field-by-field supply at an import and a library need reaching the root unforwarded are refused.",
+      enum: ["root"]
+    }
+  },
+  required: ["metadata", "fields"],
+  additionalProperties: false
+});
+var KERNEL_BUILTINS = [
+  { kind: "Telo.Abstract", metadata: { name: "Template", module: "Telo" } },
+  // "Control can be transferred to this" — the parent of Invocable and Runnable,
+  // and the only thing a slot that accepts either needs to say. It is a SLOT
+  // CONSTRAINT, never a lifecycle role: `capability: Telo.Executable` is rejected
+  // because it is absent from the kernel's `KNOWN_CAPABILITIES` enum, which is
+  // what keeps "what a resource is" and "what a slot does with it" separate.
+  //
+  // `Telo.Service` is deliberately NOT under it. A Service's `run()` is a
+  // lifecycle start the kernel dispatches differently (no ambient scope, so
+  // inbound work roots its own trace), and admitting it here would make every
+  // step's `invoke:` slot accept a service. Boot-target slots that genuinely take
+  // `Runnable | Service` stay kind lists — the honest shape for a heterogeneous
+  // set.
+  { kind: "Telo.Abstract", metadata: { name: "Executable", module: "Telo" } },
+  { kind: "Telo.Abstract", metadata: { name: "Runnable", module: "Telo" }, extends: "Telo.Executable" },
+  { kind: "Telo.Abstract", metadata: { name: "Service", module: "Telo" } },
+  { kind: "Telo.Abstract", metadata: { name: "Invocable", module: "Telo" }, extends: "Telo.Executable" },
+  { kind: "Telo.Abstract", metadata: { name: "Mount", module: "Telo" } },
+  { kind: "Telo.Abstract", metadata: { name: "Type", module: "Telo" } },
+  // A function: `call(args)`, synchronous, reached from CEL through a module
+  // name. Deliberately NOT under `Telo.Executable` — `call()` receives no
+  // context, so no zone, cancellation or trace reaches it, and a step's
+  // `invoke:` must refuse it. A callable publishes no reading either, so
+  // `resources.<fn>` reads as absent.
+  { kind: "Telo.Abstract", metadata: { name: "Callable", module: "Telo" } },
+  {
+    kind: "Telo.Abstract",
+    metadata: { name: "Provider", module: "Telo" },
+    schema: { "x-telo-eval": "compile" }
+  },
+  // The sink lifecycle role: attach, write a record, flush, detach. Deliberately
+  // payload-opaque — it carries no filtering and no encoding — so a future
+  // `Telo.TraceSink` reuses the same capability with a different record type.
+  // Scoped to record-stream sinks; metrics aggregate rather than stream and are
+  // not covered. See kernel/specs/logging.md §10.
+  { kind: "Telo.Abstract", metadata: { name: "Sink", module: "Telo" } },
+  // The abstract every *log* sink kind extends, carrying the log-specific
+  // configuration. A kernel built-in resolvable without an import, so a sink
+  // author depends on the kernel contract rather than on a standard-library
+  // module version and kernel↔module skew never becomes a compatibility surface
+  // for "where do logs go".
+  {
+    kind: "Telo.Abstract",
+    metadata: { name: "LogSink", module: "Telo" },
+    capability: "Telo.Sink",
+    schema: {
+      type: "object",
+      properties: LOG_SINK_COMMON_PROPERTIES,
+      additionalProperties: true
+    }
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "ConsoleSink", module: "Telo" },
+    capability: "Telo.Sink",
+    extends: "Telo.LogSink",
+    schema: {
+      type: "object",
+      properties: {
+        ...LOG_SINK_COMMON_PROPERTIES,
+        destination: { type: "string", enum: ["stderr", "stdout"] },
+        encoding: { type: "string", enum: ["auto", "pretty", "json"] },
+        color: { type: "string", enum: ["auto", "always", "never"] }
+      },
+      additionalProperties: false
+    }
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "FileSink", module: "Telo" },
+    capability: "Telo.Sink",
+    extends: "Telo.LogSink",
+    schema: {
+      type: "object",
+      properties: {
+        ...LOG_SINK_COMMON_PROPERTIES,
+        destination: { type: "string" },
+        encoding: { type: "string", enum: ["json", "pretty"] }
+      },
+      required: ["destination"],
+      additionalProperties: false
+    }
+  },
+  // The abstract every trace sink kind extends: where finished spans go. The
+  // same `Telo.Sink` capability as a log sink, with a span as the record.
+  {
+    kind: "Telo.Abstract",
+    metadata: { name: "TraceSink", module: "Telo" },
+    capability: "Telo.Sink",
+    schema: {
+      type: "object",
+      additionalProperties: true
+    }
+  },
+  // Each finished span as one structured record through the logging pipeline —
+  // tracing with no collector, read wherever the logs already go.
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "LogTraceSink", module: "Telo" },
+    capability: "Telo.Sink",
+    extends: "Telo.TraceSink",
+    schema: {
+      type: "object",
+      properties: {
+        level: { type: "string", enum: LOG_LEVEL_ENUM, default: "info", "x-telo-eval": "compile" }
+      },
+      additionalProperties: false
+    }
+  },
+  {
+    // Telo.JsonSchema — the concrete data-shape kind, in the kernel rather than
+    // in an installable module for the same reason the mandatory sinks are:
+    // declaring a shape is not optional. Every kind with an invocation contract
+    // needs one, so requiring an import to write `inputType:` would put a tax on
+    // the one thing the contract wants authors to do more of — and a library
+    // declaring a contract would have to import a module purely to describe
+    // itself. `type.JsonSchema` remains as a deprecated alias of this kind.
+    kind: "Telo.Definition",
+    metadata: { name: "JsonSchema", module: "Telo" },
+    capability: "Telo.Type",
+    // Declared so the kind reads as controller-BEARING, which is what lets
+    // another definition inherit it by delegation (`extends: Telo.JsonSchema`
+    // with no controller of its own). The entry is never loaded from — the
+    // kernel registers this controller directly at boot, before any lazy
+    // resolution — it states truthfully who provides it.
+    controllers: [{ runtime: "kernel", entry: "Telo.JsonSchema" }],
+    schema: withSchemaFragments({
+      type: "object",
+      properties: {
+        schema: {
+          title: "Schema",
+          description: "JSON Schema definition for the declared data type.",
+          $ref: manifestFragmentRef("JsonSchema7")
+        },
+        extends: {
+          title: "Extends",
+          description: "Parent type name or list of parent type names to inherit from.",
+          oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
+        },
+        rules: {
+          title: "Rules",
+          description: "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              condition: {
+                type: "string",
+                description: "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
+                // Plain text evaluated as CEL against the value alone, wherever
+                // the shape is validated — not in the module that declared it.
+                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
+              },
+              code: {
+                type: "string",
+                description: "Machine-readable error code surfaced on validation failure."
+              },
+              message: {
+                type: "string",
+                description: "Optional human-readable hint for the validation failure."
+              }
+            },
+            required: ["condition", "code"]
+          }
+        }
+      },
+      required: ["schema"],
+      additionalProperties: false
+    })
+  },
+  {
+    // Telo.Function — the built-in callable kind for a function written in CEL,
+    // in the kernel rather than an installable module for the reason
+    // `Telo.JsonSchema` is: a module must be able to declare a function without
+    // importing one to do it. It carries a signature and a body and nothing
+    // else — native code is written as a callable `Telo.Definition` plus
+    // instances, so there is one way to write a native function and no document
+    // that is half kind, half instance.
+    //
+    // The schema is CLOSED, which is what makes `deterministic:` here a
+    // SCHEMA_VIOLATION: a body's determinism is DERIVED from everything it
+    // calls, so an author-written flag would be a second source of truth for a
+    // fact the analyzer can already compute.
+    kind: "Telo.Definition",
+    metadata: { name: "Function", module: "Telo" },
+    capability: "Telo.Callable",
+    schema: withSchemaFragments({
+      type: "object",
+      properties: {
+        params: SIGNATURE_PARAMS_SCHEMA,
+        returns: SIGNATURE_RETURNS_SCHEMA,
+        body: {
+          title: "Body",
+          // No `type:` — a CEL field's schema states what the expression
+          // PRODUCES, and a body produces whatever `returns:` declares, which
+          // differs per function. Checking the result against it is the
+          // signature's job, not this field's.
+          description: "The expression this function evaluates, over its parameters.",
+          // The value it produces is the function's result, so it must satisfy
+          // the signature's `returns:` — read through the one annotation that
+          // names a result declaration, so nothing here knows what a function is.
+          "x-telo-returns-from": "returns",
+          // A body sees its PARAMETERS. The names come from `params:` through the
+          // one annotation that reads an ordered parameter list, so nothing here
+          // knows what a function is — a kind declaring a parameter list of the
+          // same shape gets the same scope.
+          "x-telo-context": {
+            type: "object",
+            additionalProperties: false,
+            "x-telo-context-parameters-from": "params"
+          }
+        }
+      },
+      required: ["body"],
+      additionalProperties: false
+    })
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "Abstract", module: "Telo" },
+    capability: "Telo.Template",
+    schema: withSchemaFragments({
+      type: "object",
+      properties: {
+        kind: { type: "string" },
+        metadata: {
+          type: "object",
+          properties: { name: { type: "string" } },
+          required: ["name"],
+          additionalProperties: true
+        },
+        capability: { type: "string" },
+        schema: kindSchemaSlot,
+        status: observedStateSlot,
+        // The callable signature, declared on a contract with no implementation.
+        // `deterministic: true` here is a REQUIREMENT every implementation must
+        // meet, checked like a covariant result.
+        params: SIGNATURE_PARAMS_SCHEMA,
+        returns: SIGNATURE_RETURNS_SCHEMA,
+        deterministic: DETERMINISTIC_SCHEMA,
+        throws: ABSTRACT_THROWS_SCHEMA
+      },
+      required: ["metadata"],
+      // Telo.Abstract is an extension point by design — it must accept forward-compatible
+      // fields (e.g. inputType/outputType from the typed-abstracts plan) without requiring
+      // the analyzer to enumerate them here.
+      additionalProperties: true
+    })
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "NeedType", module: "Telo" },
+    capability: "Telo.Template",
+    schema: NEED_TYPE_SCHEMA
+  },
+  // The kernel-declared address need types: `Telo.PublicUrl`, `Telo.PublicHostPattern`.
+  ...PUBLIC_ADDRESS_NEED_TYPE_DOCS.map(needTypeDefinition),
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "Definition", module: "Telo" },
+    capability: "Telo.Template",
+    // Top-level shape stays open (`additionalProperties: true`) so this change
+    // attaches x-telo-context annotations to known template-body fields without
+    // tightening the Telo.Definition shape itself. The annotations drive
+    // static CEL validation of expressions inside `resources:` / `invoke:` /
+    // `run:` / `provide:` / top-level `inputs:` / top-level `result:` against
+    // `self` (typed from `schema:`) and `inputs` (typed from `inputType:`,
+    // falling back to the extends-declared abstract).
+    //
+    // `inputs:` and `result:` live as top-level siblings of `invoke:` / `provide:`,
+    // matching how Run.Sequence steps factor dispatch from data. The dispatch
+    // entry-point (`invoke` / `provide` / `run`) determines how `inputs`/`result`
+    // are interpreted at runtime. See analyzer/nodejs/plans/template-internal-cel-validation.md.
+    schema: withSchemaFragments({
+      type: "object",
+      additionalProperties: true,
+      properties: {
+        // The kind's own configuration contract. Declared as a slot for the
+        // first time here: it was reachable only as an unnamed extra property,
+        // so nothing could say what belonged in it — no completion inside a
+        // `schema:` block, and a misspelled keyword surviving to a runtime
+        // failure that named a different field.
+        schema: kindSchemaSlot,
+        status: observedStateSlot,
+        // The callable signature and the native determinism claim. Declared here
+        // so the editor offers them and so `x-telo-*` inside a signature is
+        // walked; what a callable kind may actually carry is enforced by
+        // `callableKindIssues` in both halves.
+        params: SIGNATURE_PARAMS_SCHEMA,
+        returns: SIGNATURE_RETURNS_SCHEMA,
+        deterministic: DETERMINISTIC_SCHEMA,
+        throws: THROWS_SCHEMA,
+        resources: {
+          type: "array",
+          items: {
+            type: "object",
+            additionalProperties: true,
+            // A `resources:` entry is a DECLARATION of another kind, so the
+            // CEL inside it belongs to THAT kind: its `x-telo-context` regions
+            // are rebased under this entry's path and take precedence (they are
+            // deeper), which is what puts `inputs`, `item`, `request`, `steps`
+            // and a `catch:`'s `error` in scope exactly where the nested kind
+            // declares them — see `analyzer/nodejs/src/template-body.ts`.
+            //
+            // What stays here is `self` alone, in force throughout the entry:
+            // it is how a body reaches the configuration its enclosing template
+            // was given, and no nested kind knows about it. The four names that
+            // used to sit beside it (`request` / `result` / `steps` / `error`)
+            // were a fixed permissive stand-in for the nested kind's own
+            // regions — which is why `error` was offered outside every `catch:`
+            // while `inputs` and `item` were undefined wherever a body actually
+            // reads them.
+            "x-telo-context": {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                self: { "x-telo-context-from-root": "schema" }
+              }
+            }
+          }
+        },
+        // A dispatch slot names the `resources:` entry that receives the call,
+        // as `!ref <entry>` — the one spelling every reference in Telo has. The
+        // string and `{ kind, name }` forms it used to admit (a CEL name
+        // template matched against CEL-named entries) were the removed
+        // reference object surviving in the one place nothing resolved it;
+        // `validate-template-body` is what resolves this slot, so the schema
+        // stays open here rather than reporting the same defect twice.
+        invoke: dispatchSlot(
+          "Invoke target",
+          "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`."
+        ),
+        provide: dispatchSlot(
+          "Provide target",
+          "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`."
+        ),
+        run: dispatchSlot(
+          "Run target",
+          "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`."
+        ),
+        // The template twin of an Application's boot sequence. Its shape is
+        // `templateTargetProblems`' to check (shared with the kernel), so the
+        // schema states none — a second check would report the same line twice.
+        targets: {
+          title: "Targets",
+          description: "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
+        },
+        // The named child stays persistent so the produced mount's routes can
+        // `!ref` its siblings.
+        mount: dispatchSlot(
+          "Mount target",
+          "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`."
+        ),
+        inputs: {
+          type: "object",
+          additionalProperties: true,
+          "x-telo-context": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              self: { "x-telo-context-from-root": "schema" },
+              inputs: { "x-telo-context-from-root": "inputType" }
+            }
+          }
+        },
+        result: {
+          type: "object",
+          additionalProperties: true,
+          "x-telo-context": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              self: { "x-telo-context-from-root": "schema" },
+              // Typed from the dispatch target's declared output: the slot
+              // holds a `!ref` to a `resources:` entry, resolved to that
+              // entry's kind (or its own `outputType`, where it narrows one).
+              result: {
+                "x-telo-context-from-ref-kind": ["provide#outputType", "invoke#outputType"]
+              }
+            }
+          }
+        },
+        // `base:` ("super(...)") — construction mapping for an inherited
+        // (concrete-`extends`) definition. Its CEL is evaluated once against
+        // `self` (typed from this definition's `schema:`) to build the parent
+        // kind's config. Same `self`-only scope as a resource body.
+        base: {
+          type: "object",
+          additionalProperties: true,
+          "x-telo-context": {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              self: { "x-telo-context-from-root": "schema" }
+            }
+          }
+        }
+      }
+    })
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "Import", module: "Telo" },
+    capability: "Telo.Template",
+    schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string" },
+        metadata: {
+          type: "object",
+          properties: { name: { type: "string" } },
+          required: ["name"],
+          additionalProperties: true
+        },
+        source: { type: "string" },
+        integrity: { type: "string" },
+        variables: { type: "object" },
+        secrets: { type: "object" },
+        resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+        needs: IMPORT_NEEDS_SCHEMA,
+        runtime: {
+          oneOf: [
+            { type: "string" },
+            { type: "array", items: { type: "string" } }
+          ]
+        },
+        logging: IMPORT_LOGGING_SCHEMA
+      },
+      required: ["metadata", "source"],
+      additionalProperties: false
+    }
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "Application", module: "Telo" },
+    capability: "Telo.Template",
+    schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string" },
+        metadata: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            version: { type: "string" },
+            source: { type: "string" },
+            module: { type: "string" },
+            ...PROVENANCE_METADATA
+          },
+          required: ["name"],
+          additionalProperties: true
+        },
+        lifecycle: {
+          type: "string",
+          enum: ["shared", "isolated"],
+          default: "shared"
+        },
+        targets: {
+          // Boot targets form a step list: a later target reads an earlier one's
+          // result as `steps.<name>.result`, exactly as a sequence step does, so
+          // the same annotation types that context and drives the call-site
+          // contract check.
+          "x-telo-step-context": { invoke: "invoke", outputType: "outputType" },
+          type: "array",
+          items: {
+            // A genuinely heterogeneous set stays a kind list: `Telo.Service` is
+            // deliberately outside `Telo.Executable`, since a service's `run()`
+            // is a lifecycle start the kernel dispatches without an ambient
+            // scope.
+            "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
+            anyOf: [
+              { type: "string" },
+              // Post-resolution shape that `resolveRefSentinels`
+              // substitutes a `!ref <name>` sentinel into. The
+              // adjacent `x-telo-ref` constraint governs the kind
+              // check; this branch only admits the structural form so
+              // AJV doesn't reject a resolved ref.
+              {
+                type: "object",
+                required: ["kind", "name"],
+                properties: {
+                  kind: { type: "string" },
+                  name: { type: "string" }
+                },
+                additionalProperties: true
+              },
+              // Gated reference: run() a Runnable/Service only when the
+              // `when` CEL guard holds. Discriminated by the `ref` key. `ref`
+              // is a `!ref` that resolves to the `{ kind, name }` shape below.
+              {
+                type: "object",
+                required: ["ref"],
+                properties: {
+                  ref: {
+                    "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
+                    anyOf: [
+                      { type: "string" },
+                      {
+                        type: "object",
+                        required: ["kind", "name"],
+                        properties: {
+                          kind: { type: "string" },
+                          name: { type: "string" }
+                        },
+                        additionalProperties: true
+                      }
+                    ]
+                  },
+                  when: {
+                    title: "When",
+                    description: "CEL guard \u2014 the target runs only when it evaluates true.",
+                    "x-telo-topology-role": "predicate",
+                    type: "boolean"
+                  }
+                },
+                additionalProperties: false
+              },
+              // Inline flat invoke step, discriminated by the `invoke` key —
+              // THE dispatch site, shared with every `Run` step array rather
+              // than restated here. Restating it is what made `retry:` a schema
+              // error at boot while working one line away in a sequence: not a
+              // decision about boot, just a copy that never grew the field.
+              // Control flow (if/while/switch/try) is still not available here —
+              // reach for Run.Sequence.
+              // An expanded, stamped COPY. `builtins.ts` is not a manifest, so it
+              // never passes through the loader's expansion — embedding the
+              // fragment object itself would leave the nested `retry` as an
+              // unresolved `$ref` with no `x-telo-fragment` stamp, which is
+              // exactly what made LIVE_VALUE_RETRIED silently skip every boot
+              // target. A copy, because this is a module-level singleton and
+              // `resolveSchemaRefKinds` rewrites the `x-telo-ref` inside it.
+              manifestFragment("InvokeStep")
+            ]
+          }
+        },
+        include: {
+          type: "array",
+          items: { type: "string" }
+        },
+        // Files bundled alongside `telo.yaml` into the module's artifact —
+        // controller bundles, static assets served by Http.Static, templates,
+        // etc. Ordered `.gitignore`-style patterns resolved against the manifest
+        // dir at publish time. Analyzer-only role: accept the field (the schema
+        // is additionalProperties:false); the analyzer never reads the payload.
+        files: {
+          type: "array",
+          items: { type: "string" }
+        },
+        assets: ASSETS_FILES_SCHEMA,
+        native: NATIVE_ENTRIES_SCHEMA,
+        sources: SOURCES_SCHEMA,
+        layers: LAYER_INDEX_SCHEMA,
+        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
+        // Inline imports — name-keyed map sugar for separate `Telo.Import`
+        // documents. The key is the PascalCase alias (the import's
+        // `metadata.name`). Each value is either a bare source string
+        // (shorthand for `{ source }`) or the full object form. The loader
+        // desugars each entry into a synthetic `Telo.Import` before discovery;
+        // authored `Telo.Import` docs keep working alongside this. See
+        // analyzer/nodejs/src/inline-imports.ts.
+        imports: {
+          type: "object",
+          additionalProperties: {
+            oneOf: [
+              { type: "string" },
+              {
+                type: "object",
+                required: ["source"],
+                properties: {
+                  source: { type: "string" },
+                  integrity: { type: "string" },
+                  variables: { type: "object" },
+                  secrets: { type: "object" },
+                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+                  needs: IMPORT_NEEDS_SCHEMA,
+                  runtime: {
+                    oneOf: [
+                      { type: "string" },
+                      { type: "array", items: { type: "string" } }
+                    ]
+                  },
+                  // Threshold / redaction / sampling override for this import's
+                  // subtree. Attached to the import rather than to a map keyed
+                  // by module name because an alias is already uniqueness-
+                  // enforced, while module names collide (§12.2, D9).
+                  logging: IMPORT_LOGGING_SCHEMA
+                },
+                additionalProperties: false
+              }
+            ]
+          }
+        },
+        // Application-level input contract. Each entry binds one or both host
+        // channels — `env:` (the source env var) and `arg:` (a command-line flag
+        // or position) — plus `default:` (optional, used when no channel
+        // supplies a value) on top of an open JSON Schema property schema.
+        // `type:` constrains the coercion rule applied to the raw text (scalars
+        // per-type; an env value of type `object` / `array` via JSON.parse, a
+        // repeated flag per `items.type`). All other JSON Schema keywords are
+        // passed through unchanged and applied to the coerced value via the
+        // standard schema validator. The rules relating several `arg:` bindings
+        // are `validate-application-arguments.ts`. See
+        // kernel/nodejs/src/application-env.ts and
+        // kernel/specs/application-arguments.md.
+        variables: {
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            required: ["type"],
+            anyOf: [{ required: ["env"] }, { required: ["arg"] }],
+            properties: {
+              env: { type: "string", minLength: 1 },
+              arg: ARG_BINDING_SCHEMA,
+              type: {
+                type: "string",
+                enum: ["string", "integer", "number", "boolean", "object", "array"]
+              },
+              default: {}
+            }
+          }
+        },
+        secrets: {
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            required: ["env", "type"],
+            properties: {
+              env: { type: "string", minLength: 1 },
+              type: {
+                type: "string",
+                enum: ["string", "integer", "number", "boolean", "object", "array"]
+              },
+              default: {}
+            }
+          }
+        },
+        // What the application asks whoever runs it for — each read from the
+        // environment at load, under the name `env:` binds or the derived one.
+        needs: APPLICATION_NEEDS_SCHEMA,
+        // Inbound ports the Application listens on. A name-keyed map mirroring
+        // `variables`: each entry binds a host env var (`env:`) that supplies a
+        // port integer (implicitly typed `integer`, 1–65535), with an optional
+        // `default:` used when the env var is unset. `protocol:` (default `tcp`)
+        // selects the transport — the runner reads this list to know the
+        // exposed ports before launch, and the analyzer brands the resolved
+        // `ports.<name>` value (tcp → TcpPort, udp → UdpPort) for static wiring
+        // checks. Application-only. See kernel/nodejs/src/application-env.ts.
+        // `env:` stays required beside `arg:`: a runner publishes a port before
+        // boot and supplies it through the environment, so a port the command
+        // line alone could set is one a runner could never expose.
+        ports: {
+          type: "object",
+          additionalProperties: {
+            type: "object",
+            required: ["env"],
+            properties: {
+              env: { type: "string", minLength: 1 },
+              arg: ARG_BINDING_SCHEMA,
+              protocol: {
+                type: "string",
+                enum: ["tcp", "udp"],
+                default: "tcp"
+              },
+              default: { type: "integer", minimum: 1, maximum: 65535 }
+            },
+            additionalProperties: false
+          }
+        },
+        // Structured logging configuration. The manifest is the only
+        // configuration source — there is no TELO_LOG_* variable and no logging
+        // CLI flag — so a level derived from the host environment goes through a
+        // `variables:` entry read with `!cel`. See kernel/specs/logging.md §12.
+        logging: ROOT_LOGGING_SCHEMA,
+        // Trace export: at least one attached sink turns tracing on. See
+        // kernel/specs/tracing.md.
+        tracing: ROOT_TRACING_SCHEMA,
+        // The runtime range this module is verified against. See
+        // `analyzer/nodejs/src/requires-block.ts`.
+        requires: REQUIRES_SCHEMA
+      },
+      required: ["metadata"],
+      additionalProperties: false
+    }
+  },
+  {
+    kind: "Telo.Definition",
+    metadata: { name: "Library", module: "Telo" },
+    capability: "Telo.Template",
+    schema: {
+      type: "object",
+      properties: {
+        kind: { type: "string" },
+        metadata: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            version: { type: "string" },
+            source: { type: "string" },
+            module: { type: "string" },
+            ...PROVENANCE_METADATA
+          },
+          required: ["name"],
+          additionalProperties: true
+        },
+        variables: { type: "object" },
+        secrets: { type: "object" },
+        // How many times this library is instantiated in one application.
+        //
+        // `isolated` (the default) is what every published module was written
+        // against: each import declaration builds its own child scope with its
+        // own instances, so two libraries importing a third get two of
+        // everything in it. `shared` makes the library a SINGLETON — every
+        // import of it resolves to one instantiation, owned by the root and
+        // torn down after everything that borrowed it.
+        //
+        // Default `isolated` rather than `shared` — the opposite of the
+        // Application field's — because flipping it would silently collapse
+        // every existing app's resource graph and turn per-import `variables:`
+        // into a conflict. The `exports.kinds` precedent: private-by-default is
+        // the better end state and still needs the ecosystem republished first.
+        lifecycle: {
+          type: "string",
+          enum: ["shared", "isolated"],
+          default: "isolated"
+        },
+        // The inward half of `exports.resources`: instances this library
+        // requires from whoever imports it. Library-only — an Application is a
+        // root with no importer, so it owns its instances outright.
+        resources: LIBRARY_RESOURCE_INPUTS_SCHEMA,
+        // What this library asks whoever runs it for — typed requests a need
+        // type describes, supplied at the import or bubbled to the root.
+        needs: LIBRARY_NEEDS_SCHEMA,
+        include: {
+          type: "array",
+          items: { type: "string" }
+        },
+        // Files bundled into the module's artifact — same semantics as the
+        // Telo.Application `files` field above (a library may ship bundled
+        // controllers, templates, migrations, seed data).
+        files: {
+          type: "array",
+          items: { type: "string" }
+        },
+        assets: ASSETS_FILES_SCHEMA,
+        native: NATIVE_ENTRIES_SCHEMA,
+        sources: SOURCES_SCHEMA,
+        layers: LAYER_INDEX_SCHEMA,
+        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
+        // Inline imports — same name-keyed map sugar as Telo.Application; the
+        // loader desugars each entry into a synthetic Telo.Import. See the
+        // Application schema above and analyzer/nodejs/src/inline-imports.ts.
+        imports: {
+          type: "object",
+          additionalProperties: {
+            oneOf: [
+              { type: "string" },
+              {
+                type: "object",
+                required: ["source"],
+                properties: {
+                  source: { type: "string" },
+                  integrity: { type: "string" },
+                  variables: { type: "object" },
+                  secrets: { type: "object" },
+                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
+                  needs: IMPORT_NEEDS_SCHEMA,
+                  runtime: {
+                    oneOf: [
+                      { type: "string" },
+                      { type: "array", items: { type: "string" } }
+                    ]
+                  },
+                  // Threshold / redaction / sampling override for this import's
+                  // subtree. Attached to the import rather than to a map keyed
+                  // by module name because an alias is already uniqueness-
+                  // enforced, while module names collide (§12.2, D9).
+                  logging: IMPORT_LOGGING_SCHEMA
+                },
+                additionalProperties: false
+              }
+            ]
+          }
+        },
+        exports: {
+          type: "object",
+          properties: {
+            // Titled because these two ARE a library's public surface, and the
+            // module graph draws them as the root's lists — where an Application
+            // draws its boot targets. The view reads the title off the schema, so
+            // naming them here is what keeps resource-kind knowledge out of it.
+            kinds: { type: "array", title: "Exported kinds", items: { type: "string" } },
+            // An entry is a bare name (`Db`, a locally-owned export) or a dotted `Alias.Name`
+            // (re-export of the instance reached via this library's import aliased `Alias`,
+            // under the name `Name`) — mirroring `exports.kinds`. `variables` / `secrets` are
+            // reserved on the resources.<Alias> value-flow surface, so they may not be exported.
+            resources: {
+              type: "array",
+              title: "Exported resources",
+              items: { type: "string", not: { enum: ["variables", "secrets"] } }
+            },
+            code: LIBRARY_CANDIDATES_SCHEMA
+          },
+          additionalProperties: true
+        },
+        // The runtime range this module is verified against. See
+        // `analyzer/nodejs/src/requires-block.ts`.
+        requires: REQUIRES_SCHEMA
+      },
+      required: ["metadata"],
+      additionalProperties: false
+    }
+  }
+];
+
+// ../../analyzer/nodejs/src/extends-resolution.ts
+var body = (def) => def ?? {};
+function resolveParent(def, resolve) {
+  const ext = body(def).extends;
+  if (typeof ext !== "string" || ext.length === 0) return void 0;
+  return resolve(ext, def);
+}
+function ancestorChain(def, resolve) {
+  const chain = [];
+  const seen = /* @__PURE__ */ new Set();
+  let cur = resolveParent(def, resolve);
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    chain.push(cur);
+    cur = resolveParent(cur, resolve);
+  }
+  return chain;
+}
+function hasOwnControllerOrTemplate(def) {
+  const d = body(def);
+  return !!(d.controllers && d.controllers.length || d.invoke || d.run || d.targets || d.provide || d.mount || d.resources);
+}
+function controllerBearingAncestor(def, resolve) {
+  for (const a of ancestorChain(def, resolve)) {
+    if (a.kind === "Telo.Abstract") continue;
+    if (hasOwnControllerOrTemplate(a)) return a;
+  }
+  return void 0;
+}
+function isInheritedDelegation(def, resolve) {
+  if (!body(def).extends || hasOwnControllerOrTemplate(def)) return false;
+  return controllerBearingAncestor(def, resolve) !== void 0;
+}
+function inheritedCapability(def, resolve) {
+  if (body(def).capability) return body(def).capability;
+  for (const a of ancestorChain(def, resolve)) {
+    if (body(a).capability) return body(a).capability;
+  }
+  return void 0;
+}
+function effectiveAuthorSchema(def, resolve) {
+  const own2 = body(def).schema ?? {};
+  const parent = resolveParent(def, resolve);
+  if (!parent) return own2;
+  if (body(def).base) return own2;
+  const parentSchema = effectiveAuthorSchema(parent, resolve);
+  return mergeTypeSchemas([parentSchema, own2]);
+}
+function inheritedRequiredFields(def, resolve) {
+  if (!body(def).extends || body(def).base) return [];
+  const parent = resolveParent(def, resolve);
+  if (!parent) return [];
+  const required = effectiveAuthorSchema(parent, resolve).required;
+  if (!Array.isArray(required)) return [];
+  const own2 = (body(def).schema ?? {}).properties ?? {};
+  return required.filter((f2) => typeof f2 === "string" && !(f2 in own2));
+}
+function effectiveContractField(def, resolve, direction) {
+  const own2 = body(def)[direction];
+  if (own2 !== void 0 && own2 !== null) return own2;
+  for (const a of ancestorChain(def, resolve)) {
+    const inherited = body(a)[direction];
+    if (inherited !== void 0 && inherited !== null) return inherited;
+  }
+  return void 0;
+}
+function contractDeclarer(def, resolve, direction) {
+  if (!def) return void 0;
+  const own2 = body(def)[direction];
+  if (own2 !== void 0 && own2 !== null) return def;
+  for (const a of ancestorChain(def, resolve)) {
+    const inherited = body(a)[direction];
+    if (inherited !== void 0 && inherited !== null) return a;
+  }
+  return void 0;
+}
+function needsContractMapping(def, resolve, direction) {
+  const own2 = body(def)[direction];
+  if (own2 === void 0 || own2 === null) return false;
+  if (hasOwnControllerOrTemplate(def)) return false;
+  return controllerBearingAncestor(def, resolve) !== void 0;
+}
+function mappingFieldFor(direction) {
+  return direction === "inputType" ? "inputs" : "result";
+}
+function effectiveStatusSchema(def, resolve) {
+  const own2 = body(def).status;
+  const parent = resolveParent(def, resolve);
+  if (!parent) return own2;
+  const parentStatus = effectiveStatusSchema(parent, resolve);
+  if (body(def).base) return parentStatus;
+  if (!parentStatus) return own2;
+  if (!own2) return parentStatus;
+  return mergeTypeSchemas([parentStatus, own2]);
+}
+
+// ../../analyzer/nodejs/src/callable-signature.ts
+var CALLABLE_CAPABILITY = "Telo.Callable";
+var FUNCTION_KIND = "Telo.Function";
+function isObject(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+function readParams(doc) {
+  if (!isObject(doc)) return void 0;
+  const raw = doc.params;
+  if (!Array.isArray(raw)) return void 0;
+  return raw.map((entry) => isObject(entry) ? entry : {});
+}
+function readReturns(doc) {
+  if (!isObject(doc)) return void 0;
+  const raw = doc.returns;
+  return isObject(raw) ? raw : void 0;
+}
+function readDeterministic(doc) {
+  return isObject(doc) ? doc.deterministic : void 0;
+}
+function claimsDeterministic(doc) {
+  return readDeterministic(doc) === true;
+}
+function requiresDeterminism(def, resolve) {
+  if (!def) return false;
+  if (claimsDeterministic(def)) return true;
+  return ancestorChain(def, resolve).some((ancestor) => claimsDeterministic(ancestor));
+}
+function isCallableKind(def, resolve) {
+  return inheritedCapability(def, resolve) === CALLABLE_CAPABILITY;
+}
+function resolveSignature(manifest, definition, resolve) {
+  const ownParams = instanceDeclaresSignature(definition, resolve, "params") ? readParams(manifest) : void 0;
+  const ownReturns = instanceDeclaresSignature(definition, resolve, "returns") ? readReturns(manifest) : void 0;
+  return {
+    params: ownParams ?? effectiveContractField(definition, resolve, "params"),
+    returns: ownReturns ?? effectiveContractField(definition, resolve, "returns")
+  };
+}
+function instanceDeclaresSignature(definition, resolve, half) {
+  const properties = effectiveAuthorSchema(definition, resolve)?.properties;
+  return !!properties && typeof properties === "object" && half in properties;
+}
+function signatureDeclarer(definition, resolve, half) {
+  return contractDeclarer(definition, resolve, half);
+}
+function signatureSchemaOf(slot) {
+  if (!slot) return void 0;
+  const schema4 = slot.schema;
+  if (!isObject(schema4)) return void 0;
+  return slot.nullable === true ? withNull(schema4) : schema4;
+}
+function withNull(schema4) {
+  if (typeof schema4.type === "string") return { ...schema4, type: [schema4.type, "null"] };
+  if (Array.isArray(schema4.type)) {
+    return schema4.type.includes("null") ? schema4 : { ...schema4, type: [...schema4.type, "null"] };
+  }
+  return { anyOf: [schema4, { type: "null" }] };
+}
+var RETURNS_FROM_ANNOTATION = "x-telo-returns-from";
+function callableBodyField(definition, resolve) {
+  const properties = effectiveAuthorSchema(definition, resolve)?.properties;
+  for (const [field, schema4] of Object.entries(properties ?? {})) {
+    if (typeof schema4?.[RETURNS_FROM_ANNOTATION] === "string") return field;
+  }
+  return void 0;
+}
+function declaredResultSchemaAt(slotSchema, manifestRoot, resolveSchema) {
+  const field = slotSchema?.[RETURNS_FROM_ANNOTATION];
+  if (typeof field !== "string" || field.length === 0) return void 0;
+  let declared = manifestRoot;
+  for (const segment of field.split("/")) {
+    declared = isObject(declared) ? declared[segment] : void 0;
+  }
+  const result = readReturns({ returns: declared });
+  if (!result || !isObject(result.schema)) return void 0;
+  const schema4 = result.schema;
+  return signatureSchemaOf({ ...result, schema: resolveSchema?.(schema4) ?? schema4 });
+}
+function parameterContextProperties(params, resolveSchema) {
+  const properties = {};
+  for (const param of params ?? []) {
+    if (typeof param.name !== "string" || param.name.length === 0) continue;
+    properties[param.name] = parameterSchemaOf(param, resolveSchema) ?? {};
+  }
+  return properties;
+}
+function parameterSchemaOf(param, resolveSchema) {
+  const declared = isObject(param.schema) ? param.schema : void 0;
+  const resolved = declared ? resolveSchema?.(declared) ?? declared : void 0;
+  const omittedReadsNull = param.optional === true && !(resolved && "default" in resolved);
+  return signatureSchemaOf({
+    ...param,
+    schema: resolved,
+    ...omittedReadsNull ? { nullable: true } : {}
+  });
 }
 
 // ../../analyzer/nodejs/src/kind-declaration.ts
@@ -40873,86 +41107,6 @@ function propertySchemas(schema4) {
     }
   }
   return out;
-}
-
-// ../../analyzer/nodejs/src/members-value-slot.ts
-function membersSlotOf(schema4) {
-  const slot = readValueTypeSlot(schema4);
-  const entry = slot?.entry;
-  if (!entry?.members || entry.encoding === void 0 || entry.binding === void 0) return void 0;
-  const encoding = PLAIN_ENCODINGS[entry.encoding];
-  const binding = VALUE_TYPE_BINDINGS[entry.binding];
-  if (!encoding?.members || !binding) return void 0;
-  return { entry, args: slot.args, encoding, codec: encoding.members, binding };
-}
-function memberSlotSchema(slot, member) {
-  const own2 = slot.entry.members[member];
-  if (!own2) return void 0;
-  const argument = boundArgument(slot, member);
-  return argument ? { ...own2, ...argument } : { ...own2 };
-}
-function memberSlotSchemas(slot) {
-  return Object.fromEntries(
-    Object.keys(slot.entry.members).map((member) => [member, memberSlotSchema(slot, member)])
-  );
-}
-function boundArgument(slot, member) {
-  const parameter = slot.entry.parameters.find((p) => p.member === member);
-  const argument = parameter ? slot.args[parameter.name] : void 0;
-  return argument && typeof argument === "object" && !Array.isArray(argument) ? argument : void 0;
-}
-function isExpression(value2) {
-  return isCompiledValue(value2) || isTaggedSentinel(value2);
-}
-function holdsExpression(value2) {
-  if (isExpression(value2)) return true;
-  if (Array.isArray(value2)) return value2.some(holdsExpression);
-  if (isCelRecord(value2)) return Object.values(value2).some(holdsExpression);
-  return false;
-}
-function readMembersLiteral(slot, written) {
-  if (typeof written === "string") return slot.encoding.decode(written);
-  if (!isCelRecord(written) || holdsExpression(written)) return void 0;
-  const built = slot.codec.compose(written);
-  return "value" in built ? built.value : void 0;
-}
-function readMembersValue(slot, value2) {
-  if (slot.binding.holds(value2)) return { value: value2 };
-  if (typeof value2 === "string") {
-    const decoded = slot.encoding.decode(value2);
-    return decoded === void 0 ? { refusal: slot.encoding.refusal?.(value2) ?? `it is not ${slot.encoding.form}` } : { value: decoded };
-  }
-  if (isCelRecord(value2)) return slot.codec.compose(value2);
-  return {
-    refusal: `it is ${describeKind(value2)}, where ${slot.entry.name} is written as text or as an object of its members`
-  };
-}
-function membersValueRefusal(slot, value2) {
-  const read = readMembersValue(slot, value2);
-  if ("refusal" in read) return read.refusal;
-  return boundArgumentRefusal(slot, read.value) ?? `it does not satisfy the slot's type arguments`;
-}
-function boundArgumentRefusal(slot, value2) {
-  for (const parameter of slot.entry.parameters) {
-    if (parameter.member === void 0) continue;
-    const argument = boundArgument(slot, parameter.member);
-    if (!argument) continue;
-    const held = value2[parameter.member];
-    if (held === void 0) continue;
-    if (Array.isArray(argument.enum) && !argument.enum.includes(held)) {
-      return `its ${parameter.member} must be one of ${argument.enum.map((item) => String(item)).join(", ")}`;
-    }
-    if ("const" in argument && argument.const !== held) {
-      return `its ${parameter.member} must be ${String(argument.const)}`;
-    }
-  }
-  return void 0;
-}
-function describeKind(value2) {
-  if (value2 === null) return "null";
-  if (Array.isArray(value2)) return "a list";
-  if (typeof value2 === "object") return "a value of another type";
-  return `${/^[aeiou]/.test(typeof value2) ? "an" : "a"} ${typeof value2}`;
 }
 
 // ../../analyzer/nodejs/src/migrations/match.ts
@@ -44546,6 +44700,7 @@ function definitionInScope(registry, kind, metadata, aliases, aliasesByModule) {
   return (canonical ? registry.resolve(canonical) : void 0) ?? registry.resolve(kind);
 }
 var NO_ALIASES = new AliasResolver();
+NO_ALIASES.registerUngatedAlias("Telo", "Telo");
 function declaringModuleScope(ownModule, aliases, scopes) {
   const own2 = scopeResolverForModule(ownModule, scopes.rootModules, scopes.aliasesByModule);
   if (own2) return own2;
@@ -51247,6 +51402,10 @@ function readNodes(chains, roots) {
     for (let i = from; i < chain.length; i++) {
       const segment = chain[i];
       if (segment === INDEX_SEGMENT) break;
+      if (segment === PRESENCE_SEGMENT) {
+        if (dynamicNode(current, path)) nodes.push({ node: current, path });
+        return;
+      }
       if (segment === EACH_SEGMENT) {
         if (dynamicNode(current, path)) break;
         if (i === chain.length - 1) return;
@@ -67898,8 +68057,104 @@ function resolveNeedTable(graph) {
   checkConstraintsVerified(graph, problem);
   const { entries, environment } = walkTree2(graph);
   const root = graph.modules.get(graph.root);
-  if (root?.application) checkEnvNames(root, environment, problem);
+  checkLibraryAddressNeeds(graph, problem);
+  if (root?.application) {
+    checkRootSupplyReached(graph, root, environment, problem);
+    checkAddressNeeds(root, problem);
+    checkEnvNames(root, environment, problem);
+  }
   return { entries, problems, environment };
+}
+function checkRootSupplyReached(graph, root, environment, report) {
+  for (const entry of environment) {
+    if (!entry.via) continue;
+    const shape = entry.need.type ? graph.needType(entry.need.type) : void 0;
+    if (shape?.supply !== "root") continue;
+    report(
+      root,
+      "NEED_ROOT_SUPPLY_REQUIRED",
+      `Need '${entry.path.join(".")}' is of type '${entry.need.type}', which is supplied only through a root need forwarded whole, and nothing forwards it \u2014 it would be read from its derived environment name. Declare a need of type '${entry.need.kind}' in this application and supply it at the import: 'needs: { ${entry.need.name}: !ref <that need> }'.`,
+      {
+        manifest: entry.via.manifest,
+        resource: { kind: "Telo.Import", name: entry.via.alias },
+        path: ""
+      }
+    );
+  }
+}
+function checkLibraryAddressNeeds(graph, report) {
+  for (const module of graph.modules.values()) {
+    if (!module.checked || module.application) continue;
+    for (const need of module.needs) {
+      if (!isAddressNeedType(need.type) || need.parameters === void 0) continue;
+      report(
+        module,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}' (type '${need.type}') states parameters, and a library's address need states none: the port, the primary and custom domains are the application's to say. Drop 'parameters:'; the application declares its own '${need.kind}' naming a port and forwards it at the import.`,
+        { path: `needs.${need.name}.parameters` }
+      );
+    }
+  }
+}
+function checkAddressNeeds(root, report) {
+  const ports = root.doc?.ports;
+  const declaredPorts = ports && typeof ports === "object" && !Array.isArray(ports) ? ports : {};
+  let primary;
+  const customDomains = /* @__PURE__ */ new Map();
+  for (const need of root.needs) {
+    if (!isAddressNeedType(need.type)) continue;
+    const parameters = need.parameters && typeof need.parameters === "object" && !Array.isArray(need.parameters) ? need.parameters : {};
+    const path = `needs.${need.name}.parameters`;
+    const port = parameters.port;
+    if (typeof port !== "string") {
+      report(
+        root,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}' (type '${need.type}') names no port. An address is served on a port of this application: write 'parameters: { port: <key of ports:> }'. Ports: ${list4(Object.keys(declaredPorts))}.`,
+        { path }
+      );
+    } else if (!Object.hasOwn(declaredPorts, port)) {
+      report(
+        root,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}' names port '${port}', which this application's 'ports:' does not declare. Ports: ${list4(Object.keys(declaredPorts))}.`,
+        { path: `${path}.port` }
+      );
+    } else if (declaredPorts[port]?.protocol === "udp") {
+      report(
+        root,
+        "NEED_PARAMETERS_INVALID",
+        `Need '${need.name}' names port '${port}', which is a 'udp' port. An address is served over HTTP, on a 'tcp' port.`,
+        { path: `${path}.port` }
+      );
+    }
+    if (need.type !== PUBLIC_URL_TYPE) continue;
+    if (parameters.primary === true) {
+      if (primary !== void 0) {
+        report(
+          root,
+          "NEED_PARAMETERS_INVALID",
+          `Need '${need.name}' and need '${primary}' both state 'primary: true'. An application has at most one primary address.`,
+          { path: `${path}.primary` }
+        );
+      } else {
+        primary = need.name;
+      }
+    }
+    if (parameters.customDomains === true && typeof port === "string") {
+      const other = customDomains.get(port);
+      if (other !== void 0) {
+        report(
+          root,
+          "NEED_PARAMETERS_INVALID",
+          `Need '${need.name}' and need '${other}' both state 'customDomains: true' on port '${port}'. A domain the host routes to a port must trace to one need, so at most one per port takes custom domains.`,
+          { path: `${path}.customDomains` }
+        );
+      } else {
+        customDomains.set(port, need.name);
+      }
+    }
+  }
 }
 function checkModule(graph, module, report) {
   for (const doc of module.needTypes) {
@@ -67989,6 +68244,15 @@ function checkModule(graph, module, report) {
   for (const declaration of module.declarations ?? []) {
     const shape = declaration.type ? graph.needType(declaration.type) : void 0;
     if (!shape) continue;
+    if (shape.supply === "root") {
+      report(
+        module,
+        "NEED_ROOT_SUPPLY_REQUIRED",
+        `${declaration.kind}/${declaration.name}: need type '${declaration.type}' is supplied only through a root need forwarded whole, so a fulfilment of it cannot be written in a manifest. Declare a need of the type under the application's 'needs:' and let whoever runs the application supply it.`,
+        { manifest: declaration.manifest, resource: { kind: declaration.kind, name: declaration.name }, path: "" }
+      );
+      continue;
+    }
     const fields = declaration.manifest.fields;
     const written = fields && typeof fields === "object" && !Array.isArray(fields) ? fields : {};
     const resource = { kind: declaration.kind, name: declaration.name };
@@ -68199,6 +68463,15 @@ function checkSupply(graph, module, imp, target, report) {
     }
     if (supply.form === "fields") {
       if (!shape) continue;
+      if (shape.supply === "root") {
+        report(
+          module,
+          "NEED_ROOT_SUPPLY_REQUIRED",
+          `Import '${imp.alias}': need '${key2}' is of type '${need.type}', which is supplied only through a root need forwarded whole, so it cannot be supplied field by field. Declare a need of the type in this module and supply it whole: 'needs: { ${key2}: !ref <that need> }'.`,
+          { ...anchor, path }
+        );
+        continue;
+      }
       checkFields(
         module,
         supply.fields,
@@ -70269,6 +70542,7 @@ function validateUnusedDeclarations(manifests) {
   }
   if (declared.size === 0) return [];
   const used = new Map(NAMESPACES.map((ns) => [ns, /* @__PURE__ */ new Set()]));
+  for (const port of addressNeedPorts(moduleManifest)) used.get("ports").add(port);
   const suppressed = /* @__PURE__ */ new Set();
   const moduleCallNames2 = moduleCallNamesByModule(manifests);
   for (const m of manifests) {
@@ -71403,6 +71677,12 @@ function contractOwnerLabel(definition, contract) {
   return canonical;
 }
 var TELO_BUILTIN_MODULE2 = "Telo";
+function libraryAliasTable(tables, module) {
+  const table = new AliasResolver();
+  table.registerUngatedAlias(TELO_BUILTIN_MODULE2, TELO_BUILTIN_MODULE2);
+  tables.set(module, table);
+  return table;
+}
 function refSlotIssueDiagnostic(issue) {
   return {
     severity: DiagnosticSeverity2.Error,
@@ -71834,7 +72114,7 @@ var StaticAnalyzer = class {
           const targetModule = resolvedModuleName;
           defs.registerModuleIdentity(resolvedNamespace ?? null, resolvedModuleName);
           const reExportedKinds = m.metadata?.reExportedKinds ?? {};
-          const resolver = !ownModule || rootModules.has(ownModule) ? aliases : aliasesByModule.get(ownModule) ?? aliasesByModule.set(ownModule, new AliasResolver()).get(ownModule);
+          const resolver = !ownModule || rootModules.has(ownModule) ? aliases : aliasesByModule.get(ownModule) ?? libraryAliasTable(aliasesByModule, ownModule);
           resolver.registerImport(alias, targetModule, exportedKinds);
           for (const [suffix, canonical] of Object.entries(reExportedKinds)) {
             resolver.registerKindReExport(alias, suffix, canonical);
