@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.118.0";
+var TELO_ENGINE_VERSION = "0.119.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -17614,911 +17614,3200 @@ function moduleScopedDefResolver(defs, aliases, scopes) {
   return resolver;
 }
 
-// ../../analyzer/nodejs/src/artifact-axes.ts
-var PLATFORM_AXES = ["os", "arch", "libc", "abi"];
-var AXIS_VALUE_FORMS = {
-  abi: {
-    pattern: new RegExp("^[a-z][a-z0-9_]*-[0-9]+(\\.[0-9]+)*$"),
-    form: "<family>-<version>",
-    examples: ["node-137", "telo-3"]
-  }
-};
-
-// ../../analyzer/nodejs/src/schema-keywords.ts
-var X_TELO_SENSITIVE = "x-telo-sensitive";
-var X_TELO_SPAN_ATTRIBUTE = "x-telo-span-attribute";
-var TYPE_NAME = {
-  type: "string",
-  enum: ["object", "array", "string", "number", "integer", "boolean", "null"]
-};
-function jsonSchemaKeywords(self) {
-  const schema4 = { $ref: `#/$defs/${self}` };
-  const schemaList = { type: "array", items: schema4 };
-  return {
-    // Shape
-    type: {
-      title: "Type",
-      description: "The JSON type this value must have, or a list of accepted types.",
-      anyOf: [TYPE_NAME, { type: "array", items: TYPE_NAME }]
+// ../../analyzer/nodejs/src/builtin-entries/index.ts
+var BUILTIN_DOCUMENT_FILES = [
+  ["Abstract.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Abstract",
+      "description": "Declares a contract with no implementation: a kind that cannot be instantiated and that other kinds specialize. It may state a role, a configuration schema, observed state, a call signature, input and output contracts and a ceiling on the error codes its implementations may throw."
     },
-    properties: {
-      title: "Properties",
-      description: "Schema per named property of an object.",
-      type: "object",
-      additionalProperties: schema4
-    },
-    required: {
-      title: "Required",
-      description: "Property names that must be present.",
-      type: "array",
-      items: { type: "string" }
-    },
-    additionalProperties: {
-      title: "Additional properties",
-      description: "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
-      anyOf: [{ type: "boolean" }, schema4]
-    },
-    patternProperties: {
-      title: "Pattern properties",
-      description: "Schema per regular expression matching a property name.",
-      type: "object",
-      additionalProperties: schema4
-    },
-    propertyNames: {
-      title: "Property names",
-      description: "Schema every property NAME must satisfy.",
-      ...schema4
-    },
-    items: {
-      title: "Items",
-      description: "Schema for each element of an array.",
-      anyOf: [schema4, schemaList]
-    },
-    additionalItems: {
-      title: "Additional items",
-      description: "Schema for elements past a positional `items` list.",
-      anyOf: [{ type: "boolean" }, schema4]
-    },
-    contains: {
-      title: "Contains",
-      description: "At least one element must satisfy this schema.",
-      ...schema4
-    },
-    // Composition
-    allOf: { title: "All of", description: "Every branch must match.", ...schemaList },
-    anyOf: { title: "Any of", description: "At least one branch must match.", ...schemaList },
-    oneOf: {
-      title: "One of",
-      description: "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
-      ...schemaList
-    },
-    not: { title: "Not", description: "The value must NOT match this schema.", ...schema4 },
-    if: { title: "If", description: "Condition selecting `then` / `else`.", ...schema4 },
-    then: { title: "Then", description: "Applied when `if` matches.", ...schema4 },
-    else: { title: "Else", description: "Applied when `if` does not match.", ...schema4 },
-    // Values
-    enum: { title: "Enum", description: "The complete set of accepted values.", type: "array" },
-    const: { title: "Const", description: "The single accepted value." },
-    default: {
-      title: "Default",
-      description: "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
-    },
-    examples: { title: "Examples", description: "Sample values, for documentation.", type: "array" },
-    // Numbers
-    minimum: { title: "Minimum", type: "number" },
-    maximum: { title: "Maximum", type: "number" },
-    exclusiveMinimum: { title: "Exclusive minimum", type: "number" },
-    exclusiveMaximum: { title: "Exclusive maximum", type: "number" },
-    multipleOf: { title: "Multiple of", type: "number", exclusiveMinimum: 0 },
-    // Strings
-    minLength: { title: "Min length", type: "integer", minimum: 0 },
-    maxLength: { title: "Max length", type: "integer", minimum: 0 },
-    pattern: { title: "Pattern", description: "Regular expression the string must match.", type: "string" },
-    format: {
-      title: "Format",
-      description: "Named string format (`date-time`, `uri`, `email`, \u2026).",
-      type: "string"
-    },
-    contentMediaType: {
-      title: "Content media type",
-      description: "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
-      type: "string"
-    },
-    contentEncoding: { title: "Content encoding", type: "string" },
-    // Arrays
-    minItems: { title: "Min items", type: "integer", minimum: 0 },
-    maxItems: { title: "Max items", type: "integer", minimum: 0 },
-    uniqueItems: { title: "Unique items", type: "boolean" },
-    // Objects
-    minProperties: { title: "Min properties", type: "integer", minimum: 0 },
-    maxProperties: { title: "Max properties", type: "integer", minimum: 0 },
-    dependencies: {
-      title: "Dependencies",
-      description: "Per property, the other properties it requires \u2014 or a schema to apply.",
-      type: "object",
-      additionalProperties: { anyOf: [{ type: "array", items: { type: "string" } }, schema4] }
-    },
-    // Documentation and structure
-    title: { title: "Title", description: "Human-readable label for this value.", type: "string" },
-    description: {
-      title: "Description",
-      description: "What this value is, for the author reading the manifest.",
-      type: "string"
-    },
-    deprecated: { title: "Deprecated", type: "boolean" },
-    readOnly: { title: "Read only", type: "boolean" },
-    writeOnly: { title: "Write only", type: "boolean" },
-    $ref: {
-      title: "Reference",
-      description: "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
-      type: "string"
-    },
-    $defs: {
-      title: "Definitions",
-      description: "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
-      type: "object",
-      additionalProperties: schema4
-    },
-    definitions: {
-      title: "Definitions (draft-07)",
-      description: "Older spelling of `$defs`.",
-      type: "object",
-      additionalProperties: schema4
-    },
-    $comment: { title: "Comment", type: "string" },
-    $id: { title: "Id", type: "string" },
-    $schema: { title: "Schema dialect", type: "string" }
-  };
-}
-var TELO_SCHEMA_ANNOTATIONS = {
-  "x-telo-eval": {
-    title: "Evaluation mode",
-    description: "When CEL in this field (`!cel`, `!interpolate`) is evaluated: `compile` at load, `runtime` per invocation. `accessor` is never evaluated \u2014 the field holds a plain `!cel` chain rooted at one of its `x-telo-context` bindings, or a literal, and the controller receives it as a binding. A CEL-bearing field MUST declare one, or the expression is read as a literal.",
-    type: "string",
-    enum: ["compile", "runtime", "accessor"]
-  },
-  "x-telo-browser-export": {
-    title: "Browser export",
-    description: "This string names an export of a browser entry. `entry` is a JSON Pointer, relative to the enclosing object, to the sibling string holding the entry's specifier \u2014 one the module declaring the resource lists under `exports.browser`.",
-    type: "object",
-    required: ["entry"],
-    properties: { entry: { type: "string" } },
-    additionalProperties: false
-  },
-  "x-telo-ref": {
-    title: "Reference slot",
-    description: "This field holds a `!ref` to a resource \u2014 plus what the declaring resource DOES with it (`use`), which is what every topology analysis reads.",
-    anyOf: [{ type: "string" }, { type: "object" }]
-  },
-  "x-telo-type": {
-    title: "Value type",
-    description: "What the value IS beyond JSON's types: `Telo.Bytes`, `Telo.Stream`, `Telo.TcpPort`, \u2026 Optionally parameterized (`{ name: Telo.Stream, of: Telo.Bytes }`).",
-    anyOf: [{ type: "string" }, { type: "object" }]
-  },
-  "x-telo-scope": {
-    title: "Execution scope",
-    description: "JSON Pointer to a region whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit. Legal only on a named top-level property of the resource.",
-    anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
-  },
-  "x-telo-context": {
-    title: "CEL context",
-    description: "The CEL variables in scope inside this field, as a JSON Schema. Analyzer-only.",
-    type: "object"
-  },
-  "x-telo-error-context": {
-    title: "Error context",
-    description: "Schema of the `error` CEL variable inside this field, at any nesting depth.",
-    type: "object"
-  },
-  "x-telo-step-context": {
-    title: "Step context",
-    description: "On a step array: how to build typed `steps.<name>.result` from each item's invoked resource.",
-    type: "object"
-  },
-  "x-telo-schema-from": {
-    title: "Schema from",
-    description: "Derive this field's validation schema from a sibling ref's definition schema.",
-    type: "string"
-  },
-  "x-telo-schema-map": {
-    title: "Schema map",
-    description: "On the field a projection keys on: the JSON Schema node each of its values means. A lookup, never a computed expression.",
-    type: "object"
-  },
-  "x-telo-schema-projection": {
-    title: "Schema projection",
-    description: "How a collection of typed entries projects to a JSON Schema object \u2014 which collection, which field keys it, and which fields modify it. Belongs on the kind DOCUMENT, beside 'schema:' rather than inside it, because it describes the whole declaration and not one field; written here it still works and is reported so it can be moved.",
-    type: "object"
-  },
-  "x-telo-resource-rules": {
-    title: "Resource rules",
-    description: "Relationships between this kind's own fields that JSON Schema cannot state, as CEL over `self` (the resource) and `this` (the element `in:` iterates). `condition` is TRUE when the rule holds.",
-    type: "array"
-  },
-  "x-telo-schema-projection-from": {
-    title: "Schema projection from",
-    description: "Replace this node with the projection of the declaration at the named field \u2014 a JSON Pointer that crosses references, or `{ from, pick?, omit? }` to select one entry or drop some. On a kind document, beside `schema:`: every declaration of the kind projects as that derivation.",
-    anyOf: [{ type: "string" }, { type: "object" }]
-  },
-  "x-telo-returns-from": {
-    title: "Returns from",
-    description: "The CEL value here is a function's result: it must satisfy the `returns:` declaration at the named root field.",
-    type: "string"
-  },
-  "x-telo-unbound-calls": {
-    title: "Unbound calls",
-    description: "Expressions here are evaluated where no module function is bound, so a module call in them is refused. On a string field, the field's plain text is itself such an expression. The value is the reason the diagnostic quotes.",
-    type: "string"
-  },
-  "x-telo-value-schema-from": {
-    title: "Value schema from",
-    description: "The value here must satisfy the type declared at the named location \u2014 a field of the resource, or a JSON Pointer from its root that may cross a reference and range over a list with '*'. On a configuration slot every such slot is checked, not only the branch a given input selects; inside inputType / outputType the node is typed by every type the location reaches.",
-    type: "string"
-  },
-  "x-telo-bindings-from": {
-    title: "Bindings from",
-    description: "Merge the names declared in the named field's map into this field's CEL scope.",
-    type: "string"
-  },
-  "x-telo-context-from": {
-    title: "Context from",
-    description: "Merge the navigated value as a property map into this context node.",
-    type: "string"
-  },
-  "x-telo-context-from-root": {
-    title: "Context from root",
-    description: "Replace this context node's schema with the value navigated from the manifest root. When the path holds nothing, the node keeps the schema keywords it declares itself.",
-    type: "string"
-  },
-  "x-telo-context-from-ref-kind": {
-    title: "Context from ref kind",
-    description: "Type this node from a referenced kind's declared `inputType` / `outputType`.",
-    type: "string"
-  },
-  "x-telo-context-ref-from": {
-    title: "Context ref from",
-    description: "Type this node from the named manifest's field, falling back to its kind's.",
-    type: "string"
-  },
-  "x-telo-context-parameters-from": {
-    title: "Context parameters from",
-    description: "Merge the named ordered parameter list (`[{ name, schema, nullable?, optional? }]`) into this context node \u2014 one binding per parameter, typed from its schema, and the node closed so a typo below one is reported.",
-    type: "string"
-  },
-  "x-telo-context-element-from": {
-    title: "Context element from",
-    description: "Type this binding from the ELEMENT of a sibling collection expression.",
-    type: "string"
-  },
-  "x-telo-context-element-from-item": {
-    title: "Context element from item",
-    description: "Type this binding from the ELEMENT of the collection the named field of the enclosing array item points at \u2014 a plain chain rooted at another binding of this context, or at inputs. Untyped when the chain does not resolve to a collection.",
-    type: "string"
-  },
-  "x-telo-context-collection-from": {
-    title: "Context collection from",
-    description: "Type this binding from a sibling collection expression itself. Withheld when the collection is live \u2014 re-exposing a cursor being drained is what no member-access rule catches.",
-    type: "string"
-  },
-  "x-telo-provides-zone": {
-    title: "Provides zone",
-    description: "This resource opens an execution zone; the annotated value is the CORRELATION KEY, never the zone (a zone is identified by the kind that provides it).",
-    anyOf: [{ type: "boolean" }, { type: "string" }]
-  },
-  "x-telo-requires-zone": {
-    title: "Requires zone",
-    description: "This resource must be reached through the named providing kind's body, optionally correlated through an ordered pointer list.",
-    anyOf: [{ type: "string" }, { type: "object" }]
-  },
-  "x-telo-widget": {
-    title: "Editor widget",
-    description: "Render this field with a richer control \u2014 `code` gives a Monaco editor.",
-    type: "string",
-    enum: ["code"]
-  },
-  "x-telo-topology-role": {
-    title: "Topology role",
-    description: "Names this field's part in the kind's topology, for the editor's graph view.",
-    type: "string"
-  },
-  "x-telo-inline": {
-    title: "Inline",
-    description: "Renders this field's value inline in the editor rather than behind an accordion.",
-    type: "boolean"
-  },
-  "x-telo-outcome-list": {
-    title: "Outcome list",
-    description: "Marks an array of conditional response-rendering entries (`returns:`).",
-    anyOf: [{ type: "boolean" }, { type: "string" }]
-  },
-  "x-telo-catches-for": {
-    title: "Catches for",
-    description: "Whose failures this catch list renders: a sibling field naming the handler, or the EMPTY string for everything this resource drives \u2014 a scope-level list, which owes coverage of nothing itself and answers for every site it encloses.",
-    type: "string"
-  }
-};
-var TELO_DATA_SCHEMA_ANNOTATIONS = {
-  [X_TELO_SENSITIVE]: {
-    title: "Sensitive",
-    description: "This value is auth material or equivalent: carry it as `[redacted]` in trace payloads and on the debug wire rather than verbatim. Read only from a resource's declared `inputType` / `outputType`.",
-    type: "boolean"
-  },
-  [X_TELO_SPAN_ATTRIBUTE]: {
-    title: "Span attribute",
-    description: "Put this scalar property's value on the resource's dispatch span under this attribute name (e.g. `telo.check.exit_code`). Read only from a resource's declared `inputType` / `outputType`, on a property reached through `properties`.",
-    type: "string"
-  }
-};
-
-// ../../analyzer/nodejs/src/schema-region.ts
-var SCHEMA_REGION_KEYS = [
-  "schema",
-  "status",
-  "inputType",
-  "outputType",
-  "itemType"
-];
-function isInSchemaRegion(path) {
-  for (let i = 0; i < path.length - 1; i++) {
-    const segment = path[i];
-    if (typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)) return true;
-  }
-  return false;
-}
-
-// ../../analyzer/nodejs/src/manifest-schemas.ts
-var MANIFEST_SCHEMA_URI = "telo://manifest";
-function manifestFragmentRef(name2) {
-  return `${MANIFEST_SCHEMA_URI}#/$defs/${name2}`;
-}
-var ResourceRefSchema = {
-  title: "Resource reference",
-  anyOf: [
-    {
-      type: "object",
-      required: ["__tagged", "engine", "source"],
-      properties: {
-        __tagged: { const: true },
-        engine: { const: "ref" },
-        source: { type: "string", minLength: 1 }
-      },
-      additionalProperties: false
-    },
-    {
-      type: "object",
-      required: ["kind"],
-      properties: { kind: { type: "string" } },
-      additionalProperties: true
-    }
-  ]
-};
-var RetryPolicySchema = {
-  title: "Retry policy",
-  description: "Re-attempts a failed dispatch with exponential backoff. A domain failure is retried; a cancellation and a contract violation are not \u2014 the latter is a property of the manifest and would fail identically every time.",
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    attempts: {
-      title: "Attempts",
-      description: "Re-attempts after the first try. 0 disables retrying.",
-      type: "integer",
-      minimum: 0,
-      default: 0
-    },
-    initialDelay: {
-      title: "Initial delay",
-      description: "Milliseconds to wait before the first re-attempt.",
-      type: "integer",
-      minimum: 0,
-      default: 250
-    },
-    factor: {
-      title: "Factor",
-      description: "Multiplier applied to the delay after each re-attempt.",
-      type: "number",
-      minimum: 1,
-      default: 2
-    },
-    maxDelay: {
-      title: "Max delay",
-      description: "Ceiling on the delay between re-attempts, in milliseconds.",
-      type: "integer",
-      minimum: 0,
-      default: 32e3
-    },
-    jitter: {
-      title: "Jitter",
-      description: "`full` picks each delay uniformly from [0, delay], which is what stops work that failed together from re-attempting together.",
-      type: "string",
-      enum: ["none", "full"],
-      default: "full"
-    },
-    delay: {
-      title: "Delay",
-      description: "DEPRECATED duration string (`250ms`, `1s`) \u2014 read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
-      type: "string",
-      pattern: "^[0-9]+(\\.[0-9]+)?\\s*(ms|s|m|h)$"
-    }
-  }
-};
-var RetryAttemptsSchema = {
-  title: "Retry attempts",
-  description: "Re-attempts after the first try. 0 disables retrying.",
-  type: "integer",
-  minimum: 0,
-  default: 0
-};
-var InvokeStepSchema = {
-  title: "Invoke step",
-  description: "Transfers control to a resource: what to call, what to pass it, whether to call it, and how to re-attempt it.",
-  type: "object",
-  required: ["invoke"],
-  additionalProperties: false,
-  properties: {
-    name: {
-      title: "Name",
-      description: "Publishes this dispatch's result as `steps.<name>.result`.",
-      type: "string"
-    },
-    invoke: {
-      title: "Invoke",
-      description: "Resource to invoke.",
-      "x-telo-topology-role": "invoke",
-      // A reference is always an object (a `!ref` sentinel or its resolved
-      // `{kind, name}`); requiring an object rejects a bare-string ref — which
-      // `validateReferenceForms` cannot catch at this nested slot — at
-      // `telo check` instead of as an obscure runtime failure.
-      type: "object",
-      "x-telo-ref": {
-        kind: "Telo.Executable",
-        use: "call",
-        inputs: "/inputs"
-      }
-    },
-    inputs: {
-      title: "Inputs",
-      description: "Values passed to the invoked resource.",
-      "x-telo-topology-role": "inputs",
-      type: "object",
-      additionalProperties: true
-    },
-    when: {
-      title: "When",
-      description: "CEL guard \u2014 the dispatch is skipped when it evaluates false.",
-      // The same role `if:` and `while:` carry: it is the expression that
-      // decides whether the statement runs, and a surface showing what a step
-      // is conditional on should not have to know which keyword spelled it.
-      "x-telo-topology-role": "predicate",
-      type: "boolean"
-    },
-    retry: {
-      title: "Retry",
-      $ref: `${MANIFEST_SCHEMA_URI}#/$defs/RetryPolicy`,
-      // A sibling of the shared policy rather than a member of it, the way
-      // `Http.Request.retry` adds `honorRetryAfter` — fragment expansion merges
-      // siblings, so the policy stays closed and each consumer's surface stays
-      // honest. `nonRetryable` matches an ERROR CODE, which is what a step's
-      // failures carry; an HTTP retry classifies on a response STATUS and has
-      // `retryOn` for it, so putting this on the shared shape would advertise a
-      // field there that nothing could read.
-      properties: {
-        nonRetryable: {
-          title: "Non-retryable codes",
-          description: "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
-          type: "array",
-          items: { type: "string" },
-          default: []
-        }
-      }
-    },
-    timeout: {
-      title: "Timeout",
-      description: "How long ONE attempt may take, in milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
-      type: "integer",
-      minimum: 1
-    }
-  }
-};
-var JsonSchema7Schema = {
-  title: "JSON Schema",
-  description: "The shape of a value, as JSON Schema (draft-07).",
-  type: ["object", "boolean"],
-  properties: jsonSchemaKeywords(hoistedDefKey("JsonSchema7")),
-  additionalProperties: true
-};
-var KindSchemaSchema = {
-  title: "Kind schema",
-  description: "The configuration a resource of this kind accepts, as JSON Schema plus the `x-telo-*` annotations that say how each field behaves.",
-  type: ["object", "boolean"],
-  properties: jsonSchemaKeywords(hoistedDefKey("KindSchema")),
-  additionalProperties: true
-};
-var stepErrorProperties = {
-  code: {
-    description: "Structured error code; INTERNAL_ERROR for plain errors.",
-    type: "string"
-  },
-  message: { description: "Human-readable error message.", type: "string" },
-  step: { description: "Name of the step that threw.", type: "string" },
-  data: { description: "Structured payload from an InvokeError, else undefined." }
-};
-var stepList = (title, description) => ({
-  title,
-  description,
-  "x-telo-topology-role": "branch",
-  type: "array",
-  items: { $ref: `#/$defs/${hoistedDefKey("Step")}` }
-});
-var StepSchema = {
-  title: "Step",
-  description: "Single executable step or control-flow block.",
-  type: "object",
-  properties: {
-    name: { title: "Name", description: "Unique step name.", type: "string" }
-  },
-  oneOf: [
-    // THE dispatch site, shared with an Application's `targets:` rather than
-    // restated. `name` is hoisted to the enclosing step object above, which is
-    // why this branch carries only what a dispatch itself needs.
-    {
-      title: "invoke",
-      description: "Invokes an invocable or runnable resource.",
-      $ref: `${MANIFEST_SCHEMA_URI}#/$defs/InvokeStep`
-    },
-    {
-      title: "if/then/else",
-      description: "Conditional branch; executes then or else based on a boolean expression.",
-      properties: {
-        if: {
-          title: "If",
-          description: "CEL boolean expression; true executes then, false executes else.",
-          "x-telo-topology-role": "predicate",
-          type: "boolean"
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Telo.Abstract"
         },
-        elseif: {
-          title: "Else If",
-          description: "Additional condition-branch pairs evaluated when if is false.",
-          "x-telo-topology-role": "branch-list",
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              if: {
-                title: "If",
-                description: "CEL boolean expression for this else-if branch.",
-                "x-telo-topology-role": "predicate",
-                type: "boolean"
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/KindMetadata"
+        },
+        "capability": {
+          "title": "Capability",
+          "description": "The lifecycle role this kind implements.",
+          "enum": [
+            "Telo.Callable",
+            "Telo.Invocable",
+            "Telo.Mount",
+            "Telo.Provider",
+            "Telo.Runnable",
+            "Telo.Service",
+            "Telo.Sink",
+            "Telo.Type"
+          ]
+        },
+        "schema": {
+          "title": "Schema",
+          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        },
+        "status": {
+          "title": "Observed state",
+          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
+        },
+        "throws": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "codes": {
+              "$ref": "telo://manifest#/$defs/ThrowCodes"
+            }
+          }
+        },
+        "controllers": false
+      },
+      "required": [
+        "kind",
+        "metadata"
+      ],
+      "if": {
+        "required": [
+          "throws",
+          "capability"
+        ],
+        "properties": {
+          "capability": {
+            "not": {
+              "enum": [
+                "Telo.Invocable",
+                "Telo.Runnable"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "throws": false
+        }
+      },
+      "additionalProperties": true
+    }
+  }],
+  ["Application.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Application",
+      "description": "A runnable entry point: the module a runtime starts. Declares its imports, the variables, secrets, ports and needs it reads from its host and command line, its boot sequence, logging and tracing destinations, and the runtime range it is verified against."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/ModuleMetadata"
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "shared",
+            "isolated"
+          ],
+          "default": "shared"
+        },
+        "targets": {
+          "x-telo-step-context": {
+            "invoke": "invoke",
+            "outputType": "outputType"
+          },
+          "type": "array",
+          "items": {
+            "x-telo-ref": {
+              "kind": [
+                "Telo.Runnable",
+                "Telo.Service"
+              ],
+              "use": "call"
+            },
+            "anyOf": [
+              {
+                "type": "string"
               },
-              then: stepList("Then", "Steps executed when this else-if condition is true.")
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "required": [
+                  "ref"
+                ],
+                "properties": {
+                  "ref": {
+                    "x-telo-ref": {
+                      "kind": [
+                        "Telo.Runnable",
+                        "Telo.Service"
+                      ],
+                      "use": "call"
+                    },
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "name"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    ]
+                  },
+                  "when": {
+                    "title": "When",
+                    "description": "CEL guard \u2014 the target runs only when it evaluates true.",
+                    "x-telo-topology-role": "predicate",
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "$ref": "telo://manifest#/$defs/InvokeStep"
+              }
+            ]
+          }
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "native": {
+          "$ref": "telo://manifest#/$defs/NativeEntries"
+        },
+        "sources": {
+          "$ref": "telo://manifest#/$defs/ModuleSources"
+        },
+        "layers": {
+          "$ref": "telo://manifest#/$defs/LayerIndex"
+        },
+        "filesIntegrity": {
+          "type": "string"
+        },
+        "imports": {
+          "$ref": "telo://manifest#/$defs/ModuleImports"
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "env"
+                ]
+              },
+              {
+                "required": [
+                  "arg"
+                ]
+              }
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "arg": {
+                "$ref": "telo://manifest#/$defs/ArgBinding"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array"
+                ]
+              },
+              "default": {}
+            }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "env",
+              "type"
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array"
+                ]
+              },
+              "default": {}
+            }
+          }
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/NeedRequest",
+            "properties": {
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "ports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "env"
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "arg": {
+                "$ref": "telo://manifest#/$defs/ArgBinding"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": [
+                  "tcp",
+                  "udp"
+                ],
+                "default": "tcp"
+              },
+              "default": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
             },
-            required: ["if", "then"]
+            "additionalProperties": false
           }
         },
-        then: stepList("Then", "Steps executed when if evaluates true."),
-        else: stepList(
-          "Else",
-          "Steps executed when if (and all elseif conditions) evaluate false."
-        )
-      },
-      required: ["if", "then"]
-    },
-    {
-      title: "while/do",
-      description: "Loop; executes do steps repeatedly while condition is true.",
-      properties: {
-        while: {
-          title: "While",
-          description: "CEL boolean expression; evaluated before each iteration.",
-          "x-telo-topology-role": "predicate",
-          type: "boolean"
-        },
-        do: stepList("Do", "Steps executed on each iteration.")
-      },
-      required: ["while", "do"]
-    },
-    {
-      title: "switch/cases/default",
-      description: "Multi-branch dispatch; matches a value expression against case keys.",
-      properties: {
-        switch: {
-          title: "Switch",
-          description: "CEL expression; result matched against case keys.",
-          "x-telo-topology-role": "discriminator",
-          type: "string"
-        },
-        cases: {
-          title: "Cases",
-          description: "Map of value to step list; executed when switch matches the key.",
-          "x-telo-topology-role": "case-map",
-          type: "object",
-          additionalProperties: {
-            type: "array",
-            items: { $ref: `#/$defs/${hoistedDefKey("Step")}` }
+        "logging": {
+          "$ref": "telo://manifest#/$defs/LoggingScope",
+          "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+          "properties": {
+            "sinks": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "kind"
+                    ],
+                    "x-telo-ref": {
+                      "kind": "Telo.LogSink",
+                      "use": "dependency"
+                    },
+                    "x-telo-inline": true
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "sink"
+                    ],
+                    "properties": {
+                      "sink": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "x-telo-ref": {
+                          "kind": "Telo.LogSink",
+                          "use": "dependency"
+                        },
+                        "x-telo-inline": true
+                      },
+                      "when": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
           }
         },
-        default: stepList("Default", "Steps executed when no case matches.")
-      },
-      required: ["switch", "cases"]
-    },
-    {
-      title: "try/catch/finally",
-      description: "Error boundary; executes try steps and handles failure via catch and finally.",
-      properties: {
-        when: {
-          title: "When",
-          description: "CEL boolean guard \u2014 the whole try/catch/finally is skipped when it evaluates false.",
-          "x-telo-topology-role": "predicate",
-          type: "boolean"
-        },
-        try: stepList("Try", "Steps executed; halts on first failure and jumps to catch."),
-        catch: {
-          ...stepList("Catch", "Steps executed when try fails; receives error context."),
-          "x-telo-error-context": {
-            type: "object",
-            description: "The caught failure (always present inside catch).",
-            properties: stepErrorProperties,
-            additionalProperties: false
-          }
-        },
-        finally: {
-          ...stepList(
-            "Finally",
-            "Steps always executed after try/catch regardless of outcome."
-          ),
-          // error is null on the success path and the caught failure when a
-          // try/catch failure propagates. Typed nullable so the analyzer flags
-          // unguarded field access (CEL_NULLABLE_ACCESS).
-          "x-telo-error-context": {
-            type: ["object", "null"],
-            description: "The caught failure, or null when try (and catch) succeeded.",
-            properties: stepErrorProperties,
-            additionalProperties: false
-          }
-        }
-      },
-      required: ["try"]
-    },
-    {
-      title: "throw",
-      description: 'Throws an InvokeError unconditionally. Works inside catch blocks via CEL (e.g. code set to `!cel "error.code"`).',
-      properties: {
-        throw: {
-          title: "Throw",
-          description: "InvokeError descriptor; code is required, message/data optional.",
-          type: "object",
-          properties: {
-            code: {
-              title: "Code",
-              description: "Structured error code; uppercase SNAKE_CASE by convention.",
-              type: "string"
-            },
-            message: {
-              title: "Message",
-              description: "Human-readable error message. Defaults to `code` when omitted.",
-              type: "string"
-            },
-            data: {
-              title: "Data",
-              description: "Optional structured payload attached to the error."
+        "tracing": {
+          "type": "object",
+          "x-telo-eval": "compile",
+          "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+          "properties": {
+            "sinks": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "kind"
+                    ],
+                    "x-telo-ref": {
+                      "kind": "Telo.TraceSink",
+                      "use": "dependency"
+                    },
+                    "x-telo-inline": true
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "sink"
+                    ],
+                    "properties": {
+                      "sink": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "x-telo-ref": {
+                          "kind": "Telo.TraceSink",
+                          "use": "dependency"
+                        },
+                        "x-telo-inline": true
+                      },
+                      "when": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
             }
           },
-          required: ["code"]
+          "additionalProperties": false
+        },
+        "requires": {
+          "$ref": "telo://manifest#/$defs/Requires"
         }
       },
-      required: ["throw"]
+      "required": [
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Callable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Callable",
+      "description": "A function reached from an expression through a module name: synchronous call(args) against a declared parameter list and result. Evaluated inside an expression with no caller frame, so a failure fails the evaluation rather than being declared as a thrown error."
     },
-    {
-      title: "value",
-      description: "Computes a value and publishes it as `steps.<name>.result`, with no dispatch \u2014 no resource, no span, no topology node. For an intermediate derived from an earlier step: reshape a response, total some rows, build the next call's inputs.",
-      properties: {
-        value: {
-          title: "Value",
-          description: "A CEL expression \u2014 or a structure (map / array) with `!cel` leaves \u2014 evaluated in the step scope: `inputs`, the results of the steps before it, and whatever the enclosing kind binds (`item` / `index` / `items`, `iteration` / `previous`)."
+    "capability": "Telo.Callable",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["ConsoleSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "ConsoleSink",
+      "description": "Writes structured log records to standard error or standard output, as pretty text for a terminal or as JSON lines for a collector, with optional colour. The zero-configuration destination every runtime provides."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.LogSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": "string",
+          "enum": [
+            "stderr",
+            "stdout"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pretty",
+            "json"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ]
         }
       },
-      required: ["value"]
+      "additionalProperties": false
     }
-  ],
-  required: ["name"]
-};
-var RECURSIVE_FRAGMENTS = /* @__PURE__ */ new Set(["JsonSchema7", "KindSchema", "Step"]);
-function hoistedDefKey(name2) {
-  return `telo:${name2}`;
-}
-function isHoistedFragmentDefKey(key2) {
-  return key2.startsWith(hoistedDefKey(""));
-}
-function deepFreeze(value2) {
-  if (value2 && typeof value2 === "object" && !Object.isFrozen(value2)) {
-    Object.freeze(value2);
-    for (const child of Object.values(value2)) deepFreeze(child);
-  }
-  return value2;
-}
-var ManifestRootSchema = {
-  $id: MANIFEST_SCHEMA_URI,
-  $defs: {
-    ResourceRef: ResourceRefSchema,
-    RetryPolicy: RetryPolicySchema,
-    RetryAttempts: RetryAttemptsSchema,
-    InvokeStep: InvokeStepSchema,
-    Step: StepSchema,
-    JsonSchema7: JsonSchema7Schema,
-    KindSchema: KindSchemaSchema
-  }
-};
-deepFreeze(ManifestRootSchema);
-var expandedFragments = /* @__PURE__ */ new Map();
-function expandedFragment(name2) {
-  let template = expandedFragments.get(name2);
-  if (!template) {
-    const fragment = ManifestRootSchema.$defs[name2];
-    template = structuredClone(fragment);
-    const scratch = {};
-    walkFragments(template, /* @__PURE__ */ new Set(), { hoistTarget: scratch, depth: 1 });
-    if (scratch.$defs !== void 0) {
-      throw new Error(
-        `Manifest fragment '${name2}' references a recursive fragment from inside its body. Its expanded form is no longer independent of where it is hoisted \u2014 localize the reference in the fragment source (write '#/$defs/telo:<Name>' directly) or teach expandedFragment to take the hoist target.`
-      );
+  }],
+  ["Definition.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Definition",
+      "description": "Declares a resource kind: the lifecycle role it implements, its configuration schema, observed state, input and output contracts, the errors it throws, and how it runs \u2014 a controller, a body of resources it dispatches to, or a parent kind it specializes."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Telo.Definition"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/KindMetadata"
+        },
+        "capability": {
+          "title": "Capability",
+          "description": "The lifecycle role this kind implements.",
+          "enum": [
+            "Telo.Callable",
+            "Telo.Invocable",
+            "Telo.Mount",
+            "Telo.Provider",
+            "Telo.Runnable",
+            "Telo.Service",
+            "Telo.Sink",
+            "Telo.Type"
+          ]
+        },
+        "extends": {
+          "title": "Extends",
+          "description": "The kind this one specializes, as `<Alias>.<Kind>` \u2014 an abstract it implements or a concrete kind whose controller it inherits.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9_]*\\.[A-Z][A-Za-z0-9_]*$"
+        },
+        "controllers": {
+          "title": "Controllers",
+          "description": "Package URLs of the controller implementations, in preference order.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema": {
+          "title": "Schema",
+          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        },
+        "status": {
+          "title": "Observed state",
+          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "inputType": {
+          "title": "Input type",
+          "description": "The schema of the inputs a call passes \u2014 a `!ref` to a named shape, or inline JSON Schema."
+        },
+        "outputType": {
+          "title": "Output type",
+          "description": "The schema of what a call returns \u2014 a `!ref` to a named shape, or inline JSON Schema."
+        },
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
+        },
+        "throws": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "codes": {
+              "$ref": "telo://manifest#/$defs/ThrowCodes"
+            },
+            "inherit": {
+              "type": "boolean"
+            },
+            "passthrough": {
+              "type": "boolean"
+            }
+          }
+        },
+        "topology": {
+          "title": "Topology",
+          "description": "How a visual editor draws resources of this kind.",
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "x-telo-context": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "self": {
+                  "x-telo-context-from-root": "schema"
+                }
+              }
+            }
+          }
+        },
+        "invoke": {
+          "title": "Invoke target",
+          "description": "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "provide": {
+          "title": "Provide target",
+          "description": "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "run": {
+          "title": "Run target",
+          "description": "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "targets": {
+          "title": "Targets",
+          "description": "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
+        },
+        "mount": {
+          "title": "Mount target",
+          "description": "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              },
+              "inputs": {
+                "x-telo-context-from-root": "inputType"
+              }
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              },
+              "result": {
+                "x-telo-context-from-ref-kind": [
+                  "provide#outputType",
+                  "invoke#outputType"
+                ]
+              }
+            }
+          }
+        },
+        "base": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              }
+            }
+          }
+        }
+      },
+      "patternProperties": {
+        "^x-telo-schema-projection(-from)?$": {}
+      },
+      "required": [
+        "kind",
+        "metadata"
+      ],
+      "if": {
+        "required": [
+          "throws",
+          "capability"
+        ],
+        "properties": {
+          "capability": {
+            "not": {
+              "enum": [
+                "Telo.Invocable",
+                "Telo.Runnable"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "throws": false
+        }
+      },
+      "additionalProperties": false
     }
-    expandedFragments.set(name2, template);
-  }
-  return structuredClone(template);
-}
-function manifestFragment(name2) {
-  const fragment = ManifestRootSchema.$defs[name2];
-  if (!fragment || typeof fragment !== "object") {
-    throw new Error(`Unknown manifest fragment '${name2}'`);
-  }
-  if (RECURSIVE_FRAGMENTS.has(name2)) {
-    throw new Error(
-      `Manifest fragment '${name2}' is recursive and cannot be embedded \u2014 point a slot at it with $ref: "${manifestFragmentRef(name2)}" and pass the enclosing schema through withSchemaFragments().`
-    );
-  }
-  const copy = expandedFragment(name2);
-  copy[X_TELO_FRAGMENT] = name2;
-  return copy;
-}
-var FRAGMENT_PREFIX = `${MANIFEST_SCHEMA_URI}#/$defs/`;
-function expandManifestFragments(node, seen = /* @__PURE__ */ new Set()) {
-  if (!node || typeof node !== "object") return;
-  walkFragments(node, seen, { hoistTarget: node, depth: 0 });
-}
-function childContext(ctx, key2, value2) {
-  if (ctx.depth === 0 && SCHEMA_REGION_KEYS.includes(key2) && isPlainObject(value2)) {
-    return { hoistTarget: value2, depth: 1 };
-  }
-  return { hoistTarget: ctx.hoistTarget, depth: ctx.depth + 1 };
-}
-function walkFragments(node, seen, ctx) {
-  if (!node || typeof node !== "object") return;
-  if (seen.has(node)) return;
-  seen.add(node);
-  if (Array.isArray(node)) {
-    for (let i = 0; i < node.length; i++) {
-      const localized = localizeRecursiveFragment(node[i], ctx);
-      if (localized) node[i] = localized;
-      else {
-        const fragment = fragmentFor(node[i]);
-        if (fragment) node[i] = fragment;
-        else walkFragments(node[i], seen, { ...ctx, depth: ctx.depth + 1 });
+  }],
+  ["Executable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Executable",
+      "description": "Anything control can be transferred to with call arguments \u2014 a resource that is invoked or run. A reference slot accepting either says so once with this constraint. It names no lifecycle of its own, so no kind declares it as its role: a kind declares the role it implements."
+    },
+    "declarable": false
+  }],
+  ["FileSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "FileSink",
+      "description": "Appends structured log records to a file on the host, as JSON lines or pretty text. The destination path is required; level filtering, buffering and flushing follow the log destination settings."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.LogSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "json",
+            "pretty"
+          ]
+        }
+      },
+      "required": [
+        "destination"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Function.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Function",
+      "description": "A function written as one expression over its parameters, called from other expressions through the declaring module's name. Declares an ordered parameter list and a result type the body must produce; whether it is deterministic is derived from what the body calls."
+    },
+    "capability": "Telo.Callable",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "body": {
+          "title": "Body",
+          "description": "The expression this function evaluates, over its parameters.",
+          "x-telo-returns-from": "returns",
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "x-telo-context-parameters-from": "params"
+          }
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Import.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Import",
+      "description": "Brings a library into a module under an alias: where it comes from, its integrity pin, the variables, secrets, resources and needs supplied to it, the runtimes it may run on and a logging override for its subtree."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": true
+        },
+        "source": {
+          "type": "string"
+        },
+        "integrity": {
+          "type": "string"
+        },
+        "variables": {
+          "type": "object"
+        },
+        "secrets": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "runtime": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "logging": {
+          "$ref": "telo://manifest#/$defs/LoggingScope"
+        }
+      },
+      "required": [
+        "metadata",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Invocable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Invocable",
+      "description": "A request handler called with inputs and answering with outputs: an endpoint, a query, a computation. Its invoke() is dispatched through the runtime, which checks the declared input and output contracts and lets a caller catch the errors it declares."
+    },
+    "capability": "Telo.Invocable",
+    "extends": "Telo.Executable",
+    "declarable": true,
+    "throwsAllowed": true
+  }],
+  ["JsonSchema.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "JsonSchema",
+      "description": "A named data shape written as JSON Schema, usable as an input, output or field type anywhere without an import. It may extend other shapes and carry business rules \u2014 expressions over the value that must hold, each failing validation with its own code."
+    },
+    "capability": "Telo.Type",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "title": "Schema",
+          "description": "JSON Schema definition for the declared data type.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "extends": {
+          "title": "Extends",
+          "description": "Parent type name or list of parent type names to inherit from.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "rules": {
+          "title": "Rules",
+          "description": "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {
+                "type": "string",
+                "description": "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
+                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
+              },
+              "code": {
+                "type": "string",
+                "description": "Machine-readable error code surfaced on validation failure."
+              },
+              "message": {
+                "type": "string",
+                "description": "Optional human-readable hint for the validation failure."
+              }
+            },
+            "required": [
+              "condition",
+              "code"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schema"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Library.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Library",
+      "description": "An importable module: a unit of kinds, need types and ready-made instances other modules import under an alias. Declares the variables, secrets, resources and needs it requires from its importer, whether it is instantiated once or per import, and what it exports."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/ModuleMetadata"
+        },
+        "variables": {
+          "type": "object"
+        },
+        "secrets": {
+          "type": "object"
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "shared",
+            "isolated"
+          ],
+          "default": "isolated"
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/NeedRequest",
+            "properties": {
+              "env": {}
+            }
+          }
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "native": {
+          "$ref": "telo://manifest#/$defs/NativeEntries"
+        },
+        "sources": {
+          "$ref": "telo://manifest#/$defs/ModuleSources"
+        },
+        "layers": {
+          "$ref": "telo://manifest#/$defs/LayerIndex"
+        },
+        "filesIntegrity": {
+          "type": "string"
+        },
+        "imports": {
+          "$ref": "telo://manifest#/$defs/ModuleImports"
+        },
+        "exports": {
+          "type": "object",
+          "properties": {
+            "kinds": {
+              "type": "array",
+              "title": "Exported kinds",
+              "items": {
+                "type": "string"
+              }
+            },
+            "resources": {
+              "type": "array",
+              "title": "Exported resources",
+              "items": {
+                "type": "string",
+                "not": {
+                  "enum": [
+                    "variables",
+                    "secrets"
+                  ]
+                }
+              }
+            },
+            "code": {
+              "type": "array",
+              "items": {
+                "$ref": "telo://manifest#/$defs/PlatformAxes",
+                "type": "object",
+                "required": [
+                  "specifier",
+                  "format",
+                  "path"
+                ],
+                "properties": {
+                  "specifier": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "requires": {
+          "$ref": "telo://manifest#/$defs/Requires"
+        }
+      },
+      "required": [
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["LogSink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "LogSink",
+      "description": "Where structured log records go: a destination that filters by level and buffers records, configured with a minimum level, a buffer size, what to do when the buffer is full and how often to flush. Every log destination specializes it."
+    },
+    "capability": "Telo.Sink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "telo://manifest#/$defs/LogLevel"
+        },
+        "buffer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "on_full": {
+          "type": "string",
+          "enum": [
+            "block",
+            "drop_new",
+            "drop_old"
+          ]
+        },
+        "flush_interval": {
+          "$ref": "telo://manifest#/$defs/LogDuration"
+        }
+      },
+      "additionalProperties": true
+    }
+  }],
+  ["LogTraceSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "LogTraceSink",
+      "description": "Tracing with no collector: writes each finished span as one structured log record through the logging pipeline, carrying its trace and span identifiers, at a configurable level \u2014 read wherever the logs already go."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.TraceSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "telo://manifest#/$defs/LogLevel",
+          "default": "info",
+          "x-telo-eval": "compile"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["Mount.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Mount",
+      "description": "A part a long-lived resource mounts into itself: an HTTP API, a middleware, a route table. The holder registers it while it starts; a mount is never called directly, so it declares no thrown errors."
+    },
+    "capability": "Telo.Mount",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["NeedType.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "NeedType",
+      "description": "Declares a type of dependency a module can ask whoever runs it for \u2014 a database, a credential, a public address \u2014 as the fields a fulfilment hands over, which are required, the parameters a request may state, and whether fulfilments are versioned, carry features or must come from the root."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": true
+        },
+        "fields": {
+          "title": "Fields",
+          "description": "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        },
+        "required": {
+          "title": "Required fields",
+          "description": "The fields every fulfilment must yield.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "parameters": {
+          "title": "Parameters",
+          "description": "JSON Schema of the literal parameters a need of this type may state.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "version": {
+          "title": "Version",
+          "description": "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
+          "enum": [
+            "semver"
+          ]
+        },
+        "features": {
+          "title": "Features",
+          "description": "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "supply": {
+          "title": "Supply",
+          "description": "`root` when a need of this type is fulfilled only through a root need, forwarded whole: a self-supplied fulfilment, a field-by-field supply at an import and a library need reaching the root unforwarded are refused.",
+          "enum": [
+            "root"
+          ]
+        }
+      },
+      "required": [
+        "metadata",
+        "fields"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Provider.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Provider",
+      "description": "A source of configuration, secrets or values, resolved when it is created: init() acquires what it needs and an optional provide() hands over the value. Every field is evaluated once at load, and it reports observed state as soon as it is built."
+    },
+    "capability": "Telo.Provider",
+    "declarable": true,
+    "throwsAllowed": false,
+    "schema": {
+      "x-telo-eval": "compile"
+    }
+  }],
+  ["PublicHostPattern.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "PublicHostPattern",
+      "description": "A family of public hosts an application is reached at \u2014 tenant subdomains \u2014 as a pattern origin the host routes every matching host of to a port."
+    },
+    "fields": {
+      "pattern": {
+        "type": "string",
+        "pattern": "^https?://\\*[A-Za-z0-9-]*\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(?::[0-9]{1,5})?$",
+        "description": "The hosts as a pattern origin: `https://*.tenants.example` (one or more whole labels) or `https://*-tenants.example` (a prefix of the first label)."
+      }
+    },
+    "required": [
+      "pattern"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key of the root's `ports:` these hosts are served on, a `tcp` port."
+        }
+      },
+      "additionalProperties": false
+    },
+    "supply": "root"
+  }],
+  ["PublicUrl.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "PublicUrl",
+      "description": "One public address an application is reached at: an http or https origin the host routes to a port, with the request's host and path unchanged."
+    },
+    "fields": {
+      "url": {
+        "description": "The address: an http or https origin \u2014 a host and an optional port, with no path, query or credentials.",
+        "x-telo-type": {
+          "name": "Telo.Url",
+          "scheme": {
+            "enum": [
+              "http",
+              "https"
+            ]
+          },
+          "path": {
+            "enum": [
+              "/"
+            ]
+          },
+          "query": {
+            "not": {}
+          },
+          "user": {
+            "not": {}
+          },
+          "password": {
+            "not": {}
+          }
+        }
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key of the root's `ports:` this address is served on, a `tcp` port."
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "Marks the application's main address. At most one per application."
+        },
+        "customDomains": {
+          "type": "boolean",
+          "description": "Lets the host route further domains to this need's port, ones the application is never told about. At most one per port."
+        }
+      },
+      "additionalProperties": false
+    },
+    "supply": "root"
+  }],
+  ["Runnable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Runnable",
+      "description": "A one-shot task the runtime starts and waits for: a pipeline, a migration, a boot step. Its run() does the work and returns what undoes it; a failure it throws is a structured error the step or target that started it can catch."
+    },
+    "capability": "Telo.Runnable",
+    "extends": "Telo.Executable",
+    "declarable": true,
+    "throwsAllowed": true
+  }],
+  ["Service.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Service",
+      "description": "A long-lived resource \u2014 a server, a pool, a listener \u2014 built by init() and started by run(), each returning what undoes it. Started rather than called, so it declares no thrown errors; inbound work it accepts roots its own trace."
+    },
+    "capability": "Telo.Service",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["Sink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Sink",
+      "description": "A record-stream destination the runtime writes to directly, never through dispatch: write(record) plus flush, synchronous flush and close. Payload-opaque, carrying log records or finished trace spans to wherever they are kept."
+    },
+    "capability": "Telo.Sink",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["Template.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Template",
+      "description": "The lifecycle of a document that declares rather than runs: an application, a library, an import, a kind or a need type. Read by the kernel while it loads a module, never instantiated, and reserved for the built-in vocabulary \u2014 a kind declared in a module never takes this role."
+    },
+    "capability": "Telo.Template",
+    "declarable": false,
+    "throwsAllowed": false
+  }],
+  ["TraceSink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "TraceSink",
+      "description": "Where finished trace spans go: a destination for distributed tracing that receives each span once it ends \u2014 identity, timing, outcome and attributes. Attaching one turns tracing on; every trace exporter specializes it."
+    },
+    "capability": "Telo.Sink",
+    "schema": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }],
+  ["Type.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Type",
+      "description": "A pure data shape with no runtime instance: a named JSON Schema other declarations reference to type their inputs, outputs and fields."
+    },
+    "capability": "Telo.Type",
+    "declarable": true,
+    "throwsAllowed": false
+  }]
+];
+var BUILTIN_FRAGMENT_FILES = [
+  ["ArgBinding", {
+    "anyOf": [
+      {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+      },
+      {
+        "type": "object",
+        "required": [
+          "flag"
+        ],
+        "properties": {
+          "flag": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          },
+          "short": {
+            "type": "string",
+            "pattern": "^[A-Za-z]$"
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "position"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }],
+  ["CallableParams", {
+    "title": "Parameters",
+    "description": "Ordered parameters this callable accepts. Optional parameters come last.",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "name",
+        "schema"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "schema": {
+          "$ref": "telo://manifest#/$defs/CallableType"
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "optional": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["CallableReturns", {
+    "title": "Result",
+    "description": "What a call to this callable evaluates to.",
+    "type": "object",
+    "required": [
+      "schema"
+    ],
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "schema": {
+        "$ref": "telo://manifest#/$defs/CallableType"
+      },
+      "nullable": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["CallableType", {
+    "title": "Type",
+    "description": "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
+    "anyOf": [
+      {
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      {
+        "type": "string"
+      }
+    ]
+  }],
+  ["DispatchTarget", {
+    "anyOf": [
+      {
+        "type": "object",
+        "required": [
+          "__tagged",
+          "engine",
+          "source"
+        ],
+        "properties": {
+          "__tagged": {
+            "const": true
+          },
+          "engine": {
+            "const": "ref"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "string",
+        "x-telo-context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "self": {
+              "x-telo-context-from-root": "schema"
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "x-telo-context": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "self": {
+                  "x-telo-context-from-root": "schema"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  }],
+  ["InvokeStep", {
+    "title": "Invoke step",
+    "description": "Transfers control to a resource: what to call, what to pass it, whether to call it, and how to re-attempt it.",
+    "type": "object",
+    "required": [
+      "invoke"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "title": "Name",
+        "description": "Publishes this dispatch's result as `steps.<name>.result`.",
+        "type": "string"
+      },
+      "invoke": {
+        "title": "Invoke",
+        "description": "Resource to invoke.",
+        "x-telo-topology-role": "invoke",
+        "type": "object",
+        "x-telo-ref": {
+          "kind": "Telo.Executable",
+          "use": "call",
+          "inputs": "/inputs"
+        }
+      },
+      "inputs": {
+        "title": "Inputs",
+        "description": "Values passed to the invoked resource.",
+        "x-telo-topology-role": "inputs",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "when": {
+        "title": "When",
+        "description": "CEL guard \u2014 the dispatch is skipped when it evaluates false.",
+        "x-telo-topology-role": "predicate",
+        "type": "boolean"
+      },
+      "retry": {
+        "title": "Retry",
+        "$ref": "telo://manifest#/$defs/RetryPolicy",
+        "properties": {
+          "nonRetryable": {
+            "title": "Non-retryable codes",
+            "description": "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "timeout": {
+        "title": "Timeout",
+        "description": "How long ONE attempt may take, in milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
+        "type": "integer",
+        "minimum": 1
       }
     }
+  }],
+  ["JsonSchema7", {
+    "title": "JSON Schema",
+    "description": "The shape of a value, as JSON Schema (draft-07).",
+    "type": [
+      "object",
+      "boolean"
+    ],
+    "properties": {
+      "type": {
+        "title": "Type",
+        "description": "The JSON type this value must have, or a list of accepted types.",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ]
+      },
+      "properties": {
+        "title": "Properties",
+        "description": "Schema per named property of an object.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "required": {
+        "title": "Required",
+        "description": "Property names that must be present.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "title": "Additional properties",
+        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        ]
+      },
+      "patternProperties": {
+        "title": "Pattern properties",
+        "description": "Schema per regular expression matching a property name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "propertyNames": {
+        "title": "Property names",
+        "description": "Schema every property NAME must satisfy.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "items": {
+        "title": "Items",
+        "description": "Schema for each element of an array.",
+        "anyOf": [
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/JsonSchema7"
+            }
+          }
+        ]
+      },
+      "additionalItems": {
+        "title": "Additional items",
+        "description": "Schema for elements past a positional `items` list.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        ]
+      },
+      "contains": {
+        "title": "Contains",
+        "description": "At least one element must satisfy this schema.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "allOf": {
+        "title": "All of",
+        "description": "Every branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "anyOf": {
+        "title": "Any of",
+        "description": "At least one branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "oneOf": {
+        "title": "One of",
+        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "not": {
+        "title": "Not",
+        "description": "The value must NOT match this schema.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "if": {
+        "title": "If",
+        "description": "Condition selecting `then` / `else`.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "then": {
+        "title": "Then",
+        "description": "Applied when `if` matches.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "else": {
+        "title": "Else",
+        "description": "Applied when `if` does not match.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "enum": {
+        "title": "Enum",
+        "description": "The complete set of accepted values.",
+        "type": "array"
+      },
+      "const": {
+        "title": "Const",
+        "description": "The single accepted value."
+      },
+      "default": {
+        "title": "Default",
+        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
+      },
+      "examples": {
+        "title": "Examples",
+        "description": "Sample values, for documentation.",
+        "type": "array"
+      },
+      "minimum": {
+        "title": "Minimum",
+        "type": "number"
+      },
+      "maximum": {
+        "title": "Maximum",
+        "type": "number"
+      },
+      "exclusiveMinimum": {
+        "title": "Exclusive minimum",
+        "type": "number"
+      },
+      "exclusiveMaximum": {
+        "title": "Exclusive maximum",
+        "type": "number"
+      },
+      "multipleOf": {
+        "title": "Multiple of",
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minLength": {
+        "title": "Min length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxLength": {
+        "title": "Max length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "pattern": {
+        "title": "Pattern",
+        "description": "Regular expression the string must match.",
+        "type": "string"
+      },
+      "format": {
+        "title": "Format",
+        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
+        "type": "string"
+      },
+      "contentMediaType": {
+        "title": "Content media type",
+        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
+        "type": "string"
+      },
+      "contentEncoding": {
+        "title": "Content encoding",
+        "type": "string"
+      },
+      "minItems": {
+        "title": "Min items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": {
+        "title": "Max items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "uniqueItems": {
+        "title": "Unique items",
+        "type": "boolean"
+      },
+      "minProperties": {
+        "title": "Min properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": {
+        "title": "Max properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "dependencies": {
+        "title": "Dependencies",
+        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "telo://manifest#/$defs/JsonSchema7"
+            }
+          ]
+        }
+      },
+      "title": {
+        "title": "Title",
+        "description": "Human-readable label for this value.",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "description": "What this value is, for the author reading the manifest.",
+        "type": "string"
+      },
+      "deprecated": {
+        "title": "Deprecated",
+        "type": "boolean"
+      },
+      "readOnly": {
+        "title": "Read only",
+        "type": "boolean"
+      },
+      "writeOnly": {
+        "title": "Write only",
+        "type": "boolean"
+      },
+      "$ref": {
+        "title": "Reference",
+        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
+        "type": "string"
+      },
+      "$defs": {
+        "title": "Definitions",
+        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "definitions": {
+        "title": "Definitions (draft-07)",
+        "description": "Older spelling of `$defs`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "$comment": {
+        "title": "Comment",
+        "type": "string"
+      },
+      "$id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "$schema": {
+        "title": "Schema dialect",
+        "type": "string"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["KindMetadata", {
+    "type": "object",
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "module": {
+        "type": "string"
+      },
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["KindSchema", {
+    "title": "Kind schema",
+    "description": "The configuration a resource of this kind accepts, as JSON Schema plus the `x-telo-*` annotations that say how each field behaves.",
+    "type": [
+      "object",
+      "boolean"
+    ],
+    "properties": {
+      "type": {
+        "title": "Type",
+        "description": "The JSON type this value must have, or a list of accepted types.",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ]
+      },
+      "properties": {
+        "title": "Properties",
+        "description": "Schema per named property of an object.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "required": {
+        "title": "Required",
+        "description": "Property names that must be present.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "title": "Additional properties",
+        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          }
+        ]
+      },
+      "patternProperties": {
+        "title": "Pattern properties",
+        "description": "Schema per regular expression matching a property name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "propertyNames": {
+        "title": "Property names",
+        "description": "Schema every property NAME must satisfy.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "items": {
+        "title": "Items",
+        "description": "Schema for each element of an array.",
+        "anyOf": [
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/KindSchema"
+            }
+          }
+        ]
+      },
+      "additionalItems": {
+        "title": "Additional items",
+        "description": "Schema for elements past a positional `items` list.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          }
+        ]
+      },
+      "contains": {
+        "title": "Contains",
+        "description": "At least one element must satisfy this schema.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "allOf": {
+        "title": "All of",
+        "description": "Every branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "anyOf": {
+        "title": "Any of",
+        "description": "At least one branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "oneOf": {
+        "title": "One of",
+        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "not": {
+        "title": "Not",
+        "description": "The value must NOT match this schema.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "if": {
+        "title": "If",
+        "description": "Condition selecting `then` / `else`.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "then": {
+        "title": "Then",
+        "description": "Applied when `if` matches.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "else": {
+        "title": "Else",
+        "description": "Applied when `if` does not match.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "enum": {
+        "title": "Enum",
+        "description": "The complete set of accepted values.",
+        "type": "array"
+      },
+      "const": {
+        "title": "Const",
+        "description": "The single accepted value."
+      },
+      "default": {
+        "title": "Default",
+        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
+      },
+      "examples": {
+        "title": "Examples",
+        "description": "Sample values, for documentation.",
+        "type": "array"
+      },
+      "minimum": {
+        "title": "Minimum",
+        "type": "number"
+      },
+      "maximum": {
+        "title": "Maximum",
+        "type": "number"
+      },
+      "exclusiveMinimum": {
+        "title": "Exclusive minimum",
+        "type": "number"
+      },
+      "exclusiveMaximum": {
+        "title": "Exclusive maximum",
+        "type": "number"
+      },
+      "multipleOf": {
+        "title": "Multiple of",
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minLength": {
+        "title": "Min length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxLength": {
+        "title": "Max length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "pattern": {
+        "title": "Pattern",
+        "description": "Regular expression the string must match.",
+        "type": "string"
+      },
+      "format": {
+        "title": "Format",
+        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
+        "type": "string"
+      },
+      "contentMediaType": {
+        "title": "Content media type",
+        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
+        "type": "string"
+      },
+      "contentEncoding": {
+        "title": "Content encoding",
+        "type": "string"
+      },
+      "minItems": {
+        "title": "Min items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": {
+        "title": "Max items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "uniqueItems": {
+        "title": "Unique items",
+        "type": "boolean"
+      },
+      "minProperties": {
+        "title": "Min properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": {
+        "title": "Max properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "dependencies": {
+        "title": "Dependencies",
+        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "telo://manifest#/$defs/KindSchema"
+            }
+          ]
+        }
+      },
+      "title": {
+        "title": "Title",
+        "description": "Human-readable label for this value.",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "description": "What this value is, for the author reading the manifest.",
+        "type": "string"
+      },
+      "deprecated": {
+        "title": "Deprecated",
+        "type": "boolean"
+      },
+      "readOnly": {
+        "title": "Read only",
+        "type": "boolean"
+      },
+      "writeOnly": {
+        "title": "Write only",
+        "type": "boolean"
+      },
+      "$ref": {
+        "title": "Reference",
+        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
+        "type": "string"
+      },
+      "$defs": {
+        "title": "Definitions",
+        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "definitions": {
+        "title": "Definitions (draft-07)",
+        "description": "Older spelling of `$defs`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "$comment": {
+        "title": "Comment",
+        "type": "string"
+      },
+      "$id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "$schema": {
+        "title": "Schema dialect",
+        "type": "string"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["LayerIndex", {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "role",
+        "blob",
+        "integrity"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selector": {},
+        "blob": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "integrity": {
+          "type": "string",
+          "pattern": "^sha256-[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["LogDuration", {
+    "type": "string",
+    "pattern": "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$"
+  }],
+  ["LogLevel", {
+    "type": "string",
+    "enum": [
+      "trace",
+      "debug",
+      "info",
+      "warn",
+      "error",
+      "fatal"
+    ]
+  }],
+  ["LoggingScope", {
+    "type": "object",
+    "x-telo-eval": "compile",
+    "properties": {
+      "level": {
+        "$ref": "telo://manifest#/$defs/LogLevel"
+      },
+      "attributes": {
+        "type": "object"
+      },
+      "redact": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "censor": {
+            "type": "string"
+          },
+          "remove": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "sampling": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "thereafter": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tick": {
+            "$ref": "telo://manifest#/$defs/LogDuration"
+          },
+          "sampleErrors": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["ModuleImports", {
+    "type": "object",
+    "additionalProperties": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "integrity": {
+              "type": "string"
+            },
+            "variables": {
+              "type": "object"
+            },
+            "secrets": {
+              "type": "object"
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "needs": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "runtime": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "logging": {
+              "$ref": "telo://manifest#/$defs/LoggingScope"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }],
+  ["ModuleMetadata", {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "module": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "repository": {
+        "type": "string"
+      },
+      "license": {
+        "type": "string"
+      },
+      "documentation": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": true
+  }],
+  ["ModuleSources", {
+    "type": "object",
+    "additionalProperties": {
+      "type": "object",
+      "required": [
+        "version",
+        "url",
+        "archive",
+        "notices",
+        "entries"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "archive": {
+          "enum": [
+            "tar.gz"
+          ]
+        },
+        "notices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "build": {
+          "type": "object",
+          "required": [
+            "cargo"
+          ],
+          "properties": {
+            "cargo": {
+              "type": "string"
+            },
+            "inputs": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "entries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "upstream",
+                  "member"
+                ]
+              },
+              {
+                "required": [
+                  "target"
+                ]
+              }
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "member": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "executable": {
+                "type": "boolean"
+              },
+              "target": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["NativeEntries", {
+    "type": "array",
+    "items": {
+      "$ref": "telo://manifest#/$defs/PlatformAxes",
+      "type": "object",
+      "required": [
+        "name",
+        "format",
+        "os",
+        "arch",
+        "path"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["NeedRequest", {
+    "type": "object",
+    "required": [
+      "kind"
+    ],
+    "properties": {
+      "kind": {
+        "type": "string"
+      },
+      "parameters": {
+        "type": "object"
+      },
+      "version": {
+        "type": "string",
+        "description": "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
+      },
+      "features": {
+        "type": "array",
+        "description": "The features the fulfilment must carry \u2014 names the need type lists.",
+        "items": {
+          "type": "string"
+        },
+        "uniqueItems": true
+      },
+      "optional": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["PlatformAxes", {
+    "type": "object",
+    "properties": {
+      "os": {
+        "type": "string"
+      },
+      "arch": {
+        "type": "string"
+      },
+      "libc": {
+        "type": "string"
+      },
+      "abi": {
+        "type": "string"
+      }
+    }
+  }],
+  ["Requires", {
+    "type": "object",
+    "properties": {
+      "host": {
+        "type": "object"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["ResourceRef", {
+    "title": "Resource reference",
+    "anyOf": [
+      {
+        "type": "object",
+        "required": [
+          "__tagged",
+          "engine",
+          "source"
+        ],
+        "properties": {
+          "__tagged": {
+            "const": true
+          },
+          "engine": {
+            "const": "ref"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  }],
+  ["RetryAttempts", {
+    "title": "Retry attempts",
+    "description": "Re-attempts after the first try. 0 disables retrying.",
+    "type": "integer",
+    "minimum": 0,
+    "default": 0
+  }],
+  ["RetryPolicy", {
+    "title": "Retry policy",
+    "description": "Re-attempts a failed dispatch with exponential backoff. A domain failure is retried; a cancellation and a contract violation are not \u2014 the latter is a property of the manifest and would fail identically every time.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "attempts": {
+        "title": "Attempts",
+        "description": "Re-attempts after the first try. 0 disables retrying.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 0
+      },
+      "initialDelay": {
+        "title": "Initial delay",
+        "description": "Milliseconds to wait before the first re-attempt.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 250
+      },
+      "factor": {
+        "title": "Factor",
+        "description": "Multiplier applied to the delay after each re-attempt.",
+        "type": "number",
+        "minimum": 1,
+        "default": 2
+      },
+      "maxDelay": {
+        "title": "Max delay",
+        "description": "Ceiling on the delay between re-attempts, in milliseconds.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 32e3
+      },
+      "jitter": {
+        "title": "Jitter",
+        "description": "`full` picks each delay uniformly from [0, delay], which is what stops work that failed together from re-attempting together.",
+        "type": "string",
+        "enum": [
+          "none",
+          "full"
+        ],
+        "default": "full"
+      },
+      "delay": {
+        "title": "Delay",
+        "description": "DEPRECATED duration string (`250ms`, `1s`) \u2014 read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
+        "type": "string",
+        "pattern": "^[0-9]+(\\.[0-9]+)?\\s*(ms|s|m|h)$"
+      }
+    }
+  }],
+  ["Step", {
+    "title": "Step",
+    "description": "Single executable step or control-flow block.",
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "description": "Unique step name.",
+        "type": "string"
+      }
+    },
+    "oneOf": [
+      {
+        "title": "invoke",
+        "description": "Invokes an invocable or runnable resource.",
+        "$ref": "telo://manifest#/$defs/InvokeStep"
+      },
+      {
+        "title": "if/then/else",
+        "description": "Conditional branch; executes then or else based on a boolean expression.",
+        "properties": {
+          "if": {
+            "title": "If",
+            "description": "CEL boolean expression; true executes then, false executes else.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "elseif": {
+            "title": "Else If",
+            "description": "Additional condition-branch pairs evaluated when if is false.",
+            "x-telo-topology-role": "branch-list",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "if": {
+                  "title": "If",
+                  "description": "CEL boolean expression for this else-if branch.",
+                  "x-telo-topology-role": "predicate",
+                  "type": "boolean"
+                },
+                "then": {
+                  "title": "Then",
+                  "description": "Steps executed when this else-if condition is true.",
+                  "x-telo-topology-role": "branch",
+                  "type": "array",
+                  "items": {
+                    "$ref": "telo://manifest#/$defs/Step"
+                  }
+                }
+              },
+              "required": [
+                "if",
+                "then"
+              ]
+            }
+          },
+          "then": {
+            "title": "Then",
+            "description": "Steps executed when if evaluates true.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          },
+          "else": {
+            "title": "Else",
+            "description": "Steps executed when if (and all elseif conditions) evaluate false.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "if",
+          "then"
+        ]
+      },
+      {
+        "title": "while/do",
+        "description": "Loop; executes do steps repeatedly while condition is true.",
+        "properties": {
+          "while": {
+            "title": "While",
+            "description": "CEL boolean expression; evaluated before each iteration.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "do": {
+            "title": "Do",
+            "description": "Steps executed on each iteration.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "while",
+          "do"
+        ]
+      },
+      {
+        "title": "switch/cases/default",
+        "description": "Multi-branch dispatch; matches a value expression against case keys.",
+        "properties": {
+          "switch": {
+            "title": "Switch",
+            "description": "CEL expression; result matched against case keys.",
+            "x-telo-topology-role": "discriminator",
+            "type": "string"
+          },
+          "cases": {
+            "title": "Cases",
+            "description": "Map of value to step list; executed when switch matches the key.",
+            "x-telo-topology-role": "case-map",
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "telo://manifest#/$defs/Step"
+              }
+            }
+          },
+          "default": {
+            "title": "Default",
+            "description": "Steps executed when no case matches.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "switch",
+          "cases"
+        ]
+      },
+      {
+        "title": "try/catch/finally",
+        "description": "Error boundary; executes try steps and handles failure via catch and finally.",
+        "properties": {
+          "when": {
+            "title": "When",
+            "description": "CEL boolean guard \u2014 the whole try/catch/finally is skipped when it evaluates false.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "try": {
+            "title": "Try",
+            "description": "Steps executed; halts on first failure and jumps to catch.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          },
+          "catch": {
+            "title": "Catch",
+            "description": "Steps executed when try fails; receives error context.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            },
+            "x-telo-error-context": {
+              "type": "object",
+              "description": "The caught failure (always present inside catch).",
+              "properties": {
+                "code": {
+                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable error message.",
+                  "type": "string"
+                },
+                "step": {
+                  "description": "Name of the step that threw.",
+                  "type": "string"
+                },
+                "data": {
+                  "description": "Structured payload from an InvokeError, else undefined."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "finally": {
+            "title": "Finally",
+            "description": "Steps always executed after try/catch regardless of outcome.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            },
+            "x-telo-error-context": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "The caught failure, or null when try (and catch) succeeded.",
+              "properties": {
+                "code": {
+                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable error message.",
+                  "type": "string"
+                },
+                "step": {
+                  "description": "Name of the step that threw.",
+                  "type": "string"
+                },
+                "data": {
+                  "description": "Structured payload from an InvokeError, else undefined."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "try"
+        ]
+      },
+      {
+        "title": "throw",
+        "description": 'Throws an InvokeError unconditionally. Works inside catch blocks via CEL (e.g. code set to `!cel "error.code"`).',
+        "properties": {
+          "throw": {
+            "title": "Throw",
+            "description": "InvokeError descriptor; code is required, message/data optional.",
+            "type": "object",
+            "properties": {
+              "code": {
+                "title": "Code",
+                "description": "Structured error code; uppercase SNAKE_CASE by convention.",
+                "type": "string"
+              },
+              "message": {
+                "title": "Message",
+                "description": "Human-readable error message. Defaults to `code` when omitted.",
+                "type": "string"
+              },
+              "data": {
+                "title": "Data",
+                "description": "Optional structured payload attached to the error."
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "throw"
+        ]
+      },
+      {
+        "title": "value",
+        "description": "Computes a value and publishes it as `steps.<name>.result`, with no dispatch \u2014 no resource, no span, no topology node. For an intermediate derived from an earlier step: reshape a response, total some rows, build the next call's inputs.",
+        "properties": {
+          "value": {
+            "title": "Value",
+            "description": "A CEL expression \u2014 or a structure (map / array) with `!cel` leaves \u2014 evaluated in the step scope: `inputs`, the results of the steps before it, and whatever the enclosing kind binds (`item` / `index` / `items`, `iteration` / `previous`)."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+    ],
+    "required": [
+      "name"
+    ]
+  }],
+  ["ThrowCodes", {
+    "type": "object",
+    "propertyNames": {
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "additionalProperties": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }]
+];
+
+// ../../analyzer/nodejs/src/builtin-entry-markers.ts
+var ROSTER_MARKER = "$roster";
+function refuseRosterMarkers(node, where, path = "") {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => refuseRosterMarkers(item, where, `${path}[${i}]`));
     return;
   }
-  const obj = node;
-  for (const [key2, value2] of Object.entries(obj)) {
-    const localized = localizeRecursiveFragment(value2, ctx);
-    if (localized) {
-      obj[key2] = localized;
-      continue;
+  for (const [key2, value2] of Object.entries(node)) {
+    if (key2 === ROSTER_MARKER) {
+      throw new Error(
+        `${where}: '${ROSTER_MARKER}' marker left underived at '${path || "/"}'. The built-in entries are derived by scripts/render-builtin-vocabulary.mjs \u2014 run it (the root and the analyzer's \`prepare\` do).`
+      );
     }
-    const fragment = fragmentFor(value2);
-    if (fragment) obj[key2] = fragment;
-    else walkFragments(value2, seen, childContext(ctx, key2, value2));
+    refuseRosterMarkers(value2, where, path ? `${path}.${key2}` : key2);
   }
-}
-function localizeRecursiveFragment(value2, ctx) {
-  if (!isPlainObject(value2)) return void 0;
-  const ref = value2.$ref;
-  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
-  const name2 = ref.slice(FRAGMENT_PREFIX.length);
-  if (!RECURSIVE_FRAGMENTS.has(name2)) return void 0;
-  hoistFragmentDef(ctx.hoistTarget, name2);
-  return { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
-}
-function hoistFragmentDef(target, name2) {
-  const defs = target.$defs ??= {};
-  const pending = [name2];
-  while (pending.length > 0) {
-    const next = pending.pop();
-    const key2 = hoistedDefKey(next);
-    if (defs[key2]) continue;
-    const fragment = ManifestRootSchema.$defs[next];
-    if (!fragment || typeof fragment !== "object") continue;
-    const body2 = expandedFragment(next);
-    defs[key2] = { ...body2, [X_TELO_FRAGMENT]: next };
-    for (const nested of RECURSIVE_FRAGMENTS) {
-      if (nested !== next && referencesLocalDef(defs[key2], nested)) pending.push(nested);
-    }
-  }
-}
-function referencesLocalDef(node, name2) {
-  if (!node || typeof node !== "object") return false;
-  if (Array.isArray(node)) return node.some((item) => referencesLocalDef(item, name2));
-  const obj = node;
-  if (obj.$ref === `#/$defs/${hoistedDefKey(name2)}`) return true;
-  return Object.values(obj).some((value2) => referencesLocalDef(value2, name2));
-}
-function withSchemaFragments(schema4) {
-  expandManifestFragments(schema4);
-  return schema4;
-}
-function fragmentFor(value2) {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const node = value2;
-  const ref = node.$ref;
-  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
-  const name2 = ref.slice(FRAGMENT_PREFIX.length);
-  const fragment = ManifestRootSchema.$defs[name2];
-  if (!fragment || typeof fragment !== "object") return void 0;
-  const expanded = expandedFragment(name2);
-  for (const [key2, own2] of Object.entries(node)) {
-    if (key2 === "$ref") continue;
-    if (key2 === "properties" && isPlainObject(own2) && isPlainObject(expanded.properties)) {
-      expanded.properties = { ...expanded.properties, ...own2 };
-      continue;
-    }
-    if (key2 === "required" && Array.isArray(own2) && Array.isArray(expanded.required)) {
-      expanded.required = [.../* @__PURE__ */ new Set([...expanded.required, ...own2])];
-      continue;
-    }
-    expanded[key2] = own2;
-  }
-  expanded[X_TELO_FRAGMENT] = name2;
-  return expanded;
-}
-function isPlainObject(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-var X_TELO_FRAGMENT = "x-telo-fragment";
-function manifestFragmentOf(schema4) {
-  if (!schema4 || typeof schema4 !== "object") return void 0;
-  const name2 = schema4[X_TELO_FRAGMENT];
-  return typeof name2 === "string" ? name2 : void 0;
 }
 
-// ../../analyzer/nodejs/src/throws-declaration.ts
-var THROW_CODES_SCHEMA = {
-  type: "object",
-  propertyNames: { pattern: "^[A-Z][A-Z0-9_]*$" },
-  additionalProperties: {
-    type: "object",
-    required: ["description"],
-    additionalProperties: false,
-    properties: {
-      description: { type: "string" },
-      data: { type: "object", additionalProperties: true }
+// ../../analyzer/nodejs/src/levenshtein.ts
+function distance(a, b) {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  if (a.length < b.length) {
+    const tmp = a;
+    a = b;
+    b = tmp;
+  }
+  let prev = new Array(b.length + 1);
+  let curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(
+        curr[j - 1] + 1,
+        // insertion
+        prev[j] + 1,
+        // deletion
+        prev[j - 1] + cost
+        // substitution
+      );
+    }
+    const swap = prev;
+    prev = curr;
+    curr = swap;
+  }
+  return prev[b.length];
+}
+
+// ../../analyzer/nodejs/src/nearest-name.ts
+function nearestName(target, candidates) {
+  if (!target) return void 0;
+  const threshold = Math.min(3, Math.floor(target.length / 3));
+  if (threshold < 1) return void 0;
+  let best;
+  let bestDist = threshold + 1;
+  let tied = false;
+  for (const candidate of candidates) {
+    const d = distance(target, candidate);
+    if (d < bestDist) {
+      best = candidate;
+      bestDist = d;
+      tied = false;
+    } else if (d === bestDist) {
+      tied = true;
     }
   }
-};
-var THROWS_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    codes: THROW_CODES_SCHEMA,
-    // The union of what the kind dispatches, minus what it catches.
-    inherit: { type: "boolean" },
-    // Whatever the call site's `inputs.code` resolves to.
-    passthrough: { type: "boolean" }
+  return !best || bestDist > threshold || tied ? void 0 : best;
+}
+
+// ../../analyzer/nodejs/src/capability-roster.ts
+var BUILTIN_PREFIX = "Telo.";
+function builtinDocuments() {
+  return BUILTIN_DOCUMENT_FILES.map(([, data]) => data);
+}
+var ROSTER = builtinDocuments().filter((doc) => doc.kind === "Telo.Abstract" && Object.hasOwn(doc, "declarable")).map((doc) => {
+  const name2 = `${BUILTIN_PREFIX}${String(doc.metadata?.name)}`;
+  return {
+    name: name2,
+    role: doc.capability === name2,
+    declarable: doc.declarable === true,
+    throwsAllowed: doc.throwsAllowed === true,
+    description: typeof doc.metadata?.description === "string" ? doc.metadata.description : ""
+  };
+});
+var BUILTIN_KIND_NAMES = new Set(
+  builtinDocuments().map((doc) => `${BUILTIN_PREFIX}${String(doc.metadata?.name)}`)
+);
+var DECLARABLE = ROSTER.filter((e) => e.role && e.declarable).map((e) => e.name).sort();
+var THROWS_ALLOWED = ROSTER.filter((e) => e.role && e.throwsAllowed).map((e) => e.name).sort();
+function declarableCapabilities() {
+  return DECLARABLE;
+}
+function throwsAllowedCapabilities() {
+  return THROWS_ALLOWED;
+}
+function isCapabilityRole(name2) {
+  return ROSTER.some((e) => e.role && e.name === name2);
+}
+function capabilityDescription(name2) {
+  return ROSTER.find((e) => e.name === name2)?.description;
+}
+var ALIAS_QUALIFIED = /^[A-Za-z_][A-Za-z0-9_]*\.[A-Za-z_][A-Za-z0-9_]*$/;
+var roleList = () => DECLARABLE.join(", ");
+function capabilityProblem(value2, declaresExtends) {
+  if (value2 === void 0) return void 0;
+  if (typeof value2 !== "string") {
+    return {
+      code: "CAPABILITY_UNKNOWN",
+      message: `capability must name a lifecycle role \u2014 one of: ${roleList()}.`
+    };
   }
-};
-var ABSTRACT_THROWS_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: { codes: THROW_CODES_SCHEMA }
-};
-var THROWS_CAPABLE_CAPABILITIES = ["Telo.Invocable", "Telo.Runnable"];
+  const entry = ROSTER.find((e) => e.name === value2);
+  if (entry?.role && entry.declarable) return void 0;
+  if (entry) {
+    return {
+      code: "CAPABILITY_NOT_DECLARABLE",
+      message: `'${value2}' cannot be declared as a capability: ${entry.description} Declare one of: ${roleList()}.`
+    };
+  }
+  if (BUILTIN_KIND_NAMES.has(value2)) {
+    return {
+      code: "CAPABILITY_UNKNOWN",
+      message: `'${value2}' is a built-in kind, not a lifecycle role. To specialize it, write 'extends: ${value2}'; capability names a role \u2014 one of: ${roleList()}.`
+    };
+  }
+  if (value2.startsWith(BUILTIN_PREFIX)) {
+    const suggestion = nearestName(value2, DECLARABLE);
+    return {
+      code: "CAPABILITY_UNKNOWN",
+      message: `'${value2}' is not a capability.${suggestion ? ` Did you mean '${suggestion}'?` : ""} A capability names a lifecycle role \u2014 one of: ${roleList()}.`
+    };
+  }
+  if (ALIAS_QUALIFIED.test(value2)) {
+    return {
+      code: "CAPABILITY_UNKNOWN",
+      message: declaresExtends ? `'${value2}' names a kind, not a lifecycle role, and this definition already declares 'extends:' \u2014 a definition has one parent, declared in 'extends:'. Remove 'capability: ${value2}', or declare it in 'extends:' in place of the other. A capability names a role \u2014 one of: ${roleList()}.` : `'${value2}' names a kind, not a lifecycle role. A kind this one specializes is declared in 'extends: ${value2}'; capability names a role \u2014 one of: ${roleList()}.`
+    };
+  }
+  const short = nearestName(
+    value2,
+    DECLARABLE.map((name2) => name2.slice(BUILTIN_PREFIX.length))
+  );
+  return {
+    code: "CAPABILITY_UNKNOWN",
+    message: `'${value2}' is not a capability: a lifecycle role is written '${BUILTIN_PREFIX}<Role>'.${short ? ` Did you mean '${BUILTIN_PREFIX}${short}'?` : ""} One of: ${roleList()}.`
+  };
+}
 
 // ../../cel/nodejs/src/reserved-words.ts
 var RESERVED_WORDS = [
@@ -29183,7 +31472,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.118.0";
+var ENGINE_VERSION = "0.119.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -35229,7 +37518,7 @@ var ENTRY_KEYS = [
 ];
 var MEMBER_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 var REFUSAL_CODE = /^[A-Z][A-Z0-9_]*$/;
-function isPlainObject2(value2) {
+function isPlainObject(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function requireString(file, node, key2) {
@@ -35243,7 +37532,7 @@ function readParameters(file, raw) {
   if (raw === void 0) return [];
   if (!Array.isArray(raw)) throw new ValueTypeEntryError(file, "'parameters' must be a sequence");
   const params = raw.map((entry, i) => {
-    if (!isPlainObject2(entry)) {
+    if (!isPlainObject(entry)) {
       throw new ValueTypeEntryError(file, `parameters[${i}] must be a mapping`);
     }
     for (const key2 of Object.keys(entry)) {
@@ -35268,7 +37557,7 @@ function readParameters(file, raw) {
   return params;
 }
 function parseValueTypeEntry(file, data) {
-  if (!isPlainObject2(data)) throw new ValueTypeEntryError(file, "an entry must be a mapping");
+  if (!isPlainObject(data)) throw new ValueTypeEntryError(file, "an entry must be a mapping");
   for (const key2 of Object.keys(data)) {
     if (!ENTRY_KEYS.includes(key2)) {
       throw new ValueTypeEntryError(
@@ -35390,7 +37679,7 @@ function readMembers(file, data, representation) {
   if (representation !== "instance" || data.live === true) {
     throw new ValueTypeEntryError(file, "'members' belongs to a non-live 'instance' representation");
   }
-  if (!isPlainObject2(data.members) || Object.keys(data.members).length === 0) {
+  if (!isPlainObject(data.members) || Object.keys(data.members).length === 0) {
     throw new ValueTypeEntryError(file, "'members' must be a non-empty mapping of member names to schemas");
   }
   const members = {};
@@ -35398,7 +37687,7 @@ function readMembers(file, data, representation) {
     if (!MEMBER_NAME.test(member)) {
       throw new ValueTypeEntryError(file, `member '${member}' is not spelled as a name, which a CEL field must be`);
     }
-    if (!isPlainObject2(schema4)) throw new ValueTypeEntryError(file, `member '${member}' must be a schema`);
+    if (!isPlainObject(schema4)) throw new ValueTypeEntryError(file, `member '${member}' must be a schema`);
     members[member] = schema4;
   }
   const encoding = typeof data.encoding === "string" ? PLAIN_ENCODINGS[data.encoding] : void 0;
@@ -35416,7 +37705,7 @@ function readAcceptsText(file, data, representation) {
     throw new ValueTypeEntryError(file, "'acceptsText' belongs to a non-live 'instance' with an 'encoding'");
   }
   const raw = data.acceptsText;
-  if (!isPlainObject2(raw) || Object.keys(raw).some((key2) => key2 !== "code")) {
+  if (!isPlainObject(raw) || Object.keys(raw).some((key2) => key2 !== "code")) {
     throw new ValueTypeEntryError(file, "'acceptsText' is a mapping holding exactly 'code'");
   }
   const code = requireString(file, raw, "code");
@@ -35449,13 +37738,13 @@ function buildRegistry() {
 }
 var VALUE_TYPES = buildRegistry();
 function readValueTypeSlot(schema4) {
-  if (!isPlainObject2(schema4)) return void 0;
+  if (!isPlainObject(schema4)) return void 0;
   const raw = schema4[X_TELO_TYPE];
   if (raw === void 0) return void 0;
   if (typeof raw === "string") {
     return { name: raw, entry: VALUE_TYPES.get(raw), args: {} };
   }
-  if (isPlainObject2(raw)) {
+  if (isPlainObject(raw)) {
     const name2 = typeof raw.name === "string" ? raw.name : "";
     const args = {};
     for (const [key2, value2] of Object.entries(raw)) {
@@ -35689,7 +37978,7 @@ var ZoneAttributeEntryError = class extends Error {
   }
 };
 var ENTRY_KEYS2 = ["name", "value", "requires", "description", "$comment"];
-function isPlainObject3(value2) {
+function isPlainObject2(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function requireString2(file, node, key2) {
@@ -35700,7 +37989,7 @@ function requireString2(file, node, key2) {
   return value2;
 }
 function parseZoneAttributeEntry(file, data) {
-  if (!isPlainObject3(data)) throw new ZoneAttributeEntryError(file, "an entry must be a mapping");
+  if (!isPlainObject2(data)) throw new ZoneAttributeEntryError(file, "an entry must be a mapping");
   for (const key2 of Object.keys(data)) {
     if (!ENTRY_KEYS2.includes(key2)) {
       throw new ZoneAttributeEntryError(
@@ -35716,7 +38005,7 @@ function parseZoneAttributeEntry(file, data) {
       `'name' must be a bare camelCase word \u2014 the annotation position already implies the namespace, and a closed set has no second namespace to qualify against`
     );
   }
-  if (!isPlainObject3(data.value)) {
+  if (!isPlainObject2(data.value)) {
     throw new ZoneAttributeEntryError(file, "'value' must be a JSON Schema mapping");
   }
   const requires = data.requires === void 0 ? [] : data.requires;
@@ -35762,6 +38051,309 @@ function buildRegistry2() {
 var ZONE_ATTRIBUTES = buildRegistry2();
 function zoneAttributeNames() {
   return [...ZONE_ATTRIBUTES.keys()];
+}
+
+// ../../analyzer/nodejs/src/extends-resolution.ts
+var body = (def) => def ?? {};
+function resolveParent(def, resolve) {
+  const ext = body(def).extends;
+  if (typeof ext !== "string" || ext.length === 0) return void 0;
+  return resolve(ext, def);
+}
+function ancestorChain(def, resolve) {
+  const chain = [];
+  const seen = /* @__PURE__ */ new Set();
+  let cur = resolveParent(def, resolve);
+  while (cur && !seen.has(cur)) {
+    seen.add(cur);
+    chain.push(cur);
+    cur = resolveParent(cur, resolve);
+  }
+  return chain;
+}
+function hasOwnControllerOrTemplate(def) {
+  const d = body(def);
+  return !!(d.controllers && d.controllers.length || d.invoke || d.run || d.targets || d.provide || d.mount || d.resources);
+}
+function controllerBearingAncestor(def, resolve) {
+  for (const a of ancestorChain(def, resolve)) {
+    if (a.kind === "Telo.Abstract") continue;
+    if (hasOwnControllerOrTemplate(a)) return a;
+  }
+  return void 0;
+}
+function isInheritedDelegation(def, resolve) {
+  if (!body(def).extends || hasOwnControllerOrTemplate(def)) return false;
+  return controllerBearingAncestor(def, resolve) !== void 0;
+}
+function inheritedCapability(def, resolve) {
+  if (body(def).capability) return body(def).capability;
+  for (const a of ancestorChain(def, resolve)) {
+    if (body(a).capability) return body(a).capability;
+  }
+  return void 0;
+}
+function effectiveAuthorSchema(def, resolve) {
+  const own2 = body(def).schema ?? {};
+  const parent = resolveParent(def, resolve);
+  if (!parent) return own2;
+  if (body(def).base) return own2;
+  const parentSchema = effectiveAuthorSchema(parent, resolve);
+  return mergeTypeSchemas([parentSchema, own2]);
+}
+function inheritedRequiredFields(def, resolve) {
+  if (!body(def).extends || body(def).base) return [];
+  const parent = resolveParent(def, resolve);
+  if (!parent) return [];
+  const required = effectiveAuthorSchema(parent, resolve).required;
+  if (!Array.isArray(required)) return [];
+  const own2 = (body(def).schema ?? {}).properties ?? {};
+  return required.filter((f2) => typeof f2 === "string" && !(f2 in own2));
+}
+function effectiveContractField(def, resolve, direction) {
+  const own2 = body(def)[direction];
+  if (own2 !== void 0 && own2 !== null) return own2;
+  for (const a of ancestorChain(def, resolve)) {
+    const inherited = body(a)[direction];
+    if (inherited !== void 0 && inherited !== null) return inherited;
+  }
+  return void 0;
+}
+function contractDeclarer(def, resolve, direction) {
+  if (!def) return void 0;
+  const own2 = body(def)[direction];
+  if (own2 !== void 0 && own2 !== null) return def;
+  for (const a of ancestorChain(def, resolve)) {
+    const inherited = body(a)[direction];
+    if (inherited !== void 0 && inherited !== null) return a;
+  }
+  return void 0;
+}
+function needsContractMapping(def, resolve, direction) {
+  const own2 = body(def)[direction];
+  if (own2 === void 0 || own2 === null) return false;
+  if (hasOwnControllerOrTemplate(def)) return false;
+  return controllerBearingAncestor(def, resolve) !== void 0;
+}
+function mappingFieldFor(direction) {
+  return direction === "inputType" ? "inputs" : "result";
+}
+function effectiveStatusSchema(def, resolve) {
+  const own2 = body(def).status;
+  const parent = resolveParent(def, resolve);
+  if (!parent) return own2;
+  const parentStatus = effectiveStatusSchema(parent, resolve);
+  if (body(def).base) return parentStatus;
+  if (!parentStatus) return own2;
+  if (!own2) return parentStatus;
+  return mergeTypeSchemas([parentStatus, own2]);
+}
+
+// ../../analyzer/nodejs/src/schema-region.ts
+var SCHEMA_REGION_KEYS = [
+  "schema",
+  "status",
+  "inputType",
+  "outputType",
+  "itemType"
+];
+function isInSchemaRegion(path) {
+  for (let i = 0; i < path.length - 1; i++) {
+    const segment = path[i];
+    if (typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)) return true;
+  }
+  return false;
+}
+
+// ../../analyzer/nodejs/src/manifest-schemas.ts
+var MANIFEST_SCHEMA_URI = "telo://manifest";
+var FRAGMENT_PREFIX = `${MANIFEST_SCHEMA_URI}#/$defs/`;
+function hoistedDefKey(name2) {
+  return `telo:${name2}`;
+}
+function isHoistedFragmentDefKey(key2) {
+  return key2.startsWith(hoistedDefKey(""));
+}
+function deepFreeze(value2) {
+  if (value2 && typeof value2 === "object" && !Object.isFrozen(value2)) {
+    Object.freeze(value2);
+    for (const child of Object.values(value2)) deepFreeze(child);
+  }
+  return value2;
+}
+function readFragments() {
+  const defs = {};
+  for (const [name2, data] of BUILTIN_FRAGMENT_FILES) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(`sdk/builtins/fragments/${name2}.json: a fragment is a JSON Schema object.`);
+    }
+    refuseRosterMarkers(data, `sdk/builtins/fragments/${name2}.json`);
+    defs[name2] = structuredClone(data);
+  }
+  return defs;
+}
+var ManifestRootSchema = {
+  $id: MANIFEST_SCHEMA_URI,
+  $defs: readFragments()
+};
+deepFreeze(ManifestRootSchema);
+function fragmentBody(name2) {
+  const body2 = ManifestRootSchema.$defs[name2];
+  return body2 && typeof body2 === "object" ? body2 : void 0;
+}
+function requireFragment(name2) {
+  const body2 = fragmentBody(name2);
+  if (!body2) throw new Error(`Unknown manifest fragment '${name2}'`);
+  return body2;
+}
+var ResourceRefSchema = requireFragment("ResourceRef");
+var RetryPolicySchema = requireFragment("RetryPolicy");
+var RetryAttemptsSchema = requireFragment("RetryAttempts");
+var InvokeStepSchema = requireFragment("InvokeStep");
+var StepSchema = requireFragment("Step");
+var JsonSchema7Schema = requireFragment("JsonSchema7");
+var KindSchemaSchema = requireFragment("KindSchema");
+function referencedFragments(node, out = /* @__PURE__ */ new Set()) {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) {
+    for (const item of node) referencedFragments(item, out);
+    return out;
+  }
+  for (const [key2, value2] of Object.entries(node)) {
+    if (key2 === "$ref" && typeof value2 === "string" && value2.startsWith(FRAGMENT_PREFIX)) {
+      out.add(value2.slice(FRAGMENT_PREFIX.length));
+    } else {
+      referencedFragments(value2, out);
+    }
+  }
+  return out;
+}
+var RECURSIVE_FRAGMENTS = (() => {
+  const edges = /* @__PURE__ */ new Map();
+  for (const name2 of Object.keys(ManifestRootSchema.$defs)) {
+    edges.set(name2, referencedFragments(fragmentBody(name2)));
+  }
+  const recursive = /* @__PURE__ */ new Set();
+  for (const start of edges.keys()) {
+    const seen = /* @__PURE__ */ new Set();
+    const queue = [...edges.get(start) ?? []];
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (next === start) {
+        recursive.add(start);
+        break;
+      }
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push(...edges.get(next) ?? []);
+    }
+  }
+  return recursive;
+})();
+var expandedFragments = /* @__PURE__ */ new Map();
+function expandedFragment(name2) {
+  let template = expandedFragments.get(name2);
+  if (!template) {
+    const body2 = structuredClone(requireFragment(name2));
+    const hoists = /* @__PURE__ */ new Set();
+    walkFragments(body2, /* @__PURE__ */ new Set(), { hoist: (fragment) => hoists.add(fragment), depth: 1 });
+    template = { body: body2, hoists: [...hoists] };
+    expandedFragments.set(name2, template);
+  }
+  return { body: structuredClone(template.body), hoists: template.hoists };
+}
+function expandManifestFragments(node, seen = /* @__PURE__ */ new Set()) {
+  if (!node || typeof node !== "object") return;
+  const target = node;
+  walkFragments(node, seen, { hoist: (name2) => hoistFragmentDef(target, name2), depth: 0 });
+}
+function childContext(ctx, key2, value2) {
+  if (ctx.depth === 0 && SCHEMA_REGION_KEYS.includes(key2) && isPlainObject3(value2)) {
+    return { hoist: (name2) => hoistFragmentDef(value2, name2), depth: 1 };
+  }
+  return { hoist: ctx.hoist, depth: ctx.depth + 1 };
+}
+function walkFragments(node, seen, ctx) {
+  if (!node || typeof node !== "object") return;
+  if (seen.has(node)) return;
+  seen.add(node);
+  if (Array.isArray(node)) {
+    for (let i = 0; i < node.length; i++) {
+      const localized = localizeRecursiveFragment(node[i], ctx);
+      if (localized) node[i] = localized;
+      else {
+        const fragment = fragmentFor(node[i], ctx);
+        if (fragment) node[i] = fragment;
+        else walkFragments(node[i], seen, { hoist: ctx.hoist, depth: ctx.depth + 1 });
+      }
+    }
+    return;
+  }
+  const obj = node;
+  for (const [key2, value2] of Object.entries(obj)) {
+    const localized = localizeRecursiveFragment(value2, ctx);
+    if (localized) {
+      obj[key2] = localized;
+      continue;
+    }
+    const fragment = fragmentFor(value2, ctx);
+    if (fragment) obj[key2] = fragment;
+    else walkFragments(value2, seen, childContext(ctx, key2, value2));
+  }
+}
+function localizeRecursiveFragment(value2, ctx) {
+  if (!isPlainObject3(value2)) return void 0;
+  const ref = value2.$ref;
+  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
+  const name2 = ref.slice(FRAGMENT_PREFIX.length);
+  if (!RECURSIVE_FRAGMENTS.has(name2)) return void 0;
+  ctx.hoist(name2);
+  return { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
+}
+function hoistFragmentDef(target, name2) {
+  const defs = target.$defs ??= {};
+  const pending = [name2];
+  while (pending.length > 0) {
+    const next = pending.pop();
+    const key2 = hoistedDefKey(next);
+    if (defs[key2]) continue;
+    const { body: body2, hoists } = expandedFragment(next);
+    defs[key2] = { ...body2, [X_TELO_FRAGMENT]: next };
+    pending.push(...hoists);
+  }
+}
+function fragmentFor(value2, ctx) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  const node = value2;
+  const ref = node.$ref;
+  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
+  const name2 = ref.slice(FRAGMENT_PREFIX.length);
+  if (!fragmentBody(name2)) return void 0;
+  const { body: expanded, hoists } = expandedFragment(name2);
+  for (const hoisted of hoists) ctx.hoist(hoisted);
+  for (const [key2, own2] of Object.entries(node)) {
+    if (key2 === "$ref") continue;
+    if (key2 === "properties" && isPlainObject3(own2) && isPlainObject3(expanded.properties)) {
+      expanded.properties = { ...expanded.properties, ...own2 };
+      continue;
+    }
+    if (key2 === "required" && Array.isArray(own2) && Array.isArray(expanded.required)) {
+      expanded.required = [.../* @__PURE__ */ new Set([...expanded.required, ...own2])];
+      continue;
+    }
+    expanded[key2] = own2;
+  }
+  expanded[X_TELO_FRAGMENT] = name2;
+  return expanded;
+}
+function isPlainObject3(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+var X_TELO_FRAGMENT = "x-telo-fragment";
+function manifestFragmentOf(schema4) {
+  if (!schema4 || typeof schema4 !== "object") return void 0;
+  const name2 = schema4[X_TELO_FRAGMENT];
+  return typeof name2 === "string" ? name2 : void 0;
 }
 
 // ../../templating/nodejs/src/cel/value-types.ts
@@ -39260,1423 +41852,49 @@ function injectedNeedOf(manifest) {
   return marker && typeof marker === "object" ? marker : void 0;
 }
 
-// ../../analyzer/nodejs/src/public-address.ts
-var PUBLIC_URL_TYPE = "Telo.PublicUrl";
-var PUBLIC_HOST_PATTERN_TYPE = "Telo.PublicHostPattern";
-function isAddressNeedType(type) {
-  return type === PUBLIC_URL_TYPE || type === PUBLIC_HOST_PATTERN_TYPE;
-}
-var LABEL = "[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?";
-var HOST = `${LABEL}(?:\\.${LABEL})*`;
-var HOST_PATTERN_ORIGIN = `^https?://\\*[A-Za-z0-9-]*\\.${HOST}(?::[0-9]{1,5})?$`;
-var PUBLIC_URL_PARAMETERS = {
-  type: "object",
-  properties: {
-    port: {
-      type: "string",
-      minLength: 1,
-      description: "The key of the root's `ports:` this address is served on, a `tcp` port."
-    },
-    primary: {
-      type: "boolean",
-      description: "Marks the application's main address. At most one per application."
-    },
-    customDomains: {
-      type: "boolean",
-      description: "Lets the host route further domains to this need's port, ones the application is never told about. At most one per port."
-    }
-  },
-  additionalProperties: false
-};
-var PUBLIC_HOST_PATTERN_PARAMETERS = {
-  type: "object",
-  properties: {
-    port: {
-      type: "string",
-      minLength: 1,
-      description: "The key of the root's `ports:` these hosts are served on, a `tcp` port."
-    }
-  },
-  additionalProperties: false
-};
-var PUBLIC_ADDRESS_NEED_TYPE_DOCS = [
-  {
-    kind: "Telo.NeedType",
-    metadata: {
-      name: "PublicUrl",
-      module: "Telo",
-      description: "One public address an application is reached at: an http or https origin the host routes to a port, with the request's host and path unchanged."
-    },
-    fields: {
-      url: {
-        description: "The address: an http or https origin \u2014 a host and an optional port, with no path, query or credentials.",
-        "x-telo-type": {
-          name: "Telo.Url",
-          scheme: { enum: ["http", "https"] },
-          path: { enum: ["/"] },
-          query: { not: {} },
-          user: { not: {} },
-          password: { not: {} }
-        }
-      }
-    },
-    required: ["url"],
-    parameters: PUBLIC_URL_PARAMETERS,
-    supply: "root"
-  },
-  {
-    kind: "Telo.NeedType",
-    metadata: {
-      name: "PublicHostPattern",
-      module: "Telo",
-      description: "A family of public hosts an application is reached at \u2014 tenant subdomains \u2014 as a pattern origin the host routes every matching host of to a port."
-    },
-    fields: {
-      pattern: {
-        type: "string",
-        pattern: HOST_PATTERN_ORIGIN,
-        description: "The hosts as a pattern origin: `https://*.tenants.example` (one or more whole labels) or `https://*-tenants.example` (a prefix of the first label)."
-      }
-    },
-    required: ["pattern"],
-    parameters: PUBLIC_HOST_PATTERN_PARAMETERS,
-    supply: "root"
-  }
-];
-function addressNeedPorts(moduleDoc2) {
-  const needs = moduleDoc2.needs;
-  if (!needs || typeof needs !== "object" || Array.isArray(needs)) return [];
-  const ports = [];
-  for (const need of Object.values(needs)) {
-    if (!need || typeof need !== "object") continue;
-    const { kind, parameters } = need;
-    if (typeof kind !== "string" || !isAddressNeedType(kind)) continue;
-    const port = parameters?.port;
-    if (typeof port === "string") ports.push(port);
-  }
-  return ports;
-}
-
 // ../../analyzer/nodejs/src/builtins.ts
-var kindSchemaSlot = {
-  title: "Schema",
-  description: "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
-  $ref: manifestFragmentRef("KindSchema")
-};
-var signatureTypeSlot = {
-  title: "Type",
-  description: "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
-  // The string branch is admitted so a bare name reaches the ONE diagnostic that
-  // knows what it is — `FUNCTION_TYPE_NAME_FORM`, which carries the `!ref`
-  // repair — rather than also producing a schema violation that says only
-  // "must be object" about the same node.
-  anyOf: [{ $ref: manifestFragmentRef("JsonSchema7") }, { type: "string" }]
-};
-var SIGNATURE_PARAMS_SCHEMA = {
-  title: "Parameters",
-  description: "Ordered parameters this callable accepts. Optional parameters come last.",
-  type: "array",
-  items: {
-    type: "object",
-    required: ["name", "schema"],
-    properties: {
-      name: { type: "string" },
-      description: { type: "string" },
-      schema: signatureTypeSlot,
-      // Shorthand for a union with `{type: "null"}` — for an argument that
-      // genuinely IS null, as opposed to one that may be omitted.
-      nullable: { type: "boolean" },
-      optional: { type: "boolean" }
-    },
-    additionalProperties: false
-  }
-};
-var SIGNATURE_RETURNS_SCHEMA = {
-  title: "Result",
-  description: "What a call to this callable evaluates to.",
-  type: "object",
-  required: ["schema"],
-  properties: {
-    description: { type: "string" },
-    schema: signatureTypeSlot,
-    nullable: { type: "boolean" }
-  },
-  additionalProperties: false
-};
-var DETERMINISTIC_SCHEMA = {
-  title: "Deterministic",
-  // No `type: boolean`: a non-boolean is `CALLABLE_DEFINITION_INVALID`, which
-  // says what the value reads as and why, and the kernel refuses it under the
-  // same rule. A schema type here would report the one mistake twice.
-  description: "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
-};
-var observedStateSlot = {
-  title: "Observed state",
-  description: "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
-  $ref: manifestFragmentRef("JsonSchema7")
-};
-var dispatchSelfContext = {
-  type: "object",
-  additionalProperties: false,
-  properties: { self: { "x-telo-context-from-root": "schema" } }
-};
-function dispatchSlot(title, description) {
-  return {
-    title,
-    description,
-    anyOf: [
-      // `!ref <entry>` — the spelling to write.
-      {
-        type: "object",
-        required: ["__tagged", "engine", "source"],
-        properties: {
-          __tagged: { const: true },
-          engine: { const: "ref" },
-          source: { type: "string", minLength: 1 }
-        },
-        additionalProperties: false
-      },
-      // Legacy: a name template expanded against `self`. Read forever, because
-      // published artifacts carry it; `DEPRECATED_TEMPLATE_DISPATCH_FORM` is
-      // what moves an author off it.
-      { type: "string", "x-telo-context": dispatchSelfContext },
-      // Legacy: `{ kind?, name }`, where `name` is that same template.
-      {
-        type: "object",
-        required: ["name"],
-        properties: {
-          kind: { type: "string" },
-          name: { type: "string", "x-telo-context": dispatchSelfContext }
-        },
-        additionalProperties: true
-      }
-    ]
-  };
+function kernelImplemented(name2) {
+  return [{ runtime: "kernel", entry: `Telo.${name2}` }];
 }
-var PROVENANCE_METADATA = {
-  description: { type: "string" },
-  repository: { type: "string" },
-  license: { type: "string" },
-  documentation: { type: "string" }
-};
-var REQUIRES_SCHEMA = {
-  type: "object",
-  properties: {
-    host: { type: "object" }
-  },
-  additionalProperties: true
-};
-var ASSETS_FILES_SCHEMA = {
-  type: "array",
-  items: { type: "string" }
-};
-var LIBRARY_CANDIDATES_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["specifier", "format", "path"],
-    properties: {
-      specifier: { type: "string" },
-      format: { type: "string" },
-      path: { type: "string" },
-      source: { type: "string" },
-      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
-    },
-    additionalProperties: false
-  }
-};
-var NATIVE_ENTRIES_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["name", "format", "os", "arch", "path"],
-    properties: {
-      name: { type: "string" },
-      format: { type: "string" },
-      path: { type: "string" },
-      ...Object.fromEntries(PLATFORM_AXES.map((axis) => [axis, { type: "string" }]))
-    },
-    additionalProperties: false
-  }
-};
-var SOURCES_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["version", "url", "archive", "notices", "entries"],
-    properties: {
-      version: { type: "string" },
-      url: { type: "string" },
-      archive: { enum: ["tar.gz"] },
-      notices: { type: "array", minItems: 1, items: { type: "string" } },
-      build: {
-        type: "object",
-        required: ["cargo"],
-        properties: { cargo: { type: "string" }, inputs: { type: "string" } },
-        additionalProperties: false
-      },
-      entries: {
-        type: "object",
-        additionalProperties: {
-          type: "object",
-          anyOf: [{ required: ["upstream", "member"] }, { required: ["target"] }],
-          properties: {
-            upstream: { type: "string" },
-            member: { type: "string" },
-            sha256: { type: "string" },
-            executable: { type: "boolean" },
-            target: { type: "string" }
-          },
-          additionalProperties: false
-        }
-      }
-    },
-    additionalProperties: false
-  }
-};
-var LAYER_INDEX_SCHEMA = {
-  type: "array",
-  items: {
-    type: "object",
-    required: ["role", "blob", "integrity"],
-    properties: {
-      role: { type: "string", minLength: 1 },
-      selector: {},
-      blob: { type: "string", pattern: "^sha256:[0-9a-f]{64}$" },
-      integrity: { type: "string", pattern: "^sha256-[A-Za-z0-9_-]{43}$" }
-    },
-    additionalProperties: false
-  }
-};
-var LEGACY_FILES_INTEGRITY_SCHEMA = { type: "string" };
-var LOG_LEVEL_ENUM = ["trace", "debug", "info", "warn", "error", "fatal"];
-var DURATION_PATTERN2 = "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$";
-var LOG_SINK_COMMON_PROPERTIES = {
-  level: { type: "string", enum: LOG_LEVEL_ENUM },
-  buffer: { type: "integer", minimum: 1 },
-  on_full: { type: "string", enum: ["block", "drop_new", "drop_old"] },
-  flush_interval: { type: "string", pattern: DURATION_PATTERN2 }
-};
-var ARG_FLAG_SCHEMA = { type: "string", pattern: "^[A-Za-z0-9][A-Za-z0-9-]*$" };
-var ARG_BINDING_SCHEMA = {
-  anyOf: [
-    ARG_FLAG_SCHEMA,
-    {
-      type: "object",
-      required: ["flag"],
-      properties: { flag: ARG_FLAG_SCHEMA, short: { type: "string", pattern: "^[A-Za-z]$" } },
-      additionalProperties: false
-    },
-    {
-      type: "object",
-      required: ["position"],
-      properties: { position: { type: "integer", minimum: 0 } },
-      additionalProperties: false
+var DECLARABLE2 = new Set(declarableCapabilities());
+function builtinDefinitions(entries) {
+  const documents = entries.map(([where, data]) => {
+    refuseRosterMarkers(data, where);
+    const doc = structuredClone(data);
+    if (doc.controllers !== void 0) {
+      throw new Error(
+        `${where}: a built-in carries no 'controllers:' \u2014 the kernel implements every one.`
+      );
     }
-  ]
-};
-var LOGGING_SCOPE_PROPERTIES = {
-  level: { type: "string", enum: LOG_LEVEL_ENUM },
-  attributes: { type: "object" },
-  redact: {
-    type: "object",
-    properties: {
-      paths: { type: "array", items: { type: "string" } },
-      censor: { type: "string" },
-      // Deletion destroys schema stability and hides that a field was present
-      // at all, so §14 offers this but never as the default.
-      remove: { type: "boolean" }
-    },
-    additionalProperties: false
-  },
-  sampling: {
-    type: "object",
-    properties: {
-      first: { type: "integer", minimum: 0 },
-      thereafter: { type: "integer", minimum: 0 },
-      tick: { type: "string", pattern: DURATION_PATTERN2 },
-      sampleErrors: { type: "boolean" }
-    },
-    additionalProperties: false
-  }
-};
-var IMPORT_LOGGING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  properties: LOGGING_SCOPE_PROPERTIES,
-  additionalProperties: false
-};
-function sinkListSchema(sinkKind) {
-  const sink = {
-    type: "object",
-    // Resolved reference or inline declaration — both carry `kind`, which is
-    // what keeps a malformed `{ sink, when }` from passing as a sink.
-    required: ["kind"],
-    "x-telo-ref": { kind: sinkKind, use: "dependency" },
-    "x-telo-inline": true
-  };
-  return {
-    type: "array",
-    items: {
-      anyOf: [
-        sink,
-        {
-          type: "object",
-          required: ["sink"],
-          properties: {
-            sink,
-            // Resolved once at load with the rest of the block; `false` leaves
-            // the sink created and unattached.
-            when: { type: "boolean", default: true }
-          },
-          additionalProperties: false
-        }
-      ]
+    doc.metadata = { ...doc.metadata, module: "Telo" };
+    return doc;
+  });
+  const definitions = documents.map((doc) => {
+    if (doc.kind === "Telo.NeedType") return needTypeDefinition(doc);
+    expandManifestFragments(doc);
+    if (doc.kind === "Telo.Definition" && DECLARABLE2.has(doc.capability)) {
+      doc.controllers = kernelImplemented(doc.metadata.name);
     }
-  };
-}
-var ROOT_LOGGING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  // Resolved while the application is loaded, before any resource — and so any
-  // function — exists.
-  "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-  properties: {
-    ...LOGGING_SCOPE_PROPERTIES,
-    // A list rather than a keyed map because sinks are root-only and therefore
-    // never merged; with no merge to disambiguate, a list matches how Telo
-    // spells every other ref-or-inline collection.
-    sinks: sinkListSchema("Telo.LogSink")
-  },
-  additionalProperties: false
-};
-var ROOT_TRACING_SCHEMA = {
-  type: "object",
-  "x-telo-eval": "compile",
-  "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-  properties: {
-    sinks: sinkListSchema("Telo.TraceSink")
-  },
-  additionalProperties: false
-};
-var LIBRARY_RESOURCE_INPUTS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: {
-      kind: { type: "string" },
-      description: { type: "string" }
-    },
-    additionalProperties: false
+    return doc;
+  });
+  const byKind = new Map(
+    definitions.map((def) => [`${def.metadata.module}.${def.metadata.name}`, def])
+  );
+  for (const def of definitions) {
+    if (def.kind !== "Telo.Definition" || typeof def.extends !== "string") continue;
+    def.schema = effectiveAuthorSchema(def, (kind) => byKind.get(kind));
   }
-};
-var IMPORT_RESOURCE_INPUTS_SCHEMA = {
-  type: "object",
-  additionalProperties: {}
-};
-var NEED_ENTRY_PROPERTIES = {
-  kind: { type: "string" },
-  parameters: { type: "object" },
-  version: {
-    type: "string",
-    description: "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
-  },
-  features: {
-    type: "array",
-    description: "The features the fulfilment must carry \u2014 names the need type lists.",
-    items: { type: "string" },
-    uniqueItems: true
-  },
-  optional: { type: "boolean" },
-  description: { type: "string" }
-};
-var LIBRARY_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: { ...NEED_ENTRY_PROPERTIES, env: {} },
-    additionalProperties: false
-  }
-};
-var APPLICATION_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {
-    type: "object",
-    required: ["kind"],
-    properties: {
-      ...NEED_ENTRY_PROPERTIES,
-      env: {
-        type: "object",
-        additionalProperties: { type: "string", minLength: 1 }
-      }
-    },
-    additionalProperties: false
-  }
-};
-var IMPORT_NEEDS_SCHEMA = {
-  type: "object",
-  additionalProperties: {}
-};
-var NEED_TYPE_SCHEMA = withSchemaFragments({
-  type: "object",
-  properties: {
-    kind: { type: "string" },
-    metadata: {
-      type: "object",
-      properties: { name: { type: "string" }, description: { type: "string" } },
-      required: ["name"],
-      additionalProperties: true
-    },
-    fields: {
-      title: "Fields",
-      description: "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
-      type: "object",
-      additionalProperties: { $ref: manifestFragmentRef("JsonSchema7") }
-    },
-    required: {
-      title: "Required fields",
-      description: "The fields every fulfilment must yield.",
-      type: "array",
-      items: { type: "string" },
-      uniqueItems: true
-    },
-    parameters: {
-      title: "Parameters",
-      description: "JSON Schema of the literal parameters a need of this type may state.",
-      $ref: manifestFragmentRef("JsonSchema7")
-    },
-    version: {
-      title: "Version",
-      description: "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
-      enum: ["semver"]
-    },
-    features: {
-      title: "Features",
-      description: "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
-      type: "array",
-      items: { type: "string", minLength: 1 },
-      uniqueItems: true
-    },
-    supply: {
-      title: "Supply",
-      description: "`root` when a need of this type is fulfilled only through a root need, forwarded whole: a self-supplied fulfilment, a field-by-field supply at an import and a library need reaching the root unforwarded are refused.",
-      enum: ["root"]
-    }
-  },
-  required: ["metadata", "fields"],
-  additionalProperties: false
-});
-var KERNEL_BUILTINS = [
-  { kind: "Telo.Abstract", metadata: { name: "Template", module: "Telo" } },
-  // "Control can be transferred to this" — the parent of Invocable and Runnable,
-  // and the only thing a slot that accepts either needs to say. It is a SLOT
-  // CONSTRAINT, never a lifecycle role: `capability: Telo.Executable` is rejected
-  // because it is absent from the kernel's `KNOWN_CAPABILITIES` enum, which is
-  // what keeps "what a resource is" and "what a slot does with it" separate.
-  //
-  // `Telo.Service` is deliberately NOT under it. A Service's `run()` is a
-  // lifecycle start the kernel dispatches differently (no ambient scope, so
-  // inbound work roots its own trace), and admitting it here would make every
-  // step's `invoke:` slot accept a service. Boot-target slots that genuinely take
-  // `Runnable | Service` stay kind lists — the honest shape for a heterogeneous
-  // set.
-  { kind: "Telo.Abstract", metadata: { name: "Executable", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Runnable", module: "Telo" }, extends: "Telo.Executable" },
-  { kind: "Telo.Abstract", metadata: { name: "Service", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Invocable", module: "Telo" }, extends: "Telo.Executable" },
-  { kind: "Telo.Abstract", metadata: { name: "Mount", module: "Telo" } },
-  { kind: "Telo.Abstract", metadata: { name: "Type", module: "Telo" } },
-  // A function: `call(args)`, synchronous, reached from CEL through a module
-  // name. Deliberately NOT under `Telo.Executable` — `call()` receives no
-  // context, so no zone, cancellation or trace reaches it, and a step's
-  // `invoke:` must refuse it. A callable publishes no reading either, so
-  // `resources.<fn>` reads as absent.
-  { kind: "Telo.Abstract", metadata: { name: "Callable", module: "Telo" } },
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "Provider", module: "Telo" },
-    schema: { "x-telo-eval": "compile" }
-  },
-  // The sink lifecycle role: attach, write a record, flush, detach. Deliberately
-  // payload-opaque — it carries no filtering and no encoding — so a future
-  // `Telo.TraceSink` reuses the same capability with a different record type.
-  // Scoped to record-stream sinks; metrics aggregate rather than stream and are
-  // not covered. See kernel/specs/logging.md §10.
-  { kind: "Telo.Abstract", metadata: { name: "Sink", module: "Telo" } },
-  // The abstract every *log* sink kind extends, carrying the log-specific
-  // configuration. A kernel built-in resolvable without an import, so a sink
-  // author depends on the kernel contract rather than on a standard-library
-  // module version and kernel↔module skew never becomes a compatibility surface
-  // for "where do logs go".
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "LogSink", module: "Telo" },
-    capability: "Telo.Sink",
-    schema: {
-      type: "object",
-      properties: LOG_SINK_COMMON_PROPERTIES,
-      additionalProperties: true
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "ConsoleSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.LogSink",
-    schema: {
-      type: "object",
-      properties: {
-        ...LOG_SINK_COMMON_PROPERTIES,
-        destination: { type: "string", enum: ["stderr", "stdout"] },
-        encoding: { type: "string", enum: ["auto", "pretty", "json"] },
-        color: { type: "string", enum: ["auto", "always", "never"] }
-      },
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "FileSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.LogSink",
-    schema: {
-      type: "object",
-      properties: {
-        ...LOG_SINK_COMMON_PROPERTIES,
-        destination: { type: "string" },
-        encoding: { type: "string", enum: ["json", "pretty"] }
-      },
-      required: ["destination"],
-      additionalProperties: false
-    }
-  },
-  // The abstract every trace sink kind extends: where finished spans go. The
-  // same `Telo.Sink` capability as a log sink, with a span as the record.
-  {
-    kind: "Telo.Abstract",
-    metadata: { name: "TraceSink", module: "Telo" },
-    capability: "Telo.Sink",
-    schema: {
-      type: "object",
-      additionalProperties: true
-    }
-  },
-  // Each finished span as one structured record through the logging pipeline —
-  // tracing with no collector, read wherever the logs already go.
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "LogTraceSink", module: "Telo" },
-    capability: "Telo.Sink",
-    extends: "Telo.TraceSink",
-    schema: {
-      type: "object",
-      properties: {
-        level: { type: "string", enum: LOG_LEVEL_ENUM, default: "info", "x-telo-eval": "compile" }
-      },
-      additionalProperties: false
-    }
-  },
-  {
-    // Telo.JsonSchema — the concrete data-shape kind, in the kernel rather than
-    // in an installable module for the same reason the mandatory sinks are:
-    // declaring a shape is not optional. Every kind with an invocation contract
-    // needs one, so requiring an import to write `inputType:` would put a tax on
-    // the one thing the contract wants authors to do more of — and a library
-    // declaring a contract would have to import a module purely to describe
-    // itself. `type.JsonSchema` remains as a deprecated alias of this kind.
-    kind: "Telo.Definition",
-    metadata: { name: "JsonSchema", module: "Telo" },
-    capability: "Telo.Type",
-    // Declared so the kind reads as controller-BEARING, which is what lets
-    // another definition inherit it by delegation (`extends: Telo.JsonSchema`
-    // with no controller of its own). The entry is never loaded from — the
-    // kernel registers this controller directly at boot, before any lazy
-    // resolution — it states truthfully who provides it.
-    controllers: [{ runtime: "kernel", entry: "Telo.JsonSchema" }],
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        schema: {
-          title: "Schema",
-          description: "JSON Schema definition for the declared data type.",
-          $ref: manifestFragmentRef("JsonSchema7")
-        },
-        extends: {
-          title: "Extends",
-          description: "Parent type name or list of parent type names to inherit from.",
-          oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
-        },
-        rules: {
-          title: "Rules",
-          description: "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              condition: {
-                type: "string",
-                description: "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
-                // Plain text evaluated as CEL against the value alone, wherever
-                // the shape is validated — not in the module that declared it.
-                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
-              },
-              code: {
-                type: "string",
-                description: "Machine-readable error code surfaced on validation failure."
-              },
-              message: {
-                type: "string",
-                description: "Optional human-readable hint for the validation failure."
-              }
-            },
-            required: ["condition", "code"]
-          }
-        }
-      },
-      required: ["schema"],
-      additionalProperties: false
-    })
-  },
-  {
-    // Telo.Function — the built-in callable kind for a function written in CEL,
-    // in the kernel rather than an installable module for the reason
-    // `Telo.JsonSchema` is: a module must be able to declare a function without
-    // importing one to do it. It carries a signature and a body and nothing
-    // else — native code is written as a callable `Telo.Definition` plus
-    // instances, so there is one way to write a native function and no document
-    // that is half kind, half instance.
-    //
-    // The schema is CLOSED, which is what makes `deterministic:` here a
-    // SCHEMA_VIOLATION: a body's determinism is DERIVED from everything it
-    // calls, so an author-written flag would be a second source of truth for a
-    // fact the analyzer can already compute.
-    kind: "Telo.Definition",
-    metadata: { name: "Function", module: "Telo" },
-    capability: "Telo.Callable",
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        body: {
-          title: "Body",
-          // No `type:` — a CEL field's schema states what the expression
-          // PRODUCES, and a body produces whatever `returns:` declares, which
-          // differs per function. Checking the result against it is the
-          // signature's job, not this field's.
-          description: "The expression this function evaluates, over its parameters.",
-          // The value it produces is the function's result, so it must satisfy
-          // the signature's `returns:` — read through the one annotation that
-          // names a result declaration, so nothing here knows what a function is.
-          "x-telo-returns-from": "returns",
-          // A body sees its PARAMETERS. The names come from `params:` through the
-          // one annotation that reads an ordered parameter list, so nothing here
-          // knows what a function is — a kind declaring a parameter list of the
-          // same shape gets the same scope.
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            "x-telo-context-parameters-from": "params"
-          }
-        }
-      },
-      required: ["body"],
-      additionalProperties: false
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Abstract", module: "Telo" },
-    capability: "Telo.Template",
-    schema: withSchemaFragments({
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: { name: { type: "string" } },
-          required: ["name"],
-          additionalProperties: true
-        },
-        capability: { type: "string" },
-        schema: kindSchemaSlot,
-        status: observedStateSlot,
-        // The callable signature, declared on a contract with no implementation.
-        // `deterministic: true` here is a REQUIREMENT every implementation must
-        // meet, checked like a covariant result.
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        deterministic: DETERMINISTIC_SCHEMA,
-        throws: ABSTRACT_THROWS_SCHEMA
-      },
-      required: ["metadata"],
-      // Telo.Abstract is an extension point by design — it must accept forward-compatible
-      // fields (e.g. inputType/outputType from the typed-abstracts plan) without requiring
-      // the analyzer to enumerate them here.
-      additionalProperties: true
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "NeedType", module: "Telo" },
-    capability: "Telo.Template",
-    schema: NEED_TYPE_SCHEMA
-  },
-  // The kernel-declared address need types: `Telo.PublicUrl`, `Telo.PublicHostPattern`.
-  ...PUBLIC_ADDRESS_NEED_TYPE_DOCS.map(needTypeDefinition),
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Definition", module: "Telo" },
-    capability: "Telo.Template",
-    // Top-level shape stays open (`additionalProperties: true`) so this change
-    // attaches x-telo-context annotations to known template-body fields without
-    // tightening the Telo.Definition shape itself. The annotations drive
-    // static CEL validation of expressions inside `resources:` / `invoke:` /
-    // `run:` / `provide:` / top-level `inputs:` / top-level `result:` against
-    // `self` (typed from `schema:`) and `inputs` (typed from `inputType:`,
-    // falling back to the extends-declared abstract).
-    //
-    // `inputs:` and `result:` live as top-level siblings of `invoke:` / `provide:`,
-    // matching how Run.Sequence steps factor dispatch from data. The dispatch
-    // entry-point (`invoke` / `provide` / `run`) determines how `inputs`/`result`
-    // are interpreted at runtime. See analyzer/nodejs/plans/template-internal-cel-validation.md.
-    schema: withSchemaFragments({
-      type: "object",
-      additionalProperties: true,
-      properties: {
-        // The kind's own configuration contract. Declared as a slot for the
-        // first time here: it was reachable only as an unnamed extra property,
-        // so nothing could say what belonged in it — no completion inside a
-        // `schema:` block, and a misspelled keyword surviving to a runtime
-        // failure that named a different field.
-        schema: kindSchemaSlot,
-        status: observedStateSlot,
-        // The callable signature and the native determinism claim. Declared here
-        // so the editor offers them and so `x-telo-*` inside a signature is
-        // walked; what a callable kind may actually carry is enforced by
-        // `callableKindIssues` in both halves.
-        params: SIGNATURE_PARAMS_SCHEMA,
-        returns: SIGNATURE_RETURNS_SCHEMA,
-        deterministic: DETERMINISTIC_SCHEMA,
-        throws: THROWS_SCHEMA,
-        resources: {
-          type: "array",
-          items: {
-            type: "object",
-            additionalProperties: true,
-            // A `resources:` entry is a DECLARATION of another kind, so the
-            // CEL inside it belongs to THAT kind: its `x-telo-context` regions
-            // are rebased under this entry's path and take precedence (they are
-            // deeper), which is what puts `inputs`, `item`, `request`, `steps`
-            // and a `catch:`'s `error` in scope exactly where the nested kind
-            // declares them — see `analyzer/nodejs/src/template-body.ts`.
-            //
-            // What stays here is `self` alone, in force throughout the entry:
-            // it is how a body reaches the configuration its enclosing template
-            // was given, and no nested kind knows about it. The four names that
-            // used to sit beside it (`request` / `result` / `steps` / `error`)
-            // were a fixed permissive stand-in for the nested kind's own
-            // regions — which is why `error` was offered outside every `catch:`
-            // while `inputs` and `item` were undefined wherever a body actually
-            // reads them.
-            "x-telo-context": {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                self: { "x-telo-context-from-root": "schema" }
-              }
-            }
-          }
-        },
-        // A dispatch slot names the `resources:` entry that receives the call,
-        // as `!ref <entry>` — the one spelling every reference in Telo has. The
-        // string and `{ kind, name }` forms it used to admit (a CEL name
-        // template matched against CEL-named entries) were the removed
-        // reference object surviving in the one place nothing resolved it;
-        // `validate-template-body` is what resolves this slot, so the schema
-        // stays open here rather than reporting the same defect twice.
-        invoke: dispatchSlot(
-          "Invoke target",
-          "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`."
-        ),
-        provide: dispatchSlot(
-          "Provide target",
-          "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`."
-        ),
-        run: dispatchSlot(
-          "Run target",
-          "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`."
-        ),
-        // The template twin of an Application's boot sequence. Its shape is
-        // `templateTargetProblems`' to check (shared with the kernel), so the
-        // schema states none — a second check would report the same line twice.
-        targets: {
-          title: "Targets",
-          description: "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
-        },
-        // The named child stays persistent so the produced mount's routes can
-        // `!ref` its siblings.
-        mount: dispatchSlot(
-          "Mount target",
-          "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`."
-        ),
-        inputs: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" },
-              inputs: { "x-telo-context-from-root": "inputType" }
-            }
-          }
-        },
-        result: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" },
-              // Typed from the dispatch target's declared output: the slot
-              // holds a `!ref` to a `resources:` entry, resolved to that
-              // entry's kind (or its own `outputType`, where it narrows one).
-              result: {
-                "x-telo-context-from-ref-kind": ["provide#outputType", "invoke#outputType"]
-              }
-            }
-          }
-        },
-        // `base:` ("super(...)") — construction mapping for an inherited
-        // (concrete-`extends`) definition. Its CEL is evaluated once against
-        // `self` (typed from this definition's `schema:`) to build the parent
-        // kind's config. Same `self`-only scope as a resource body.
-        base: {
-          type: "object",
-          additionalProperties: true,
-          "x-telo-context": {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              self: { "x-telo-context-from-root": "schema" }
-            }
-          }
-        }
-      }
-    })
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Import", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: { name: { type: "string" } },
-          required: ["name"],
-          additionalProperties: true
-        },
-        source: { type: "string" },
-        integrity: { type: "string" },
-        variables: { type: "object" },
-        secrets: { type: "object" },
-        resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-        needs: IMPORT_NEEDS_SCHEMA,
-        runtime: {
-          oneOf: [
-            { type: "string" },
-            { type: "array", items: { type: "string" } }
-          ]
-        },
-        logging: IMPORT_LOGGING_SCHEMA
-      },
-      required: ["metadata", "source"],
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Application", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            version: { type: "string" },
-            source: { type: "string" },
-            module: { type: "string" },
-            ...PROVENANCE_METADATA
-          },
-          required: ["name"],
-          additionalProperties: true
-        },
-        lifecycle: {
-          type: "string",
-          enum: ["shared", "isolated"],
-          default: "shared"
-        },
-        targets: {
-          // Boot targets form a step list: a later target reads an earlier one's
-          // result as `steps.<name>.result`, exactly as a sequence step does, so
-          // the same annotation types that context and drives the call-site
-          // contract check.
-          "x-telo-step-context": { invoke: "invoke", outputType: "outputType" },
-          type: "array",
-          items: {
-            // A genuinely heterogeneous set stays a kind list: `Telo.Service` is
-            // deliberately outside `Telo.Executable`, since a service's `run()`
-            // is a lifecycle start the kernel dispatches without an ambient
-            // scope.
-            "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
-            anyOf: [
-              { type: "string" },
-              // Post-resolution shape that `resolveRefSentinels`
-              // substitutes a `!ref <name>` sentinel into. The
-              // adjacent `x-telo-ref` constraint governs the kind
-              // check; this branch only admits the structural form so
-              // AJV doesn't reject a resolved ref.
-              {
-                type: "object",
-                required: ["kind", "name"],
-                properties: {
-                  kind: { type: "string" },
-                  name: { type: "string" }
-                },
-                additionalProperties: true
-              },
-              // Gated reference: run() a Runnable/Service only when the
-              // `when` CEL guard holds. Discriminated by the `ref` key. `ref`
-              // is a `!ref` that resolves to the `{ kind, name }` shape below.
-              {
-                type: "object",
-                required: ["ref"],
-                properties: {
-                  ref: {
-                    "x-telo-ref": { kind: ["Telo.Runnable", "Telo.Service"], use: "call" },
-                    anyOf: [
-                      { type: "string" },
-                      {
-                        type: "object",
-                        required: ["kind", "name"],
-                        properties: {
-                          kind: { type: "string" },
-                          name: { type: "string" }
-                        },
-                        additionalProperties: true
-                      }
-                    ]
-                  },
-                  when: {
-                    title: "When",
-                    description: "CEL guard \u2014 the target runs only when it evaluates true.",
-                    "x-telo-topology-role": "predicate",
-                    type: "boolean"
-                  }
-                },
-                additionalProperties: false
-              },
-              // Inline flat invoke step, discriminated by the `invoke` key —
-              // THE dispatch site, shared with every `Run` step array rather
-              // than restated here. Restating it is what made `retry:` a schema
-              // error at boot while working one line away in a sequence: not a
-              // decision about boot, just a copy that never grew the field.
-              // Control flow (if/while/switch/try) is still not available here —
-              // reach for Run.Sequence.
-              // An expanded, stamped COPY. `builtins.ts` is not a manifest, so it
-              // never passes through the loader's expansion — embedding the
-              // fragment object itself would leave the nested `retry` as an
-              // unresolved `$ref` with no `x-telo-fragment` stamp, which is
-              // exactly what made LIVE_VALUE_RETRIED silently skip every boot
-              // target. A copy, because this is a module-level singleton and
-              // `resolveSchemaRefKinds` rewrites the `x-telo-ref` inside it.
-              manifestFragment("InvokeStep")
-            ]
-          }
-        },
-        include: {
-          type: "array",
-          items: { type: "string" }
-        },
-        // Files bundled alongside `telo.yaml` into the module's artifact —
-        // controller bundles, static assets served by Http.Static, templates,
-        // etc. Ordered `.gitignore`-style patterns resolved against the manifest
-        // dir at publish time. Analyzer-only role: accept the field (the schema
-        // is additionalProperties:false); the analyzer never reads the payload.
-        files: {
-          type: "array",
-          items: { type: "string" }
-        },
-        assets: ASSETS_FILES_SCHEMA,
-        native: NATIVE_ENTRIES_SCHEMA,
-        sources: SOURCES_SCHEMA,
-        layers: LAYER_INDEX_SCHEMA,
-        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
-        // Inline imports — name-keyed map sugar for separate `Telo.Import`
-        // documents. The key is the PascalCase alias (the import's
-        // `metadata.name`). Each value is either a bare source string
-        // (shorthand for `{ source }`) or the full object form. The loader
-        // desugars each entry into a synthetic `Telo.Import` before discovery;
-        // authored `Telo.Import` docs keep working alongside this. See
-        // analyzer/nodejs/src/inline-imports.ts.
-        imports: {
-          type: "object",
-          additionalProperties: {
-            oneOf: [
-              { type: "string" },
-              {
-                type: "object",
-                required: ["source"],
-                properties: {
-                  source: { type: "string" },
-                  integrity: { type: "string" },
-                  variables: { type: "object" },
-                  secrets: { type: "object" },
-                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-                  needs: IMPORT_NEEDS_SCHEMA,
-                  runtime: {
-                    oneOf: [
-                      { type: "string" },
-                      { type: "array", items: { type: "string" } }
-                    ]
-                  },
-                  // Threshold / redaction / sampling override for this import's
-                  // subtree. Attached to the import rather than to a map keyed
-                  // by module name because an alias is already uniqueness-
-                  // enforced, while module names collide (§12.2, D9).
-                  logging: IMPORT_LOGGING_SCHEMA
-                },
-                additionalProperties: false
-              }
-            ]
-          }
-        },
-        // Application-level input contract. Each entry binds one or both host
-        // channels — `env:` (the source env var) and `arg:` (a command-line flag
-        // or position) — plus `default:` (optional, used when no channel
-        // supplies a value) on top of an open JSON Schema property schema.
-        // `type:` constrains the coercion rule applied to the raw text (scalars
-        // per-type; an env value of type `object` / `array` via JSON.parse, a
-        // repeated flag per `items.type`). All other JSON Schema keywords are
-        // passed through unchanged and applied to the coerced value via the
-        // standard schema validator. The rules relating several `arg:` bindings
-        // are `validate-application-arguments.ts`. See
-        // kernel/nodejs/src/application-env.ts and
-        // kernel/specs/application-arguments.md.
-        variables: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["type"],
-            anyOf: [{ required: ["env"] }, { required: ["arg"] }],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              arg: ARG_BINDING_SCHEMA,
-              type: {
-                type: "string",
-                enum: ["string", "integer", "number", "boolean", "object", "array"]
-              },
-              default: {}
-            }
-          }
-        },
-        secrets: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["env", "type"],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              type: {
-                type: "string",
-                enum: ["string", "integer", "number", "boolean", "object", "array"]
-              },
-              default: {}
-            }
-          }
-        },
-        // What the application asks whoever runs it for — each read from the
-        // environment at load, under the name `env:` binds or the derived one.
-        needs: APPLICATION_NEEDS_SCHEMA,
-        // Inbound ports the Application listens on. A name-keyed map mirroring
-        // `variables`: each entry binds a host env var (`env:`) that supplies a
-        // port integer (implicitly typed `integer`, 1–65535), with an optional
-        // `default:` used when the env var is unset. `protocol:` (default `tcp`)
-        // selects the transport — the runner reads this list to know the
-        // exposed ports before launch, and the analyzer brands the resolved
-        // `ports.<name>` value (tcp → TcpPort, udp → UdpPort) for static wiring
-        // checks. Application-only. See kernel/nodejs/src/application-env.ts.
-        // `env:` stays required beside `arg:`: a runner publishes a port before
-        // boot and supplies it through the environment, so a port the command
-        // line alone could set is one a runner could never expose.
-        ports: {
-          type: "object",
-          additionalProperties: {
-            type: "object",
-            required: ["env"],
-            properties: {
-              env: { type: "string", minLength: 1 },
-              arg: ARG_BINDING_SCHEMA,
-              protocol: {
-                type: "string",
-                enum: ["tcp", "udp"],
-                default: "tcp"
-              },
-              default: { type: "integer", minimum: 1, maximum: 65535 }
-            },
-            additionalProperties: false
-          }
-        },
-        // Structured logging configuration. The manifest is the only
-        // configuration source — there is no TELO_LOG_* variable and no logging
-        // CLI flag — so a level derived from the host environment goes through a
-        // `variables:` entry read with `!cel`. See kernel/specs/logging.md §12.
-        logging: ROOT_LOGGING_SCHEMA,
-        // Trace export: at least one attached sink turns tracing on. See
-        // kernel/specs/tracing.md.
-        tracing: ROOT_TRACING_SCHEMA,
-        // The runtime range this module is verified against. See
-        // `analyzer/nodejs/src/requires-block.ts`.
-        requires: REQUIRES_SCHEMA
-      },
-      required: ["metadata"],
-      additionalProperties: false
-    }
-  },
-  {
-    kind: "Telo.Definition",
-    metadata: { name: "Library", module: "Telo" },
-    capability: "Telo.Template",
-    schema: {
-      type: "object",
-      properties: {
-        kind: { type: "string" },
-        metadata: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            version: { type: "string" },
-            source: { type: "string" },
-            module: { type: "string" },
-            ...PROVENANCE_METADATA
-          },
-          required: ["name"],
-          additionalProperties: true
-        },
-        variables: { type: "object" },
-        secrets: { type: "object" },
-        // How many times this library is instantiated in one application.
-        //
-        // `isolated` (the default) is what every published module was written
-        // against: each import declaration builds its own child scope with its
-        // own instances, so two libraries importing a third get two of
-        // everything in it. `shared` makes the library a SINGLETON — every
-        // import of it resolves to one instantiation, owned by the root and
-        // torn down after everything that borrowed it.
-        //
-        // Default `isolated` rather than `shared` — the opposite of the
-        // Application field's — because flipping it would silently collapse
-        // every existing app's resource graph and turn per-import `variables:`
-        // into a conflict. The `exports.kinds` precedent: private-by-default is
-        // the better end state and still needs the ecosystem republished first.
-        lifecycle: {
-          type: "string",
-          enum: ["shared", "isolated"],
-          default: "isolated"
-        },
-        // The inward half of `exports.resources`: instances this library
-        // requires from whoever imports it. Library-only — an Application is a
-        // root with no importer, so it owns its instances outright.
-        resources: LIBRARY_RESOURCE_INPUTS_SCHEMA,
-        // What this library asks whoever runs it for — typed requests a need
-        // type describes, supplied at the import or bubbled to the root.
-        needs: LIBRARY_NEEDS_SCHEMA,
-        include: {
-          type: "array",
-          items: { type: "string" }
-        },
-        // Files bundled into the module's artifact — same semantics as the
-        // Telo.Application `files` field above (a library may ship bundled
-        // controllers, templates, migrations, seed data).
-        files: {
-          type: "array",
-          items: { type: "string" }
-        },
-        assets: ASSETS_FILES_SCHEMA,
-        native: NATIVE_ENTRIES_SCHEMA,
-        sources: SOURCES_SCHEMA,
-        layers: LAYER_INDEX_SCHEMA,
-        filesIntegrity: LEGACY_FILES_INTEGRITY_SCHEMA,
-        // Inline imports — same name-keyed map sugar as Telo.Application; the
-        // loader desugars each entry into a synthetic Telo.Import. See the
-        // Application schema above and analyzer/nodejs/src/inline-imports.ts.
-        imports: {
-          type: "object",
-          additionalProperties: {
-            oneOf: [
-              { type: "string" },
-              {
-                type: "object",
-                required: ["source"],
-                properties: {
-                  source: { type: "string" },
-                  integrity: { type: "string" },
-                  variables: { type: "object" },
-                  secrets: { type: "object" },
-                  resources: IMPORT_RESOURCE_INPUTS_SCHEMA,
-                  needs: IMPORT_NEEDS_SCHEMA,
-                  runtime: {
-                    oneOf: [
-                      { type: "string" },
-                      { type: "array", items: { type: "string" } }
-                    ]
-                  },
-                  // Threshold / redaction / sampling override for this import's
-                  // subtree. Attached to the import rather than to a map keyed
-                  // by module name because an alias is already uniqueness-
-                  // enforced, while module names collide (§12.2, D9).
-                  logging: IMPORT_LOGGING_SCHEMA
-                },
-                additionalProperties: false
-              }
-            ]
-          }
-        },
-        exports: {
-          type: "object",
-          properties: {
-            // Titled because these two ARE a library's public surface, and the
-            // module graph draws them as the root's lists — where an Application
-            // draws its boot targets. The view reads the title off the schema, so
-            // naming them here is what keeps resource-kind knowledge out of it.
-            kinds: { type: "array", title: "Exported kinds", items: { type: "string" } },
-            // An entry is a bare name (`Db`, a locally-owned export) or a dotted `Alias.Name`
-            // (re-export of the instance reached via this library's import aliased `Alias`,
-            // under the name `Name`) — mirroring `exports.kinds`. `variables` / `secrets` are
-            // reserved on the resources.<Alias> value-flow surface, so they may not be exported.
-            resources: {
-              type: "array",
-              title: "Exported resources",
-              items: { type: "string", not: { enum: ["variables", "secrets"] } }
-            },
-            code: LIBRARY_CANDIDATES_SCHEMA
-          },
-          additionalProperties: true
-        },
-        // The runtime range this module is verified against. See
-        // `analyzer/nodejs/src/requires-block.ts`.
-        requires: REQUIRES_SCHEMA
-      },
-      required: ["metadata"],
-      additionalProperties: false
-    }
-  }
-];
-
-// ../../analyzer/nodejs/src/extends-resolution.ts
-var body = (def) => def ?? {};
-function resolveParent(def, resolve) {
-  const ext = body(def).extends;
-  if (typeof ext !== "string" || ext.length === 0) return void 0;
-  return resolve(ext, def);
+  return definitions;
 }
-function ancestorChain(def, resolve) {
-  const chain = [];
-  const seen = /* @__PURE__ */ new Set();
-  let cur = resolveParent(def, resolve);
-  while (cur && !seen.has(cur)) {
-    seen.add(cur);
-    chain.push(cur);
-    cur = resolveParent(cur, resolve);
-  }
-  return chain;
-}
-function hasOwnControllerOrTemplate(def) {
-  const d = body(def);
-  return !!(d.controllers && d.controllers.length || d.invoke || d.run || d.targets || d.provide || d.mount || d.resources);
-}
-function controllerBearingAncestor(def, resolve) {
-  for (const a of ancestorChain(def, resolve)) {
-    if (a.kind === "Telo.Abstract") continue;
-    if (hasOwnControllerOrTemplate(a)) return a;
-  }
-  return void 0;
-}
-function isInheritedDelegation(def, resolve) {
-  if (!body(def).extends || hasOwnControllerOrTemplate(def)) return false;
-  return controllerBearingAncestor(def, resolve) !== void 0;
-}
-function inheritedCapability(def, resolve) {
-  if (body(def).capability) return body(def).capability;
-  for (const a of ancestorChain(def, resolve)) {
-    if (body(a).capability) return body(a).capability;
-  }
-  return void 0;
-}
-function effectiveAuthorSchema(def, resolve) {
-  const own2 = body(def).schema ?? {};
-  const parent = resolveParent(def, resolve);
-  if (!parent) return own2;
-  if (body(def).base) return own2;
-  const parentSchema = effectiveAuthorSchema(parent, resolve);
-  return mergeTypeSchemas([parentSchema, own2]);
-}
-function inheritedRequiredFields(def, resolve) {
-  if (!body(def).extends || body(def).base) return [];
-  const parent = resolveParent(def, resolve);
-  if (!parent) return [];
-  const required = effectiveAuthorSchema(parent, resolve).required;
-  if (!Array.isArray(required)) return [];
-  const own2 = (body(def).schema ?? {}).properties ?? {};
-  return required.filter((f2) => typeof f2 === "string" && !(f2 in own2));
-}
-function effectiveContractField(def, resolve, direction) {
-  const own2 = body(def)[direction];
-  if (own2 !== void 0 && own2 !== null) return own2;
-  for (const a of ancestorChain(def, resolve)) {
-    const inherited = body(a)[direction];
-    if (inherited !== void 0 && inherited !== null) return inherited;
-  }
-  return void 0;
-}
-function contractDeclarer(def, resolve, direction) {
-  if (!def) return void 0;
-  const own2 = body(def)[direction];
-  if (own2 !== void 0 && own2 !== null) return def;
-  for (const a of ancestorChain(def, resolve)) {
-    const inherited = body(a)[direction];
-    if (inherited !== void 0 && inherited !== null) return a;
-  }
-  return void 0;
-}
-function needsContractMapping(def, resolve, direction) {
-  const own2 = body(def)[direction];
-  if (own2 === void 0 || own2 === null) return false;
-  if (hasOwnControllerOrTemplate(def)) return false;
-  return controllerBearingAncestor(def, resolve) !== void 0;
-}
-function mappingFieldFor(direction) {
-  return direction === "inputType" ? "inputs" : "result";
-}
-function effectiveStatusSchema(def, resolve) {
-  const own2 = body(def).status;
-  const parent = resolveParent(def, resolve);
-  if (!parent) return own2;
-  const parentStatus = effectiveStatusSchema(parent, resolve);
-  if (body(def).base) return parentStatus;
-  if (!parentStatus) return own2;
-  if (!own2) return parentStatus;
-  return mergeTypeSchemas([parentStatus, own2]);
+var KERNEL_BUILTINS = builtinDefinitions(
+  BUILTIN_DOCUMENT_FILES.map(([file, data]) => [`sdk/builtins/${file}`, data])
+);
+function builtinDocumentSchema(name2) {
+  const definition = KERNEL_BUILTINS.find(
+    (def) => def.kind === "Telo.Definition" && def.metadata.name === name2
+  );
+  if (!definition?.schema) throw new Error(`No built-in document kind 'Telo.${name2}'.`);
+  return definition.schema;
 }
 
 // ../../analyzer/nodejs/src/callable-signature.ts
@@ -40899,6 +42117,22 @@ function grammarReason(name2, level) {
   return `it becomes a CEL identifier, so as written it cannot be referenced.`;
 }
 
+// ../../analyzer/nodejs/src/reserved-kind-prefix.ts
+var RESERVED_KIND_PREFIXES = ["Telo", "Self"];
+function isReservedKindPrefix(name2) {
+  return typeof name2 === "string" && RESERVED_KIND_PREFIXES.includes(name2);
+}
+var WHY = "`Telo.<Kind>` names a built-in kind and `Self.<Kind>` the declaring module's own";
+function reservedModuleNameMessage(name2) {
+  return `A module may not be named '${name2}': ${WHY}, so its kinds would replace them. Rename the module.`;
+}
+function reservedImportAliasMessage(alias) {
+  return `An import may not be aliased '${alias}': ${WHY}, so this import would replace them. Choose another alias.`;
+}
+function reservedLibraryNameMessage(source, name2) {
+  return `'${source}' is a Telo.Library named '${name2}': ${WHY}, so its kinds would replace them. It cannot be imported until it is renamed.`;
+}
+
 // ../../analyzer/nodejs/src/validate-identifier-names.ts
 var SOURCE = "telo-analyzer";
 function validateIdentifierNames(manifests, registry, aliases, rootModules, graph, scopes) {
@@ -40919,6 +42153,19 @@ function validateIdentifierNames(manifests, registry, aliases, rootModules, grap
       filePath: metadata?.source,
       path: "metadata.name"
     });
+    if ((manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") && isReservedKindPrefix(name2)) {
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "KIND_PREFIX_RESERVED",
+        source: SOURCE,
+        message: `${manifest.kind}/${name2}: ${reservedModuleNameMessage(name2)}`,
+        data: {
+          resource: { kind: manifest.kind, name: name2 },
+          filePath: metadata?.source,
+          path: "metadata.name"
+        }
+      });
+    }
     if (manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") {
       for (const field of ["variables", "secrets", "ports", "resources", "needs"]) {
         const block = manifest[field];
@@ -41119,6 +42366,8 @@ var MATCH_KEYS = [
   "under",
   "value",
   "valueOneOf",
+  "valuePattern",
+  "valueNotPattern",
   "withSibling",
   "notUnder",
   "inSchema"
@@ -41168,7 +42417,7 @@ function readMigrationMatch(describe5, raw, surface = "core") {
         `${describe5}: 'match.scalar' must be one of ${SCALAR_SHAPES.join(", ")}`
       );
     }
-    for (const key2 of ["value", "valueOneOf", "withSibling"]) {
+    for (const key2 of ["value", "valueOneOf", "valuePattern", "valueNotPattern", "withSibling"]) {
       if (Object.hasOwn(raw, key2)) {
         throw new Error(`${describe5}: 'match.${key2}' does not apply to a 'scalar' rule`);
       }
@@ -41179,6 +42428,13 @@ function readMigrationMatch(describe5, raw, surface = "core") {
   }
   if (Object.hasOwn(raw, "valueOneOf") && !Array.isArray(raw.valueOneOf)) {
     throw new Error(`${describe5}: 'match.valueOneOf' must be a sequence`);
+  }
+  for (const key2 of ["valuePattern", "valueNotPattern"]) {
+    if (!Object.hasOwn(raw, key2)) continue;
+    if (Object.hasOwn(raw, "value") || Object.hasOwn(raw, "valueOneOf")) {
+      throw new Error(`${describe5}: 'match.${key2}' does not combine with 'value' / 'valueOneOf'`);
+    }
+    readValuePattern(`${describe5}: 'match.${key2}'`, raw[key2]);
   }
   if (Object.hasOwn(raw, "withSibling") && typeof raw.withSibling !== "string") {
     throw new Error(`${describe5}: 'match.withSibling' must be a string`);
@@ -41218,6 +42474,8 @@ function readMigrationMatch(describe5, raw, surface = "core") {
   };
   if (Object.hasOwn(raw, "value")) match.value = raw.value;
   if (Object.hasOwn(raw, "valueOneOf")) match.valueOneOf = raw.valueOneOf;
+  if (Object.hasOwn(raw, "valuePattern")) match.valuePattern = raw.valuePattern;
+  if (Object.hasOwn(raw, "valueNotPattern")) match.valueNotPattern = raw.valueNotPattern;
   if (Object.hasOwn(raw, "withSibling")) match.withSibling = raw.withSibling;
   if (Object.hasOwn(raw, "notUnder")) match.notUnder = raw.notUnder;
   if (raw.inSchema === true) match.inSchema = true;
@@ -41291,7 +42549,66 @@ function applicableRules(rules, kind) {
 function valueMatches(match, value2) {
   if (Object.hasOwn(match, "value")) return deepEquals(match.value, value2);
   if (match.valueOneOf) return match.valueOneOf.some((candidate) => deepEquals(candidate, value2));
+  if (match.valuePattern !== void 0 || match.valueNotPattern !== void 0) {
+    if (typeof value2 !== "string") return false;
+    if (match.valuePattern !== void 0 && !fullMatch(match.valuePattern, value2)) return false;
+    if (match.valueNotPattern !== void 0 && fullMatch(match.valueNotPattern, value2)) return false;
+  }
   return true;
+}
+var COMPILED_PATTERNS = /* @__PURE__ */ new Map();
+function fullMatch(pattern2, value2) {
+  let compiled2 = COMPILED_PATTERNS.get(pattern2);
+  if (!compiled2) {
+    compiled2 = new RegExp(`^(?:${pattern2})$`, "u");
+    COMPILED_PATTERNS.set(pattern2, compiled2);
+  }
+  return compiled2.test(value2);
+}
+function readValuePattern(describe5, raw) {
+  if (typeof raw !== "string" || raw.length === 0) {
+    throw new Error(`${describe5} must be a non-empty string`);
+  }
+  const refusal = outsideRe2Subset(raw);
+  if (refusal) {
+    throw new Error(
+      `${describe5} uses ${refusal}, which is outside the RE2 subset every runtime's migration reader accepts \u2014 no lookaround, no backreferences`
+    );
+  }
+  try {
+    new RegExp(`^(?:${raw})$`, "u");
+  } catch (err) {
+    throw new Error(`${describe5} is not a valid pattern: ${err instanceof Error ? err.message : err}`);
+  }
+}
+function outsideRe2Subset(pattern2) {
+  let inClass = false;
+  for (let i = 0; i < pattern2.length; i++) {
+    const char = pattern2[i];
+    if (char === "\\") {
+      const next = pattern2[i + 1] ?? "";
+      if (/[1-9]/.test(next)) return `a backreference ('\\${next}')`;
+      if (next === "k" && pattern2[i + 2] === "<") return "a named backreference ('\\k<\u2026>')";
+      i++;
+      continue;
+    }
+    if (inClass) {
+      if (char === "]") inClass = false;
+      continue;
+    }
+    if (char === "[") {
+      inClass = true;
+      if (pattern2[i + 1] === "^") i++;
+      if (pattern2[i + 1] === "]") i++;
+      continue;
+    }
+    if (char === "(" && pattern2[i + 1] === "?") {
+      const rest = pattern2.slice(i + 2, i + 4);
+      if (rest.startsWith("=") || rest.startsWith("!")) return `a lookahead ('(?${rest[0]}')`;
+      if (rest === "<=" || rest === "<!") return `a lookbehind ('(?${rest}')`;
+    }
+  }
+  return void 0;
 }
 function selectMatches(index, document, match) {
   const kind = isPlainObject5(document) ? document.kind : void 0;
@@ -54899,7 +56216,7 @@ var DefinitionRegistry = class {
     this.defs.set(key2, definition);
     this.effectiveSchemas.clear();
     this.kindReaches.clear();
-    if (definition.capability) {
+    if (typeof definition.capability === "string" && definition.capability !== key2 && isCapabilityRole(definition.capability)) {
       this.addExtendedBy(definition.capability, key2);
     }
     if (definition.extends) {
@@ -55325,18 +56642,16 @@ var DefinitionRegistry = class {
     if (!subSchema || typeof subSchema !== "object") return void 0;
     return { node: subSchema, document, definition: targetDef };
   }
-  /** The kinds a definition descends from DIRECTLY — the same two edges
-   *  `register` feeds into `extendedBy`, read the other way.
-   *
-   *  Both spellings, because either can carry the edge that satisfies a slot:
-   *  `capability:` is the legacy implements-this form, `extends:` the canonical
-   *  one. A consumer walking these by hand would be a second reading of what an
-   *  inheritance edge IS, and the downward index and the upward walk have to
-   *  agree about that forever. */
+  /** The kinds a definition is accepted as DIRECTLY — the same two edges
+   *  `register` feeds into `extendedBy`, read the other way: the role its
+   *  `capability:` names and the kind its `extends:` names. A consumer walking
+   *  these by hand would be a second reading of what an edge IS, and the
+   *  downward index and the upward walk have to agree about that forever. */
   parentsOf(kind) {
     const def = this.defs.get(kind);
     if (!def) return [];
-    return [def.capability, def.extends].filter(
+    const role = typeof def.capability === "string" && def.capability !== kind && isCapabilityRole(def.capability) ? def.capability : void 0;
+    return [role, def.extends].filter(
       (parent) => typeof parent === "string" && parent.length > 0
     );
   }
@@ -55359,8 +56674,8 @@ var DefinitionRegistry = class {
     }
     return true;
   }
-  /** Returns all definitions that transitively extend the given abstract kind.
-   *  Follows the capability chain to any depth (equivalent to instanceof in OOP).
+  /** Returns all definitions that transitively extend the given abstract kind,
+   *  or play the role it names, to any depth (equivalent to instanceof in OOP).
    *  Definitions are included regardless of registration order. */
   getByExtends(abstractKind) {
     const result = [];
@@ -55400,39 +56715,6 @@ function userFacingImplementationsOf(kind, aliases, defs) {
 function abstractKindMessage(kind, implementations) {
   const hint = implementations.length ? `instantiate a concrete implementation: ${implementations.join(", ")}` : "no concrete implementations are registered \u2014 import a module that provides one";
   return `Kind '${kind}' is abstract and cannot be instantiated directly; ${hint}.`;
-}
-
-// ../../analyzer/nodejs/src/levenshtein.ts
-function distance(a, b) {
-  if (a === b) return 0;
-  if (a.length === 0) return b.length;
-  if (b.length === 0) return a.length;
-  if (a.length < b.length) {
-    const tmp = a;
-    a = b;
-    b = tmp;
-  }
-  let prev = new Array(b.length + 1);
-  let curr = new Array(b.length + 1);
-  for (let j = 0; j <= b.length; j++) prev[j] = j;
-  for (let i = 1; i <= a.length; i++) {
-    curr[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
-      curr[j] = Math.min(
-        curr[j - 1] + 1,
-        // insertion
-        prev[j] + 1,
-        // deletion
-        prev[j - 1] + cost
-        // substitution
-      );
-    }
-    const swap = prev;
-    prev = curr;
-    curr = swap;
-  }
-  return prev[b.length];
 }
 
 // ../../analyzer/nodejs/src/kind-suggest.ts
@@ -56134,9 +57416,9 @@ var AnalysisRegistry = class _AnalysisRegistry {
     }
     return out;
   }
-  /** Like {@link capabilityForRef}, but a capability GROUP — an abstract with no
-   *  `capability` of its own that other capability abstracts extend, i.e.
-   *  `Telo.Executable` over Invocable and Runnable — expands to its leaves.
+  /** Like {@link capabilityForRef}, but a capability GROUP — a roster entry that is
+   *  no role, which role abstracts extend, i.e. `Telo.Executable` over Invocable
+   *  and Runnable — expands to the roles beneath it.
    *  Classification consumers (the editor's port flavor) match against leaf
    *  capabilities, so without expansion every `Telo.Executable` slot would fall
    *  out of both classification sets and silently stop rendering — and so would
@@ -56144,7 +57426,7 @@ var AnalysisRegistry = class _AnalysisRegistry {
   leafCapabilitiesForRef(xTeloRef) {
     const cap = this.capabilityForRef(xTeloRef);
     if (!cap) return [];
-    const leaves = this.defs.getByExtends(cap).filter((d) => d.kind === "Telo.Abstract" && !d.capability).map((d) => `${d.metadata.module}.${d.metadata.name}`);
+    const leaves = this.defs.getByExtends(cap).filter((d) => d.kind === "Telo.Abstract").map((d) => `${d.metadata.module}.${d.metadata.name}`).filter((kind) => isCapabilityRole(kind));
     return leaves.length > 0 ? leaves : [cap];
   }
   /**
@@ -56372,4607 +57654,8 @@ var AnalysisRegistry = class _AnalysisRegistry {
   }
 };
 
-// ../../analyzer/nodejs/src/deprecation.ts
-function readDeprecation(metadata) {
-  if (metadata === null || typeof metadata !== "object" || Array.isArray(metadata)) return void 0;
-  const block = metadata.deprecated;
-  if (block === null || typeof block !== "object" || Array.isArray(block)) return void 0;
-  const { reason, replacedBy } = block;
-  if (typeof reason !== "string" || reason.trim() === "") return void 0;
-  return {
-    reason: reason.trim(),
-    ...typeof replacedBy === "string" && replacedBy.trim() !== "" ? { replacedBy: replacedBy.trim() } : {}
-  };
-}
-
-// ../../analyzer/nodejs/src/library-declarations.ts
-var key = (module, name2) => `${module}\0${name2}`;
-function libraryDeclarations(documents) {
-  const modules = /* @__PURE__ */ new Set();
-  const declarations = /* @__PURE__ */ new Map();
-  const imports = /* @__PURE__ */ new Map();
-  const inputs = /* @__PURE__ */ new Set();
-  for (const library of documents) {
-    modules.add(library.module);
-    for (const manifest of library.manifests) {
-      const name2 = manifest.metadata?.name;
-      if (isModuleKind(manifest.kind)) {
-        for (const input of readResourceInputs(manifest)) inputs.add(key(library.module, input.name));
-        for (const need of readNeeds(manifest)) inputs.add(key(library.module, need.name));
-        continue;
-      }
-      if (typeof name2 !== "string") continue;
-      if (manifest.kind === "Telo.Import") imports.set(key(library.module, name2), manifest);
-      else if (!isKindDocument(manifest)) {
-        declarations.set(key(library.module, name2), manifest);
-      }
-    }
-  }
-  return {
-    holds: (module) => modules.has(module),
-    declaration: (module, name2) => declarations.get(key(module, name2)),
-    isInput: (module, name2) => inputs.has(key(module, name2)),
-    importOf: (module, alias) => imports.get(key(module, alias))
-  };
-}
-
-// ../../analyzer/nodejs/src/dependency-graph.ts
-var nodeKey = (kind, name2) => `${kind}\0${name2}`;
-function buildDependencyGraph(resources, registry, aliases, aliasesByModule, callGraph) {
-  const graph = callGraph ?? buildCallGraph(resources, registry, { aliases, aliasesByModule });
-  const nodes = /* @__PURE__ */ new Map();
-  for (const node of graph.nodes.values()) {
-    if (node.type !== "resource") continue;
-    const resource = node;
-    if (resource.scoped) continue;
-    nodes.set(resource.id, {
-      kind: resource.kind,
-      name: resource.name,
-      manifest: resource.manifest
-    });
-  }
-  const deps = projectToPairs(graph, {
-    keepUse: (use) => use.length === 0 || use.some((u) => u !== "schema")
-  });
-  for (const edge of graph.edges) {
-    if (!edge.scoped || !edge.to) continue;
-    deps.get(edge.from)?.delete(edge.to);
-  }
-  for (const key2 of nodes.keys()) if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
-  addResourceInputEdges(resources, nodes, deps);
-  const statusReadAliases = addStartupStatusReadEdges(
-    nodes,
-    deps,
-    registry,
-    aliases,
-    aliasesByModule
-  );
-  const inDegree = /* @__PURE__ */ new Map();
-  const reverse = /* @__PURE__ */ new Map();
-  for (const key2 of nodes.keys()) {
-    inDegree.set(key2, deps.get(key2).size);
-    reverse.set(key2, /* @__PURE__ */ new Set());
-  }
-  for (const [from, depSet] of deps) {
-    for (const dep of depSet) {
-      reverse.get(dep)?.add(from);
-    }
-  }
-  const queue = [];
-  for (const [key2, deg] of inDegree) {
-    if (deg === 0) queue.push(key2);
-  }
-  const sorted2 = [];
-  while (queue.length > 0) {
-    const key2 = queue.shift();
-    sorted2.push(nodes.get(key2));
-    for (const dependent of reverse.get(key2)) {
-      const deg = inDegree.get(dependent) - 1;
-      inDegree.set(dependent, deg);
-      if (deg === 0) queue.push(dependent);
-    }
-  }
-  if (sorted2.length === nodes.size) {
-    return {
-      order: creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases)
-    };
-  }
-  const cycleKeys = findCycle(nodes.keys(), deps);
-  const toNodes = (keys) => keys.map((k) => nodes.get(k));
-  const cycles = stronglyConnectedLoops(nodes, deps).map(
-    (component) => component.has(cycleKeys[0]) ? cycleKeys : findCycle(component, deps, component)
-  );
-  return { cycle: toNodes(cycleKeys), cycles: cycles.map(toNodes) };
-}
-function formatCycle(cycle) {
-  const lines = ["Circular dependency detected:"];
-  lines.push(`  ${cycle[0].kind} "${cycle[0].name}"`);
-  for (const node of cycle.slice(1)) {
-    lines.push(`    \u2192 ${node.kind} "${node.name}"`);
-  }
-  return lines.join("\n");
-}
-function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases) {
-  const keyOf = /* @__PURE__ */ new Map();
-  for (const [key2, node] of nodes) keyOf.set(node.manifest, key2);
-  const all = /* @__PURE__ */ new Map();
-  const importsByScope = /* @__PURE__ */ new Map();
-  const definitions = /* @__PURE__ */ new Map();
-  const scopeOf = (m) => moduleAliasScope(m.metadata, aliases, aliasesByModule);
-  for (const m of resources) {
-    const name2 = m.metadata?.name;
-    if (typeof name2 !== "string" || typeof m.kind !== "string" || isModuleKind(m.kind)) continue;
-    let key2 = keyOf.get(m);
-    if (key2 === void 0) {
-      if (m.kind !== "Telo.Import" && !isKindDocument(m)) continue;
-      key2 = nodeIdFor(m);
-    }
-    if (!all.has(key2)) all.set(key2, nodes.get(key2) ?? { kind: m.kind, name: name2, manifest: m });
-    if (m.kind === "Telo.Import") {
-      const scope = scopeOf(m);
-      let imports = importsByScope.get(scope);
-      if (!imports) importsByScope.set(scope, imports = /* @__PURE__ */ new Map());
-      imports.set(name2, key2);
-    } else if (isKindDocument(m)) {
-      const module = declaringModuleOf2(m);
-      if (module) definitions.set(`${module}.${name2}`, key2);
-    }
-  }
-  for (const [key2, node] of nodes) if (!all.has(key2)) all.set(key2, node);
-  const declarationOf = (kind, scope) => {
-    if (typeof kind !== "string") return void 0;
-    const dot = kind.indexOf(".");
-    if (dot <= 0) return void 0;
-    return importsByScope.get(scope)?.get(kind.slice(0, dot)) ?? definitions.get(scope?.resolveKind(kind) ?? kind);
-  };
-  const unmet = /* @__PURE__ */ new Map();
-  const dependents = /* @__PURE__ */ new Map();
-  for (const [key2, node] of all) {
-    const set2 = new Set([...deps.get(key2) ?? []].filter((d) => all.has(d)));
-    const scope = scopeOf(node.manifest);
-    for (const declared of [node.manifest.kind, node.manifest.extends]) {
-      const target = declarationOf(declared, scope);
-      if (target && target !== key2) set2.add(target);
-    }
-    if (node.manifest.kind !== "Telo.Import") {
-      const imports = importsByScope.get(scope);
-      if (imports) {
-        for (const alias of [
-          ...referencedAliases(node.manifest),
-          ...statusReadAliases.get(key2) ?? []
-        ]) {
-          const target = imports.get(alias);
-          if (target && target !== key2) set2.add(target);
-        }
-      }
-    }
-    unmet.set(key2, set2);
-    for (const dep of set2) {
-      if (!dependents.has(dep)) dependents.set(dep, /* @__PURE__ */ new Set());
-      dependents.get(dep).add(key2);
-    }
-  }
-  const queue = [...all.keys()].filter((key2) => unmet.get(key2).size === 0);
-  const done = /* @__PURE__ */ new Set();
-  const order = [];
-  while (order.length < all.size) {
-    if (queue.length === 0) {
-      for (const key3 of all.keys()) {
-        if (done.has(key3)) continue;
-        if ([...deps.get(key3) ?? []].every((d) => done.has(d) || !all.has(d))) {
-          unmet.get(key3).clear();
-          queue.push(key3);
-          break;
-        }
-      }
-    }
-    const key2 = queue.shift();
-    if (done.has(key2)) continue;
-    done.add(key2);
-    order.push(all.get(key2));
-    for (const dependent of dependents.get(key2) ?? []) {
-      const set2 = unmet.get(dependent);
-      if (set2.delete(key2) && set2.size === 0 && !done.has(dependent)) queue.push(dependent);
-    }
-  }
-  return order;
-}
-function referencedAliases(manifest) {
-  const found = /* @__PURE__ */ new Set();
-  const pending = [manifest];
-  while (pending.length > 0) {
-    const value2 = pending.pop();
-    if (Array.isArray(value2)) {
-      for (const item of value2) if (item !== null && typeof item === "object") pending.push(item);
-      continue;
-    }
-    if (value2 === null || typeof value2 !== "object") continue;
-    const sentinel = refSentinelTarget(value2);
-    if (sentinel) {
-      if (sentinel.alias && sentinel.alias !== "Self") found.add(sentinel.alias);
-      continue;
-    }
-    const proto = Object.getPrototypeOf(value2);
-    if (proto !== Object.prototype && proto !== null) continue;
-    const record = value2;
-    if (typeof record.alias === "string" && typeof record.name === "string" && record.alias !== "Self") {
-      found.add(record.alias);
-    }
-    for (const child of Object.values(record)) {
-      if (child !== null && typeof child === "object") pending.push(child);
-    }
-  }
-  return found;
-}
-var declaringModuleOf2 = (manifest) => manifest.metadata?.module;
-function findCycle(keys, deps, within3) {
-  const state = /* @__PURE__ */ new Map();
-  for (const key2 of keys) state.set(key2, "unvisited");
-  const stack = [];
-  function dfs(key2) {
-    state.set(key2, "visiting");
-    stack.push(key2);
-    for (const dep of deps.get(key2) ?? []) {
-      if (within3 && !within3.has(dep)) continue;
-      if (state.get(dep) === "visiting") {
-        const start = stack.indexOf(dep);
-        return [...stack.slice(start), dep];
-      }
-      if (state.get(dep) === "unvisited") {
-        const result = dfs(dep);
-        if (result) return result;
-      }
-    }
-    stack.pop();
-    state.set(key2, "visited");
-    return null;
-  }
-  for (const [key2, s] of state) {
-    if (s === "unvisited") {
-      const result = dfs(key2);
-      if (result) return result;
-    }
-  }
-  return [];
-}
-function stronglyConnectedLoops(nodes, deps) {
-  const index = /* @__PURE__ */ new Map();
-  const low = /* @__PURE__ */ new Map();
-  const onStack = /* @__PURE__ */ new Set();
-  const stack = [];
-  const found = [];
-  const position = /* @__PURE__ */ new Map();
-  let i = 0;
-  for (const key2 of nodes.keys()) position.set(key2, i++);
-  let counter = 0;
-  for (const root of nodes.keys()) {
-    if (index.has(root)) continue;
-    const work = [];
-    const open = (key2) => {
-      index.set(key2, counter);
-      low.set(key2, counter);
-      counter++;
-      stack.push(key2);
-      onStack.add(key2);
-      work.push({ key: key2, next: (deps.get(key2) ?? /* @__PURE__ */ new Set()).values() });
-    };
-    open(root);
-    while (work.length > 0) {
-      const frame = work[work.length - 1];
-      const step = frame.next.next();
-      if (!step.done) {
-        const dep = step.value;
-        if (!nodes.has(dep)) continue;
-        if (!index.has(dep)) open(dep);
-        else if (onStack.has(dep)) {
-          low.set(frame.key, Math.min(low.get(frame.key), index.get(dep)));
-        }
-        continue;
-      }
-      work.pop();
-      const parent = work[work.length - 1];
-      if (parent) low.set(parent.key, Math.min(low.get(parent.key), low.get(frame.key)));
-      if (low.get(frame.key) !== index.get(frame.key)) continue;
-      const members = /* @__PURE__ */ new Set();
-      let member;
-      do {
-        member = stack.pop();
-        onStack.delete(member);
-        members.add(member);
-      } while (member !== frame.key);
-      if (members.size > 1 || deps.get(frame.key)?.has(frame.key)) {
-        const ordered = [...members].sort((a, b) => position.get(a) - position.get(b));
-        found.push({ first: position.get(ordered[0]), members: new Set(ordered) });
-      }
-    }
-  }
-  return found.sort((a, b) => a.first - b.first).map((c) => c.members);
-}
-function addResourceInputEdges(resources, nodes, deps) {
-  const imports = [];
-  for (const m of resources) {
-    if (m.kind !== "Telo.Import") continue;
-    const alias = m.metadata?.name;
-    const targets = [
-      ...Object.values(readSuppliedResources(m)).map(suppliedResourceTarget),
-      ...needSupplyTargets(readSuppliedNeeds(m))
-    ].filter((name2) => name2 !== void 0);
-    if (!alias || targets.length === 0) continue;
-    const key2 = nodeKey(m.kind, alias);
-    nodes.set(key2, { kind: m.kind, name: alias, manifest: m });
-    if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
-    imports.push({ key: key2, targets });
-  }
-  if (imports.length === 0) return;
-  const byName = /* @__PURE__ */ new Map();
-  for (const [key2, node] of nodes) byName.set(node.name, key2);
-  for (const m of resources) {
-    if (m.kind !== "Telo.Import") continue;
-    const alias = m.metadata?.name;
-    const key2 = alias ? nodeKey(m.kind, alias) : void 0;
-    if (alias && key2 && nodes.has(key2)) byName.set(alias, key2);
-  }
-  for (const { key: key2, targets } of imports) {
-    const set2 = deps.get(key2);
-    for (const targetName of targets) {
-      const target = byName.get(targetName);
-      if (target && target !== key2) set2.add(target);
-    }
-  }
-}
-function suppliedResourceTarget(value2) {
-  const ref = value2;
-  const alias = typeof ref?.alias === "string" ? ref.alias : void 0;
-  return alias && alias !== "Self" ? alias : typeof ref?.name === "string" ? ref.name : void 0;
-}
-function needSupplyTargets(supplied) {
-  const out = [];
-  for (const value2 of Object.values(supplied)) {
-    const supply = needSupplyOf(value2);
-    if (supply.form === "whole") {
-      const { alias, name: name2 } = supply.target;
-      out.push(alias && alias !== "Self" ? alias : name2);
-    } else if (supply.form === "fields") {
-      out.push(...celResourceReads({ fields: supply.fields }));
-    }
-  }
-  return out;
-}
-function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModule) {
-  const byName = /* @__PURE__ */ new Map();
-  for (const entry of nodes) {
-    if (entry[1].kind === "Telo.Import") continue;
-    byName.set(entry[1].name, [...byName.get(entry[1].name) ?? [], entry]);
-  }
-  const resolveDef = (kind, from) => definitionInScope(registry, kind, from?.metadata, aliases, aliasesByModule);
-  const aliasReads = /* @__PURE__ */ new Map();
-  for (const [key2, node] of nodes) {
-    if (node.kind === "Telo.Import") continue;
-    const sites = governedCelEvalSites(
-      definitionInScope(registry, node.kind, node.manifest.metadata, aliases, aliasesByModule),
-      resolveDef
-    );
-    if (!sites) continue;
-    const fromModule = declaringModuleOf2(node.manifest);
-    for (const read of startupObservedStateReads(node.manifest, sites)) {
-      if (read.alias !== void 0) {
-        const importKey = nodeKey("Telo.Import", read.alias);
-        if (nodes.has(importKey)) {
-          if (importKey !== key2) deps.get(key2).add(importKey);
-        } else {
-          let set2 = aliasReads.get(key2);
-          if (!set2) aliasReads.set(key2, set2 = /* @__PURE__ */ new Set());
-          set2.add(read.alias);
-        }
-        continue;
-      }
-      const target = resolveScopedName(
-        byName.get(read.name),
-        ([, candidate]) => declaringModuleOf2(candidate.manifest),
-        fromModule
-      );
-      if (target) deps.get(key2).add(target[0]);
-    }
-  }
-  return aliasReads;
-}
-
-// ../../analyzer/nodejs/src/callable-binding.ts
-function callArgumentBinding(qualified, params, returns, resolveRef2) {
-  const declared = (params ?? []).map((param, index) => ({
-    name: typeof param.name === "string" ? param.name : `#${index}`,
-    optional: param.optional === true,
-    schema: param.schema,
-    scalars: scalarNormalizer(signatureSchemaOf(param), resolveRef2)
-  }));
-  const normalizeResult = scalarNormalizer(signatureSchemaOf(returns), resolveRef2);
-  const required = declared.filter((param) => !param.optional).length;
-  const defaults = /* @__PURE__ */ new Map();
-  const defaultAt = (index) => {
-    if (!defaults.has(index)) defaults.set(index, defaultOf(declared[index].schema, resolveRef2));
-    return copyContainers(defaults.get(index));
-  };
-  return {
-    arityRefusal(count) {
-      if (count >= required && count <= declared.length) return void 0;
-      const expected = required === declared.length ? `${required}` : `${required} to ${declared.length}`;
-      return {
-        expected: declared.length,
-        required,
-        message: `Function '${qualified}' takes ${expected} argument(s) (${declared.map((p) => p.optional ? `${p.name}?` : p.name).join(", ") || "none"}), and the call passes ${count}.`
-      };
-    },
-    bind(args) {
-      const named = {};
-      declared.forEach((param, index) => {
-        named[param.name] = index < args.length ? param.scalars(args[index]) : defaultAt(index);
-      });
-      return named;
-    },
-    name(args) {
-      const named = {};
-      declared.forEach((param, index) => {
-        if (index < args.length) named[param.name] = args[index];
-      });
-      return named;
-    },
-    bindNamed(args) {
-      const named = { ...args };
-      declared.forEach((param, index) => {
-        const given = args[param.name];
-        if (given !== void 0) named[param.name] = param.scalars(given);
-        else if (param.optional) named[param.name] = defaultAt(index);
-        else delete named[param.name];
-      });
-      return named;
-    },
-    result: normalizeResult
-  };
-}
-function defaultOf(schema4, resolveRef2) {
-  if (!schema4 || typeof schema4 !== "object") return null;
-  const node = schema4;
-  const target = "default" in node ? node : typeof node.$ref === "string" ? resolveRef2(node.$ref) : void 0;
-  if (!target || !("default" in target)) return null;
-  return scalarNormalizer(node, resolveRef2)(target.default);
-}
-function copyContainers(value2) {
-  if (Array.isArray(value2)) return value2.map(copyContainers);
-  if (value2 && typeof value2 === "object" && Object.getPrototypeOf(value2) === Object.prototype) {
-    return Object.fromEntries(
-      Object.entries(value2).map(([key2, item]) => [key2, copyContainers(item)])
-    );
-  }
-  return value2;
-}
-function scalarNormalizer(schema4, resolveRef2) {
-  if (!schema4) return (value2) => value2;
-  const paths = declaredScalarPaths({ type: "object", properties: { value: schema4 } }, resolveRef2);
-  if (paths.length === 0) return (value2) => value2;
-  return (value2) => normalizeDeclaredScalars({ value: value2 }, paths).value;
-}
-
-// ../../analyzer/nodejs/src/function-body-evaluator.ts
-var evaluationEnv;
-var ResolvingDispatch = class extends Map {
-  constructor(resolveEntry2) {
-    super();
-    this.resolveEntry = resolveEntry2;
-  }
-  get(qualified) {
-    if (!super.has(qualified)) {
-      const entry = this.resolveEntry(qualified);
-      if (!entry) return void 0;
-      super.set(qualified, entry);
-    }
-    return super.get(qualified);
-  }
-  has(qualified) {
-    return this.get(qualified) !== void 0;
-  }
-};
-var FunctionBodyEvaluators = class {
-  constructor(functions, flags, moduleCallNames2, resolveRef2) {
-    this.functions = functions;
-    this.flags = flags;
-    this.moduleCallNames = moduleCallNames2;
-    this.resolveRef = resolveRef2;
-  }
-  tables = /* @__PURE__ */ new Map();
-  bodies = /* @__PURE__ */ new Map();
-  /** The functions an expression written in `caller`'s module may call. */
-  dispatchFor(caller) {
-    let table = this.tables.get(caller);
-    if (!table) {
-      table = new ResolvingDispatch((qualified) => this.entryFor(caller, qualified));
-      this.tables.set(caller, table);
-    }
-    return table;
-  }
-  entryFor(caller, qualified) {
-    const flags = this.flags.ofCall(caller, qualified);
-    if (!flags) return void 0;
-    if (flags.hostBacked) {
-      return () => {
-        throw new Error(
-          `'${qualified}' needs the runtime's host (${renderChain(flags.hostBackedVia)}) and cannot run at telo check`
-        );
-      };
-    }
-    const resolution = this.functions.resolve(caller, qualified);
-    if (resolution.status !== "resolved") return void 0;
-    const target = resolution.manifest;
-    const evaluate = this.bodyOf(target);
-    if (!evaluate) return void 0;
-    const { params, returns } = this.functions.signatureOf(target);
-    const binding = callArgumentBinding(qualified, params, returns, this.resolveRef);
-    return (args) => {
-      const refused2 = binding.arityRefusal(args.length);
-      if (refused2) throw new Error(refused2.message);
-      return binding.result(evaluate(binding.bind(args), this.dispatchFor(target)));
-    };
-  }
-  bodyOf(target) {
-    if (this.bodies.has(target)) return this.bodies.get(target) ?? void 0;
-    const body2 = this.functions.bodyOf(target);
-    let evaluate = null;
-    if (body2 && body2.source === void 0) {
-      const literal = body2.value;
-      evaluate = () => literal;
-    } else if (body2?.source !== void 0) {
-      evaluationEnv ??= buildCelEnvironment();
-      const env = moduleNamesEnvironment(
-        evaluationEnv,
-        moduleCallNamesOf(this.moduleCallNames, target)
-      );
-      const parsed = env.parse(body2.source);
-      if (parsed.diagnostics.length > 0) {
-        evaluate = null;
-      } else {
-        const program = env.compile(parsed);
-        evaluate = (activation, dispatch) => program.evaluate(activation, {
-          namespaceFunction: namespaceDispatchOf(dispatch)
-        });
-      }
-    }
-    this.bodies.set(target, evaluate);
-    return evaluate ?? void 0;
-  }
-};
-
-// ../../analyzer/nodejs/src/validate-module-calls.ts
-var SOURCE2 = "telo-analyzer";
-function moduleCallDiagnostics(site, index) {
-  if (!index.isOwned(site.manifest)) return [];
-  const out = [];
-  const { manifest, resource, filePath, path } = site;
-  const prefix = `${manifest.kind}/${resource.name}: CEL at '${path}' calls`;
-  const push3 = (code, message) => out.push({
-    severity: DiagnosticSeverity2.Error,
-    code,
-    source: SOURCE2,
-    message,
-    data: { resource, filePath, path }
-  });
-  const reported = /* @__PURE__ */ new Set();
-  for (const call of site.calls) {
-    if (!call.moduleCall) continue;
-    if (site.unboundReason !== void 0) {
-      if (reported.has(call.name)) continue;
-      reported.add(call.name);
-      push3("FUNCTION_CALL_UNBOUND", unboundCallMessage(prefix, call.name, site.unboundReason));
-      continue;
-    }
-    const resolution = index.resolve(manifest, call.name);
-    const receiver = call.name.slice(0, call.name.indexOf("."));
-    switch (resolution.status) {
-      case "unknown":
-        continue;
-      case "unresolved":
-        if (reported.has(call.name)) continue;
-        reported.add(call.name);
-        push3(
-          "FUNCTION_UNRESOLVED",
-          `${prefix} '${call.name}', which names no function this module can reach. A CEL function is a resource declared with capability 'Telo.Callable' in the module '${receiver}' names; an imported one must also be listed in that library's 'exports.resources'. Here, ${resolution.reason}`
-        );
-        continue;
-      case "not-exported":
-        if (reported.has(call.name)) continue;
-        reported.add(call.name);
-        push3(
-          "FUNCTION_NOT_EXPORTED",
-          `${prefix} '${call.name}', but the library imported as '${resolution.alias}' does not list '${resolution.name}' in its 'exports.resources', so it is private to that library. Export it there, or call a function the library does export.`
-        );
-        continue;
-      case "not-callable":
-        if (reported.has(call.name)) continue;
-        reported.add(call.name);
-        push3(
-          "FUNCTION_NOT_CALLABLE",
-          `${prefix} '${call.name}', which names the ${resolution.kind} resource '${resolution.manifest.metadata?.name}' \u2014 its capability resolves to '${resolution.capability ?? "<none>"}', not 'Telo.Callable'. Only a function can be called from an expression; dispatch any other resource from a step.`
-        );
-        continue;
-      case "resolved":
-        break;
-    }
-    const params = resolution.params;
-    const required = params.filter((param) => !param.optional).length;
-    if (call.arity < required || call.arity > params.length) {
-      const expected = required === params.length ? `${required}` : `${required} to ${params.length}`;
-      push3(
-        "FUNCTION_ARITY_MISMATCH",
-        `${prefix} '${call.name}' with ${call.arity} argument(s), but it takes ${expected} (${params.map((p) => p.optional ? `${p.name}?` : p.name).join(", ") || "none"}).`
-      );
-      continue;
-    }
-    (call.arguments ?? []).forEach((argument, index2) => {
-      const param = params[index2];
-      if (!param?.schema) return;
-      if (argument.type !== void 0 && !celTypeSatisfiesJsonSchema(argument.type.split("<")[0], param.schema)) {
-        push3(
-          "FUNCTION_ARGUMENT_MISMATCH",
-          `${prefix} '${call.name}' passing a '${argument.type}' for parameter '${param.name}', which expects '${describeSchema(param.schema)}'.`
-        );
-        return;
-      }
-      if (!argument.chain || !site.contextSchema) return;
-      const produced = navigateSchemaToExprPath(site.contextSchema, argument.chain.join("."));
-      if (!produced) return;
-      const { compatible, issues } = checkSchemaCompatibility(
-        produced,
-        param.schema,
-        site.resolveRef
-      );
-      if (compatible) return;
-      push3(
-        "FUNCTION_ARGUMENT_MISMATCH",
-        `${prefix} '${call.name}' passing '${argument.chain.join(".")}' for parameter '${param.name}', whose declared shape disagrees with it: ${issues.join("; ")}.`
-      );
-    });
-  }
-  return out;
-}
-function unboundSourceDiagnostics(manifest, filePath, sources, moduleNames, index) {
-  if (!index.isOwned(manifest)) return [];
-  const resource = { kind: manifest.kind, name: manifest.metadata?.name };
-  return sources.flatMap(
-    ({ path, source, reason }) => [...new Set(moduleCallsInSource(source, moduleNames))].map(
-      (call) => ({
-        severity: DiagnosticSeverity2.Error,
-        code: "FUNCTION_CALL_UNBOUND",
-        source: SOURCE2,
-        message: unboundCallMessage(`${resource.kind}/${resource.name}: CEL at '${path}' calls`, call, reason),
-        data: { resource, filePath, path }
-      })
-    )
-  );
-}
-function unboundCallMessage(prefix, call, reason) {
-  return `${prefix} '${call}', but ${reason}, so no module function can be called here. Write the logic into the expression itself.`;
-}
-function describeSchema(schema4) {
-  const declared = schema4["x-telo-type"] ?? schema4.type;
-  if (Array.isArray(declared)) return declared.join(" | ");
-  if (typeof declared === "string") return declared;
-  if (declared && typeof declared === "object" && typeof declared.name === "string") {
-    return declared.name;
-  }
-  return "the declared schema";
-}
-
-// ../../analyzer/nodejs/src/unbound-call-site.ts
-var UNBOUND_CALLS_ANNOTATION = "x-telo-unbound-calls";
-var readingsBySchema = /* @__PURE__ */ new WeakMap();
-var declaresBySchema = /* @__PURE__ */ new WeakMap();
-function unboundCallReason(schema4, path) {
-  return schema4 && declaresUnboundCalls(schema4) ? readingAt(schema4, path).reason : void 0;
-}
-function unboundCallSources(manifest, schema4) {
-  if (!schema4 || !declaresUnboundCalls(schema4)) return [];
-  const out = [];
-  const visit3 = (value2, path) => {
-    if (typeof value2 === "string") {
-      const reading = readingAt(schema4, path);
-      if (reading.source && reading.reason !== void 0) {
-        out.push({ path, source: value2, reason: reading.reason });
-      }
-      return;
-    }
-    if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return;
-    if (value2.__compiled === true) return;
-    if (Array.isArray(value2)) {
-      value2.forEach((item, index) => visit3(item, `${path}[${index}]`));
-      return;
-    }
-    for (const [key2, child] of Object.entries(value2)) visit3(child, path ? `${path}.${key2}` : key2);
-  };
-  visit3(manifest, "");
-  return out;
-}
-function declaresUnboundCalls(schema4) {
-  let declares = declaresBySchema.get(schema4);
-  if (declares === void 0) {
-    declares = holdsAnnotation(schema4, /* @__PURE__ */ new Set());
-    declaresBySchema.set(schema4, declares);
-  }
-  return declares;
-}
-function holdsAnnotation(value2, seen) {
-  if (!value2 || typeof value2 !== "object" || seen.has(value2)) return false;
-  seen.add(value2);
-  if (!Array.isArray(value2) && Object.prototype.hasOwnProperty.call(value2, UNBOUND_CALLS_ANNOTATION)) {
-    return true;
-  }
-  for (const child of Object.values(value2)) if (holdsAnnotation(child, seen)) return true;
-  return false;
-}
-function readingAt(root, path) {
-  let byPath = readingsBySchema.get(root);
-  if (!byPath) readingsBySchema.set(root, byPath = /* @__PURE__ */ new Map());
-  let reading = byPath.get(path);
-  if (!reading) {
-    reading = readAlong(root, path);
-    byPath.set(path, reading);
-  }
-  return reading;
-}
-function readAlong(root, path) {
-  let nodes = expand2([root], root);
-  for (const segment of segmentsOf(path)) {
-    const reason2 = reasonOn(nodes);
-    if (reason2 !== void 0) return { reason: reason2 };
-    const next = [];
-    for (const node of nodes) {
-      if (typeof segment === "number") {
-        if (isSchema2(node.items)) next.push(node.items);
-        continue;
-      }
-      const property = node.properties?.[segment];
-      if (isSchema2(property)) next.push(property);
-      else if (isSchema2(node.additionalProperties)) next.push(node.additionalProperties);
-    }
-    if (next.length === 0) return {};
-    nodes = expand2(next, root);
-  }
-  const reason = reasonOn(nodes);
-  if (reason === void 0) return {};
-  return {
-    reason,
-    source: nodes.some(
-      (node) => typeof node[UNBOUND_CALLS_ANNOTATION] === "string" && node.type === "string"
-    )
-  };
-}
-function expand2(nodes, root) {
-  const out = [];
-  const seen = /* @__PURE__ */ new Set();
-  const visit3 = (node) => {
-    const resolved = resolveLocalRef2(node, root) ?? node;
-    if (seen.has(resolved)) return;
-    seen.add(resolved);
-    out.push(resolved);
-    for (const key2 of ["oneOf", "anyOf", "allOf"]) {
-      const branches = resolved[key2];
-      if (!Array.isArray(branches)) continue;
-      for (const branch of branches) if (isSchema2(branch)) visit3(branch);
-    }
-  };
-  for (const node of nodes) visit3(node);
-  return out;
-}
-function reasonOn(nodes) {
-  for (const node of nodes) {
-    const reason = node[UNBOUND_CALLS_ANNOTATION];
-    if (typeof reason === "string" && reason.length > 0) return reason;
-  }
-  return void 0;
-}
-function segmentsOf(path) {
-  const out = [];
-  for (const match of path.matchAll(/([^.[\]]+)|\[(\d+)\]/g)) {
-    out.push(match[2] !== void 0 ? Number(match[2]) : match[1]);
-  }
-  return out;
-}
-function isSchema2(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-
-// ../../analyzer/nodejs/src/resolve-ref-sentinels.ts
-function resolveRefSentinels(resources, aliases, aliasesByModule, crossModuleTargets = [], defs) {
-  resolveReferences(resources, aliases, aliasesByModule, crossModuleTargets, defs, "all");
-}
-function resolveShapeRefs(resources, aliases, aliasesByModule) {
-  resolveReferences(resources, aliases, aliasesByModule, [], void 0, "shapes");
-}
-function resolveReferences(resources, aliases, aliasesByModule, crossModuleTargets, defs, extent) {
-  const moduleOf6 = (r) => r.metadata?.module;
-  const isForeign = isForwardedDeclaration;
-  const byName = /* @__PURE__ */ new Map();
-  const byModuleName = /* @__PURE__ */ new Map();
-  for (const r of resources) {
-    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
-    const name2 = r.metadata.name;
-    if (isForeign(r)) {
-      if (isForwardedExport(r)) byModuleName.set(`${moduleOf6(r)}\0${name2}`, r);
-    } else {
-      byName.set(name2, r);
-    }
-  }
-  for (const r of crossModuleTargets) {
-    if (!r.metadata?.name || isKindDocumentOrImport(r) || !isForwardedExport(r)) continue;
-    byModuleName.set(`${moduleOf6(r)}\0${r.metadata.name}`, r);
-  }
-  const resolveTarget = (source) => {
-    const dot = source.indexOf(".");
-    if (dot === -1) {
-      const t = byName.get(source);
-      return t ? { kind: t.kind, name: source } : void 0;
-    }
-    const alias = source.slice(0, dot);
-    const name2 = source.slice(dot + 1);
-    if (alias === "Self") {
-      const t = byName.get(name2);
-      return t ? { kind: t.kind, name: name2 } : void 0;
-    }
-    return resolveExported(alias, name2, aliases);
-  };
-  const resolveExported = (alias, name2, scope) => {
-    const module = scope?.moduleForAlias(alias);
-    if (module) {
-      const t = byModuleName.get(`${module}\0${name2}`);
-      if (t) {
-        const rawKind = t.kind;
-        const foreignKind = rawKind.startsWith("Self.") ? `${module}.${rawKind.slice("Self.".length)}` : aliasesByModule?.get(module)?.resolveKind(rawKind) ?? rawKind;
-        return { kind: foreignKind, name: name2, alias };
-      }
-    }
-    return void 0;
-  };
-  const byDeclaringModule = /* @__PURE__ */ new Map();
-  for (const r of resources) {
-    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
-    byDeclaringModule.set(`${moduleOf6(r) ?? ""}\0${r.metadata.name}`, r);
-  }
-  const shapeResolverFor = (doc) => {
-    const module = moduleOf6(doc);
-    const ownedByEntry = !isForeign(doc) && (module === void 0 || !aliasesByModule?.has(module));
-    if (ownedByEntry) return resolveTarget;
-    const scope = moduleAliasScope(doc.metadata, aliases, aliasesByModule);
-    return (source) => {
-      const dot = source.indexOf(".");
-      const alias = dot === -1 ? void 0 : source.slice(0, dot);
-      const name2 = dot === -1 ? source : source.slice(dot + 1);
-      if (alias === void 0 || alias === "Self") {
-        const t = byDeclaringModule.get(`${module ?? ""}\0${name2}`);
-        return t ? { kind: t.kind, name: name2 } : void 0;
-      }
-      return resolveExported(alias, name2, scope);
-    };
-  };
-  const declaredInScopes = (resource) => {
-    if (!defs) return void 0;
-    let declared;
-    for (const site of defs.referenceSites(resource, aliases, aliasesByModule)) {
-      if (site.scopes.length === 0) continue;
-      for (const element of Array.isArray(site.data) ? site.data : [site.data]) {
-        if (!element || typeof element !== "object" || Array.isArray(element)) continue;
-        const manifest = element;
-        const name2 = manifest.metadata?.name;
-        if (typeof manifest.kind === "string" && typeof name2 === "string") {
-          (declared ??= /* @__PURE__ */ new Map()).set(name2, manifest);
-        }
-      }
-    }
-    return declared;
-  };
-  const walk5 = (value2, scoped, resolve = resolveTarget) => {
-    if (isRefSentinel(value2)) {
-      const source = value2.source;
-      const bare = source.indexOf(".") === -1;
-      const shadow = bare ? scoped?.get(source) : void 0;
-      if (shadow) return { kind: shadow.kind, name: source };
-      return resolve(source) ?? value2;
-    }
-    if (value2 === null || typeof value2 !== "object") return value2;
-    if (isTaggedSentinel(value2)) return value2;
-    if (value2.__compiled) return value2;
-    if (Array.isArray(value2)) {
-      for (let i = 0; i < value2.length; i++) value2[i] = walk5(value2[i], scoped, resolve);
-      return value2;
-    }
-    const obj = value2;
-    const declared = typeof obj.kind === "string" ? declaredInScopes(obj) : void 0;
-    const inner = declared ? new Map([...scoped ?? /* @__PURE__ */ new Map(), ...declared]) : scoped;
-    for (const key2 of Object.keys(obj)) obj[key2] = walk5(obj[key2], inner, resolve);
-    return value2;
-  };
-  const walkShapeFields = (r, fields) => {
-    const resolve = shapeResolverFor(r);
-    const record = r;
-    for (const field of fields) {
-      if (record[field] !== void 0) record[field] = walk5(record[field], void 0, resolve);
-    }
-  };
-  for (const r of resources) {
-    if (!r.metadata?.name || !r.kind) continue;
-    if (isForeign(r)) {
-      walkShapeFields(r, isForwardedShape(r) ? ["schema"] : forwardedShapeFieldsOf(r));
-      continue;
-    }
-    if (extent === "shapes") {
-      if (r.kind === "Telo.Definition" || r.kind === "Telo.Abstract") {
-        walkShapeFields(r, KIND_SHAPE_FIELDS);
-      }
-      continue;
-    }
-    if (r.kind === "Telo.Import") {
-      const supplied = r.resources;
-      if (supplied) r.resources = walk5(supplied);
-      continue;
-    }
-    if (isKindDocument(r)) {
-      if (r.kind === "Telo.Definition" || r.kind === "Telo.Abstract") {
-        walkShapeFields(r, KIND_SHAPE_FIELDS);
-      }
-      continue;
-    }
-    walk5(r);
-  }
-}
-
-// ../../analyzer/nodejs/src/referrer-rule.ts
-var REFERRER_RULES_ANNOTATION = "x-telo-referrer-rules";
-function isObject8(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-function readRawReferrerRules(schema4) {
-  if (!isObject8(schema4)) return void 0;
-  return schema4[REFERRER_RULES_ANNOTATION];
-}
-function readReferrerRules(schema4) {
-  const raw = readRawReferrerRules(schema4);
-  if (!Array.isArray(raw)) return [];
-  const rules = [];
-  raw.forEach((entry, index) => {
-    if (!isObject8(entry)) return;
-    const condition = celSourceOf(entry.condition);
-    const { code, message, referrer, peers } = entry;
-    if (!condition || typeof code !== "string" || typeof message !== "string") return;
-    if (code.length === 0 || message.length === 0) return;
-    if (referrer !== void 0 && typeof referrer !== "string") return;
-    if (peers !== void 0 && typeof peers !== "string") return;
-    if (entry.severity !== void 0 && entry.severity !== "warning" && entry.severity !== "error") {
-      return;
-    }
-    rules.push({
-      ...referrer === void 0 ? {} : { referrer },
-      ...peers === void 0 ? {} : { peers },
-      condition,
-      code,
-      message,
-      severity: entry.severity === "warning" ? "warning" : "error",
-      index
-    });
-  });
-  return rules;
-}
-function hasReferrerRules(node) {
-  return Array.isArray(node[REFERRER_RULES_ANNOTATION]);
-}
-function rewriteReferrerRuleKinds(node, rewrite) {
-  const raw = node[REFERRER_RULES_ANNOTATION];
-  if (!Array.isArray(raw)) return;
-  for (const entry of raw) {
-    if (!isObject8(entry) || typeof entry.referrer !== "string") continue;
-    const rewritten = rewrite(entry.referrer);
-    if (rewritten !== void 0) entry.referrer = rewritten;
-  }
-}
-
-// ../../analyzer/nodejs/src/resolve-schema-ref-kinds.ts
-var REF_ANNOTATION = "x-telo-ref";
-function isLegacyRefIdentity(ref) {
-  return ref.includes("#");
-}
-function resolveSchemaRefKinds(definition, resolver) {
-  const issues = [];
-  const record = (ref, path, annotation = "ref") => {
-    if (isLegacyRefIdentity(ref)) {
-      issues.push({ ref, path, manifest: definition, reason: "legacy", annotation });
-      return;
-    }
-    const result = resolver.resolveKindResult(ref);
-    if (result.status === "ok") return;
-    issues.push(
-      result.status === "gated" ? {
-        ref,
-        path,
-        manifest: definition,
-        reason: "gated",
-        annotation,
-        gate: { module: result.module, exported: result.exported }
-      } : {
-        ref,
-        path,
-        manifest: definition,
-        reason: "unknown",
-        annotation,
-        knownAliases: resolver.knownAliases()
-      }
-    );
-  };
-  const walk5 = (value2, path) => {
-    if (value2 === null || typeof value2 !== "object") return;
-    if (Array.isArray(value2)) {
-      value2.forEach((item, i) => walk5(item, `${path}[${i}]`));
-      return;
-    }
-    const obj = value2;
-    if (obj[REF_ANNOTATION] !== void 0) {
-      rewriteRefSlotKinds(obj, (ref) => {
-        const result = isLegacyRefIdentity(ref) ? null : resolver.resolveKindResult(ref);
-        if (result?.status === "ok") return result.kind;
-        record(ref, path);
-        return void 0;
-      });
-    }
-    if (hasRequiresZone(obj)) {
-      rewriteRequiresZoneKind(obj, (zone) => {
-        const result = resolver.resolveKindResult(zone);
-        if (result.status === "ok") return result.kind;
-        record(zone, `${path}.x-telo-requires-zone`, "zone");
-        return void 0;
-      });
-    }
-    if (hasReferrerRules(obj)) {
-      rewriteReferrerRuleKinds(obj, (kind) => {
-        const result = resolver.resolveKindResult(kind);
-        if (result.status === "ok") return result.kind;
-        record(kind, `${path}.${REFERRER_RULES_ANNOTATION}`, "referrer");
-        return void 0;
-      });
-    }
-    for (const key2 of Object.keys(obj)) {
-      walk5(obj[key2], path ? `${path}.${key2}` : key2);
-    }
-  };
-  walk5(definition, "");
-  return issues;
-}
-
-// ../../analyzer/nodejs/src/resolve-zone-requirements.ts
-var SOURCE3 = "telo-analyzer";
-function definitionResolver(defs, aliases, aliasesByModule) {
-  return (kind, module) => {
-    const scope = moduleAliasScope({ module }, aliases, aliasesByModule);
-    const canonical = scope.resolveKind(kind);
-    return defs.resolve(kind) ?? (canonical ? defs.resolve(canonical) : void 0);
-  };
-}
-var canonicalOf = (def) => `${def.metadata.module}.${def.metadata.name}`;
-function correlationIdOf(node) {
-  if (node.scoped) return `${node.scopeOwner}\0${node.scopeSite}\0${node.name}`;
-  const source = node.manifest.metadata?.source ?? "";
-  return `${source}\0${node.name}`;
-}
-var labelOf = (node) => `${node.kind} '${node.name}'`;
-function schemaNodeAt(rootSchema, slotPath) {
-  if (!rootSchema) return void 0;
-  let current = rootSchema;
-  for (const segment of slotPath.split(".")) {
-    if (!current) return void 0;
-    const bare = segment.replace(/(\[\]|\{\})+$/g, "");
-    let next = propertySchemas(current).find(
-      ([k]) => k === bare
-    )?.[1];
-    for (const marker of segment.slice(bare.length).match(/\[\]|\{\}/g) ?? []) {
-      next = resolveLocalRef(
-        marker === "[]" ? next?.items : next?.additionalProperties,
-        rootSchema
-      );
-      if (!next || typeof next !== "object") return void 0;
-    }
-    current = resolveLocalRef(next, rootSchema);
-  }
-  return current;
-}
-function refName2(value2) {
-  const sentinel = refSentinelTarget(value2);
-  if (sentinel) {
-    if (sentinel.alias === void 0) return sentinel.name;
-    return sentinel.alias === "Self" ? sentinel.name : void 0;
-  }
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const v = value2;
-  const pure = typeof v.kind === "string" && typeof v.name === "string" && Object.keys(v).every((k) => k === "kind" || k === "name" || k === "alias" || k === "__ref");
-  if (!pure) return void 0;
-  const alias = v.alias;
-  if (typeof alias === "string" && alias !== "Self") return void 0;
-  return v.name;
-}
-function resolveStaticKey(start, pointers, resolveName) {
-  for (const pointer of pointers) {
-    if (!pointer.startsWith("/")) continue;
-    let manifest = start.manifest;
-    let context = start;
-    let value2 = void 0;
-    let failed = false;
-    const segments = pointer.slice(1).split("/");
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i].replace(/~1/g, "/").replace(/~0/g, "~");
-      if (i > 0) {
-        const name2 = refName2(value2);
-        const target2 = name2 ? resolveName(name2, context) : void 0;
-        if (!target2) {
-          failed = true;
-          break;
-        }
-        manifest = target2.manifest;
-        context = target2;
-      }
-      value2 = manifest?.[segment];
-      if (value2 === void 0 || value2 === null) {
-        failed = true;
-        break;
-      }
-    }
-    if (failed) continue;
-    const terminalName = refName2(value2);
-    const target = terminalName ? resolveName(terminalName, context) : void 0;
-    if (target) return target;
-  }
-  return void 0;
-}
-function resolveProviderKey(provider, edge, pointer, resolveName) {
-  const enclosing = enclosingOf(provider.manifest, edge.path);
-  if (enclosing === provider.manifest || enclosing === void 0) {
-    return resolveStaticKey(provider, [pointer], resolveName);
-  }
-  const synthetic = { ...provider, manifest: enclosing };
-  return resolveStaticKey(synthetic, [pointer], resolveName);
-}
-function projectZoneRequirements(args) {
-  const { graph, defs, aliases, aliasesByModule, reportModules, seeds, exportOf } = args;
-  const resolveDef = definitionResolver(defs, aliases, aliasesByModule);
-  const diagnostics = [];
-  const openExports = /* @__PURE__ */ new Map();
-  const reported = /* @__PURE__ */ new Set();
-  const scopeLocal = /* @__PURE__ */ new Map();
-  for (const node of graph.nodes.values()) {
-    if (node.type !== "resource" || !node.scoped) continue;
-    const key2 = `${node.scopeOwner}\0${node.scopeSite}`;
-    let bucket2 = scopeLocal.get(key2);
-    if (!bucket2) scopeLocal.set(key2, bucket2 = /* @__PURE__ */ new Map());
-    bucket2.set(node.name, node);
-  }
-  const resolveName = (name2, from) => {
-    if (from.scoped) {
-      const local = scopeLocal.get(`${from.scopeOwner}\0${from.scopeSite}`)?.get(name2);
-      if (local) return local;
-    }
-    return graph.resourceByName(
-      name2,
-      from.manifest.metadata?.module
-    );
-  };
-  const acceptedFor = (zone) => {
-    const out = /* @__PURE__ */ new Set([zone]);
-    for (const def of defs.getByExtends(zone)) {
-      const module = def.metadata?.module;
-      if (module && def.metadata?.name) out.add(`${module}.${def.metadata.name}`);
-    }
-    return out;
-  };
-  const moduleOf6 = (node) => node.manifest.metadata?.module;
-  const reportable = (node) => {
-    const module = moduleOf6(node);
-    return module === void 0 || reportModules.has(module);
-  };
-  const emit = (severity, code, edge, caller, req, via, why) => {
-    if (!reportable(caller)) return;
-    const dedupe2 = `${code}\0${edge.from}\0${edge.path}\0${req.key}`;
-    if (reported.has(dedupe2)) return;
-    reported.add(dedupe2);
-    const wanted = req.correlationLabel ? `a ${req.zone} zone on ${req.correlationLabel}` : `a ${req.zone} zone`;
-    const path = [...via, `${caller.name}.${edge.path}`].join(" \u2192 ");
-    const reason = req.reason ? ` ${req.reason}.` : "";
-    diagnostics.push({
-      severity,
-      code,
-      source: SOURCE3,
-      message: `${req.origin} requires ${wanted}, and the path ${path} ${why}.${reason}`,
-      data: {
-        resource: { kind: caller.kind, name: caller.name },
-        filePath: caller.manifest.metadata?.source,
-        path: edge.path
-      }
-    });
-  };
-  const visited = /* @__PURE__ */ new Set();
-  const propagate = (node, req, via) => {
-    const visitKey = `${node.id}\0${req.key}`;
-    if (visited.has(visitKey)) return;
-    visited.add(visitKey);
-    const exportName = exportOf?.(node);
-    if (exportName !== void 0) {
-      let bucket2 = openExports.get(exportName);
-      if (!bucket2) openExports.set(exportName, bucket2 = []);
-      if (!bucket2.some((r) => `${r.zone}\0${r.correlation ?? ""}` === req.key)) {
-        bucket2.push({
-          zone: req.zone,
-          ...req.attributes.length > 0 ? { attributes: req.attributes } : {},
-          correlation: req.correlation,
-          correlationLabel: req.correlationLabel,
-          correlationName: req.correlationName,
-          reason: req.reason,
-          origin: req.origin,
-          via: [...via]
-        });
-      }
-    }
-    for (const edge of graph.edgesTo(node.id)) {
-      const from = graph.nodes.get(edge.from);
-      if (!from) continue;
-      const caller = from.type === "step" ? graph.nodes.get(from.owner) : from;
-      if (!caller || caller.type !== "resource") continue;
-      const callerDef = resolveDef(caller.kind, moduleOf6(caller));
-      const bodySlot = from.type === "step" ? from.array.replace(/\[\d+\].*$/, "") : edge.slot;
-      const slotSchema = schemaNodeAt(
-        callerDef?.schema,
-        bodySlot
-      );
-      const provides = readProvidesZone(slotSchema);
-      if (provides && callerDef && req.accepted.has(canonicalOf(callerDef))) {
-        const providerKey = provides.key ? from.type === "step" ? resolveStaticKey(caller, [provides.key], resolveName) : resolveProviderKey(caller, edge, provides.key, resolveName) : void 0;
-        const discharged = req.correlation === void 0 || providerKey !== void 0 && correlationIdOf(providerKey) === req.correlation;
-        if (discharged) {
-          const missing = req.attributes.filter((a) => !(a in provides.attributes));
-          if (missing.length > 0) {
-            emit(
-              DiagnosticSeverity2.Error,
-              "ZONE_ATTRIBUTE_MISSING",
-              edge,
-              caller,
-              req,
-              via,
-              `reaches a ${canonicalOf(callerDef)} zone that does not declare ${missing.join(", ")}, so the guarantee this requirement is built on does not hold inside it`
-            );
-          }
-          continue;
-        }
-      }
-      if (edge.unresolvedReason === "dynamic") continue;
-      if (edge.use.length === 0) {
-        emit(
-          DiagnosticSeverity2.Warning,
-          "ZONE_REQUIREMENT_DEFERRED",
-          edge,
-          caller,
-          req,
-          via,
-          "reaches a slot that declares no use, so whether the zone survives it cannot be decided statically; the runtime check remains the enforcement"
-        );
-        continue;
-      }
-      if (edge.unresolved) {
-        emit(
-          DiagnosticSeverity2.Warning,
-          "ZONE_REQUIREMENT_DEFERRED",
-          edge,
-          caller,
-          req,
-          via,
-          `reaches a slot whose use selector could not be resolved (${edge.unresolvedReason}), so whether the zone survives it cannot be decided statically; the runtime check remains the enforcement`
-        );
-        continue;
-      }
-      if (edge.use.every((u) => u === "dependency" || u === "schema")) continue;
-      if (edge.use.length > 1) {
-        if (edge.use.every((u) => u === "call")) {
-          continueUp(caller, edge, req, via);
-          continue;
-        }
-        const guaranteedCleared = edge.use.filter(
-          (u) => u === "detached" || u === "trigger.inbound"
-        );
-        if (guaranteedCleared.length > 0) {
-          emit(
-            DiagnosticSeverity2.Error,
-            "ZONE_REQUIREMENT_UNSATISFIED",
-            edge,
-            caller,
-            req,
-            via,
-            `reaches a slot that dispatches its target several ways in one invocation ([${edge.use.join(", ")}]), and the ${guaranteedCleared.join(" / ")} dispatch is guaranteed a fresh context \u2014 so on that path the zone is gone`
-          );
-          continue;
-        }
-        emit(
-          DiagnosticSeverity2.Warning,
-          "ZONE_REQUIREMENT_DEFERRED",
-          edge,
-          caller,
-          req,
-          via,
-          `reaches a slot whose declared use is the set [${edge.use.join(", ")}]; whether the zone survives depends on where the consumer drains it, so it cannot be decided statically and the runtime check remains the enforcement`
-        );
-        continue;
-      }
-      switch (edge.use[0]) {
-        case "call":
-          continueUp(caller, edge, req, via);
-          break;
-        case "detached":
-          emit(
-            DiagnosticSeverity2.Error,
-            "ZONE_REQUIREMENT_UNSATISFIED",
-            edge,
-            caller,
-            req,
-            via,
-            "detaches there \u2014 the runtime guarantees the detached work a fresh context, outside every zone its caller was in"
-          );
-          break;
-        case "trigger.inbound":
-          emit(
-            DiagnosticSeverity2.Error,
-            "ZONE_REQUIREMENT_UNSATISFIED",
-            edge,
-            caller,
-            req,
-            via,
-            "is an inbound trigger registration \u2014 the handler runs on a fresh context driven by a request or timer, outside every zone"
-          );
-          break;
-        case "trigger.consumer":
-          emit(
-            DiagnosticSeverity2.Warning,
-            "ZONE_REQUIREMENT_DEFERRED",
-            edge,
-            caller,
-            req,
-            via,
-            "is dispatched when a returned value is drained, so where it runs is the drain site's choice; the runtime check remains the enforcement"
-          );
-          break;
-      }
-    }
-  };
-  const continueUp = (caller, edge, req, via) => {
-    if (caller.kind === "Telo.Application") {
-      emit(
-        DiagnosticSeverity2.Error,
-        "ZONE_REQUIREMENT_UNSATISFIED",
-        edge,
-        caller,
-        req,
-        via,
-        "reaches the application's boot targets, which nothing encloses"
-      );
-      return;
-    }
-    propagate(caller, req, [...via, caller.name]);
-  };
-  for (const node of graph.nodes.values()) {
-    if (node.type !== "resource") continue;
-    const meta = node.manifest.metadata;
-    if (isForwardedDeclaration(node.manifest)) continue;
-    const def = resolveDef(node.kind, meta?.module);
-    const schema4 = def?.schema;
-    if (!def || !schema4) continue;
-    const slots = [[schema4, void 0]];
-    for (const [field, propSchema] of Object.entries(
-      schema4.properties ?? {}
-    )) {
-      slots.push([propSchema, field]);
-    }
-    for (const [slotSchema, field] of slots) {
-      const requires = readRequiresZone(slotSchema);
-      if (!requires) continue;
-      if (field !== void 0 && node.manifest[field] === void 0) {
-        continue;
-      }
-      const zoneDef = resolveDef(requires.zone, def.metadata.module);
-      if (!zoneDef) continue;
-      const zone = canonicalOf(zoneDef);
-      const target = resolveStaticKey(node, requires.key, resolveName);
-      const req = {
-        zone,
-        accepted: acceptedFor(zone),
-        attributes: requires.attributes,
-        correlation: target ? correlationIdOf(target) : void 0,
-        correlationLabel: target ? labelOf(target) : void 0,
-        correlationName: target?.name,
-        reason: requires.reason,
-        origin: labelOf(node),
-        key: ""
-      };
-      req.key = `${req.zone}\0${req.correlation ?? ""}`;
-      propagate(node, req, [node.name]);
-    }
-  }
-  if (seeds && seeds.size > 0) {
-    for (const node of graph.nodes.values()) {
-      if (node.type !== "resource") continue;
-      const meta = node.manifest.metadata;
-      if (!meta?.forwardedExport || !meta.module) continue;
-      const specs = seeds.get(`${meta.module}\0${node.name}`);
-      if (!specs) continue;
-      for (const spec of specs) {
-        const zoneDef = defs.resolve(spec.zone);
-        const req = {
-          zone: spec.zone,
-          accepted: zoneDef ? acceptedFor(spec.zone) : /* @__PURE__ */ new Set([spec.zone]),
-          attributes: spec.attributes ?? [],
-          correlation: spec.correlation,
-          correlationLabel: spec.correlationLabel,
-          correlationName: spec.correlationName,
-          reason: spec.reason,
-          origin: spec.origin,
-          key: `${spec.zone}\0${spec.correlation ?? ""}`
-        };
-        propagate(node, req, [...spec.via, node.name]);
-      }
-    }
-  }
-  return { diagnostics, openExports };
-}
-function zoneDocumentsSignature(manifests) {
-  let hash = 2166136261;
-  const mix = (text3) => {
-    for (let i = 0; i < text3.length; i++) {
-      hash ^= text3.charCodeAt(i);
-      hash = Math.imul(hash, 16777619);
-    }
-  };
-  for (const m of manifests) mix(JSON.stringify(m) ?? "");
-  return (hash >>> 0).toString(16);
-}
-function deriveLibraryExportRequirements(docs, defs, aliases, aliasesByModule, cache) {
-  const signature = docs.signature ?? zoneDocumentsSignature(docs.manifests);
-  const cached = cache?.get(docs.sourceId);
-  if (cached && cached.signature === signature) return cached.exports;
-  const exported = new Set(docs.exportedNames);
-  const graph = buildCallGraph(docs.manifests, defs, { aliases, aliasesByModule });
-  const { openExports } = projectZoneRequirements({
-    graph,
-    defs,
-    aliases,
-    aliasesByModule,
-    reportModules: /* @__PURE__ */ new Set(),
-    exportOf: (node) => !node.scoped && exported.has(node.name) ? node.name : void 0
-  });
-  cache?.set(docs.sourceId, { signature, exports: openExports });
-  return openExports;
-}
-function runZoneAnalysis(args) {
-  const { manifests, graph, defs, aliases, aliasesByModule, rootModules } = args;
-  const seeds = /* @__PURE__ */ new Map();
-  for (const docs of args.moduleDocuments ?? []) {
-    if (docs.exportedNames.length === 0) continue;
-    const contracts = deriveLibraryExportRequirements(
-      docs,
-      defs,
-      aliases,
-      aliasesByModule,
-      args.cache
-    );
-    for (const [exportName, specs] of contracts) {
-      if (specs.length > 0) seeds.set(`${docs.module}\0${exportName}`, specs);
-    }
-  }
-  const rootLibraries = [];
-  for (const m of manifests) {
-    if (m.kind !== "Telo.Library") continue;
-    const name2 = m.metadata?.name;
-    if (!name2 || !rootModules.has(name2)) continue;
-    const exportedNames = /* @__PURE__ */ new Set();
-    for (const entry of m.exports?.resources ?? []) {
-      if (typeof entry !== "string") continue;
-      const dot = entry.indexOf(".");
-      exportedNames.add(dot > 0 ? entry.slice(dot + 1) : entry);
-    }
-    if (exportedNames.size > 0) rootLibraries.push({ module: name2, exportedNames, doc: m });
-  }
-  const exportOf = rootLibraries.length > 0 ? (node) => {
-    if (node.scoped) return void 0;
-    const module = node.manifest.metadata?.module;
-    const lib = rootLibraries.find((l) => l.module === module);
-    return lib?.exportedNames.has(node.name) ? node.name : void 0;
-  } : void 0;
-  const { diagnostics, openExports } = projectZoneRequirements({
-    graph,
-    defs,
-    aliases,
-    aliasesByModule,
-    reportModules: rootModules,
-    seeds: seeds.size > 0 ? seeds : void 0,
-    exportOf
-  });
-  for (const lib of rootLibraries) {
-    for (const [exportName, specs] of openExports) {
-      if (!lib.exportedNames.has(exportName)) continue;
-      const node = graph.resourceByName(exportName, lib.module);
-      if (!node || node.manifest.metadata?.module !== lib.module) {
-        continue;
-      }
-      for (const spec of specs) {
-        if (spec.correlationName === void 0) continue;
-        if (lib.exportedNames.has(spec.correlationName)) continue;
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "ZONE_EXPORT_UNSATISFIABLE",
-          source: SOURCE3,
-          message: `exported resource '${exportName}' carries an open requirement: ${spec.origin} requires a ${spec.zone} zone on ${spec.correlationLabel}, which this library does not export \u2014 no importer can satisfy it. Export '${spec.correlationName}' too (importers wrap '${exportName}' in their own zone on it), or export a resource that goes through the provider instead of '${exportName}' directly.` + (spec.reason ? ` ${spec.reason}.` : ""),
-          data: {
-            resource: { kind: node.kind, name: node.name },
-            filePath: node.manifest.metadata?.source,
-            path: ""
-          }
-        });
-      }
-    }
-  }
-  return diagnostics;
-}
-
-// ../../analyzer/nodejs/src/validate-durable-regions.ts
-var SOURCE4 = "telo";
-function impureCalls(source, moduleNames, moduleCallFlags) {
-  const env = moduleNamesEnvironment(CEL_ENV, moduleNames);
-  const parsed = env.parse(source);
-  if (parsed.diagnostics.length > 0) {
-    return [];
-  }
-  const labels = [];
-  for (const call of auditCalls(source, parsed.root, env, moduleCallFlags).calls) {
-    if (call.deterministic !== false) continue;
-    const label2 = call.moduleCall ? renderChain(moduleCallFlags(call.name)?.nondeterministicVia ?? [call.name]) : `${call.name}()`;
-    if (!labels.includes(label2)) labels.push(label2);
-  }
-  return labels;
-}
-var CEL_ENV = buildCelEnvironment();
-function celSources(value2, path, out) {
-  if (!value2 || typeof value2 !== "object") return;
-  if (isTaggedSentinel(value2)) {
-    for (const expression of celExpressionsOf(value2.engine, value2.source)) {
-      out.push([path, expression]);
-    }
-    return;
-  }
-  if (isCompiledValue(value2)) {
-    if (typeof value2.source === "string") out.push([path, value2.source]);
-    return;
-  }
-  if (Array.isArray(value2)) {
-    value2.forEach((item, i) => celSources(item, `${path}[${i}]`, out));
-    return;
-  }
-  const record = value2;
-  if (path && typeof record.kind === "string") return;
-  for (const [key2, child] of Object.entries(record)) {
-    if (key2 === "kind" || key2 === "metadata") continue;
-    celSources(child, path ? `${path}.${key2}` : key2, out);
-  }
-}
-function checkNondeterminism(region, graph, reportModules, moduleCallNames2, moduleCallFlags, diagnostics) {
-  for (const { node } of region.contents.values()) {
-    const [manifest, base, prefix] = celScopeOf(node, graph);
-    if (!manifest || !owned(manifest, reportModules)) continue;
-    const found = [];
-    celSources(base, prefix, found);
-    for (const [path, source] of found) {
-      for (const fn of impureCalls(
-        source,
-        moduleCallNamesOf(moduleCallNames2, manifest),
-        (qualified) => moduleCallFlags(manifest, qualified)
-      )) {
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "DURABLE_NONDETERMINISM",
-          source: SOURCE4,
-          message: `'${fn}' is evaluated inside a region declared idempotent by ${region.provider.kind} '${region.provider.name}' \u2014 "${region.reason}". A region with that claim re-runs on a resume with its earlier effects intact, so an expression that produces a different value each time makes the re-run something other than a no-op and the claim false. Pin the value once for the region instead of computing it per pass. A native function counts as deterministic only where its kind declares \`deterministic: true\`.`,
-          data: {
-            resource: { kind: manifest.kind, name: manifest.metadata?.name },
-            filePath: manifest.metadata?.source,
-            path
-          }
-        });
-        break;
-      }
-    }
-  }
-}
-function checkDetach(region, reportModules, diagnostics) {
-  for (const boundary of region.boundaries) {
-    if (!boundary.escaping.includes("detached")) continue;
-    if (!owned(boundary.from.manifest, reportModules)) continue;
-    diagnostics.push({
-      severity: DiagnosticSeverity2.Error,
-      code: "DURABLE_DETACH_FORBIDDEN",
-      source: SOURCE4,
-      message: `${boundary.from.kind} '${boundary.from.name}' dispatches '${boundary.edge.slot}' detached inside a durable region (${region.provider.kind} '${region.provider.name}'). Progress is recorded when a step COMPLETES, so a detached dispatch would be recorded as done while its work was still running \u2014 a resume would skip it and a crash would lose it, which is the opposite of what durability provides. Start a nested durable run instead and let the step record its run id: the work keeps its own identity and its own recovery, and nothing is awaited.`,
-      data: {
-        resource: { kind: boundary.from.kind, name: boundary.from.name },
-        filePath: boundary.from.manifest.metadata?.source,
-        path: boundary.edge.path
-      }
-    });
-  }
-}
-function checkUnjournalableResults(region, resolveDef, graph, reportModules, diagnostics) {
-  for (const { node } of region.contents.values()) {
-    if (node.type !== "step") continue;
-    for (const edge of graph.edgesFrom(node.id)) {
-      const target = edge.to ? graph.nodes.get(edge.to) : void 0;
-      if (!target || target.type !== "resource") continue;
-      const def = resolveDef(
-        target.kind,
-        target.manifest.metadata?.module
-      );
-      const declared = target.manifest.outputType ?? def?.outputType;
-      if (!isLiveSchema(declared)) continue;
-      const owner = graph.nodes.get(node.owner);
-      const manifest = owner?.type === "resource" ? owner.manifest : target.manifest;
-      if (!owned(manifest, reportModules)) continue;
-      diagnostics.push({
-        severity: DiagnosticSeverity2.Warning,
-        code: "DURABLE_UNJOURNALABLE_RESULT",
-        source: SOURCE4,
-        message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', whose declared output is a live value, inside a durable region (${region.provider.kind} '${region.provider.name}'). A live handle is produced by consuming it, so it cannot be recorded and replayed \u2014 the run will fail at this step with ERR_DURABLE_UNJOURNALABLE_VALUE. Collect what you need from it into a plain value inside the step, or move the streaming work outside the durable body.`,
-        data: {
-          resource: { kind: manifest.kind, name: manifest.metadata?.name },
-          filePath: manifest.metadata?.source,
-          path: node.path
-        }
-      });
-    }
-  }
-}
-function isLiveSchema(schema4) {
-  if (!schema4 || typeof schema4 !== "object") return false;
-  const annotation = schema4["x-telo-type"];
-  const name2 = typeof annotation === "string" ? annotation : annotation?.name;
-  if (!name2) {
-    const inner = schema4.schema;
-    return inner !== void 0 && inner !== schema4 ? isLiveSchema(inner) : false;
-  }
-  return LIVE_TYPE_NAMES.has(name2);
-}
-var LIVE_TYPE_NAMES = new Set(
-  [...VALUE_TYPES.values()].filter((e) => e.live).map((e) => e.name)
-);
-function celScopeOf(node, graph) {
-  if (node.type === "resource") return [node.manifest, node.manifest, ""];
-  const owner = graph.nodes.get(node.owner);
-  const manifest = owner?.type === "resource" ? owner.manifest : void 0;
-  return [manifest, node.step, node.path];
-}
-function owned(manifest, reportModules) {
-  const module = manifest.metadata?.module;
-  return !module || reportModules.size === 0 || reportModules.has(module);
-}
-function validateDurableRegions(args) {
-  const diagnostics = [];
-  for (const region of findZoneRegions(args.graph, args.resolveDef, "replayed")) {
-    checkDetach(region, args.reportModules, diagnostics);
-    checkUnjournalableResults(
-      region,
-      args.resolveDef,
-      args.graph,
-      args.reportModules,
-      diagnostics
-    );
-  }
-  for (const region of findZoneRegions(args.graph, args.resolveDef, "idempotent")) {
-    checkNondeterminism(
-      region,
-      args.graph,
-      args.reportModules,
-      args.moduleCallNames,
-      args.moduleCallFlags,
-      diagnostics
-    );
-  }
-  return diagnostics;
-}
-
-// ../../analyzer/nodejs/src/validate-zone-violations.ts
-var SOURCE5 = "telo";
-function validateZoneViolations(args) {
-  const { graph, resolveDef, reportModules } = args;
-  const diagnostics = [];
-  const reported = /* @__PURE__ */ new Set();
-  const violationsOf = /* @__PURE__ */ new Map();
-  const violations = (kind, module) => {
-    const key2 = `${module ?? ""}\0${kind}`;
-    let found = violationsOf.get(key2);
-    if (!found) {
-      const def = resolveDef(kind, module);
-      found = readViolatesZone(def?.schema);
-      violationsOf.set(key2, found);
-    }
-    return found;
-  };
-  for (const attribute of ZONE_ATTRIBUTES.keys()) {
-    for (const region of findZoneRegions(graph, resolveDef, attribute)) {
-      for (const contained of region.contents.values()) {
-        if (attribute === "noSuspend" && contained.node.type === "step") {
-          const ownerNode = graph.nodes.get(contained.node.owner);
-          const owner = ownerNode?.type === "resource" ? ownerNode : void 0;
-          if (owner && owned2(owner.manifest, reportModules) && suspendingBackoff(contained.node.step.retry)) {
-            const dedupe3 = `retry\0${contained.node.id}`;
-            if (!reported.has(dedupe3)) {
-              reported.add(dedupe3);
-              diagnostics.push({
-                severity: DiagnosticSeverity2.Error,
-                code: "ZONE_ATTRIBUTE_VIOLATED",
-                source: SOURCE5,
-                message: `Step '${contained.node.name ?? contained.node.path}' declares a retry whose last backoff reaches ${SUSPENDING_BACKOFF_MS}ms, at which point a re-attempt waits by PARKING the run rather than by sleeping \u2014 but it is inside a ${region.provider.kind} '${region.provider.name}' region that declares 'noSuspend' (${region.reason}). Shorten the backoff, or move the retry outside the region so it re-attempts the region as a whole.`,
-                data: {
-                  resource: { kind: owner.kind, name: owner.name },
-                  filePath: owner.manifest.metadata?.source,
-                  path: contained.node.path
-                }
-              });
-            }
-          }
-        }
-        if (contained.node.type !== "resource") continue;
-        const manifest = contained.node.manifest;
-        const module = manifest.metadata?.module;
-        const rebuttal = violations(contained.node.kind, module)[attribute];
-        if (!rebuttal) continue;
-        if (!owned2(manifest, reportModules)) continue;
-        const dedupe2 = `${region.provider.id}\0${region.slot}\0${contained.node.id}\0${attribute}`;
-        if (reported.has(dedupe2)) continue;
-        reported.add(dedupe2);
-        const path = [`${region.provider.name}.${region.slot}`, ...contained.via].join(" \u2192 ");
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "ZONE_ATTRIBUTE_VIOLATED",
-          source: SOURCE5,
-          message: `${contained.node.kind} '${contained.node.name}' is inside a ${region.provider.kind} '${region.provider.name}' region that declares '${attribute}' (${region.reason}), but ${contained.node.kind} cannot honour it: ${rebuttal}. Reached by ${path}. Move it outside the region, or use a region that does not make that promise.`,
-          data: {
-            resource: { kind: contained.node.kind, name: contained.node.name },
-            filePath: manifest.metadata?.source
-          }
-        });
-      }
-    }
-  }
-  return diagnostics;
-}
-function suspendingBackoff(raw) {
-  if (!raw || typeof raw !== "object") return false;
-  const policy = raw;
-  if (!Object.values(policy).every(isStaticValue)) return false;
-  const attempts = policy.attempts;
-  if (typeof attempts !== "number" || attempts <= 0) return false;
-  return retryBackoffMs(policy, attempts - 1) >= SUSPENDING_BACKOFF_MS;
-}
-function isStaticValue(value2) {
-  return value2 === void 0 || typeof value2 === "number" || typeof value2 === "string";
-}
-function owned2(manifest, reportModules) {
-  const module = manifest.metadata?.module;
-  return !module || reportModules.size === 0 || reportModules.has(module);
-}
-
-// ../../analyzer/nodejs/src/validate-zone-slots.ts
-var PROVIDES2 = "x-telo-provides-zone";
-var REQUIRES2 = "x-telo-requires-zone";
-var VIOLATES2 = "x-telo-violates-zone";
-function isPointer2(value2) {
-  return typeof value2 === "string" && value2.startsWith("/") && value2.length > 1;
-}
-function describe2(value2) {
-  if (typeof value2 === "string") return `'${value2}'`;
-  if (Array.isArray(value2)) return `a list`;
-  if (value2 === null) return "null";
-  return typeof value2;
-}
-function suggestAttribute(name2) {
-  if (!name2) return void 0;
-  const threshold = Math.min(3, Math.floor(name2.length / 3));
-  if (threshold < 1) return void 0;
-  let best;
-  let bestDist = threshold + 1;
-  let tied = false;
-  for (const candidate of ZONE_ATTRIBUTES.keys()) {
-    const d = distance(name2, candidate);
-    if (d < bestDist) {
-      best = candidate;
-      bestDist = d;
-      tied = false;
-    } else if (d === bestDist) {
-      tied = true;
-    }
-  }
-  return !best || bestDist > threshold || tied ? void 0 : best;
-}
-function checkAttributes(obj, definition, path, issues, annotation = PROVIDES2) {
-  const declared = /* @__PURE__ */ new Set();
-  for (const [name2, value2] of Object.entries(obj)) {
-    if (name2 === "key") continue;
-    const entry = ZONE_ATTRIBUTES.get(name2);
-    if (!entry) {
-      const suggestion = suggestAttribute(name2);
-      issues.push({
-        code: "ZONE_ATTRIBUTE_UNKNOWN",
-        manifest: definition,
-        path,
-        message: `${annotation} at '${path}' declares '${name2}', which is not a zone attribute. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `The vocabulary is closed: ${zoneAttributeNames().join(", ")}. An attribute states a property of everything executed inside this zone, and every reader of one is core \u2014 a name outside the set would be read by nothing.`
-      });
-      continue;
-    }
-    if (typeof value2 !== "string" || !value2) {
-      issues.push({
-        code: "ZONE_ANNOTATION_INVALID",
-        manifest: definition,
-        path,
-        message: `${annotation} at '${path}' declares '${name2}' as ${describe2(value2)}. Every zone attribute's value is the author's REASON \u2014 a non-empty sentence, quoted verbatim by the diagnostics that enforce it (${entry.description}).`
-      });
-      continue;
-    }
-    declared.add(name2);
-  }
-  if (annotation !== PROVIDES2) return;
-  for (const name2 of declared) {
-    for (const dependency of ZONE_ATTRIBUTES.get(name2).requires) {
-      if (declared.has(dependency)) continue;
-      issues.push({
-        code: "ZONE_ATTRIBUTE_INCOMPLETE",
-        manifest: definition,
-        path,
-        message: `${PROVIDES2} at '${path}' declares '${name2}' without '${dependency}', which it requires. ${ZONE_ATTRIBUTES.get(dependency).description} Declare it with its own reason \u2014 a generic message is exactly what the required reason exists to prevent.`
-      });
-    }
-  }
-}
-function checkProvides(raw, definition, path, issues) {
-  if (raw === true) return;
-  if (isPointer2(raw)) return;
-  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
-    const obj = raw;
-    if (obj.key !== void 0 && !isPointer2(obj.key)) {
-      issues.push({
-        code: "ZONE_ANNOTATION_INVALID",
-        manifest: definition,
-        path,
-        message: `${PROVIDES2} at '${path}' declares the correlation key ${describe2(obj.key)}, which is not a self-relative JSON Pointer. Write '/connection'. A bare field name is read as a pointer by the runtime but skipped by the checker, so the two halves would disagree about what this manifest means.`
-      });
-    }
-    checkAttributes(obj, definition, path, issues);
-    return;
-  }
-  issues.push({
-    code: "ZONE_ANNOTATION_INVALID",
-    manifest: definition,
-    path,
-    message: `${PROVIDES2} at '${path}' is ${describe2(raw)}. It takes 'true' (the zone is uncorrelated), a self-relative JSON Pointer naming this kind's own field whose resolved reference the zone carries as its correlation payload (e.g. '/connection'), or an object carrying that pointer as 'key' beside the zone attributes this region declares (${zoneAttributeNames().join(", ")}). It never names the zone \u2014 the zone a slot provides is always the declaring kind.`
-  });
-}
-function checkRequires(raw, definition, path, issues) {
-  const fail = (message) => {
-    issues.push({ code: "ZONE_ANNOTATION_INVALID", manifest: definition, path, message });
-  };
-  if (typeof raw === "string") {
-    if (!raw) fail(`${REQUIRES2} at '${path}' is an empty string; name the providing kind.`);
-    return;
-  }
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    fail(
-      `${REQUIRES2} at '${path}' is ${describe2(raw)}. It takes an alias-qualified kind name (e.g. 'Self.Transaction') or an object with 'zone', an optional 'key' and an optional 'reason'.`
-    );
-    return;
-  }
-  const obj = raw;
-  if (typeof obj.zone !== "string" || !obj.zone) {
-    fail(
-      `${REQUIRES2} at '${path}' declares no 'zone'. Name the providing kind with the same alias-qualified grammar 'extends' and 'x-telo-ref' use \u2014 '<Alias>.<Kind>', 'Self.<Kind>', or 'Telo.<Kind>'. Without it the requirement is silently unenforced, and the resource throws at dispatch instead.`
-    );
-  }
-  if (obj.key !== void 0) {
-    const pointers = Array.isArray(obj.key) ? obj.key : [obj.key];
-    if (Array.isArray(obj.key) && obj.key.length === 0) {
-      fail(`${REQUIRES2} at '${path}' declares an empty 'key' list; omit 'key' instead.`);
-    }
-    for (const pointer of pointers) {
-      if (isPointer2(pointer)) continue;
-      fail(
-        `${REQUIRES2} at '${path}' declares the correlation key ${describe2(pointer)}, which is not a self-relative JSON Pointer. Write '/connection' (or a list of pointers tried in order, first hit winning). A bare field name is read as a pointer by the runtime but skipped by the checker, so the two halves would disagree about what this manifest means.`
-      );
-    }
-  }
-  if (obj.reason !== void 0 && typeof obj.reason !== "string") {
-    fail(`${REQUIRES2} at '${path}' declares a non-string 'reason'.`);
-  }
-  if (obj.attributes !== void 0) {
-    if (!Array.isArray(obj.attributes) || obj.attributes.length === 0) {
-      fail(
-        `${REQUIRES2} at '${path}' declares 'attributes' as ${describe2(obj.attributes)}. It takes a non-empty list of zone attribute names; omit it to require the kind alone.`
-      );
-    } else {
-      for (const name2 of obj.attributes) {
-        if (typeof name2 === "string" && ZONE_ATTRIBUTES.has(name2)) continue;
-        const suggestion = typeof name2 === "string" ? suggestAttribute(name2) : void 0;
-        issues.push({
-          code: "ZONE_ATTRIBUTE_UNKNOWN",
-          manifest: definition,
-          path,
-          message: `${REQUIRES2} at '${path}' requires '${String(name2)}', which is not a zone attribute. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `The vocabulary is closed: ${zoneAttributeNames().join(", ")}.`
-        });
-      }
-    }
-  }
-  for (const key2 of Object.keys(obj)) {
-    if (key2 === "zone" || key2 === "key" || key2 === "reason" || key2 === "attributes") {
-      continue;
-    }
-    fail(
-      `${REQUIRES2} at '${path}' declares an unknown property '${key2}'. The object form takes 'zone', 'key', 'reason' and 'attributes'.`
-    );
-  }
-}
-function checkViolates(raw, definition, path, issues) {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    issues.push({
-      code: "ZONE_ANNOTATION_INVALID",
-      manifest: definition,
-      path,
-      message: `${VIOLATES2} at '${path}' is ${describe2(raw)}. It takes a map of zone attribute names to the reason this kind cannot honour each \u2014 \`noSuspend: this waits for a delivery that may be days away\`.`
-    });
-    return;
-  }
-  checkAttributes(raw, definition, path, issues, VIOLATES2);
-}
-function walkSchema(node, path, visited, definition, issues) {
-  if (!node || typeof node !== "object") return;
-  if (visited.has(node)) return;
-  visited.add(node);
-  if (Array.isArray(node)) {
-    node.forEach((item, i) => walkSchema(item, `${path}[${i}]`, visited, definition, issues));
-    return;
-  }
-  const obj = node;
-  if (obj[PROVIDES2] !== void 0) checkProvides(obj[PROVIDES2], definition, path, issues);
-  if (obj[REQUIRES2] !== void 0) checkRequires(obj[REQUIRES2], definition, path, issues);
-  if (obj[VIOLATES2] !== void 0) checkViolates(obj[VIOLATES2], definition, path, issues);
-  for (const [key2, value2] of Object.entries(obj)) {
-    if (key2 === PROVIDES2 || key2 === REQUIRES2 || key2 === VIOLATES2) continue;
-    if (key2 === "examples" || key2 === "default") continue;
-    walkSchema(value2, path ? `${path}.${key2}` : key2, visited, definition, issues);
-  }
-}
-function validateZoneSlotDeclarations(definition) {
-  const issues = [];
-  const schema4 = definition.schema;
-  if (!schema4 || typeof schema4 !== "object") return issues;
-  walkSchema(schema4, "schema", /* @__PURE__ */ new Set(), definition, issues);
-  return issues;
-}
-
-// ../../analyzer/nodejs/src/validate-schema-projection.ts
-var PROJECTION = "x-telo-schema-projection";
-function isObject9(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-var PROJECTION_FROM2 = "x-telo-schema-projection-from";
-function validateSchemaProjection(manifest) {
-  const kindDocument = manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract";
-  return kindDocument ? [...derivationIssues(manifest, true), ...projectionIssues(manifest)] : derivationIssues(manifest, false);
-}
-function derivationIssues(manifest, kindDocument) {
-  const issues = [];
-  const doc = manifest;
-  const report = (path, message) => {
-    issues.push({ code: "SCHEMA_PROJECTION_INVALID", manifest, path, message });
-  };
-  if (kindDocument) {
-    const kind = readKindDerivation(doc);
-    if (kind && "invalid" in kind) report(PROJECTION_FROM2, kind.invalid);
-  }
-  const visit3 = (node, path, segments) => {
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => visit3(item, `${path}[${index}]`, [...segments, index]));
-      return;
-    }
-    if (!isObject9(node)) return;
-    for (const [key2, value2] of Object.entries(node)) {
-      const at2 = path === "" ? key2 : `${path}.${key2}`;
-      if (key2 === PROJECTION_FROM2) {
-        if (!isInSchemaRegion([...segments, key2])) continue;
-        const read = readProjectionDerivation(value2);
-        if (read && "invalid" in read) report(at2, read.invalid);
-        continue;
-      }
-      visit3(value2, at2, [...segments, key2]);
-    }
-  };
-  visit3(doc, "", []);
-  return issues;
-}
-function projectionIssues(manifest) {
-  const doc = manifest;
-  const raw = rawSchemaProjection(doc);
-  if (raw === void 0) return [];
-  const misplaced = schemaProjectionIsMisplaced(doc);
-  const base = misplaced ? `schema.${PROJECTION}` : PROJECTION;
-  const issue = (code, path, message) => ({ code, manifest, path, message });
-  const issues = [];
-  if (misplaced) {
-    issues.push(
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        base,
-        `'${PROJECTION}' belongs on the kind DOCUMENT, beside 'schema:', not inside it \u2014 it describes the whole declaration rather than one field. It is read from here too, so nothing is broken; move it up a level.`
-      )
-    );
-  }
-  if (!isObject9(raw)) {
-    return [
-      ...issues,
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        base,
-        `'${PROJECTION}' must be an object naming the entry collection and the field that keys it.`
-      )
-    ];
-  }
-  for (const key2 of Object.keys(raw)) {
-    if (SCHEMA_PROJECTION_KEYS.includes(key2)) continue;
-    issues.push(
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        `${base}.${key2}`,
-        `'${PROJECTION}' has no '${key2}'. It declares ${SCHEMA_PROJECTION_KEYS.map((k) => `'${k}'`).join(", ")}.`
-      )
-    );
-  }
-  const missing = ["entries", "key"].filter((field2) => typeof raw[field2] !== "string");
-  if (missing.length > 0) {
-    return [
-      ...issues,
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        base,
-        `'${PROJECTION}' is missing ${missing.map((f2) => `'${f2}'`).join(" and ")}. 'entries' is a JSON Pointer to the collection, 'key' the entry field whose value selects an 'x-telo-schema-map' entry.`
-      )
-    ];
-  }
-  const projection = readSchemaProjection(doc);
-  const schema4 = doc.schema;
-  if (isArrayCollection(projectionCollectionSchema(schema4, projection.entries)) && !projection.nameField) {
-    return [
-      ...issues,
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        base,
-        `'${PROJECTION}' names '${projection.entries}', which is an array, but declares no 'name'. An array's entries have no key, so 'name' must say which field holds an entry's identity \u2014 without it the projection yields a schema that rejects every value.`
-      )
-    ];
-  }
-  const nestedIssue = nestedProblem(raw.nested, schema4, projection);
-  if (nestedIssue) issues.push(issue("SCHEMA_PROJECTION_INVALID", `${base}.nested`, nestedIssue));
-  for (const [modifier, message] of modifierDefaultProblems(schema4, projection)) {
-    issues.push(issue("SCHEMA_PROJECTION_INVALID", `${base}.${modifier}`, message));
-  }
-  const reference = raw.reference;
-  if (reference !== void 0) {
-    if (!isObject9(reference)) {
-      issues.push(
-        issue(
-          "SCHEMA_PROJECTION_INVALID",
-          `${base}.reference`,
-          `'reference' says how an entry whose '${projection.key}' holds a REFERENCE projects. It is an object naming 'from' (the target field to read), 'keyword' (the schema keyword its values become) and one of 'base' / 'baseFrom'.`
-        )
-      );
-    } else {
-      const absent = ["from", "keyword"].filter((f2) => typeof reference[f2] !== "string");
-      if (absent.length > 0) {
-        issues.push(
-          issue(
-            "SCHEMA_PROJECTION_INVALID",
-            `${base}.reference`,
-            `'reference' is missing ${absent.map((f2) => `'${f2}'`).join(" and ")}. Without them a referenced entry projects to nothing, so it vanishes from every consumer's view.`
-          )
-        );
-      }
-      const bases = ["base", "baseFrom"].filter((f2) => reference[f2] !== void 0);
-      if (bases.length !== 1) {
-        issues.push(
-          issue(
-            "SCHEMA_PROJECTION_INVALID",
-            `${base}.reference`,
-            bases.length === 0 ? `'reference' declares neither 'base' nor 'baseFrom', so the projected node has no type. Write 'base' where the named type IS its own base type, or 'baseFrom' naming the target field that holds a value of this kind's own map.` : `'reference' declares both 'base' and 'baseFrom'. They are two answers to one question \u2014 where the projected node's type comes from \u2014 so declare exactly one.`
-          )
-        );
-      }
-    }
-  }
-  const map3 = projectionKeyMap(schema4, projection);
-  if (!map3) {
-    return [
-      ...issues,
-      issue(
-        "SCHEMA_PROJECTION_INVALID",
-        base,
-        `'${PROJECTION}' names '${projection.entries}' keyed on '${projection.key}', but that field carries no 'x-telo-schema-map'. The map declares the JSON Schema each of its values means, and without it the projection types nothing.`
-      )
-    ];
-  }
-  const field = projectionEntryField(schema4, projection, projection.key);
-  const keyField = field && (schemaMapBranch(field) ?? field);
-  const values = Array.isArray(keyField?.enum) ? keyField.enum : [];
-  const unmapped = values.filter((value2) => typeof value2 === "string" && !(value2 in map3));
-  if (unmapped.length === 0) return issues;
-  return [
-    ...issues,
-    issue(
-      "SCHEMA_MAP_INCOMPLETE",
-      base,
-      `'x-telo-schema-map' has no entry for ${unmapped.map((v) => `'${v}'`).join(", ")}. An entry declaring an unmapped value projects to nothing, so it disappears from every consumer's view of the shape.`
-    )
-  ];
-}
-function modifierDefaultProblems(schema4, projection) {
-  const entry = collectionEntrySchema(projectionCollectionSchema(schema4, projection.entries), schema4);
-  if (!entry) return [];
-  const problems = [];
-  for (const [modifier, field] of [
-    ["array", projection.array],
-    ["nullable", projection.nullable]
-  ]) {
-    if (field === void 0) continue;
-    const sites = modifierDefaultSites(entry, field, schema4);
-    if (sites.length > 1) {
-      problems.push([
-        modifier,
-        `the default of '${field}' is declared in ${sites.length} places of the entry schema (${sites.map((s) => `'${s.path}'`).join(", ")}). An entry that omits '${field}' reads ONE default \u2014 the field's own, or the 'then' / 'else' of one conditional \u2014 so declare it once.`
-      ]);
-      continue;
-    }
-    for (const site of sites) {
-      if (site.kind !== "conditional") continue;
-      const check2 = compileDefaultCondition(site.condition);
-      if (typeof check2 === "function") continue;
-      problems.push([
-        modifier,
-        `the conditional at '${site.path}' decides the default of '${field}', but it does not compile as JSON Schema: ${check2.error}`
-      ]);
-    }
-  }
-  return problems;
-}
-function isArrayCollection(collection) {
-  return !!collection && isObject9(collection.items) && !isObject9(collection.additionalProperties);
-}
-function nestedProblem(nested, schema4, projection) {
-  if (nested === void 0) return void 0;
-  if (typeof nested !== "string") {
-    return `'nested' names the entry field holding a sub-collection of entries, as a string.`;
-  }
-  const entry = collectionEntrySchema(projectionCollectionSchema(schema4, projection.entries), schema4);
-  const field = projectionEntryField(schema4, projection, nested);
-  if (!entry || !field) {
-    return `'nested' names '${nested}', which the entries of '${projection.entries}' do not declare.`;
-  }
-  const sub = collectionEntrySchema(field, schema4);
-  if (!sub || !sameShape(sub, entry)) {
-    return `'nested' names '${nested}', which is not a collection of entries shaped like those of '${projection.entries}'. A nested entry is projected with the same key, map and modifiers, so its collection's entries must be the same schema \u2014 inline, or a local '$ref' to it.`;
-  }
-  if (isArrayCollection(field) && !projection.nameField) {
-    return `'nested' names '${nested}', an array, but the projection declares no 'name' \u2014 its entries would have no identity to project under.`;
-  }
-  return void 0;
-}
-function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
-  if (a === b) return true;
-  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
-  if (seen.get(a) === b) return true;
-  seen.set(a, b);
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  const left = a;
-  const right = b;
-  const keys = Object.keys(left);
-  return keys.length === Object.keys(right).length && keys.every((key2) => Object.hasOwn(right, key2) && sameShape(left[key2], right[key2], seen));
-}
-
-// ../../analyzer/nodejs/src/validate-referrer-rules.ts
-function isObject10(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-function validateReferrerRuleDeclarations(manifest, context = {}) {
-  const own2 = manifest.schema;
-  const raw = readRawReferrerRules(own2);
-  if (raw === void 0) return [];
-  const base = `schema.${REFERRER_RULES_ANNOTATION}`;
-  const issues = [];
-  const issue = (path, message, fix) => {
-    issues.push({ code: "REFERRER_RULE_INVALID", manifest, path, message, ...fix ? { fix } : {} });
-  };
-  if (!Array.isArray(raw)) {
-    issue(base, `'${REFERRER_RULES_ANNOTATION}' must be an array of rules.`);
-    return issues;
-  }
-  const seen = /* @__PURE__ */ new Map();
-  raw.forEach((entry, index) => {
-    const at2 = `${base}[${index}]`;
-    if (!isObject10(entry)) {
-      issue(at2, "A rule must be an object with 'condition', 'code' and 'message'.");
-      return;
-    }
-    const condition = celSourceOf(entry.condition);
-    if (condition === void 0 || condition.length === 0) {
-      issue(
-        `${at2}.condition`,
-        "A rule needs a 'condition' \u2014 a CEL expression over 'referrer' (the resource that references this one) and 'self', TRUE when the rule holds. Write it with the !cel tag."
-      );
-    }
-    if (typeof entry.code !== "string" || entry.code.length === 0) {
-      issue(
-        `${at2}.code`,
-        "A rule needs a 'code' naming it. It is reported in the diagnostic's data.rule, not as a diagnostic code \u2014 every violation reports under REFERRER_RULE_VIOLATED."
-      );
-    } else {
-      const first = seen.get(entry.code);
-      if (first !== void 0) {
-        issue(
-          `${at2}.code`,
-          `Rule code '${entry.code}' is already used by rule ${first}. A code names one rule, so two rules sharing it are indistinguishable in data.rule.`
-        );
-      } else {
-        seen.set(entry.code, index);
-      }
-    }
-    if (typeof entry.message !== "string" || entry.message.length === 0) {
-      issue(
-        `${at2}.message`,
-        "A rule needs a 'message' saying what the referrer must do \u2014 only the kind's author knows that, and the analyzer supplies only where and what."
-      );
-    }
-    if (entry.referrer !== void 0 && typeof entry.referrer !== "string") {
-      issue(
-        `${at2}.referrer`,
-        "'referrer' names the kind a referring resource must be, in the same alias-qualified grammar as extends: (Self.Server, Http.Server, Telo.Something). Omit it to apply the rule to every referrer."
-      );
-    }
-    if (entry.severity !== void 0 && entry.severity !== "error" && entry.severity !== "warning") {
-      issue(`${at2}.severity`, "'severity' must be 'error' or 'warning'.");
-    }
-    if (condition !== void 0 && condition.length > 0 && !isTaggedCondition(entry.condition)) {
-      issue(`${at2}.condition`, UNTAGGED_CONDITION, untaggedConditionFix(condition));
-    }
-    validatePeersDeclaration(entry, at2, issue, context);
-    if (condition) {
-      for (const refusal of conditionRefusals(condition, context.moduleNames)) {
-        issue(`${at2}.condition`, refusal);
-      }
-    }
-  });
-  return issues;
-}
-function referrerRuleCallIssues(manifest, moduleNames, flagsOf) {
-  const raw = readRawReferrerRules(manifest.schema);
-  if (!Array.isArray(raw)) return [];
-  const issues = [];
-  raw.forEach((entry, index) => {
-    const condition = isObject10(entry) ? celSourceOf(entry.condition) : void 0;
-    if (!condition) return;
-    for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
-      issues.push({
-        code: "REFERRER_RULE_INVALID",
-        manifest,
-        path: `schema.${REFERRER_RULES_ANNOTATION}[${index}].condition`,
-        message
-      });
-    }
-  });
-  return issues;
-}
-function validatePeersDeclaration(entry, at2, issue, context) {
-  const { peers } = entry;
-  if (peers === void 0) return;
-  if (typeof peers !== "string") {
-    issue(
-      `${at2}.peers`,
-      "'peers' is a JSON Pointer naming a collection OF THE REFERRER (e.g. /tables), whose other entries bind as 'peers' and whose own entry binds as 'entry'."
-    );
-    return;
-  }
-  if (pointerSegments(peers) === void 0 || peers === "" || peers === "/") {
-    issue(
-      `${at2}.peers`,
-      `'peers' must be a JSON Pointer to a collection, e.g. /tables \u2014 '${peers}' is not one.`
-    );
-    return;
-  }
-  if (typeof entry.referrer !== "string" || entry.referrer.length === 0) {
-    issue(
-      `${at2}.peers`,
-      "'peers' names a collection of the REFERRER, so the rule must also declare 'referrer:' \u2014 without a kind there is nothing to check the pointer against, and a pointer that resolves to nothing disables the rule in silence."
-    );
-    return;
-  }
-  const target = context.peersTarget?.(entry.referrer, peers);
-  if (target === "absent") {
-    issue(
-      `${at2}.peers`,
-      `'${entry.referrer}' declares no collection at '${peers}'. A pointer that resolves to nothing binds no peers, so the rule would never see a sibling declaration.`
-    );
-  } else if (target === "plain") {
-    issue(
-      `${at2}.peers`,
-      `'${peers}' on '${entry.referrer}' holds plain data \u2014 nothing in it is a reference, so no entry resolves to a declaration and the rule would run against values it cannot compare. Name a collection whose items are, or contain, a reference.`
-    );
-  }
-}
-function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatches, context = {}) {
-  const rules = readReferrerRules(definitionSchema);
-  if (rules.length === 0) return [];
-  const view = (declaration) => context.peerBinder?.view(declaration) ?? declaration;
-  const self = view(manifest);
-  const findings = [];
-  for (const rule of rules) {
-    const perEntry = rule.peers !== void 0;
-    const compiled2 = compileRuleCondition(rule.condition, context.moduleNames);
-    if ("reason" in compiled2) {
-      findings.push({ kind: "failed", rule, reason: compiled2.reason });
-      continue;
-    }
-    const { parsed, chains } = compiled2;
-    const seen = /* @__PURE__ */ new Set();
-    const started = Date.now();
-    for (const referrer of referrers) {
-      if (rule.referrer !== void 0 && !kindMatches(rule.referrer, referrer.kind)) continue;
-      if (!perEntry) {
-        if (seen.has(referrer.manifest)) continue;
-        seen.add(referrer.manifest);
-      }
-      const scope = {
-        self,
-        referrer: view(referrer.manifest),
-        ...context.functions ? { [MODULE_CALL_DISPATCH_KEY]: context.functions } : {}
-      };
-      if (perEntry) {
-        const bound = context.peerBinder ? context.peerBinder.bind(referrer.manifest, referrer.kind, rule.peers, referrer.path) : {
-          ok: false,
-          failure: { reason: "unknown-shape", at: pointerToPath(rule.peers) }
-        };
-        if (!bound.ok) {
-          findings.push({ kind: "unbound", rule, referrer, failure: bound.failure });
-          continue;
-        }
-        scope.peers = bound.binding.peers;
-        scope.entry = bound.binding.entry;
-      }
-      const dynamic = findDynamicRead(chains, scope);
-      if (dynamic !== void 0) {
-        findings.push({ kind: "skipped", rule, referrer, dynamic });
-        continue;
-      }
-      let held;
-      try {
-        held = parsed(scope);
-      } catch (err) {
-        findings.push({
-          kind: "failed",
-          rule,
-          referrer,
-          reason: err instanceof Error ? err.message : String(err)
-        });
-        break;
-      }
-      if (held !== true) {
-        findings.push({ kind: "violation", rule, referrer, message: rule.message });
-      }
-      const elapsed = Date.now() - started;
-      if (elapsed > RULE_BUDGET_MS) {
-        findings.push({ kind: "over-budget", rule, referrer, elapsedMs: elapsed });
-        break;
-      }
-    }
-  }
-  return findings;
-}
-function referrerRuleExercised(rule, referrers, kindMatches, context = {}) {
-  const matching = rule.referrer === void 0 ? referrers : referrers.filter((referrer) => kindMatches(rule.referrer, referrer.kind));
-  if (matching.length === 0) return false;
-  if (rule.peers === void 0) return true;
-  const binder = context.peerBinder;
-  if (!binder) return false;
-  return matching.some(
-    (referrer) => binder.hasPeers(referrer.manifest, referrer.kind, rule.peers, referrer.path)
-  );
-}
-var nameOf2 = (manifest) => manifest.metadata?.name ?? "<unnamed>";
-function reportReferrerRules(manifest, definition, findings, declarationIsOurs) {
-  const declaringKind = manifest.kind;
-  const out = [];
-  for (const finding of findings) {
-    if (finding.kind === "violation") {
-      out.push({
-        code: "REFERRER_RULE_VIOLATED",
-        severity: finding.rule.severity,
-        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)} at '${finding.referrer.path}': required by ${declaringKind} \u2014 ${finding.message}`,
-        manifest: finding.referrer.manifest,
-        path: finding.referrer.path,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    if (finding.kind === "skipped") {
-      out.push({
-        code: "REFERRER_RULE_SKIPPED",
-        severity: "information",
-        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)}: rule '${finding.rule.code}' from ${declaringKind} did not run at '${finding.referrer.path}' \u2014 the value holds ${finding.dynamic.what} at '${finding.dynamic.path}', which is not known until the resource is created. Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
-        manifest: finding.referrer.manifest,
-        path: finding.referrer.path,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    if (finding.kind === "unbound") {
-      if (isSilentBindingFailure(finding.failure)) continue;
-      out.push({
-        code: "REFERRER_RULE_SKIPPED",
-        severity: "information",
-        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)}: rule '${finding.rule.code}' from ${declaringKind} did not run at '${finding.referrer.path}' \u2014 ${bindingFailureReason(finding.failure)} Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
-        manifest: finding.referrer.manifest,
-        path: finding.referrer.path,
-        rule: finding.rule.code
-      });
-      continue;
-    }
-    const because = finding.kind === "failed" ? `failed to evaluate: ${finding.reason}. Guard an optional field with 'in' or '.?'.` : `exceeded its evaluation budget (${finding.elapsedMs}ms) and was stopped, so coverage from here on is incomplete. Simplify the condition.`;
-    out.push({
-      code: "REFERRER_RULE_INVALID",
-      // Once for the whole analysis, not per referrer. An ERROR when this
-      // workspace declares the rule — the author can fix it — and a warning for
-      // a dependency's, where an error would block `telo check` on a line the
-      // consumer cannot change.
-      severity: declarationIsOurs ? "error" : "warning",
-      message: `Referrer rule '${finding.rule.code}' on kind '${declaringKind}' ${because} This is a defect in the rule, not in the manifest it ran against` + (finding.referrer ? ` (first seen at ${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)} at '${finding.referrer.path}')` : "") + (declarationIsOurs ? "." : " \u2014 it is declared by a module this workspace does not own.") + " Reported once for this rule, however many referrers it fails on.",
-      // The rule's own declaration site is a path in the DEFINITION; with no
-      // definition in hand the referenced resource is the only node to name.
-      // Where the declaring kind is a dependency's the caller re-anchors this at
-      // the `imports:` entry that brought it in.
-      ...definition ? {
-        manifest: definition,
-        path: `schema.${REFERRER_RULES_ANNOTATION}[${finding.rule.index}]`
-      } : { manifest },
-      rule: finding.rule.code,
-      evaluationFailure: true
-    });
-  }
-  return out;
-}
-function reportUnexercisedReferrerRule(definition, rule) {
-  return {
-    code: "REFERRER_RULE_UNEXERCISED",
-    severity: "information",
-    message: rule.peers !== void 0 ? `Referrer rule '${rule.code}' never ran with peers to compare: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + ` references a resource of this kind while '${rule.peers}' held another declaration, so nothing has proven the condition. An empty peer set everywhere is what a typo in 'peers:' looks like from outside.` : `Referrer rule '${rule.code}' never ran: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + " references a resource of this kind, so nothing has proven the condition." + (rule.referrer === void 0 ? "" : " A 'referrer' naming a kind no manifest uses disables the rule in silence."),
-    manifest: definition,
-    path: `schema.${REFERRER_RULES_ANNOTATION}[${rule.index}]`,
-    rule: rule.code
-  };
-}
-
-// ../../analyzer/nodejs/src/validate-ref-slots.ts
-var VALID_USES = REF_USES.join(", ");
-function rawUseTokens(use) {
-  if (use === void 0) return [];
-  if (Array.isArray(use)) return use;
-  if (use && typeof use === "object") {
-    const cases = use.cases;
-    if (!cases || typeof cases !== "object") return [];
-    return Object.values(cases).flatMap(
-      (v) => Array.isArray(v) ? v : [v]
-    );
-  }
-  return [use];
-}
-function declaredUses(use) {
-  if (isRefUse(use)) return [use];
-  if (Array.isArray(use)) return use.filter(isRefUse);
-  return [];
-}
-function checkAnnotation(annotation, manifest, path, issues) {
-  if (typeof annotation === "string" || annotation === void 0) return void 0;
-  if (!annotation || typeof annotation !== "object" || Array.isArray(annotation)) return void 0;
-  const obj = annotation;
-  const kind = obj.kind;
-  const hasKind = typeof kind === "string" && kind.length > 0 || Array.isArray(kind) && kind.some((k) => typeof k === "string" && k.length > 0);
-  if (!hasKind) {
-    issues.push({
-      code: "X_TELO_REF_MISSING_KIND",
-      manifest,
-      path,
-      message: `x-telo-ref at '${path}' declares no 'kind'. The structured form is '{ kind: <Alias>.<Kind> | [<kinds>], use: <use> }' \u2014 without a kind the slot constrains nothing and the editor has nothing to pick against.`
-    });
-  }
-  const use = obj.use;
-  const isCaseMap = !!use && typeof use === "object" && !Array.isArray(use) && "by" in use;
-  if (use === void 0) {
-    issues.push({
-      code: "X_TELO_REF_MISSING_USE",
-      manifest,
-      path,
-      message: `x-telo-ref at '${path}' declares no 'use'. The structured form must say what the declaring resource does with the target \u2014 one of: ${VALID_USES} \u2014 or a '{ by, cases }' map when a sibling config field selects the mode. Only the legacy bare-string spelling ('x-telo-ref: <Kind>') may omit it.`
-    });
-  } else {
-    for (const token of rawUseTokens(use)) {
-      if (isRefUse(token)) continue;
-      issues.push({
-        code: "X_TELO_REF_INVALID_USE",
-        manifest,
-        path,
-        message: `x-telo-ref at '${path}' declares unrecognized use '${String(token)}'. Valid uses: ${VALID_USES}. An unrecognized token would silently degrade the slot to the legacy no-use reading.`
-      });
-    }
-    if (isCaseMap) {
-      const by = use.by;
-      if (typeof by !== "string" || !by.startsWith("/")) {
-        issues.push({
-          code: "X_TELO_REF_INVALID_USE",
-          manifest,
-          path,
-          message: `x-telo-ref at '${path}' has a 'use' case map whose 'by' is not a JSON Pointer. 'by' names a sibling field of the object enclosing the slot, e.g. '/detach'.`
-        });
-      }
-    }
-  }
-  if (obj.throwsThrough !== void 0 && typeof obj.throwsThrough !== "boolean") {
-    issues.push({
-      code: "X_TELO_REF_INVALID_THROWS_THROUGH",
-      manifest,
-      path,
-      message: `x-telo-ref at '${path}' declares 'throwsThrough: ${JSON.stringify(obj.throwsThrough)}', which is not a boolean. Only 'true' declares that throws from this slot's target surface through the declaring resource; anything else reads as absent, which silently stops its catch list from enclosing what it holds.`
-    });
-  }
-  if (obj.outputType !== void 0 && (!obj.outputType || typeof obj.outputType !== "object" || Array.isArray(obj.outputType))) {
-    issues.push({
-      code: "X_TELO_REF_INVALID_OUTPUT_TYPE",
-      manifest,
-      path,
-      message: `x-telo-ref at '${path}' declares 'outputType: ${JSON.stringify(obj.outputType)}', which is not a JSON Schema object. It names the shape the target's output must have (e.g. '{ type: object, required: [output] }'); anything else reads as absent, so the slot would accept a target returning anything.`
-    });
-  }
-  for (const key2 of Object.keys(obj)) {
-    if (REF_ANNOTATION_KEYS.has(key2)) continue;
-    issues.push({
-      code: "X_TELO_REF_UNKNOWN_KEY",
-      manifest,
-      path,
-      message: `x-telo-ref at '${path}' declares unrecognized key '${key2}'. Known keys: ${[...REF_ANNOTATION_KEYS].sort().join(", ")}. An unrecognized key is read by nothing, so it has exactly the effect of leaving it out.`
-    });
-  }
-  return declaredUses(use);
-}
-var REF_ANNOTATION_KEYS = /* @__PURE__ */ new Set([
-  "kind",
-  "use",
-  "inputs",
-  "throwsThrough",
-  "outputType",
-  "observes"
-]);
-function carriesRefAnnotation(obj) {
-  if (obj["x-telo-ref"] !== void 0) return true;
-  for (const key2 of ["anyOf", "oneOf"]) {
-    const branches = obj[key2];
-    if (!Array.isArray(branches)) continue;
-    if (branches.some(
-      (b) => b && typeof b === "object" && b["x-telo-ref"] !== void 0
-    )) {
-      return true;
-    }
-  }
-  return false;
-}
-function forEachRefSlotNode(schema4, path, onSlot) {
-  walkSchema2(schema4, path, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), onSlot);
-}
-function walkSchema2(node, path, visited, claimedBranches, onSlot) {
-  if (!node || typeof node !== "object") return;
-  if (visited.has(node)) return;
-  visited.add(node);
-  if (Array.isArray(node)) {
-    node.forEach((item, i) => walkSchema2(item, `${path}[${i}]`, visited, claimedBranches, onSlot));
-    return;
-  }
-  const obj = node;
-  if (carriesRefAnnotation(obj) && !claimedBranches.has(obj)) {
-    onSlot(obj, path);
-    for (const key2 of ["anyOf", "oneOf"]) {
-      const branches = obj[key2];
-      if (!Array.isArray(branches)) continue;
-      for (const branch of branches) {
-        if (branch && typeof branch === "object") claimedBranches.add(branch);
-      }
-    }
-  }
-  for (const [key2, value2] of Object.entries(obj)) {
-    if (key2 === "x-telo-ref" || key2 === "examples" || key2 === "default") continue;
-    walkSchema2(value2, path ? `${path}.${key2}` : key2, visited, claimedBranches, onSlot);
-  }
-}
-function validateRefSlotDeclarations(definition) {
-  const issues = [];
-  const schema4 = definition.schema;
-  if (!schema4 || typeof schema4 !== "object") return issues;
-  walkSchema2(schema4, "schema", /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), (node, path) => {
-    const branchUses = [];
-    const own2 = checkAnnotation(node["x-telo-ref"], definition, path, issues);
-    if (own2) branchUses.push(own2);
-    for (const key2 of ["anyOf", "oneOf"]) {
-      const branches = node[key2];
-      if (!Array.isArray(branches)) continue;
-      branches.forEach((branch, i) => {
-        if (!branch || typeof branch !== "object") return;
-        const declared = checkAnnotation(
-          branch["x-telo-ref"],
-          definition,
-          `${path}.${key2}[${i}]`,
-          issues
-        );
-        if (declared) branchUses.push(declared);
-      });
-    }
-    const nonEmpty = branchUses.filter((uses) => uses.length > 0);
-    if (nonEmpty.length > 1) {
-      const first = [...nonEmpty[0]].sort().join(",");
-      const disagrees = nonEmpty.some((uses) => [...uses].sort().join(",") !== first);
-      if (disagrees) {
-        issues.push({
-          code: "X_TELO_REF_USE_CONFLICT",
-          manifest: definition,
-          path,
-          message: `x-telo-ref branches at '${path}' declare disagreeing uses (${nonEmpty.map((u) => u.join("|")).join(" vs ")}). 'use' is a property of the slot, never of a branch \u2014 declare several acceptable kinds as one 'kind: [<kinds>]' list with one 'use'.`
-        });
-      }
-    }
-  });
-  return issues;
-}
-function untypedCallableSlotIssues(schema4, path, from, resolve) {
-  const out = [];
-  walkSchema2(schema4, path, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), (node, at2) => {
-    const slot = readRefSlot(node);
-    if (!slot) return;
-    for (const kind of slot.kinds) {
-      if (kind !== CALLABLE_CAPABILITY) {
-        const target = resolve(kind, from);
-        if (!target || !isCallableKind(target, resolve)) continue;
-        const signature = resolveSignature(void 0, target, resolve);
-        if (signature.params !== void 0 || signature.returns !== void 0) continue;
-      }
-      const what = kind === CALLABLE_CAPABILITY ? `bare '${CALLABLE_CAPABILITY}'` : `'${kind}', a function kind that declares no signature of its own`;
-      out.push({
-        code: "X_TELO_REF_CALLABLE_UNTYPED",
-        path: at2,
-        message: `x-telo-ref at '${at2}' constrains to ${what}, which accepts any function whatever its signature. Nothing would then check the arguments the holder passes, so a wrongly typed function passes \`telo check\` and fails at the first call with ERR_INPUT_INVALID. Name a callable abstract that declares the signature this slot needs.`
-      });
-    }
-  });
-  return out;
-}
-function validateDynamicSelectors(allManifests, registry, aliases, aliasesByModule, graph) {
-  const issues = [];
-  const callGraph = graph ?? buildCallGraph(allManifests, registry, { aliases, aliasesByModule });
-  for (const edge of callGraph.edges) {
-    if (edge.unresolvedReason !== "dynamic") continue;
-    const from = callGraph.nodes.get(edge.from);
-    const owner = from?.type === "step" ? callGraph.nodes.get(from.owner) : from;
-    if (!owner || owner.type !== "resource") continue;
-    const selectorPath = selectorPathOf(edge.path, edge.unresolved?.by ?? "");
-    issues.push({
-      code: "X_TELO_REF_DYNAMIC_SELECTOR",
-      manifest: owner.manifest,
-      path: selectorPath,
-      message: `The mode selector at '${selectorPath}' is a CEL expression, so which 'use' holds for the reference at '${edge.path}' cannot be resolved statically. The selector must be a literal or take its schema default \u2014 a call graph known only at runtime is not statically analyzable. Write the mode as a literal, or split the wiring into one resource per mode.`
-    });
-  }
-  return issues;
-}
-function selectorPathOf(slotPath, pointer) {
-  const lastDot = slotPath.lastIndexOf(".");
-  const enclosing = lastDot < 0 ? "" : slotPath.slice(0, lastDot);
-  const segments = pointer.replace(/^\//, "").split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~")).join(".");
-  return enclosing ? `${enclosing}.${segments}` : segments;
-}
-
-// ../../analyzer/nodejs/src/validate-scope-slots.ts
-function scopeSlotProblems(definition) {
-  const schema4 = definition.schema;
-  if (!schema4 || typeof schema4 !== "object" || Array.isArray(schema4)) return [];
-  return misplacedScopeSlots(schema4).map(({ location, reason }) => {
-    const path = `${location ? `schema.${location}` : "schema"}.x-telo-scope`;
-    return {
-      path,
-      message: `'${String(definition.metadata?.name)}' declares \`x-telo-scope\` at '${path}', where no scope can be stood up: ${reason}. A scope belongs on a named top-level property \u2014 one in the schema root's \`properties\` or in a root \`anyOf\` / \`oneOf\` / \`allOf\` branch's, written directly or through a local \`$ref\`. Move the annotation there.`
-    };
-  });
-}
-
-// ../../analyzer/nodejs/src/validate-value-type-slots.ts
-function suggestValueType(name2) {
-  if (!name2) return void 0;
-  const threshold = Math.min(3, Math.floor(name2.length / 3));
-  if (threshold < 1) return void 0;
-  let best;
-  let bestDist = threshold + 1;
-  let tied = false;
-  for (const candidate of VALUE_TYPES.keys()) {
-    const d = distance(name2, candidate);
-    if (d < bestDist) {
-      best = candidate;
-      bestDist = d;
-      tied = false;
-    } else if (d === bestDist) {
-      tied = true;
-    }
-  }
-  return !best || bestDist > threshold || tied ? void 0 : best;
-}
-function declaredNames() {
-  return [...VALUE_TYPES.keys()].join(", ");
-}
-var JSON_TYPES = /* @__PURE__ */ new Set([
-  "string",
-  "integer",
-  "number",
-  "boolean",
-  "object",
-  "array",
-  "null"
-]);
-function checkNode(node, manifest, path, issues) {
-  const slot = readValueTypeSlot(node);
-  if (!slot) return;
-  if (!slot.entry) {
-    const suggestion = suggestValueType(slot.name);
-    const bareName = typeof node[X_TELO_TYPE] === "string";
-    issues.push({
-      code: "X_TELO_TYPE_UNKNOWN",
-      manifest,
-      path,
-      message: `'${slot.name || "(missing name)"}' is not a value type. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `Declared types: ${declaredNames()}. A value type names how a value is REPRESENTED and is kernel-owned; to name a shape, reference it with !ref.`,
-      ...suggestion && bareName ? { fix: { replacement: suggestion } } : {}
-    });
-    return;
-  }
-  const base = slot.entry.representation === "json" ? slot.entry.base : void 0;
-  const declaredTypes = typeof node.type === "string" ? [node.type] : node.type;
-  if (base !== void 0 && Array.isArray(declaredTypes) && declaredTypes.every((t) => typeof t === "string" && JSON_TYPES.has(t))) {
-    const fits = declaredTypes.includes(base) || base === "integer" && declaredTypes.includes("number");
-    if (!fits) {
-      issues.push({
-        code: "X_TELO_TYPE_BASE_MISMATCH",
-        manifest,
-        path,
-        message: `'${slot.entry.name}' is ${/^[aeiou]/.test(base) ? "an" : "a"} ${base}, but this node declares type '${declaredTypes.join(" | ")}', so no value satisfies both. Declare type: ${base}.`
-      });
-    }
-  }
-  const declared = new Set(slot.entry.parameters.map((p) => p.name));
-  for (const argument of Object.keys(slot.args)) {
-    if (declared.has(argument)) continue;
-    issues.push({
-      code: "X_TELO_TYPE_ARGUMENT_UNKNOWN",
-      manifest,
-      path,
-      message: `'${slot.entry.name}' declares no type parameter '${argument}'. ` + (declared.size > 0 ? `Its parameters: ${[...declared].join(", ")}.` : `It takes no type parameters.`)
-    });
-  }
-}
-function walk2(value2, manifest, path, segments, seen, issues, schemaRoot = false) {
-  if (value2 === null || typeof value2 !== "object") return;
-  if (seen.has(value2)) return;
-  seen.add(value2);
-  if (Array.isArray(value2)) {
-    value2.forEach(
-      (item, i) => walk2(item, manifest, `${path}[${i}]`, [...segments, i], seen, issues, schemaRoot)
-    );
-    return;
-  }
-  const node = value2;
-  if (schemaRoot || isInSchemaRegion([...segments, X_TELO_TYPE])) {
-    checkNode(node, manifest, path, issues);
-  }
-  for (const [key2, child] of Object.entries(node)) {
-    if (key2 === X_TELO_TYPE) {
-      const slot = readValueTypeSlot(node);
-      for (const [argName, argValue] of Object.entries(slot?.args ?? {})) {
-        walk2(
-          argValue,
-          manifest,
-          `${path}.${X_TELO_TYPE}.${argName}`,
-          [...segments, X_TELO_TYPE, argName],
-          seen,
-          issues,
-          schemaRoot
-        );
-      }
-      continue;
-    }
-    walk2(
-      child,
-      manifest,
-      path ? `${path}.${key2}` : key2,
-      [...segments, key2],
-      seen,
-      issues,
-      schemaRoot
-    );
-  }
-}
-var MODULE_INPUT_BLOCKS = ["variables", "secrets"];
-function validateValueTypeSlots(manifest) {
-  const issues = [];
-  const seen = /* @__PURE__ */ new Set();
-  if (manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") {
-    for (const block of MODULE_INPUT_BLOCKS) {
-      const entries = manifest[block];
-      if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
-      for (const [name2, entry] of Object.entries(entries)) {
-        if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-        walk2(entry, manifest, `${block}.${name2}`, [block, name2], seen, issues, true);
-      }
-    }
-  }
-  walk2(manifest, manifest, "", [], seen, issues);
-  return issues;
-}
-
-// ../../analyzer/nodejs/src/contract-mark-reach.ts
-var CONTRACT_KEYS = /* @__PURE__ */ new Set(["inputType", "outputType"]);
-function contractSites(manifests) {
-  const all = manifests;
-  const sites = [];
-  for (const manifest of manifests) {
-    const walk5 = (node, path, seen) => {
-      if (!node || typeof node !== "object" || seen.has(node)) return;
-      seen.add(node);
-      if (Array.isArray(node)) {
-        node.forEach((child, i) => walk5(child, [...path, i], seen));
-        return;
-      }
-      for (const [key2, child] of Object.entries(node)) {
-        if (CONTRACT_KEYS.has(key2)) {
-          const schema4 = resolveTypeFieldToSchema(child, all);
-          if (schema4) sites.push({ manifest, path: [...path, key2], schema: schema4 });
-          continue;
-        }
-        if (SCHEMA_REGION_KEYS.includes(key2)) continue;
-        walk5(child, [...path, key2], seen);
-      }
-    };
-    walk5(manifest, [], /* @__PURE__ */ new Set());
-  }
-  return sites;
-}
-function namedShapeResolver(manifests) {
-  const all = manifests;
-  return (ref) => resolveTypeFieldToSchema({ $ref: ref }, all);
-}
-function writtenNodeIndex(manifests) {
-  const index = /* @__PURE__ */ new Map();
-  for (const manifest of manifests) {
-    const walk5 = (node, path) => {
-      if (!node || typeof node !== "object" || index.has(node)) return;
-      index.set(node, { manifest, path });
-      if (Array.isArray(node)) node.forEach((child, i) => walk5(child, [...path, i]));
-      else for (const [key2, child] of Object.entries(node)) walk5(child, [...path, key2]);
-    };
-    walk5(manifest, []);
-  }
-  return index;
-}
-function markedNodes(manifests, annotation) {
-  const marks = /* @__PURE__ */ new Map();
-  for (const manifest of manifests) {
-    const seen = /* @__PURE__ */ new Set();
-    const walk5 = (node, path) => {
-      if (!node || typeof node !== "object" || seen.has(node)) return;
-      seen.add(node);
-      if (Array.isArray(node)) {
-        node.forEach((child, i) => walk5(child, [...path, i]));
-        return;
-      }
-      if (Object.hasOwn(node, annotation) && !marks.has(node)) marks.set(node, { manifest, path });
-      for (const [key2, child] of Object.entries(node)) walk5(child, [...path, key2]);
-    };
-    walk5(manifest, []);
-  }
-  return marks;
-}
-function inNamedShape(written, capabilityOf) {
-  const origin = written.manifest.metadata?.xTeloOrigin;
-  return origin === void 0 && written.path[0] === "schema" && capabilityOf(written.manifest) === "Telo.Type";
-}
-function isExportedShape(manifest, manifests) {
-  const owner = manifest.metadata?.module;
-  const name2 = manifest.metadata?.name;
-  if (typeof name2 !== "string") return false;
-  return manifests.some((m) => {
-    if (m.kind !== "Telo.Library" || m.metadata?.name !== owner) return false;
-    const exported = m.exports?.resources;
-    return Array.isArray(exported) && exported.includes(name2);
-  });
-}
-function unreachedMarkPlace(written, capabilityOf) {
-  if (inNamedShape(written, capabilityOf)) return "in a named shape no contract uses";
-  const extracted = written.manifest.metadata?.xTeloOrigin !== void 0;
-  const region = written.path.find(
-    (segment) => typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)
-  );
-  if (extracted || region === "inputType" || region === "outputType") {
-    return "somewhere the contract does not reach through `properties`";
-  }
-  return region === void 0 ? "not inside a schema at all" : `inside \`${region}\``;
-}
-
-// ../../analyzer/nodejs/src/validate-sensitive-slots.ts
-var ANNOTATION2 = "x-telo-sensitive";
-function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
-  const marks = markedNodes(manifests, ANNOTATION2);
-  if (marks.size === 0) return [];
-  const issues = [];
-  const own2 = (written) => {
-    const owner = written.manifest.metadata?.module;
-    return owner === void 0 || rootModules.has(owner);
-  };
-  const reached = /* @__PURE__ */ new Set();
-  const resolveRef2 = namedShapeResolver(manifests);
-  for (const site of contractSites(manifests)) sensitivePaths(site.schema, resolveRef2, reached);
-  const needFields = /* @__PURE__ */ new Set();
-  for (const manifest of manifests) {
-    if (!isNeedTypeDoc(manifest)) continue;
-    for (const schema4 of Object.values(readNeedTypeShape(manifest).fields)) {
-      if (Object.hasOwn(schema4, ANNOTATION2)) needFields.add(schema4);
-    }
-  }
-  for (const [node, written] of marks) {
-    if (!own2(written) || needFields.has(node)) continue;
-    const value2 = node[ANNOTATION2];
-    const path = written.path.join(".");
-    if (value2 !== true) {
-      issues.push({
-        code: "SENSITIVE_ANNOTATION_INVALID",
-        manifest: written.manifest,
-        path,
-        message: `'${ANNOTATION2}' must be \`true\`; got ${JSON.stringify(value2)}. It is a marker, not a level \u2014 a value other than \`true\` reads as "not sensitive".`
-      });
-      continue;
-    }
-    if (reached.has(node)) continue;
-    const shape = inNamedShape(written, capabilityOf);
-    if (shape && isExportedShape(written.manifest, manifests)) continue;
-    issues.push({
-      code: "SENSITIVE_ANNOTATION_MISPLACED",
-      manifest: written.manifest,
-      path,
-      message: `'${ANNOTATION2}' is only read where a resource's declared contract (\`inputType\` / \`outputType\`) reaches it, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}. The kernel will not redact it, so the value would still reach trace payloads and the debug wire. Move the mark onto the contract property that carries the value.`
-    });
-  }
-  return issues;
-}
-
-// ../../analyzer/nodejs/src/validate-sink-attachment.ts
-var SOURCE6 = "telo-analyzer";
-function validateSinkAttachment(manifests, graph, registry, aliases, aliasesByModule, rootModules) {
-  const exported = /* @__PURE__ */ new Map();
-  for (const m of manifests) {
-    if (m.kind !== "Telo.Library") continue;
-    const names = m.exports?.resources;
-    if (Array.isArray(names)) {
-      exported.set(m.metadata?.name, new Set(names.filter((n) => typeof n === "string")));
-    }
-  }
-  const diagnostics = [];
-  for (const m of manifests) {
-    if (typeof m.kind !== "string") continue;
-    const module = m.metadata?.module;
-    if (module !== void 0 && !rootModules.has(module)) continue;
-    const resolver = moduleAliasScope(m.metadata, aliases, aliasesByModule);
-    const canonical = resolver.resolveKind(m.kind) ?? m.kind;
-    const definition = registry.resolve(canonical);
-    if (definition?.kind === "Telo.Abstract" || definition?.capability !== "Telo.Sink") continue;
-    const name2 = m.metadata?.name;
-    if (!name2) continue;
-    if (graph.edgesTo(nodeIdFor(m)).length > 0) continue;
-    if (module !== void 0 && exported.get(module)?.has(name2)) continue;
-    diagnostics.push({
-      severity: DiagnosticSeverity2.Warning,
-      code: "SINK_UNATTACHED",
-      source: SOURCE6,
-      message: `${m.kind}/${name2} is a sink nothing attaches: the runtime attaches only the sinks the root Application lists in \`logging.sinks\` / \`tracing.sinks\`, so this one receives nothing. List it there (\`- !ref ${name2}\`), or remove it.`,
-      data: {
-        resource: { kind: m.kind, name: name2 },
-        filePath: m.metadata?.source
-      }
-    });
-  }
-  return diagnostics;
-}
-
-// ../../analyzer/nodejs/src/span-attribute.ts
-var X_TELO_SPAN_ATTRIBUTE2 = "x-telo-span-attribute";
-var SPAN_ATTRIBUTE_NAME = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/;
-var MAX_NAME_LENGTH = 255;
-var RUNTIME_SPAN_ATTRIBUTES = [
-  "error.type",
-  "telo.cancellation.reason",
-  "telo.resource.kind",
-  "telo.resource.name"
-];
-var SCALAR_TYPES = /* @__PURE__ */ new Set(["string", "integer", "number", "boolean", "null"]);
-function spanAttributeNameProblem(value2) {
-  if (typeof value2 !== "string") {
-    return `'${X_TELO_SPAN_ATTRIBUTE2}' must be an attribute name; got ${JSON.stringify(value2)}`;
-  }
-  if (value2.length > MAX_NAME_LENGTH || !SPAN_ATTRIBUTE_NAME.test(value2)) {
-    return `'${X_TELO_SPAN_ATTRIBUTE2}: ${JSON.stringify(value2)}' is not an attribute name: write dot-separated lowercase segments of letters, digits and underscores, each starting with a letter (e.g. 'telo.check.exit_code'), at most ${MAX_NAME_LENGTH} characters`;
-  }
-  if (RUNTIME_SPAN_ATTRIBUTES.includes(value2)) {
-    return `'${X_TELO_SPAN_ATTRIBUTE2}: ${value2}' names an attribute the runtime sets on every span itself (${RUNTIME_SPAN_ATTRIBUTES.join(", ")}); choose another name`;
-  }
-  return void 0;
-}
-function spanAttributeNodeProblem(node) {
-  if (node["x-telo-sensitive"] === true) {
-    return `'${X_TELO_SPAN_ATTRIBUTE2}' sits beside 'x-telo-sensitive: true': a value marked as auth material is never exported to a trace backend. Remove one of the two marks`;
-  }
-  if (!isScalarNode(node)) {
-    return `'${X_TELO_SPAN_ATTRIBUTE2}' must mark a scalar property (type string, integer, number or boolean); this node is ${describeNode(node)}`;
-  }
-  return void 0;
-}
-function isScalarNode(node) {
-  const type = node.type;
-  if (typeof type === "string") return SCALAR_TYPES.has(type) && type !== "null";
-  if (Array.isArray(type)) {
-    return type.length > 0 && type.every((t) => typeof t === "string" && SCALAR_TYPES.has(t)) && type.some((t) => t !== "null");
-  }
-  if (type !== void 0) return false;
-  const values = Array.isArray(node.enum) ? node.enum : "const" in node ? [node.const] : void 0;
-  return values !== void 0 && values.length > 0 && values.every((v) => v === null || ["string", "number", "boolean"].includes(typeof v));
-}
-function describeNode(node) {
-  if (node.type !== void 0) return `declared type ${JSON.stringify(node.type)}`;
-  if (typeof node.$ref === "string") return `a reference ('${node.$ref}'), whose shape is not fixed here`;
-  return "declared with no scalar type";
-}
-function spanAttributeReachProblem(reason) {
-  return reason === "root" ? `'${X_TELO_SPAN_ATTRIBUTE2}' marks the contract's whole value; mark one of its properties` : `the contract reaches an '${X_TELO_SPAN_ATTRIBUTE2}' mark through this property's array item or map value, which holds any number of values per dispatch; a span attribute is one value \u2014 mark a property reached through 'properties' alone`;
-}
-function spanAttributePaths(schema4, resolveRef2) {
-  const attributes = [];
-  const problems = [];
-  const reached = /* @__PURE__ */ new Set();
-  const reachReported = /* @__PURE__ */ new Set();
-  const reachProblem = (reach, reason) => {
-    if (reachReported.has(reach.node)) return;
-    reachReported.add(reach.node);
-    problems.push({
-      code: "SPAN_ATTRIBUTE_MISPLACED",
-      at: "reach",
-      node: reach.node,
-      path: reach.path,
-      message: spanAttributeReachProblem(reason)
-    });
-  };
-  const walk5 = (node, path, root, collection, chain) => {
-    if (!node || typeof node !== "object" || Array.isArray(node)) return;
-    if (chain.includes(node)) return;
-    const written = [node];
-    let s = node;
-    let document = root;
-    while (typeof s.$ref === "string") {
-      const { schema: target, root: targetRoot } = resolveRefIn(s, document, resolveRef2);
-      if (target === s || written.includes(target) || chain.includes(target)) break;
-      written.push(target);
-      const siblings = { ...s };
-      delete siblings.$ref;
-      s = { ...target, ...siblings };
-      document = targetRoot;
-    }
-    if (isLiveSlot(s)) return;
-    const here = [...chain, ...written];
-    const owner = written.find((o) => Object.hasOwn(o, X_TELO_SPAN_ATTRIBUTE2));
-    if (owner) {
-      for (const o of written) if (Object.hasOwn(o, X_TELO_SPAN_ATTRIBUTE2)) reached.add(o);
-      const value2 = s[X_TELO_SPAN_ATTRIBUTE2];
-      const nameProblem = spanAttributeNameProblem(value2);
-      if (nameProblem) {
-        problems.push({ code: "SPAN_ATTRIBUTE_INVALID", at: "mark", node: owner, path, message: nameProblem });
-      }
-      let placed = false;
-      if (collection) reachProblem(collection, "collection");
-      else if (path.length === 0) reachProblem({ node, path }, "root");
-      else {
-        const nodeProblem = spanAttributeNodeProblem(s);
-        if (nodeProblem) {
-          problems.push({ code: "SPAN_ATTRIBUTE_MISPLACED", at: "mark", node: owner, path, message: nodeProblem });
-        } else placed = true;
-      }
-      if (placed && !nameProblem) attributes.push({ path, name: value2 });
-    }
-    const properties = s.properties;
-    if (properties && typeof properties === "object") {
-      for (const [key2, child] of Object.entries(properties)) {
-        walk5(child, [...path, key2], document, collection, here);
-      }
-    }
-    for (const branch of ["allOf", "anyOf", "oneOf"]) {
-      const list5 = s[branch];
-      if (Array.isArray(list5)) for (const child of list5) walk5(child, path, document, collection, here);
-    }
-    const entered = collection ?? { node, path };
-    if (s.additionalProperties && typeof s.additionalProperties === "object") {
-      walk5(s.additionalProperties, [...path, "{}"], document, entered, here);
-    }
-    if (s.patternProperties && typeof s.patternProperties === "object") {
-      for (const child of Object.values(s.patternProperties)) {
-        walk5(child, [...path, "{}"], document, entered, here);
-      }
-    }
-    for (const child of [s.items].flat()) walk5(child, [...path, "[]"], document, entered, here);
-  };
-  walk5(schema4, [], schema4, void 0, []);
-  return { attributes, problems, reached };
-}
-
-// ../../analyzer/nodejs/src/validate-span-attributes.ts
-function validateSpanAttributes(manifests, rootModules, capabilityOf) {
-  const marks = markedNodes(manifests, X_TELO_SPAN_ATTRIBUTE2);
-  if (marks.size === 0) return [];
-  const resolveRef2 = namedShapeResolver(manifests);
-  const issues = /* @__PURE__ */ new Map();
-  let index;
-  const locate = (node) => marks.get(node) ?? (index ??= writtenNodeIndex(manifests)).get(node);
-  const report = (code, at2, message) => {
-    const owner = at2.manifest.metadata?.module;
-    if (owner !== void 0 && !rootModules.has(owner)) return;
-    const path = at2.path.join(".");
-    const key2 = [code, at2.manifest.kind, at2.manifest.metadata?.name, path, message].join("\0");
-    if (!issues.has(key2)) issues.set(key2, { code, manifest: at2.manifest, path, message: `${message}.` });
-  };
-  const reached = /* @__PURE__ */ new Set();
-  for (const site of contractSites(manifests)) {
-    const reading = spanAttributePaths(site.schema, resolveRef2);
-    for (const node of reading.reached) reached.add(node);
-    for (const problem of reading.problems) {
-      const at2 = problem.at === "reach" && problem.path.length === 0 ? site : locate(problem.node) ?? site;
-      report(problem.code, at2, problem.message);
-    }
-  }
-  for (const [node, written] of marks) {
-    if (reached.has(node)) continue;
-    const mark = node;
-    const nameProblem = spanAttributeNameProblem(mark[X_TELO_SPAN_ATTRIBUTE2]);
-    if (nameProblem) report("SPAN_ATTRIBUTE_INVALID", written, nameProblem);
-    const shape = inNamedShape(written, capabilityOf);
-    if (shape && isExportedShape(written.manifest, manifests)) {
-      const root = written.manifest.schema ?? mark;
-      const resolved = resolveRefIn(mark, root, resolveRef2).schema;
-      const nodeProblem = spanAttributeNodeProblem(resolved === mark ? mark : { ...resolved, ...mark });
-      if (nodeProblem) report("SPAN_ATTRIBUTE_MISPLACED", written, nodeProblem);
-      continue;
-    }
-    report("SPAN_ATTRIBUTE_MISPLACED", written, unreachedProblem(written, capabilityOf));
-  }
-  return [...issues.values()];
-}
-function unreachedProblem(written, capabilityOf) {
-  return `'${X_TELO_SPAN_ATTRIBUTE2}' is read only where a resource's contract (\`inputType\` / \`outputType\`) reaches it through \`properties\`, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}, so no span would ever carry it. Move the mark onto the contract property that carries the value`;
-}
-
-// ../../analyzer/nodejs/src/validate-schema-type-refs.ts
-var SOURCE7 = "telo-analyzer";
-var SCHEMA_FIELDS2 = ["schema", "inputType", "outputType", "params", "returns"];
-function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, rootModules) {
-  const diagnostics = [];
-  for (const m of manifests) {
-    const ownModule = m.metadata?.module;
-    const name2 = m.metadata?.name;
-    if (!name2) continue;
-    if (ownModule && !rootModules.has(ownModule)) continue;
-    const resolver = moduleAliasScope(m.metadata, aliases, aliasesByModule);
-    const filePath = m.metadata?.source;
-    const label2 = `${m.kind}/${name2}`;
-    const walk5 = (value2, path) => {
-      if (value2 === null || typeof value2 !== "object") return;
-      if (Array.isArray(value2)) {
-        value2.forEach((item, i) => walk5(item, `${path}[${i}]`));
-        return;
-      }
-      const obj = value2;
-      const parsed = parseTeloTypeRef(obj.$ref);
-      if (parsed) {
-        const module = parsed.authority === "Self" ? ownModule : resolver.moduleForAlias(parsed.authority);
-        if (!module) {
-          diagnostics.push({
-            severity: DiagnosticSeverity2.Error,
-            code: "SCHEMA_TYPE_REF_UNKNOWN_ALIAS",
-            source: SOURCE7,
-            message: `${label2}: schema $ref '${obj.$ref}' \u2014 '${parsed.authority}' is not 'Self' or a Telo.Import in this module. Declare the import or correct the authority.`,
-            data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
-          });
-        } else if (!registry.hasSchemaId(canonicalTypeSchemaId(module, parsed.typeName))) {
-          diagnostics.push({
-            severity: DiagnosticSeverity2.Error,
-            code: "SCHEMA_TYPE_REF_UNRESOLVED",
-            source: SOURCE7,
-            message: `${label2}: schema $ref '${obj.$ref}' resolves to module '${module}', which declares no Telo.Type named '${parsed.typeName}'.`,
-            data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
-          });
-        }
-      }
-      for (const key2 of Object.keys(obj)) walk5(obj[key2], `${path}/${key2}`);
-    };
-    for (const field of SCHEMA_FIELDS2) {
-      walk5(m[field], field);
-    }
-  }
-  return diagnostics;
-}
-
-// ../../analyzer/nodejs/src/rewrite-synthetic-origins.ts
-function readOrigin(manifest) {
-  if (!manifest || typeof manifest !== "object") return void 0;
-  const origin = manifest.metadata?.xTeloOrigin;
-  if (!origin || typeof origin.parentKind !== "string" || typeof origin.parentName !== "string" || typeof origin.pathFromParent !== "string") {
-    return void 0;
-  }
-  return origin;
-}
-function rewriteSyntheticOrigins(diagnostics, manifests) {
-  const byName = /* @__PURE__ */ new Map();
-  for (const m of manifests) {
-    const name2 = m.metadata?.name;
-    if (typeof name2 === "string") byName.set(name2, m);
-  }
-  return diagnostics.map((d) => {
-    const data = d.data;
-    if (!data?.resource?.name) return d;
-    let current = byName.get(data.resource.name);
-    let origin = readOrigin(current);
-    const path = typeof data.path === "string" ? data.path : "";
-    let accumPath = path;
-    let root = data.resource;
-    while (origin) {
-      accumPath = accumPath ? `${origin.pathFromParent}.${accumPath}` : origin.pathFromParent;
-      root = { kind: origin.parentKind, name: origin.parentName };
-      current = byName.get(origin.parentName);
-      origin = readOrigin(current);
-    }
-    const rerouted = root !== data.resource;
-    const unfolded = current ? unfoldScopedOrigins(current, accumPath) : accumPath;
-    if (!rerouted && unfolded === path) return d;
-    return {
-      ...d,
-      data: {
-        ...data,
-        resource: root,
-        filePath: rerouted ? current?.metadata?.source ?? data.filePath : data.filePath,
-        path: unfolded
-      }
-    };
-  });
-}
-function unfoldScopedOrigins(root, path) {
-  let segments = parseSegments(path);
-  let unfoldedAny = false;
-  for (let hops = 0; hops <= segments.length + 16; hops++) {
-    const next = unfoldOnce(root, segments);
-    if (!next) break;
-    segments = next;
-    unfoldedAny = true;
-  }
-  return unfoldedAny ? formatSegments(segments) : path;
-}
-function unfoldOnce(root, segments) {
-  let node = root;
-  for (let i = 0; i < segments.length; i++) {
-    const segment = segments[i];
-    const container = node;
-    node = typeof segment === "number" ? Array.isArray(container) ? container[segment] : void 0 : container && typeof container === "object" && !Array.isArray(container) ? container[segment] : void 0;
-    if (node === void 0 || node === null) return void 0;
-    if (typeof segment !== "number" || i === 0) continue;
-    const origin = readOrigin(node);
-    if (!origin) continue;
-    const holderPath = segments.slice(0, i - 1);
-    let parentPath2;
-    if (nameOf3(at(root, holderPath)) === origin.parentName) {
-      parentPath2 = holderPath;
-    } else {
-      const sibling = container.findIndex((m) => nameOf3(m) === origin.parentName);
-      if (sibling >= 0) parentPath2 = [...segments.slice(0, i), sibling];
-    }
-    if (!parentPath2) return void 0;
-    return [...parentPath2, ...parseSegments(origin.pathFromParent), ...segments.slice(i + 1)];
-  }
-  return void 0;
-}
-function at(root, segments) {
-  let node = root;
-  for (const segment of segments) {
-    if (!node || typeof node !== "object") return void 0;
-    node = node[segment];
-  }
-  return node;
-}
-function nameOf3(value2) {
-  const name2 = value2?.metadata?.name;
-  return typeof name2 === "string" ? name2 : void 0;
-}
-function parseSegments(path) {
-  const out = [];
-  for (const match of path.matchAll(/\[(\d+)\]|([^.[\]]+)/g)) {
-    out.push(match[1] !== void 0 ? Number(match[1]) : match[2]);
-  }
-  return out;
-}
-function formatSegments(segments) {
-  let out = "";
-  for (const segment of segments) {
-    if (typeof segment === "number") out += `[${segment}]`;
-    else out += out ? `.${segment}` : segment;
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/validate-value-schema.ts
-function collectValueSchemaIssues(manifest, defSchema, allManifests, validator, valueSchemaHost) {
-  const issues = [];
-  for (const { path, value: value2, schema: schema4, from } of valueSchemaSites(manifest, defSchema, {
-    typeManifests: allManifests,
-    valueSchemaHost
-  })) {
-    const standIns = /* @__PURE__ */ new Map();
-    const substituted = substituteDecodedCelFields(value2, schema4, void 0, {
-      standIns,
-      external: validator.external
-    });
-    for (const issue of validator.validate(substituted, schema4, standIns)) {
-      issues.push({
-        // A value type's own refusal keeps what names it, so it reports under the
-        // type's code wherever the slot is.
-        ...valueTypeRefusalCode(issue) ? { keyword: issue.keyword, valueType: issue.valueType } : {},
-        message: `\`${path}\` does not satisfy the type declared at \`${from}\`: ${issue.message}`,
-        path: issue.path ? `${path}.${issue.path}` : path
-      });
-    }
-  }
-  return issues;
-}
-
-// ../../analyzer/nodejs/src/schema-nullability.ts
-function producerAdmitsNull(schema4) {
-  const type = schema4.type;
-  if (type === "null" || Array.isArray(type) && type.includes("null")) return true;
-  if (schema4.nullable === true) return true;
-  if (Array.isArray(schema4.enum) && schema4.enum.includes(null)) return true;
-  if ("const" in schema4 && schema4.const === null) return true;
-  return unionBranches(schema4)?.some(producerAdmitsNull) ?? false;
-}
-function slotAdmitsNull(schema4) {
-  if (producerAdmitsNull(schema4)) return true;
-  const branches = unionBranches(schema4);
-  if (branches) return branches.some(slotAdmitsNull);
-  return schema4.type === void 0;
-}
-
-// ../../analyzer/nodejs/src/ref-slot-computed.ts
-function computedValue(value2) {
-  if (!isTaggedSentinel(value2) && !isCompiledValue(value2)) return void 0;
-  const { engine, source } = value2;
-  if (typeof engine !== "string" || typeof source !== "string") return void 0;
-  if (!defaultRegistry().get(engine)?.expressionRegions) return void 0;
-  if (engine === CEL_ENGINE && isSelfForward(source)) return void 0;
-  return { tag: engine, source };
-}
-function computedRefSlots(positions, isEvaluated = () => true) {
-  const out = [];
-  for (const position of positions) {
-    const computed = computedValue(position.value);
-    if (computed === void 0 || !isEvaluated(position.path)) continue;
-    out.push({ path: position.path, fieldPath: position.fieldPath, ...computed });
-  }
-  return out;
-}
-function evaluatedField(sites, path) {
-  const mode = celEvalModeAt(sites, path);
-  return mode === "compile" || mode === "runtime";
-}
-function refSlotComputedReason(slot, options = {}) {
-  return `'${slot.path}: !${slot.tag} "${slot.source}"'${options.at ? ` ${options.at}` : ""} computes a value that holds the reference slot '${slot.fieldPath}'. CEL values are data, so the reference cannot survive the expression. ` + (options.forwardable ? `Forward it verbatim with a bare 'self.<path>' (the whole value, shaped as the slot expects), or write the slot itself as '!ref'.` : `Write the slot itself as '!ref'.`);
-}
-
-// ../../analyzer/nodejs/src/accessor-binding.ts
-function tagOf(value2) {
-  if (!isTaggedSentinel(value2) && !isCompiledValue(value2)) return void 0;
-  const { engine, source } = value2;
-  return typeof engine === "string" && typeof source === "string" ? { engine, source } : void 0;
-}
-var compileEnv2;
-function isLiteralTag(value2, tag) {
-  if (isCompiledValue(value2) || isRefSentinel(value2)) return false;
-  const engine = defaultRegistry().get(tag.engine);
-  if (!engine || engine.expressionRegions) return false;
-  compileEnv2 ??= buildCelEnvironment();
-  const compiled2 = engine.compile(tag.source, { celEnv: compileEnv2 });
-  return !isCompiledValue(compiled2) && !isTaggedSentinel(compiled2);
-}
-function describeBindings(site) {
-  return site.bindings.length > 0 ? site.bindings.map((name2) => `'${name2}'`).join(", ") : "none \u2014 the field has no x-telo-context";
-}
-function accessorFields(resource, sites) {
-  if (!sites.accessor?.length) return [];
-  const out = [];
-  const walk5 = (node, path, keys) => {
-    if (path !== "") {
-      const site = accessorFieldAt(sites, path);
-      if (site) {
-        if (node !== void 0) out.push({ site, path, keys, value: node });
-        return;
-      }
-    }
-    if (!node || typeof node !== "object" || tagOf(node)) return;
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => walk5(item, `${path}[${index}]`, [...keys, index]));
-      return;
-    }
-    const prototype = Object.getPrototypeOf(node);
-    if (prototype !== Object.prototype && prototype !== null) return;
-    for (const [key2, child] of Object.entries(node)) {
-      walk5(child, path === "" ? key2 : `${path}.${key2}`, [...keys, key2]);
-    }
-  };
-  walk5(resource, "", []);
-  return out;
-}
-function accessorTagEngines(atField) {
-  return atField ? [CEL_ENGINE] : [];
-}
-function accessorProblems(field, resolvedEarlier = () => false) {
-  const { site, path, value: value2 } = field;
-  const isLiteral = (node, tag2) => isLiteralTag(node, tag2) || resolvedEarlier(tag2);
-  const tag = tagOf(value2);
-  if (tag && !isLiteral(value2, tag)) {
-    const chain = plainChainOf(value2);
-    if (chain === void 0) {
-      return [
-        {
-          path,
-          message: `'${path}: !${tag.engine} "${tag.source}"' is not a plain chain. An accessor field names a value for its consumer to resolve and is never evaluated, so only identifiers joined by dots can be written there as an expression \u2014 rooted at one of the field's bindings (${describeBindings(site)}). A call, an operator, an index or interpolation has nothing to run it. Write a plain chain, or a literal value.`
-        }
-      ];
-    }
-    const root = chain.split(".")[0];
-    if (!site.bindings.includes(root)) {
-      return [
-        {
-          path,
-          unboundRoot: root,
-          message: `'${path}: !cel "${tag.source}"' is not a plain chain the field can name: it starts at '${root}', which the field's context does not declare (${describeBindings(site)}). An accessor field is never evaluated, so a chain there starts at one of its own bindings.`
-        }
-      ];
-    }
-    return [];
-  }
-  const problems = [];
-  const walk5 = (node, at2) => {
-    const nested = tagOf(node);
-    if (nested) {
-      if (isLiteral(node, nested)) return;
-      problems.push({
-        path: at2,
-        message: `'${at2}: !${nested.engine} "${nested.source}"' is written beneath the accessor field '${path}', so it is not a plain chain the field names. An accessor field is never evaluated: it holds one plain chain as its whole value, or a literal with no tag inside it.`
-      });
-      return;
-    }
-    if (!node || typeof node !== "object") return;
-    if (Array.isArray(node)) {
-      node.forEach((item, index) => walk5(item, `${at2}[${index}]`));
-      return;
-    }
-    const prototype = Object.getPrototypeOf(node);
-    if (prototype !== Object.prototype && prototype !== null) return;
-    for (const [key2, child] of Object.entries(node)) {
-      walk5(child, `${at2}.${key2}`);
-    }
-  };
-  walk5(value2, path);
-  return problems;
-}
-function readsOnlySelf(tag) {
-  const expressions = celExpressionsOf(tag.engine, tag.source);
-  return expressions.length > 0 && expressions.every((expression) => {
-    const chains = accessChains(expression);
-    return chains.length > 0 && chains.every((chain) => chain[0] === "self");
-  });
-}
-function accessorBindingOf(value2, resolvedEarlier = () => false) {
-  const tag = tagOf(value2);
-  if (tag && resolvedEarlier(tag)) return { value: value2 };
-  const chain = plainChainOf(value2);
-  if (chain === void 0) return { value: value2 };
-  const [root, ...path] = chain.split(".");
-  return { root, path };
-}
-function withAccessorBindings(resource, fields, resolvedEarlier) {
-  if (fields.length === 0) return resource;
-  const copied = /* @__PURE__ */ new Set();
-  const copy = (holder, key2) => {
-    const child = holder[key2];
-    if (copied.has(child)) return child;
-    const fresh = Array.isArray(child) ? [...child] : { ...child };
-    copied.add(fresh);
-    holder[key2] = fresh;
-    return fresh;
-  };
-  const root = { ...resource };
-  for (const { keys, value: value2 } of fields) {
-    let holder = root;
-    for (const key2 of keys.slice(0, -1)) holder = copy(holder, key2);
-    holder[keys[keys.length - 1]] = accessorBindingOf(value2, resolvedEarlier);
-  }
-  return root;
-}
-
-// ../../analyzer/nodejs/src/rule-declaration-view.ts
-function isPlainContainer(value2) {
-  if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return false;
-  if (Array.isArray(value2)) return true;
-  const prototype = Object.getPrototypeOf(value2);
-  return prototype === Object.prototype || prototype === null;
-}
-var RuleDeclarationViews = class {
-  constructor(sitesOf2, forwardedReference) {
-    this.sitesOf = sitesOf2;
-    this.forwardedReference = forwardedReference;
-  }
-  views = /* @__PURE__ */ new WeakMap();
-  of(declaration) {
-    const module = declaration.metadata?.module;
-    return this.view(
-      declaration,
-      module,
-      isForwardedDeclaration(declaration)
-    );
-  }
-  /** `forwarded`: the declaration is a dependency's, or an inline declaration
-   *  beneath one. */
-  view(declaration, module, forwarded) {
-    const cached = this.views.get(declaration);
-    if (cached) return cached;
-    const reading = typeof declaration.kind === "string" ? this.sitesOf(declaration, module) : void 0;
-    const fields = reading?.sites ? accessorFields(declaration, reading.sites) : [];
-    const bound = withAccessorBindings(
-      declaration,
-      fields,
-      reading?.bodyEntry ? readsOnlySelf : void 0
-    );
-    const written = new Set(fields.map((field) => field.path));
-    const resolve = forwarded && typeof module === "string" ? this.forwardedReference : void 0;
-    const walk5 = (node, path) => {
-      if (written.has(path)) return node;
-      if (resolve) {
-        const target = refSentinelTarget(node);
-        if (target) return resolve(target, module) ?? node;
-      }
-      if (!isPlainContainer(node)) return node;
-      if (Array.isArray(node)) {
-        const items = node.map((item, index) => walk5(item, `${path}[${index}]`));
-        return items.some((item, index) => item !== node[index]) ? items : node;
-      }
-      if (path !== "" && isInlineResource(node)) return this.view(node, module, forwarded);
-      let copy;
-      for (const [key2, child] of Object.entries(node)) {
-        const read = walk5(child, path === "" ? key2 : `${path}.${key2}`);
-        if (read !== child) (copy ??= { ...node })[key2] = read;
-      }
-      return copy ?? node;
-    };
-    const view = walk5(bound, "");
-    this.views.set(declaration, view);
-    return view;
-  }
-};
-
-// ../../analyzer/nodejs/src/browser-export-slot.ts
-var BROWSER_EXPORT_ANNOTATION = "x-telo-browser-export";
-function pointerSegments3(pointer) {
-  if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
-  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
-}
-var isPlainObject8 = (value2) => {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
-  const prototype = Object.getPrototypeOf(value2);
-  return prototype === Object.prototype || prototype === null;
-};
-var declaring = /* @__PURE__ */ new WeakMap();
-function declaresBrowserExport(schema4) {
-  let known = declaring.get(schema4);
-  if (known === void 0) {
-    const seen = /* @__PURE__ */ new Set();
-    const scan = (node) => {
-      if (!node || typeof node !== "object" || seen.has(node)) return false;
-      seen.add(node);
-      if (Array.isArray(node)) return node.some(scan);
-      return BROWSER_EXPORT_ANNOTATION in node || Object.values(node).some(scan);
-    };
-    declaring.set(schema4, known = scan(schema4));
-  }
-  return known;
-}
-function browserExportSites(schema4, data) {
-  if (!declaresBrowserExport(schema4)) return [];
-  const out = /* @__PURE__ */ new Map();
-  const entered = /* @__PURE__ */ new Set();
-  const ids = /* @__PURE__ */ new WeakMap();
-  let nextId = 0;
-  const nodeId = (node) => {
-    let id = ids.get(node);
-    if (id === void 0) ids.set(node, id = nextId++);
-    return id;
-  };
-  const walk5 = (node, value2, path, holder) => {
-    if (!node || typeof node !== "object" || Array.isArray(node) || value2 === void 0) return;
-    const declared = node;
-    const key2 = `${nodeId(declared)}\0${path}`;
-    if (entered.has(key2)) return;
-    entered.add(key2);
-    const segments = pointerSegments3(declared[BROWSER_EXPORT_ANNOTATION]?.entry);
-    if (segments && holder && !out.has(path)) {
-      let specifier = holder.value;
-      for (const segment of segments) {
-        specifier = isPlainObject8(specifier) ? specifier[segment] : void 0;
-      }
-      out.set(path, {
-        path,
-        entryPath: [holder.path, ...segments].filter((part) => part !== "").join("."),
-        exportName: value2,
-        specifier
-      });
-    }
-    if (typeof declared.$ref === "string" && declared.$ref.startsWith("#")) {
-      walk5(resolveSchemaPointer(schema4, declared.$ref), value2, path, holder);
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(declared[union2])) {
-        for (const branch of declared[union2]) walk5(branch, value2, path, holder);
-      }
-    }
-    if (Array.isArray(value2)) {
-      if (declared.items && typeof declared.items === "object" && !Array.isArray(declared.items)) {
-        value2.forEach((item, index) => walk5(declared.items, item, `${path}[${index}]`, holder));
-      }
-      return;
-    }
-    if (!isPlainObject8(value2)) return;
-    const properties = isPlainObject8(declared.properties) ? declared.properties : {};
-    const here = { value: value2, path };
-    for (const [name2, child] of Object.entries(value2)) {
-      const childPath = path === "" ? name2 : `${path}.${name2}`;
-      if (name2 in properties) walk5(properties[name2], child, childPath, here);
-      else if (declared.additionalProperties && typeof declared.additionalProperties === "object") {
-        walk5(declared.additionalProperties, child, childPath, here);
-      }
-    }
-  };
-  walk5(schema4, data, "", void 0);
-  return [...out.values()];
-}
-function browserExportProblems(sites, entries) {
-  const out = [];
-  for (const site of sites) {
-    if (typeof site.specifier !== "string" || typeof site.exportName !== "string") continue;
-    const entry = entries.find((candidate) => candidate.specifier === site.specifier);
-    if (!entry) {
-      out.push({
-        code: "BROWSER_ENTRY_UNKNOWN",
-        path: site.entryPath,
-        message: `'${site.entryPath}: ${site.specifier}' names no browser entry of the module declaring this resource. ` + (entries.length > 0 ? `It declares ${entries.map((e) => `'${e.specifier}'`).join(", ")} under exports.browser.` : `It declares none \u2014 add the entry under exports.browser on the module doc.`)
-      });
-      continue;
-    }
-    if (!entry.exports.includes(site.exportName)) {
-      out.push({
-        code: "BROWSER_EXPORT_UNKNOWN",
-        path: site.path,
-        message: `'${site.path}: ${site.exportName}' is not an export the browser entry '${entry.specifier}' declares. ` + (entry.exports.length > 0 ? `It declares ${entry.exports.map((name2) => `'${name2}'`).join(", ")}.` : `It declares none \u2014 list the name under the entry's 'exports'.`)
-      });
-    }
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/artifact-selector.ts
-var LAYER_ROLES = [
-  "controller",
-  "library",
-  "native",
-  "browser",
-  "assets",
-  "common"
-];
-function isLayerRole(value2) {
-  return typeof value2 === "string" && LAYER_ROLES.includes(value2);
-}
-var CODE_LAYER_ROLES = ["controller", "library"];
-var SELECTOR_LAYER_ROLES = [...CODE_LAYER_ROLES, "native", "browser"];
-function roleCarriesSelector(role) {
-  return SELECTOR_LAYER_ROLES.includes(role);
-}
-var ArtifactSelectorError = class extends Error {
-  code = "INVALID_ARTIFACT_SELECTOR";
-  constructor(detail) {
-    super(detail);
-    this.name = "ArtifactSelectorError";
-  }
-};
-var TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
-function normalizeAxisValue(axis, raw, describe5) {
-  if (typeof raw !== "string") {
-    throw new ArtifactSelectorError(
-      `${describe5}: ${axis} must be a string, got ${raw === null ? "null" : typeof raw}.`
-    );
-  }
-  const value2 = raw.trim().toLowerCase();
-  if (!TOKEN.test(value2)) {
-    throw new ArtifactSelectorError(
-      `${describe5}: ${axis} value '${raw}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
-    );
-  }
-  const valueForm = AXIS_VALUE_FORMS[axis];
-  if (valueForm && !valueForm.pattern.test(value2)) {
-    throw new ArtifactSelectorError(
-      `${describe5}: ${axis} value '${raw}' must have the form ${valueForm.form}, e.g. ${valueForm.examples.map((e) => `'${e}'`).join(" or ")}.`
-    );
-  }
-  return value2;
-}
-function selectorFromQualifiers(format2, qualifiers, describe5 = "controller selector") {
-  const selector = {
-    format: normalizeAxisValue("format", format2, describe5)
-  };
-  for (const axis of PLATFORM_AXES) {
-    const raw = qualifiers?.[axis];
-    if (raw === void 0 || raw === "") continue;
-    selector[axis] = normalizeAxisValue(axis, raw, describe5);
-  }
-  return selector;
-}
-function normalizeSelector(value2, describe5 = "layer selector") {
-  if (typeof value2 !== "object" || value2 === null || Array.isArray(value2)) {
-    throw new ArtifactSelectorError(`${describe5}: expected an object of selector axes.`);
-  }
-  const record = value2;
-  const selector = selectorFromQualifiers(record.format, record, describe5);
-  const carriesUnknownAxis = Object.keys(record).some(
-    (k) => k !== "format" && !PLATFORM_AXES.includes(k)
-  );
-  return carriesUnknownAxis ? void 0 : selector;
-}
-function selectorKey(selector) {
-  let key2 = selectorKeys.get(selector);
-  if (key2 === void 0) {
-    const pairs2 = [`format=${selector.format}`];
-    for (const axis of PLATFORM_AXES) {
-      const value2 = selector[axis];
-      if (value2 !== void 0) pairs2.push(`${axis}=${value2}`);
-    }
-    key2 = pairs2.sort().join(";");
-    selectorKeys.set(selector, key2);
-  }
-  return key2;
-}
-var selectorKeys = /* @__PURE__ */ new WeakMap();
-function describeSelector(selector) {
-  const platform = PLATFORM_AXES.map((axis) => selector[axis]).filter(
-    (v) => v !== void 0
-  );
-  return platform.length === 0 ? selector.format : `${selector.format} (${platform.join("/")})`;
-}
-function selectorContradictions(selector) {
-  const out = [];
-  if (selector.format === "napi" && selector.abi !== void 0) {
-    out.push({
-      rule: "NAPI_ABI_FORBIDDEN",
-      axis: "abi",
-      detail: `an N-API addon is ABI-stable across runtime releases and states no abi \u2014 remove abi ${selector.abi}, which would keep it from loading anywhere else.`
-    });
-  }
-  if (selector.libc !== void 0 && selector.os !== void 0 && selector.os !== "linux") {
-    out.push({
-      rule: "LIBC_OFF_LINUX",
-      axis: "libc",
-      detail: `libc is only determined on linux, so a selector for os '${selector.os}' that states libc ${selector.libc} could never match a host. Remove libc.`
-    });
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/module-browser.ts
-var BROWSER_FORMAT = "esm";
-var KNOWN_KEYS = /* @__PURE__ */ new Set(["specifier", "path", "source", "abi", "external", "exports"]);
-function normalizeRelative(value2) {
-  return value2.replace(/^\.\//, "").replace(/\\/g, "/");
-}
-function outsideModule(key2, raw) {
-  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) || raw.startsWith("/") || raw.startsWith("\\")) {
-    return `'${key2}' is '${raw}', which is not relative to the module root. A browser entry ships inside the module, so name the file relative to the directory holding telo.yaml.`;
-  }
-  let depth = 0;
-  for (const segment of raw.split(/[/\\]+/)) {
-    if (segment === "" || segment === ".") continue;
-    depth += segment === ".." ? -1 : 1;
-    if (depth < 0) {
-      return `'${key2}' is '${raw}', which points above the module root. A browser entry ships inside the module, so the file must be inside the directory holding telo.yaml.`;
-    }
-  }
-  return void 0;
-}
-function stringList2(entry, key2) {
-  const raw = entry[key2];
-  if (raw === void 0) return { value: [] };
-  if (!Array.isArray(raw) || raw.some((item) => typeof item !== "string" || item.trim() === "")) {
-    return { detail: `'${key2}' must be a list of non-empty strings.` };
-  }
-  return { value: raw.map((item) => item.trim()) };
-}
-function readBrowserEntries(ownerJson) {
-  const declared = ownerJson?.exports?.browser;
-  const entries = [];
-  const problems = [];
-  if (declared === void 0) return { entries, problems };
-  if (!Array.isArray(declared)) {
-    return { entries, problems: [{ origin: "exports.browser", detail: "expected a list of entries." }] };
-  }
-  const seen = /* @__PURE__ */ new Set();
-  declared.forEach((raw, index) => {
-    const at2 = `exports.browser[${index}]`;
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-      problems.push({ origin: at2, detail: "expected an object.", index });
-      return;
-    }
-    const entry = raw;
-    const named = typeof entry.specifier === "string" && entry.specifier.trim() !== "";
-    const origin = named ? `${at2} ('${entry.specifier.trim()}')` : at2;
-    const refuse3 = (detail) => problems.push({ origin, detail, index });
-    const platform = Object.keys(entry).filter(
-      (key2) => key2 === "format" || PLATFORM_AXES.includes(key2) && key2 !== "abi"
-    );
-    if (platform.length > 0) {
-      refuse3(
-        `${platform.map((k) => `'${k}'`).join(", ")} cannot be stated. A browser entry is an ES module served to a page: its format is always '${BROWSER_FORMAT}' and it is the same file on every platform. The only axis it states is 'abi'.`
-      );
-      return;
-    }
-    const unknown = Object.keys(entry).filter((key2) => !KNOWN_KEYS.has(key2));
-    if (unknown.length > 0) {
-      refuse3(
-        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS].join(", ")}.`
-      );
-      return;
-    }
-    if (!named) {
-      refuse3("'specifier' is required and must be a non-empty string.");
-      return;
-    }
-    const specifier = entry.specifier.trim();
-    if (typeof entry.path !== "string" || entry.path.trim() === "") {
-      refuse3("'path' is required and must be a non-empty string.");
-      return;
-    }
-    if (entry.source !== void 0 && (typeof entry.source !== "string" || entry.source.trim() === "")) {
-      refuse3("'source' must be a non-empty string when present.");
-      return;
-    }
-    const outside = outsideModule("path", entry.path.trim()) ?? (typeof entry.source === "string" ? outsideModule("source", entry.source.trim()) : void 0);
-    if (outside !== void 0) {
-      refuse3(outside);
-      return;
-    }
-    let abi;
-    if (entry.abi !== void 0) {
-      try {
-        abi = normalizeAxisValue("abi", entry.abi, origin);
-      } catch (err) {
-        if (!(err instanceof ArtifactSelectorError)) throw err;
-        refuse3(err.message.slice(origin.length + 2));
-        return;
-      }
-    }
-    const external = stringList2(entry, "external");
-    if ("detail" in external) {
-      refuse3(external.detail);
-      return;
-    }
-    const names = stringList2(entry, "exports");
-    if ("detail" in names) {
-      refuse3(names.detail);
-      return;
-    }
-    if (seen.has(specifier)) {
-      refuse3(
-        `a second entry declares the specifier '${specifier}'. A specifier is one import-map key, so it names one entry.`
-      );
-      return;
-    }
-    seen.add(specifier);
-    entries.push({
-      specifier,
-      path: normalizeRelative(entry.path.trim()),
-      ...typeof entry.source === "string" ? { localPath: normalizeRelative(entry.source.trim()) } : {},
-      ...abi !== void 0 ? { abi } : {},
-      external: [...new Set(external.value)].sort(),
-      exports: [...new Set(names.value)],
-      selector: { format: BROWSER_FORMAT, ...abi !== void 0 ? { abi } : {} },
-      origin,
-      index
-    });
-  });
-  return { entries, problems };
-}
-
-// ../../analyzer/nodejs/src/validate-extends.ts
-var SOURCE8 = "telo-analyzer";
-var EXTENDS_ALIAS_RE = /^[A-Z][A-Za-z0-9_]*\.[A-Z][A-Za-z0-9_]*$/;
-var TELO_BUILTIN_ALIAS = "Telo";
-function validateExtends(manifests, registry, aliases) {
-  const diagnostics = [];
-  const importedModules = /* @__PURE__ */ new Set();
-  for (const m of manifests) {
-    if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
-  }
-  for (const m of manifests) {
-    if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
-    const isDefinition = m.kind === "Telo.Definition";
-    const name2 = m.metadata?.name;
-    if (!name2) continue;
-    const ownModule = m.metadata?.module;
-    if (ownModule && importedModules.has(ownModule)) continue;
-    const filePath = m.metadata?.source;
-    const resource = { kind: m.kind, name: name2 };
-    const label2 = `${m.kind}/${name2}`;
-    if (isDefinition && m.base != null) {
-      const hasBody = hasOwnControllerOrTemplate(m);
-      const bodyKey = ["resources", "controllers", "invoke", "run", "targets", "provide", "mount"].find(
-        (key2) => m[key2] !== void 0
-      ) ?? "resources";
-      if (hasBody) {
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "BASE_WITH_TEMPLATE_BODY",
-          source: SOURCE8,
-          message: `${label2}: 'base:' maps this kind's config onto the inherited controller of '${typeof extendsOf(m) === "string" ? extendsOf(m) : "<no extends>"}', so the definition may not also declare '${bodyKey}:'. With '${bodyKey}:' the kind is a template and 'base:' is never evaluated. Either drop 'base:' and dispatch to a 'resources:' entry with '!ref', or drop '${bodyKey}:' and build the parent's config in 'base:' alone.`,
-          data: { resource, filePath, path: bodyKey }
-        });
-      }
-    }
-    const extendsValue = m.extends;
-    if (extendsValue !== void 0) {
-      if (typeof extendsValue !== "string") {
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "EXTENDS_MALFORMED",
-          source: SOURCE8,
-          message: `${label2}: 'extends' must be a string in alias form "<Alias>.<Name>"`,
-          data: { resource, filePath, path: "extends" }
-        });
-      } else if (!EXTENDS_ALIAS_RE.test(extendsValue)) {
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "EXTENDS_MALFORMED",
-          source: SOURCE8,
-          message: `${label2}: 'extends: ${extendsValue}' must be in alias form "<Alias>.<Name>" (e.g. "Ai.Model"), resolved via this file's Telo.Import declarations.`,
-          data: { resource, filePath, path: "extends" }
-        });
-      } else {
-        const prefix = extendsValue.slice(0, extendsValue.indexOf("."));
-        if (prefix !== TELO_BUILTIN_ALIAS && !aliases.hasAlias(prefix)) {
-          diagnostics.push({
-            severity: DiagnosticSeverity2.Error,
-            code: "EXTENDS_MALFORMED",
-            source: SOURCE8,
-            message: `${label2}: 'extends: ${extendsValue}' \u2014 alias '${prefix}' is not a Telo.Import in this file's scope. Declare the import or correct the alias.`,
-            data: { resource, filePath, path: "extends" }
-          });
-        } else {
-          const canonical = aliases.resolveKind(extendsValue);
-          if (!canonical) {
-            diagnostics.push({
-              severity: DiagnosticSeverity2.Error,
-              code: "EXTENDS_UNKNOWN_TARGET",
-              source: SOURCE8,
-              message: `${label2}: 'extends' target '${extendsValue}' is not an exported kind of alias '${prefix}'.`,
-              data: { resource, filePath, path: "extends" }
-            });
-          } else {
-            const targetDef = registry.resolve(canonical);
-            if (!targetDef) {
-              diagnostics.push({
-                severity: DiagnosticSeverity2.Error,
-                code: "EXTENDS_UNKNOWN_TARGET",
-                source: SOURCE8,
-                message: `${label2}: 'extends' target '${extendsValue}' (resolved: '${canonical}') is not a registered definition.`,
-                data: { resource, filePath, path: "extends" }
-              });
-            } else if (isDefinition) {
-              const resolveDef = (k) => registry.resolve(aliases.resolveKind(k) ?? k) ?? registry.resolve(k);
-              const ownCap = m.capability;
-              const ownCapResolved = typeof ownCap === "string" ? aliases.resolveKind(ownCap) ?? ownCap : void 0;
-              const ancestorCap = inheritedCapability(targetDef, resolveDef);
-              if (ownCapResolved && ancestorCap && ownCapResolved !== ancestorCap) {
-                diagnostics.push({
-                  severity: DiagnosticSeverity2.Error,
-                  code: "EXTENDS_CAPABILITY_MISMATCH",
-                  source: SOURCE8,
-                  message: `${label2}: declares 'capability: ${ownCap}' but extends '${extendsValue}' whose inherited capability is '${ancestorCap}'. Capability is inherited and immutable \u2014 omit 'capability' or restate it identically.`,
-                  data: { resource, filePath, path: "capability" }
-                });
-              }
-              if (m.base == null && isInheritedDelegation(m, resolveDef)) {
-                const ancestor = controllerBearingAncestor(m, resolveDef);
-                const ancestorSchema = ancestor ? effectiveAuthorSchema(ancestor, resolveDef) : void 0;
-                if (ancestorSchema?.additionalProperties === false) {
-                  const inherited = new Set(Object.keys(ancestorSchema.properties ?? {}));
-                  const ownProps = m.schema?.properties ?? {};
-                  const ancestorKind = `${ancestor?.metadata.module}.${ancestor?.metadata.name}`;
-                  for (const prop of Object.keys(ownProps)) {
-                    if (inherited.has(prop)) continue;
-                    diagnostics.push({
-                      severity: DiagnosticSeverity2.Error,
-                      code: "EXTENDS_CLOSED_PARENT_ADDS_FIELD",
-                      source: SOURCE8,
-                      message: `${label2}: declares '${prop}', but '${ancestorKind}' closes its schema (additionalProperties: false) and a child without 'base:' forwards its whole config as that kind's config \u2014 so '${prop}' is rejected when the resource is created. Add a 'base:' mapping, which makes this kind's fields construction inputs and builds the parent's config explicitly.`,
-                      data: {
-                        resource,
-                        filePath,
-                        path: `schema.properties.${prop}`
-                      }
-                    });
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    const capability = m.capability;
-    if (isDefinition && typeof capability === "string") {
-      const resolvedCap = aliases.resolveKind(capability) ?? capability;
-      const capDef = registry.resolve(resolvedCap);
-      if (capDef && capDef.kind === "Telo.Abstract" && capDef.metadata.module !== "Telo") {
-        const aliasesForModule = aliases.aliasesFor(capDef.metadata.module);
-        const suggestion = aliasesForModule.length > 0 ? `${aliasesForModule[0]}.${capDef.metadata.name}` : `${capDef.metadata.module}.${capDef.metadata.name}`;
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Warning,
-          code: "CAPABILITY_SHADOWS_EXTENDS",
-          source: SOURCE8,
-          message: `${label2}: 'capability: ${capability}' names a user-declared abstract. Prefer 'extends' for implements-this-abstract declarations; 'capability' should name a lifecycle role. Use \`extends: "${suggestion}"\` with a lifecycle \`capability\` (e.g. Telo.Invocable, Telo.Provider, Telo.Service).`,
-          data: { resource, filePath, path: "capability" }
-        });
-      }
-    }
-  }
-  return diagnostics;
-}
-function extendsOf(m) {
-  return m.extends;
-}
-
-// ../../analyzer/nodejs/src/redaction-path.ts
-var RedactionPathError = class extends Error {
-  code = "INVALID_REDACTION_PATH";
-  path;
-  offset;
-  constructor(path, offset, detail) {
-    super(`Invalid redaction path "${path}" at position ${offset}: ${detail}`);
-    this.name = "RedactionPathError";
-    this.path = path;
-    this.offset = offset;
-  }
-};
-var BARE_KEY_TERMINATORS = /* @__PURE__ */ new Set([".", "[", "]"]);
-function parseRedactionPath(path) {
-  if (path.length === 0) throw new RedactionPathError(path, 0, "path is empty");
-  const segments = [];
-  let index = 0;
-  let expectSegment = true;
-  while (index < path.length) {
-    const char = path[index];
-    if (char === "[") {
-      index = parseBracket(path, index, segments);
-      expectSegment = false;
-      continue;
-    }
-    if (char === ".") {
-      if (expectSegment) {
-        throw new RedactionPathError(path, index, "expected a key before '.'");
-      }
-      index += 1;
-      expectSegment = true;
-      continue;
-    }
-    if (char === "]") {
-      throw new RedactionPathError(path, index, "unmatched ']'");
-    }
-    const start = index;
-    while (index < path.length && !BARE_KEY_TERMINATORS.has(path[index])) index += 1;
-    const raw = path.slice(start, index);
-    if (raw.length === 0) throw new RedactionPathError(path, start, "empty key");
-    segments.push(raw === "*" ? { kind: "wildcard" } : { kind: "key", name: raw });
-    expectSegment = false;
-  }
-  if (expectSegment) {
-    throw new RedactionPathError(path, path.length, "path ends with a trailing '.'");
-  }
-  return segments;
-}
-function parseBracket(path, open, segments) {
-  let index = open + 1;
-  if (index >= path.length) throw new RedactionPathError(path, open, "unterminated '['");
-  const quote = path[index];
-  if (quote === '"' || quote === "'") {
-    index += 1;
-    const start2 = index;
-    while (index < path.length && path[index] !== quote) index += 1;
-    if (index >= path.length) {
-      throw new RedactionPathError(path, start2, `unterminated ${quote} quoted key`);
-    }
-    const name2 = path.slice(start2, index);
-    if (name2.length === 0) throw new RedactionPathError(path, start2, "empty quoted key");
-    index += 1;
-    if (path[index] !== "]") {
-      throw new RedactionPathError(path, index, "expected ']' after quoted key");
-    }
-    segments.push({ kind: "key", name: name2 });
-    return index + 1;
-  }
-  const start = index;
-  while (index < path.length && path[index] !== "]") index += 1;
-  if (index >= path.length) throw new RedactionPathError(path, open, "unterminated '['");
-  const raw = path.slice(start, index);
-  if (raw.length === 0) throw new RedactionPathError(path, start, "empty '[]'");
-  if (raw === "*") {
-    segments.push({ kind: "wildcard" });
-  } else if (/^\d+$/.test(raw)) {
-    segments.push({ kind: "key", name: raw });
-  } else {
-    throw new RedactionPathError(
-      path,
-      start,
-      `expected a quoted key, an integer index, or '*', got "${raw}" \u2014 quote it as ["${raw}"]`
-    );
-  }
-  return index + 1;
-}
-
-// ../../analyzer/nodejs/src/validate-logging.ts
-var SOURCE9 = "telo-analyzer";
-function validateLogging(manifests, registry, aliases, aliasesByModule) {
-  const diagnostics = [];
-  for (const manifest of manifests) {
-    const kind = manifest.kind;
-    if (kind === "Telo.Application" || kind === "Telo.Import" || kind === "Telo.Library") {
-      validateRedactPaths(manifest, diagnostics);
-    }
-    if (isSinkKind(manifest, registry, aliases, aliasesByModule)) {
-      validateOnFull(manifest, diagnostics);
-    }
-  }
-  return diagnostics;
-}
-function validateRedactPaths(manifest, out) {
-  const name2 = manifest.metadata?.name;
-  const filePath = manifest.metadata?.source;
-  const resource = { kind: manifest.kind, name: name2 };
-  for (const { block, prefix } of loggingBlocks(manifest)) {
-    const paths = block.redact?.paths;
-    if (!Array.isArray(paths)) continue;
-    paths.forEach((path, index) => {
-      if (typeof path !== "string") return;
-      try {
-        parseRedactionPath(path);
-      } catch (err) {
-        if (!(err instanceof RedactionPathError)) throw err;
-        out.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "INVALID_REDACTION_PATH",
-          source: SOURCE9,
-          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
-          data: { resource, filePath, path: `${prefix}redact.paths[${index}]` }
-        });
-      }
-    });
-  }
-}
-function validateOnFull(manifest, out) {
-  const onFull = manifest.on_full;
-  if (onFull !== "block") return;
-  const name2 = manifest.metadata?.name;
-  const filePath = manifest.metadata?.source;
-  out.push({
-    severity: DiagnosticSeverity2.Error,
-    code: "LOG_SINK_ON_FULL_UNSUPPORTED",
-    source: SOURCE9,
-    message: `${manifest.kind}/${name2 ?? "(unnamed)"}: on_full: block is not supported on a single-threaded runtime \u2014 blocking the producer would stall the writer. Use drop_new or drop_old.`,
-    data: { resource: { kind: manifest.kind, name: name2 }, filePath, path: "on_full" }
-  });
-}
-function loggingBlocks(manifest) {
-  const blocks = [];
-  const root = manifest.logging;
-  if (isObject11(root)) blocks.push({ block: root, prefix: "logging." });
-  const imports = manifest.imports;
-  if (isObject11(imports)) {
-    for (const [alias, entry] of Object.entries(imports)) {
-      if (!isObject11(entry)) continue;
-      const block = entry.logging;
-      if (isObject11(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
-    }
-  }
-  return blocks;
-}
-function isSinkKind(manifest, registry, aliases, aliasesByModule) {
-  if (typeof manifest.kind !== "string") return false;
-  if (manifest.kind === "Telo.ConsoleSink" || manifest.kind === "Telo.FileSink") return true;
-  const resolver = moduleAliasScope(manifest.metadata, aliases, aliasesByModule);
-  const canonical = resolver.resolveKind(manifest.kind) ?? manifest.kind;
-  return registry.resolve(canonical)?.capability === "Telo.Sink";
-}
-function isObject11(value2) {
-  return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
-}
-
-// ../../analyzer/nodejs/src/artifact-layer-index.ts
-var BLOB_DIGEST = /^sha256:[0-9a-f]{64}$/;
-var CONTENT_DIGEST = /^sha256-[A-Za-z0-9_-]{43}$/;
-var LayerIndexError = class extends Error {
-  code = "INVALID_LAYER_INDEX";
-  constructor(detail) {
-    super(detail);
-    this.name = "LayerIndexError";
-  }
-};
-function digest(field, raw, describe5) {
-  if (typeof raw !== "string" || raw === "") {
-    throw new LayerIndexError(`${describe5}: ${field} is required and must be a string.`);
-  }
-  const pattern2 = field === "blob" ? BLOB_DIGEST : CONTENT_DIGEST;
-  if (!pattern2.test(raw)) {
-    throw new LayerIndexError(
-      field === "blob" ? `${describe5}: blob '${raw}' is not an OCI digest (expected 'sha256:' + 64 hex characters).` : `${describe5}: integrity '${raw}' is not a content digest (expected 'sha256-' + 43 base64url characters).`
-    );
-  }
-  return raw;
-}
-function parseLayerIndex(value2, describe5 = "layers") {
-  if (!Array.isArray(value2)) {
-    throw new LayerIndexError(`${describe5}: expected an array of layer entries.`);
-  }
-  const layers = [];
-  const seenSelectors = /* @__PURE__ */ new Set();
-  const seenSingletons = /* @__PURE__ */ new Set();
-  value2.forEach((raw, index) => {
-    const where = `${describe5}[${index}]`;
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-      throw new LayerIndexError(`${where}: expected an object.`);
-    }
-    const entry = raw;
-    if (typeof entry.role !== "string" || entry.role === "") {
-      throw new LayerIndexError(
-        `${where}: role is required and must be a non-empty string; got ${entry.role === void 0 ? "nothing" : `'${String(entry.role)}'`}.`
-      );
-    }
-    const blob = digest("blob", entry.blob, where);
-    const integrity = digest("integrity", entry.integrity, where);
-    if (!isLayerRole(entry.role)) return;
-    const role = entry.role;
-    let selector;
-    if (roleCarriesSelector(role)) {
-      if (entry.selector === void 0) {
-        throw new LayerIndexError(`${where}: a ${role} layer must declare a selector.`);
-      }
-      selector = normalizeSelector(entry.selector, where);
-      if (selector === void 0) return;
-      const key2 = `${role}\0${selectorKey(selector)}`;
-      if (seenSelectors.has(key2)) {
-        throw new LayerIndexError(
-          `${where}: a second ${role} layer claims the selector ${selectorKey(selector)}. Each selector addresses exactly one layer of a role.`
-        );
-      }
-      seenSelectors.add(key2);
-    } else {
-      if (entry.selector !== void 0) {
-        throw new LayerIndexError(
-          `${where}: a '${role}' layer must not declare a selector \u2014 it is a singleton.`
-        );
-      }
-      if (seenSingletons.has(role)) {
-        throw new LayerIndexError(`${where}: a second '${role}' layer is declared.`);
-      }
-      seenSingletons.add(role);
-    }
-    layers.push({
-      role,
-      ...selector ? { selector } : {},
-      blob,
-      integrity
-    });
-  });
-  return layers;
-}
-
-// ../../analyzer/nodejs/src/module-library.ts
-var KNOWN_KEYS2 = /* @__PURE__ */ new Set(["specifier", "path", "source", "format", ...PLATFORM_AXES]);
-function normalizeRelative2(value2) {
-  return value2.replace(/^\.\//, "").replace(/\\/g, "/");
-}
-function requiredString(entry, key2) {
-  const raw = entry[key2];
-  if (typeof raw !== "string" || raw.trim() === "") {
-    return { detail: `'${key2}' is required and must be a non-empty string.` };
-  }
-  return { value: raw.trim() };
-}
-function readLibraryCandidates(ownerJson) {
-  const declared = ownerJson?.exports?.code;
-  const candidates = [];
-  const problems = [];
-  if (declared === void 0) return { candidates, problems };
-  if (!Array.isArray(declared)) {
-    return {
-      candidates,
-      problems: [{ origin: "exports.code", detail: "expected a list of entries." }]
-    };
-  }
-  declared.forEach((raw, index) => {
-    const origin = `exports.code[${index}]`;
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-      problems.push({ origin, detail: "expected an object." });
-      return;
-    }
-    const entry = raw;
-    const unknown = Object.keys(entry).filter((key2) => !KNOWN_KEYS2.has(key2));
-    if (unknown.length > 0) {
-      problems.push({
-        origin,
-        detail: `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS2].join(", ")}.`
-      });
-      return;
-    }
-    const specifier = requiredString(entry, "specifier");
-    if ("detail" in specifier) {
-      problems.push({ origin, detail: specifier.detail });
-      return;
-    }
-    const file = requiredString(entry, "path");
-    if ("detail" in file) {
-      problems.push({ origin: `${origin} ('${specifier.value}')`, detail: file.detail });
-      return;
-    }
-    const format2 = requiredString(entry, "format");
-    if ("detail" in format2) {
-      problems.push({ origin: `${origin} ('${specifier.value}')`, detail: format2.detail });
-      return;
-    }
-    let selector;
-    try {
-      selector = selectorFromQualifiers(format2.value, entry, `${origin} ('${specifier.value}')`);
-    } catch (err) {
-      problems.push({
-        origin: `${origin} ('${specifier.value}')`,
-        detail: err instanceof ArtifactSelectorError ? err.message : String(err)
-      });
-      return;
-    }
-    const source = entry.source;
-    if (source !== void 0 && (typeof source !== "string" || source.trim() === "")) {
-      problems.push({
-        origin: `${origin} ('${specifier.value}')`,
-        detail: "'source' must be a non-empty string when present."
-      });
-      return;
-    }
-    candidates.push({
-      specifier: specifier.value,
-      path: normalizeRelative2(file.value),
-      ...typeof source === "string" ? { localPath: normalizeRelative2(source.trim()) } : {},
-      selector,
-      origin: `${origin} ('${specifier.value}')`
-    });
-  });
-  return { candidates, problems };
-}
-
-// ../../analyzer/nodejs/src/validate-module-artifact.ts
-var SOURCE10 = "telo-analyzer";
-function validateModuleArtifact(manifests) {
-  const out = [];
-  for (const manifest of manifests) {
-    validateLayerIndex(manifest, out);
-    validateControllerSelectors(manifest, out);
-    validateLibraryCandidates(manifest, out);
-    validateBrowserEntries(manifest, out);
-  }
-  return out;
-}
-function validateLibraryCandidates(manifest, out) {
-  if (manifest.kind !== "Telo.Library") return;
-  const metadata = manifest.metadata;
-  const { candidates, problems } = readLibraryCandidates(manifest);
-  const resource = { kind: manifest.kind, name: metadata?.name };
-  for (const problem of problems) {
-    out.push({
-      severity: DiagnosticSeverity2.Error,
-      code: "LIBRARY_CANDIDATE_INVALID",
-      source: SOURCE10,
-      message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
-      data: { resource, filePath: metadata?.source, path: "exports/code" }
-    });
-  }
-  const seen = /* @__PURE__ */ new Map();
-  for (const candidate of candidates) {
-    for (const contradiction of selectorContradictions(candidate.selector)) {
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code: `LIBRARY_${contradiction.rule}`,
-        source: SOURCE10,
-        message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${candidate.origin}: ${contradiction.detail}`,
-        data: { resource, filePath: metadata?.source, path: "exports/code" }
-      });
-    }
-    const key2 = selectorKey(candidate.selector);
-    const first = seen.get(key2);
-    if (first) {
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code: "LIBRARY_CANDIDATE_DUPLICATE",
-        source: SOURCE10,
-        message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: two 'exports.code' entries declare the selector ${key2} ('${first.specifier}' and '${candidate.specifier}'). A module has one entry point per format \u2014 which is what makes "one specifier, one module scope" true.`,
-        data: { resource, filePath: metadata?.source, path: "exports/code" }
-      });
-      continue;
-    }
-    seen.set(key2, candidate);
-  }
-}
-function validateBrowserEntries(manifest, out) {
-  if (manifest.kind !== "Telo.Library") return;
-  const metadata = manifest.metadata;
-  const { entries, problems } = readBrowserEntries(manifest);
-  const published = manifest.layers !== void 0;
-  const all = [
-    ...problems,
-    ...entries.filter((entry) => !published && entry.localPath === void 0).map((entry) => ({
-      origin: entry.origin,
-      index: entry.index,
-      detail: "'source' is required: a module read from a source checkout builds the entry from it. Name the file 'path' is built from."
-    }))
-  ];
-  for (const problem of all) {
-    out.push({
-      severity: DiagnosticSeverity2.Error,
-      code: "BROWSER_ENTRY_INVALID",
-      source: SOURCE10,
-      message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
-      data: {
-        resource: { kind: manifest.kind, name: metadata?.name },
-        filePath: metadata?.source,
-        path: problem.index === void 0 ? "exports.browser" : `exports.browser[${problem.index}]`
-      }
-    });
-  }
-}
-var KNOWN_QUALIFIERS = /* @__PURE__ */ new Set(["path", "local_path", "siblings", ...PLATFORM_AXES]);
-function parseBundledPurl(purl) {
-  if (!purl.startsWith("pkg:telo/local/")) return null;
-  const withoutFragment = purl.split("#")[0];
-  const [head, query = ""] = withoutFragment.split("?");
-  const format2 = head.slice("pkg:telo/local/".length);
-  if (format2 === "") return null;
-  const qualifiers = {};
-  for (const pair of query.split("&")) {
-    if (pair === "") continue;
-    const eq = pair.indexOf("=");
-    if (eq < 0) continue;
-    qualifiers[decodeURIComponent(pair.slice(0, eq))] = decodeURIComponent(pair.slice(eq + 1));
-  }
-  return { format: format2, qualifiers };
-}
-function validateControllerSelectors(manifest, out) {
-  const controllers = manifest.controllers;
-  if (!Array.isArray(controllers)) return;
-  const metadata = manifest.metadata;
-  const name2 = metadata?.name;
-  const filePath = metadata?.source;
-  const resource = { kind: manifest.kind, name: name2 };
-  controllers.forEach((candidate, index) => {
-    if (typeof candidate !== "string") return;
-    const parsed = parseBundledPurl(candidate);
-    if (!parsed) return;
-    const at2 = `controllers[${index}]`;
-    const unknown = Object.keys(parsed.qualifiers).filter((k) => !KNOWN_QUALIFIERS.has(k));
-    for (const key2 of unknown) {
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code: "CONTROLLER_UNKNOWN_QUALIFIER",
-        source: SOURCE10,
-        message: `${manifest.kind}/${name2 ?? "(unnamed)"}: bundled controller qualifier '${key2}' is not recognized. Known qualifiers: ${[...KNOWN_QUALIFIERS].sort().join(", ")}. An unrecognized platform axis is ignored, which would make this candidate platform-neutral and offer a single-platform binary to every host.`,
-        data: { resource, filePath, path: `${at2}?${key2}` }
-      });
-    }
-    try {
-      const selector = selectorFromQualifiers(parsed.format, parsed.qualifiers, candidate);
-      for (const contradiction of selectorContradictions(selector)) {
-        out.push({
-          severity: DiagnosticSeverity2.Error,
-          code: `CONTROLLER_${contradiction.rule}`,
-          source: SOURCE10,
-          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: controller candidate "${candidate}": ` + contradiction.detail,
-          data: { resource, filePath, path: `${at2}?${contradiction.axis}` }
-        });
-      }
-      if (parsed.format === "dylib" && !selector.abi?.startsWith("telo-")) {
-        out.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "CONTROLLER_DYLIB_ABI_MISSING",
-          source: SOURCE10,
-          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: dylib candidate "${candidate}" ` + (selector.abi === void 0 ? `states no abi. ` : `states abi=${selector.abi}, which is not a Rust controller ABI. `) + `A dylib is built against one version of the Rust controller ABI and must say which \u2014 add abi=telo-<version>, e.g. abi=telo-3. Without it the Rust kernel downloads the library on every host and refuses it only when it opens it.`,
-          data: { resource, filePath, path: at2 }
-        });
-      }
-    } catch (err) {
-      if (!(err instanceof ArtifactSelectorError)) throw err;
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code: "CONTROLLER_INVALID_SELECTOR",
-        source: SOURCE10,
-        message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
-        data: { resource, filePath, path: at2 }
-      });
-    }
-  });
-}
-function validateLayerIndex(manifest, out) {
-  if (manifest.kind !== "Telo.Application" && manifest.kind !== "Telo.Library") return;
-  const layers = manifest.layers;
-  if (layers === void 0) return;
-  const metadata = manifest.metadata;
-  const name2 = metadata?.name;
-  try {
-    parseLayerIndex(layers);
-  } catch (err) {
-    if (!(err instanceof LayerIndexError) && !(err instanceof ArtifactSelectorError)) throw err;
-    out.push({
-      severity: DiagnosticSeverity2.Error,
-      code: "INVALID_LAYER_INDEX",
-      source: SOURCE10,
-      message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
-      data: {
-        resource: { kind: manifest.kind, name: name2 },
-        filePath: metadata?.source,
-        path: "layers"
-      }
-    });
-  }
-}
-
-// ../../analyzer/nodejs/src/module-file-claims.ts
-var import_packageurl_js = __toESM(require_packageurl_js(), 1);
+// ../../analyzer/nodejs/src/builtin-vocabulary.ts
+var import_formats2 = __toESM(require_formats(), 1);
 
 // ../../node_modules/.pnpm/yaml@2.8.3/node_modules/yaml/browser/dist/doc/directives.js
 var escapeChars = {
@@ -65325,7 +62008,4613 @@ function parseDocument(source, options = {}) {
   return doc;
 }
 
+// ../../analyzer/nodejs/src/builtin-vocabulary.ts
+var BUILTIN_VOCABULARY_KIND = "Telo.Builtins";
+function isBuiltinVocabularyRoot(manifest) {
+  return manifest !== null && typeof manifest === "object" && manifest.kind === BUILTIN_VOCABULARY_KIND;
+}
+var BUILTIN_VOCABULARY_NOT_A_MODULE = `${BUILTIN_VOCABULARY_KIND} is the published built-in vocabulary of a telo release; it is read, never declared, run or imported.`;
+function builtinVocabularyImportMessage(source, version2) {
+  const release = typeof version2 === "string" && version2 !== "" ? `telo ${version2}` : "a telo release";
+  return `'${source}' is the built-in vocabulary of ${release}; its kinds need no import \u2014 remove this \`imports:\` entry and write them as \`Telo.<Kind>\`.`;
+}
+var JSON_SCHEMA_FORMATS = new Set(Object.keys(import_formats2.fullFormats));
+
+// ../../analyzer/nodejs/src/deprecation.ts
+function readDeprecation(metadata) {
+  if (metadata === null || typeof metadata !== "object" || Array.isArray(metadata)) return void 0;
+  const block = metadata.deprecated;
+  if (block === null || typeof block !== "object" || Array.isArray(block)) return void 0;
+  const { reason, replacedBy } = block;
+  if (typeof reason !== "string" || reason.trim() === "") return void 0;
+  return {
+    reason: reason.trim(),
+    ...typeof replacedBy === "string" && replacedBy.trim() !== "" ? { replacedBy: replacedBy.trim() } : {}
+  };
+}
+
+// ../../analyzer/nodejs/src/library-declarations.ts
+var key = (module, name2) => `${module}\0${name2}`;
+function libraryDeclarations(documents) {
+  const modules = /* @__PURE__ */ new Set();
+  const declarations = /* @__PURE__ */ new Map();
+  const imports = /* @__PURE__ */ new Map();
+  const inputs = /* @__PURE__ */ new Set();
+  for (const library of documents) {
+    modules.add(library.module);
+    for (const manifest of library.manifests) {
+      const name2 = manifest.metadata?.name;
+      if (isModuleKind(manifest.kind)) {
+        for (const input of readResourceInputs(manifest)) inputs.add(key(library.module, input.name));
+        for (const need of readNeeds(manifest)) inputs.add(key(library.module, need.name));
+        continue;
+      }
+      if (typeof name2 !== "string") continue;
+      if (manifest.kind === "Telo.Import") imports.set(key(library.module, name2), manifest);
+      else if (!isKindDocument(manifest)) {
+        declarations.set(key(library.module, name2), manifest);
+      }
+    }
+  }
+  return {
+    holds: (module) => modules.has(module),
+    declaration: (module, name2) => declarations.get(key(module, name2)),
+    isInput: (module, name2) => inputs.has(key(module, name2)),
+    importOf: (module, alias) => imports.get(key(module, alias))
+  };
+}
+
+// ../../analyzer/nodejs/src/dependency-graph.ts
+var nodeKey = (kind, name2) => `${kind}\0${name2}`;
+function buildDependencyGraph(resources, registry, aliases, aliasesByModule, callGraph) {
+  const graph = callGraph ?? buildCallGraph(resources, registry, { aliases, aliasesByModule });
+  const nodes = /* @__PURE__ */ new Map();
+  for (const node of graph.nodes.values()) {
+    if (node.type !== "resource") continue;
+    const resource = node;
+    if (resource.scoped) continue;
+    nodes.set(resource.id, {
+      kind: resource.kind,
+      name: resource.name,
+      manifest: resource.manifest
+    });
+  }
+  const deps = projectToPairs(graph, {
+    keepUse: (use) => use.length === 0 || use.some((u) => u !== "schema")
+  });
+  for (const edge of graph.edges) {
+    if (!edge.scoped || !edge.to) continue;
+    deps.get(edge.from)?.delete(edge.to);
+  }
+  for (const key2 of nodes.keys()) if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
+  addResourceInputEdges(resources, nodes, deps);
+  const statusReadAliases = addStartupStatusReadEdges(
+    nodes,
+    deps,
+    registry,
+    aliases,
+    aliasesByModule
+  );
+  const inDegree = /* @__PURE__ */ new Map();
+  const reverse = /* @__PURE__ */ new Map();
+  for (const key2 of nodes.keys()) {
+    inDegree.set(key2, deps.get(key2).size);
+    reverse.set(key2, /* @__PURE__ */ new Set());
+  }
+  for (const [from, depSet] of deps) {
+    for (const dep of depSet) {
+      reverse.get(dep)?.add(from);
+    }
+  }
+  const queue = [];
+  for (const [key2, deg] of inDegree) {
+    if (deg === 0) queue.push(key2);
+  }
+  const sorted2 = [];
+  while (queue.length > 0) {
+    const key2 = queue.shift();
+    sorted2.push(nodes.get(key2));
+    for (const dependent of reverse.get(key2)) {
+      const deg = inDegree.get(dependent) - 1;
+      inDegree.set(dependent, deg);
+      if (deg === 0) queue.push(dependent);
+    }
+  }
+  if (sorted2.length === nodes.size) {
+    return {
+      order: creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases)
+    };
+  }
+  const cycleKeys = findCycle(nodes.keys(), deps);
+  const toNodes = (keys) => keys.map((k) => nodes.get(k));
+  const cycles = stronglyConnectedLoops(nodes, deps).map(
+    (component) => component.has(cycleKeys[0]) ? cycleKeys : findCycle(component, deps, component)
+  );
+  return { cycle: toNodes(cycleKeys), cycles: cycles.map(toNodes) };
+}
+function formatCycle(cycle) {
+  const lines = ["Circular dependency detected:"];
+  lines.push(`  ${cycle[0].kind} "${cycle[0].name}"`);
+  for (const node of cycle.slice(1)) {
+    lines.push(`    \u2192 ${node.kind} "${node.name}"`);
+  }
+  return lines.join("\n");
+}
+function creationOrder(resources, nodes, deps, aliases, aliasesByModule, statusReadAliases) {
+  const keyOf = /* @__PURE__ */ new Map();
+  for (const [key2, node] of nodes) keyOf.set(node.manifest, key2);
+  const all = /* @__PURE__ */ new Map();
+  const importsByScope = /* @__PURE__ */ new Map();
+  const definitions = /* @__PURE__ */ new Map();
+  const scopeOf = (m) => moduleAliasScope(m.metadata, aliases, aliasesByModule);
+  for (const m of resources) {
+    const name2 = m.metadata?.name;
+    if (typeof name2 !== "string" || typeof m.kind !== "string" || isModuleKind(m.kind)) continue;
+    let key2 = keyOf.get(m);
+    if (key2 === void 0) {
+      if (m.kind !== "Telo.Import" && !isKindDocument(m)) continue;
+      key2 = nodeIdFor(m);
+    }
+    if (!all.has(key2)) all.set(key2, nodes.get(key2) ?? { kind: m.kind, name: name2, manifest: m });
+    if (m.kind === "Telo.Import") {
+      const scope = scopeOf(m);
+      let imports = importsByScope.get(scope);
+      if (!imports) importsByScope.set(scope, imports = /* @__PURE__ */ new Map());
+      imports.set(name2, key2);
+    } else if (isKindDocument(m)) {
+      const module = declaringModuleOf2(m);
+      if (module) definitions.set(`${module}.${name2}`, key2);
+    }
+  }
+  for (const [key2, node] of nodes) if (!all.has(key2)) all.set(key2, node);
+  const declarationOf = (kind, scope) => {
+    if (typeof kind !== "string") return void 0;
+    const dot = kind.indexOf(".");
+    if (dot <= 0) return void 0;
+    return importsByScope.get(scope)?.get(kind.slice(0, dot)) ?? definitions.get(scope?.resolveKind(kind) ?? kind);
+  };
+  const unmet = /* @__PURE__ */ new Map();
+  const dependents = /* @__PURE__ */ new Map();
+  for (const [key2, node] of all) {
+    const set2 = new Set([...deps.get(key2) ?? []].filter((d) => all.has(d)));
+    const scope = scopeOf(node.manifest);
+    for (const declared of [node.manifest.kind, node.manifest.extends]) {
+      const target = declarationOf(declared, scope);
+      if (target && target !== key2) set2.add(target);
+    }
+    if (node.manifest.kind !== "Telo.Import") {
+      const imports = importsByScope.get(scope);
+      if (imports) {
+        for (const alias of [
+          ...referencedAliases(node.manifest),
+          ...statusReadAliases.get(key2) ?? []
+        ]) {
+          const target = imports.get(alias);
+          if (target && target !== key2) set2.add(target);
+        }
+      }
+    }
+    unmet.set(key2, set2);
+    for (const dep of set2) {
+      if (!dependents.has(dep)) dependents.set(dep, /* @__PURE__ */ new Set());
+      dependents.get(dep).add(key2);
+    }
+  }
+  const queue = [...all.keys()].filter((key2) => unmet.get(key2).size === 0);
+  const done = /* @__PURE__ */ new Set();
+  const order = [];
+  while (order.length < all.size) {
+    if (queue.length === 0) {
+      for (const key3 of all.keys()) {
+        if (done.has(key3)) continue;
+        if ([...deps.get(key3) ?? []].every((d) => done.has(d) || !all.has(d))) {
+          unmet.get(key3).clear();
+          queue.push(key3);
+          break;
+        }
+      }
+    }
+    const key2 = queue.shift();
+    if (done.has(key2)) continue;
+    done.add(key2);
+    order.push(all.get(key2));
+    for (const dependent of dependents.get(key2) ?? []) {
+      const set2 = unmet.get(dependent);
+      if (set2.delete(key2) && set2.size === 0 && !done.has(dependent)) queue.push(dependent);
+    }
+  }
+  return order;
+}
+function referencedAliases(manifest) {
+  const found = /* @__PURE__ */ new Set();
+  const pending = [manifest];
+  while (pending.length > 0) {
+    const value2 = pending.pop();
+    if (Array.isArray(value2)) {
+      for (const item of value2) if (item !== null && typeof item === "object") pending.push(item);
+      continue;
+    }
+    if (value2 === null || typeof value2 !== "object") continue;
+    const sentinel = refSentinelTarget(value2);
+    if (sentinel) {
+      if (sentinel.alias && sentinel.alias !== "Self") found.add(sentinel.alias);
+      continue;
+    }
+    const proto = Object.getPrototypeOf(value2);
+    if (proto !== Object.prototype && proto !== null) continue;
+    const record = value2;
+    if (typeof record.alias === "string" && typeof record.name === "string" && record.alias !== "Self") {
+      found.add(record.alias);
+    }
+    for (const child of Object.values(record)) {
+      if (child !== null && typeof child === "object") pending.push(child);
+    }
+  }
+  return found;
+}
+var declaringModuleOf2 = (manifest) => manifest.metadata?.module;
+function findCycle(keys, deps, within3) {
+  const state = /* @__PURE__ */ new Map();
+  for (const key2 of keys) state.set(key2, "unvisited");
+  const stack = [];
+  function dfs(key2) {
+    state.set(key2, "visiting");
+    stack.push(key2);
+    for (const dep of deps.get(key2) ?? []) {
+      if (within3 && !within3.has(dep)) continue;
+      if (state.get(dep) === "visiting") {
+        const start = stack.indexOf(dep);
+        return [...stack.slice(start), dep];
+      }
+      if (state.get(dep) === "unvisited") {
+        const result = dfs(dep);
+        if (result) return result;
+      }
+    }
+    stack.pop();
+    state.set(key2, "visited");
+    return null;
+  }
+  for (const [key2, s] of state) {
+    if (s === "unvisited") {
+      const result = dfs(key2);
+      if (result) return result;
+    }
+  }
+  return [];
+}
+function stronglyConnectedLoops(nodes, deps) {
+  const index = /* @__PURE__ */ new Map();
+  const low = /* @__PURE__ */ new Map();
+  const onStack = /* @__PURE__ */ new Set();
+  const stack = [];
+  const found = [];
+  const position = /* @__PURE__ */ new Map();
+  let i = 0;
+  for (const key2 of nodes.keys()) position.set(key2, i++);
+  let counter = 0;
+  for (const root of nodes.keys()) {
+    if (index.has(root)) continue;
+    const work = [];
+    const open = (key2) => {
+      index.set(key2, counter);
+      low.set(key2, counter);
+      counter++;
+      stack.push(key2);
+      onStack.add(key2);
+      work.push({ key: key2, next: (deps.get(key2) ?? /* @__PURE__ */ new Set()).values() });
+    };
+    open(root);
+    while (work.length > 0) {
+      const frame = work[work.length - 1];
+      const step = frame.next.next();
+      if (!step.done) {
+        const dep = step.value;
+        if (!nodes.has(dep)) continue;
+        if (!index.has(dep)) open(dep);
+        else if (onStack.has(dep)) {
+          low.set(frame.key, Math.min(low.get(frame.key), index.get(dep)));
+        }
+        continue;
+      }
+      work.pop();
+      const parent = work[work.length - 1];
+      if (parent) low.set(parent.key, Math.min(low.get(parent.key), low.get(frame.key)));
+      if (low.get(frame.key) !== index.get(frame.key)) continue;
+      const members = /* @__PURE__ */ new Set();
+      let member;
+      do {
+        member = stack.pop();
+        onStack.delete(member);
+        members.add(member);
+      } while (member !== frame.key);
+      if (members.size > 1 || deps.get(frame.key)?.has(frame.key)) {
+        const ordered = [...members].sort((a, b) => position.get(a) - position.get(b));
+        found.push({ first: position.get(ordered[0]), members: new Set(ordered) });
+      }
+    }
+  }
+  return found.sort((a, b) => a.first - b.first).map((c) => c.members);
+}
+function addResourceInputEdges(resources, nodes, deps) {
+  const imports = [];
+  for (const m of resources) {
+    if (m.kind !== "Telo.Import") continue;
+    const alias = m.metadata?.name;
+    const targets = [
+      ...Object.values(readSuppliedResources(m)).map(suppliedResourceTarget),
+      ...needSupplyTargets(readSuppliedNeeds(m))
+    ].filter((name2) => name2 !== void 0);
+    if (!alias || targets.length === 0) continue;
+    const key2 = nodeKey(m.kind, alias);
+    nodes.set(key2, { kind: m.kind, name: alias, manifest: m });
+    if (!deps.has(key2)) deps.set(key2, /* @__PURE__ */ new Set());
+    imports.push({ key: key2, targets });
+  }
+  if (imports.length === 0) return;
+  const byName = /* @__PURE__ */ new Map();
+  for (const [key2, node] of nodes) byName.set(node.name, key2);
+  for (const m of resources) {
+    if (m.kind !== "Telo.Import") continue;
+    const alias = m.metadata?.name;
+    const key2 = alias ? nodeKey(m.kind, alias) : void 0;
+    if (alias && key2 && nodes.has(key2)) byName.set(alias, key2);
+  }
+  for (const { key: key2, targets } of imports) {
+    const set2 = deps.get(key2);
+    for (const targetName of targets) {
+      const target = byName.get(targetName);
+      if (target && target !== key2) set2.add(target);
+    }
+  }
+}
+function suppliedResourceTarget(value2) {
+  const ref = value2;
+  const alias = typeof ref?.alias === "string" ? ref.alias : void 0;
+  return alias && alias !== "Self" ? alias : typeof ref?.name === "string" ? ref.name : void 0;
+}
+function needSupplyTargets(supplied) {
+  const out = [];
+  for (const value2 of Object.values(supplied)) {
+    const supply = needSupplyOf(value2);
+    if (supply.form === "whole") {
+      const { alias, name: name2 } = supply.target;
+      out.push(alias && alias !== "Self" ? alias : name2);
+    } else if (supply.form === "fields") {
+      out.push(...celResourceReads({ fields: supply.fields }));
+    }
+  }
+  return out;
+}
+function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModule) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const entry of nodes) {
+    if (entry[1].kind === "Telo.Import") continue;
+    byName.set(entry[1].name, [...byName.get(entry[1].name) ?? [], entry]);
+  }
+  const resolveDef = (kind, from) => definitionInScope(registry, kind, from?.metadata, aliases, aliasesByModule);
+  const aliasReads = /* @__PURE__ */ new Map();
+  for (const [key2, node] of nodes) {
+    if (node.kind === "Telo.Import") continue;
+    const sites = governedCelEvalSites(
+      definitionInScope(registry, node.kind, node.manifest.metadata, aliases, aliasesByModule),
+      resolveDef
+    );
+    if (!sites) continue;
+    const fromModule = declaringModuleOf2(node.manifest);
+    for (const read of startupObservedStateReads(node.manifest, sites)) {
+      if (read.alias !== void 0) {
+        const importKey = nodeKey("Telo.Import", read.alias);
+        if (nodes.has(importKey)) {
+          if (importKey !== key2) deps.get(key2).add(importKey);
+        } else {
+          let set2 = aliasReads.get(key2);
+          if (!set2) aliasReads.set(key2, set2 = /* @__PURE__ */ new Set());
+          set2.add(read.alias);
+        }
+        continue;
+      }
+      const target = resolveScopedName(
+        byName.get(read.name),
+        ([, candidate]) => declaringModuleOf2(candidate.manifest),
+        fromModule
+      );
+      if (target) deps.get(key2).add(target[0]);
+    }
+  }
+  return aliasReads;
+}
+
+// ../../analyzer/nodejs/src/callable-binding.ts
+function callArgumentBinding(qualified, params, returns, resolveRef2) {
+  const declared = (params ?? []).map((param, index) => ({
+    name: typeof param.name === "string" ? param.name : `#${index}`,
+    optional: param.optional === true,
+    schema: param.schema,
+    scalars: scalarNormalizer(signatureSchemaOf(param), resolveRef2)
+  }));
+  const normalizeResult = scalarNormalizer(signatureSchemaOf(returns), resolveRef2);
+  const required = declared.filter((param) => !param.optional).length;
+  const defaults = /* @__PURE__ */ new Map();
+  const defaultAt = (index) => {
+    if (!defaults.has(index)) defaults.set(index, defaultOf(declared[index].schema, resolveRef2));
+    return copyContainers(defaults.get(index));
+  };
+  return {
+    arityRefusal(count) {
+      if (count >= required && count <= declared.length) return void 0;
+      const expected = required === declared.length ? `${required}` : `${required} to ${declared.length}`;
+      return {
+        expected: declared.length,
+        required,
+        message: `Function '${qualified}' takes ${expected} argument(s) (${declared.map((p) => p.optional ? `${p.name}?` : p.name).join(", ") || "none"}), and the call passes ${count}.`
+      };
+    },
+    bind(args) {
+      const named = {};
+      declared.forEach((param, index) => {
+        named[param.name] = index < args.length ? param.scalars(args[index]) : defaultAt(index);
+      });
+      return named;
+    },
+    name(args) {
+      const named = {};
+      declared.forEach((param, index) => {
+        if (index < args.length) named[param.name] = args[index];
+      });
+      return named;
+    },
+    bindNamed(args) {
+      const named = { ...args };
+      declared.forEach((param, index) => {
+        const given = args[param.name];
+        if (given !== void 0) named[param.name] = param.scalars(given);
+        else if (param.optional) named[param.name] = defaultAt(index);
+        else delete named[param.name];
+      });
+      return named;
+    },
+    result: normalizeResult
+  };
+}
+function defaultOf(schema4, resolveRef2) {
+  if (!schema4 || typeof schema4 !== "object") return null;
+  const node = schema4;
+  const target = "default" in node ? node : typeof node.$ref === "string" ? resolveRef2(node.$ref) : void 0;
+  if (!target || !("default" in target)) return null;
+  return scalarNormalizer(node, resolveRef2)(target.default);
+}
+function copyContainers(value2) {
+  if (Array.isArray(value2)) return value2.map(copyContainers);
+  if (value2 && typeof value2 === "object" && Object.getPrototypeOf(value2) === Object.prototype) {
+    return Object.fromEntries(
+      Object.entries(value2).map(([key2, item]) => [key2, copyContainers(item)])
+    );
+  }
+  return value2;
+}
+function scalarNormalizer(schema4, resolveRef2) {
+  if (!schema4) return (value2) => value2;
+  const paths = declaredScalarPaths({ type: "object", properties: { value: schema4 } }, resolveRef2);
+  if (paths.length === 0) return (value2) => value2;
+  return (value2) => normalizeDeclaredScalars({ value: value2 }, paths).value;
+}
+
+// ../../analyzer/nodejs/src/function-body-evaluator.ts
+var evaluationEnv;
+var ResolvingDispatch = class extends Map {
+  constructor(resolveEntry2) {
+    super();
+    this.resolveEntry = resolveEntry2;
+  }
+  get(qualified) {
+    if (!super.has(qualified)) {
+      const entry = this.resolveEntry(qualified);
+      if (!entry) return void 0;
+      super.set(qualified, entry);
+    }
+    return super.get(qualified);
+  }
+  has(qualified) {
+    return this.get(qualified) !== void 0;
+  }
+};
+var FunctionBodyEvaluators = class {
+  constructor(functions, flags, moduleCallNames2, resolveRef2) {
+    this.functions = functions;
+    this.flags = flags;
+    this.moduleCallNames = moduleCallNames2;
+    this.resolveRef = resolveRef2;
+  }
+  tables = /* @__PURE__ */ new Map();
+  bodies = /* @__PURE__ */ new Map();
+  /** The functions an expression written in `caller`'s module may call. */
+  dispatchFor(caller) {
+    let table = this.tables.get(caller);
+    if (!table) {
+      table = new ResolvingDispatch((qualified) => this.entryFor(caller, qualified));
+      this.tables.set(caller, table);
+    }
+    return table;
+  }
+  entryFor(caller, qualified) {
+    const flags = this.flags.ofCall(caller, qualified);
+    if (!flags) return void 0;
+    if (flags.hostBacked) {
+      return () => {
+        throw new Error(
+          `'${qualified}' needs the runtime's host (${renderChain(flags.hostBackedVia)}) and cannot run at telo check`
+        );
+      };
+    }
+    const resolution = this.functions.resolve(caller, qualified);
+    if (resolution.status !== "resolved") return void 0;
+    const target = resolution.manifest;
+    const evaluate = this.bodyOf(target);
+    if (!evaluate) return void 0;
+    const { params, returns } = this.functions.signatureOf(target);
+    const binding = callArgumentBinding(qualified, params, returns, this.resolveRef);
+    return (args) => {
+      const refused2 = binding.arityRefusal(args.length);
+      if (refused2) throw new Error(refused2.message);
+      return binding.result(evaluate(binding.bind(args), this.dispatchFor(target)));
+    };
+  }
+  bodyOf(target) {
+    if (this.bodies.has(target)) return this.bodies.get(target) ?? void 0;
+    const body2 = this.functions.bodyOf(target);
+    let evaluate = null;
+    if (body2 && body2.source === void 0) {
+      const literal = body2.value;
+      evaluate = () => literal;
+    } else if (body2?.source !== void 0) {
+      evaluationEnv ??= buildCelEnvironment();
+      const env = moduleNamesEnvironment(
+        evaluationEnv,
+        moduleCallNamesOf(this.moduleCallNames, target)
+      );
+      const parsed = env.parse(body2.source);
+      if (parsed.diagnostics.length > 0) {
+        evaluate = null;
+      } else {
+        const program = env.compile(parsed);
+        evaluate = (activation, dispatch) => program.evaluate(activation, {
+          namespaceFunction: namespaceDispatchOf(dispatch)
+        });
+      }
+    }
+    this.bodies.set(target, evaluate);
+    return evaluate ?? void 0;
+  }
+};
+
+// ../../analyzer/nodejs/src/validate-module-calls.ts
+var SOURCE2 = "telo-analyzer";
+function moduleCallDiagnostics(site, index) {
+  if (!index.isOwned(site.manifest)) return [];
+  const out = [];
+  const { manifest, resource, filePath, path } = site;
+  const prefix = `${manifest.kind}/${resource.name}: CEL at '${path}' calls`;
+  const push3 = (code, message) => out.push({
+    severity: DiagnosticSeverity2.Error,
+    code,
+    source: SOURCE2,
+    message,
+    data: { resource, filePath, path }
+  });
+  const reported = /* @__PURE__ */ new Set();
+  for (const call of site.calls) {
+    if (!call.moduleCall) continue;
+    if (site.unboundReason !== void 0) {
+      if (reported.has(call.name)) continue;
+      reported.add(call.name);
+      push3("FUNCTION_CALL_UNBOUND", unboundCallMessage(prefix, call.name, site.unboundReason));
+      continue;
+    }
+    const resolution = index.resolve(manifest, call.name);
+    const receiver = call.name.slice(0, call.name.indexOf("."));
+    switch (resolution.status) {
+      case "unknown":
+        continue;
+      case "unresolved":
+        if (reported.has(call.name)) continue;
+        reported.add(call.name);
+        push3(
+          "FUNCTION_UNRESOLVED",
+          `${prefix} '${call.name}', which names no function this module can reach. A CEL function is a resource declared with capability 'Telo.Callable' in the module '${receiver}' names; an imported one must also be listed in that library's 'exports.resources'. Here, ${resolution.reason}`
+        );
+        continue;
+      case "not-exported":
+        if (reported.has(call.name)) continue;
+        reported.add(call.name);
+        push3(
+          "FUNCTION_NOT_EXPORTED",
+          `${prefix} '${call.name}', but the library imported as '${resolution.alias}' does not list '${resolution.name}' in its 'exports.resources', so it is private to that library. Export it there, or call a function the library does export.`
+        );
+        continue;
+      case "not-callable":
+        if (reported.has(call.name)) continue;
+        reported.add(call.name);
+        push3(
+          "FUNCTION_NOT_CALLABLE",
+          `${prefix} '${call.name}', which names the ${resolution.kind} resource '${resolution.manifest.metadata?.name}' \u2014 its capability resolves to '${resolution.capability ?? "<none>"}', not 'Telo.Callable'. Only a function can be called from an expression; dispatch any other resource from a step.`
+        );
+        continue;
+      case "resolved":
+        break;
+    }
+    const params = resolution.params;
+    const required = params.filter((param) => !param.optional).length;
+    if (call.arity < required || call.arity > params.length) {
+      const expected = required === params.length ? `${required}` : `${required} to ${params.length}`;
+      push3(
+        "FUNCTION_ARITY_MISMATCH",
+        `${prefix} '${call.name}' with ${call.arity} argument(s), but it takes ${expected} (${params.map((p) => p.optional ? `${p.name}?` : p.name).join(", ") || "none"}).`
+      );
+      continue;
+    }
+    (call.arguments ?? []).forEach((argument, index2) => {
+      const param = params[index2];
+      if (!param?.schema) return;
+      if (argument.type !== void 0 && !celTypeSatisfiesJsonSchema(argument.type.split("<")[0], param.schema)) {
+        push3(
+          "FUNCTION_ARGUMENT_MISMATCH",
+          `${prefix} '${call.name}' passing a '${argument.type}' for parameter '${param.name}', which expects '${describeSchema(param.schema)}'.`
+        );
+        return;
+      }
+      if (!argument.chain || !site.contextSchema) return;
+      const produced = navigateSchemaToExprPath(site.contextSchema, argument.chain.join("."));
+      if (!produced) return;
+      const { compatible, issues } = checkSchemaCompatibility(
+        produced,
+        param.schema,
+        site.resolveRef
+      );
+      if (compatible) return;
+      push3(
+        "FUNCTION_ARGUMENT_MISMATCH",
+        `${prefix} '${call.name}' passing '${argument.chain.join(".")}' for parameter '${param.name}', whose declared shape disagrees with it: ${issues.join("; ")}.`
+      );
+    });
+  }
+  return out;
+}
+function unboundSourceDiagnostics(manifest, filePath, sources, moduleNames, index) {
+  if (!index.isOwned(manifest)) return [];
+  const resource = { kind: manifest.kind, name: manifest.metadata?.name };
+  return sources.flatMap(
+    ({ path, source, reason }) => [...new Set(moduleCallsInSource(source, moduleNames))].map(
+      (call) => ({
+        severity: DiagnosticSeverity2.Error,
+        code: "FUNCTION_CALL_UNBOUND",
+        source: SOURCE2,
+        message: unboundCallMessage(`${resource.kind}/${resource.name}: CEL at '${path}' calls`, call, reason),
+        data: { resource, filePath, path }
+      })
+    )
+  );
+}
+function unboundCallMessage(prefix, call, reason) {
+  return `${prefix} '${call}', but ${reason}, so no module function can be called here. Write the logic into the expression itself.`;
+}
+function describeSchema(schema4) {
+  const declared = schema4["x-telo-type"] ?? schema4.type;
+  if (Array.isArray(declared)) return declared.join(" | ");
+  if (typeof declared === "string") return declared;
+  if (declared && typeof declared === "object" && typeof declared.name === "string") {
+    return declared.name;
+  }
+  return "the declared schema";
+}
+
+// ../../analyzer/nodejs/src/unbound-call-site.ts
+var UNBOUND_CALLS_ANNOTATION = "x-telo-unbound-calls";
+var readingsBySchema = /* @__PURE__ */ new WeakMap();
+var declaresBySchema = /* @__PURE__ */ new WeakMap();
+function unboundCallReason(schema4, path) {
+  return schema4 && declaresUnboundCalls(schema4) ? readingAt(schema4, path).reason : void 0;
+}
+function unboundCallSources(manifest, schema4) {
+  if (!schema4 || !declaresUnboundCalls(schema4)) return [];
+  const out = [];
+  const visit3 = (value2, path) => {
+    if (typeof value2 === "string") {
+      const reading = readingAt(schema4, path);
+      if (reading.source && reading.reason !== void 0) {
+        out.push({ path, source: value2, reason: reading.reason });
+      }
+      return;
+    }
+    if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return;
+    if (value2.__compiled === true) return;
+    if (Array.isArray(value2)) {
+      value2.forEach((item, index) => visit3(item, `${path}[${index}]`));
+      return;
+    }
+    for (const [key2, child] of Object.entries(value2)) visit3(child, path ? `${path}.${key2}` : key2);
+  };
+  visit3(manifest, "");
+  return out;
+}
+function declaresUnboundCalls(schema4) {
+  let declares = declaresBySchema.get(schema4);
+  if (declares === void 0) {
+    declares = holdsAnnotation(schema4, /* @__PURE__ */ new Set());
+    declaresBySchema.set(schema4, declares);
+  }
+  return declares;
+}
+function holdsAnnotation(value2, seen) {
+  if (!value2 || typeof value2 !== "object" || seen.has(value2)) return false;
+  seen.add(value2);
+  if (!Array.isArray(value2) && Object.prototype.hasOwnProperty.call(value2, UNBOUND_CALLS_ANNOTATION)) {
+    return true;
+  }
+  for (const child of Object.values(value2)) if (holdsAnnotation(child, seen)) return true;
+  return false;
+}
+function readingAt(root, path) {
+  let byPath = readingsBySchema.get(root);
+  if (!byPath) readingsBySchema.set(root, byPath = /* @__PURE__ */ new Map());
+  let reading = byPath.get(path);
+  if (!reading) {
+    reading = readAlong(root, path);
+    byPath.set(path, reading);
+  }
+  return reading;
+}
+function readAlong(root, path) {
+  let nodes = expand2([root], root);
+  for (const segment of segmentsOf(path)) {
+    const reason2 = reasonOn(nodes);
+    if (reason2 !== void 0) return { reason: reason2 };
+    const next = [];
+    for (const node of nodes) {
+      if (typeof segment === "number") {
+        if (isSchema2(node.items)) next.push(node.items);
+        continue;
+      }
+      const property = node.properties?.[segment];
+      if (isSchema2(property)) next.push(property);
+      else if (isSchema2(node.additionalProperties)) next.push(node.additionalProperties);
+    }
+    if (next.length === 0) return {};
+    nodes = expand2(next, root);
+  }
+  const reason = reasonOn(nodes);
+  if (reason === void 0) return {};
+  return {
+    reason,
+    source: nodes.some(
+      (node) => typeof node[UNBOUND_CALLS_ANNOTATION] === "string" && node.type === "string"
+    )
+  };
+}
+function expand2(nodes, root) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const visit3 = (node) => {
+    const resolved = resolveLocalRef2(node, root) ?? node;
+    if (seen.has(resolved)) return;
+    seen.add(resolved);
+    out.push(resolved);
+    for (const key2 of ["oneOf", "anyOf", "allOf"]) {
+      const branches = resolved[key2];
+      if (!Array.isArray(branches)) continue;
+      for (const branch of branches) if (isSchema2(branch)) visit3(branch);
+    }
+  };
+  for (const node of nodes) visit3(node);
+  return out;
+}
+function reasonOn(nodes) {
+  for (const node of nodes) {
+    const reason = node[UNBOUND_CALLS_ANNOTATION];
+    if (typeof reason === "string" && reason.length > 0) return reason;
+  }
+  return void 0;
+}
+function segmentsOf(path) {
+  const out = [];
+  for (const match of path.matchAll(/([^.[\]]+)|\[(\d+)\]/g)) {
+    out.push(match[2] !== void 0 ? Number(match[2]) : match[1]);
+  }
+  return out;
+}
+function isSchema2(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+
+// ../../analyzer/nodejs/src/resolve-ref-sentinels.ts
+function resolveRefSentinels(resources, aliases, aliasesByModule, crossModuleTargets = [], defs) {
+  resolveReferences(resources, aliases, aliasesByModule, crossModuleTargets, defs, "all");
+}
+function resolveShapeRefs(resources, aliases, aliasesByModule) {
+  resolveReferences(resources, aliases, aliasesByModule, [], void 0, "shapes");
+}
+function resolveReferences(resources, aliases, aliasesByModule, crossModuleTargets, defs, extent) {
+  const moduleOf6 = (r) => r.metadata?.module;
+  const isForeign = isForwardedDeclaration;
+  const byName = /* @__PURE__ */ new Map();
+  const byModuleName = /* @__PURE__ */ new Map();
+  for (const r of resources) {
+    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
+    const name2 = r.metadata.name;
+    if (isForeign(r)) {
+      if (isForwardedExport(r)) byModuleName.set(`${moduleOf6(r)}\0${name2}`, r);
+    } else {
+      byName.set(name2, r);
+    }
+  }
+  for (const r of crossModuleTargets) {
+    if (!r.metadata?.name || isKindDocumentOrImport(r) || !isForwardedExport(r)) continue;
+    byModuleName.set(`${moduleOf6(r)}\0${r.metadata.name}`, r);
+  }
+  const resolveTarget = (source) => {
+    const dot = source.indexOf(".");
+    if (dot === -1) {
+      const t = byName.get(source);
+      return t ? { kind: t.kind, name: source } : void 0;
+    }
+    const alias = source.slice(0, dot);
+    const name2 = source.slice(dot + 1);
+    if (alias === "Self") {
+      const t = byName.get(name2);
+      return t ? { kind: t.kind, name: name2 } : void 0;
+    }
+    return resolveExported(alias, name2, aliases);
+  };
+  const resolveExported = (alias, name2, scope) => {
+    const module = scope?.moduleForAlias(alias);
+    if (module) {
+      const t = byModuleName.get(`${module}\0${name2}`);
+      if (t) {
+        const rawKind = t.kind;
+        const foreignKind = rawKind.startsWith("Self.") ? `${module}.${rawKind.slice("Self.".length)}` : aliasesByModule?.get(module)?.resolveKind(rawKind) ?? rawKind;
+        return { kind: foreignKind, name: name2, alias };
+      }
+    }
+    return void 0;
+  };
+  const byDeclaringModule = /* @__PURE__ */ new Map();
+  for (const r of resources) {
+    if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
+    byDeclaringModule.set(`${moduleOf6(r) ?? ""}\0${r.metadata.name}`, r);
+  }
+  const shapeResolverFor = (doc) => {
+    const module = moduleOf6(doc);
+    const ownedByEntry = !isForeign(doc) && (module === void 0 || !aliasesByModule?.has(module));
+    if (ownedByEntry) return resolveTarget;
+    const scope = moduleAliasScope(doc.metadata, aliases, aliasesByModule);
+    return (source) => {
+      const dot = source.indexOf(".");
+      const alias = dot === -1 ? void 0 : source.slice(0, dot);
+      const name2 = dot === -1 ? source : source.slice(dot + 1);
+      if (alias === void 0 || alias === "Self") {
+        const t = byDeclaringModule.get(`${module ?? ""}\0${name2}`);
+        return t ? { kind: t.kind, name: name2 } : void 0;
+      }
+      return resolveExported(alias, name2, scope);
+    };
+  };
+  const declaredInScopes = (resource) => {
+    if (!defs) return void 0;
+    let declared;
+    for (const site of defs.referenceSites(resource, aliases, aliasesByModule)) {
+      if (site.scopes.length === 0) continue;
+      for (const element of Array.isArray(site.data) ? site.data : [site.data]) {
+        if (!element || typeof element !== "object" || Array.isArray(element)) continue;
+        const manifest = element;
+        const name2 = manifest.metadata?.name;
+        if (typeof manifest.kind === "string" && typeof name2 === "string") {
+          (declared ??= /* @__PURE__ */ new Map()).set(name2, manifest);
+        }
+      }
+    }
+    return declared;
+  };
+  const walk5 = (value2, scoped, resolve = resolveTarget) => {
+    if (isRefSentinel(value2)) {
+      const source = value2.source;
+      const bare = source.indexOf(".") === -1;
+      const shadow = bare ? scoped?.get(source) : void 0;
+      if (shadow) return { kind: shadow.kind, name: source };
+      return resolve(source) ?? value2;
+    }
+    if (value2 === null || typeof value2 !== "object") return value2;
+    if (isTaggedSentinel(value2)) return value2;
+    if (value2.__compiled) return value2;
+    if (Array.isArray(value2)) {
+      for (let i = 0; i < value2.length; i++) value2[i] = walk5(value2[i], scoped, resolve);
+      return value2;
+    }
+    const obj = value2;
+    const declared = typeof obj.kind === "string" ? declaredInScopes(obj) : void 0;
+    const inner = declared ? new Map([...scoped ?? /* @__PURE__ */ new Map(), ...declared]) : scoped;
+    for (const key2 of Object.keys(obj)) obj[key2] = walk5(obj[key2], inner, resolve);
+    return value2;
+  };
+  const walkShapeFields = (r, fields) => {
+    const resolve = shapeResolverFor(r);
+    const record = r;
+    for (const field of fields) {
+      if (record[field] !== void 0) record[field] = walk5(record[field], void 0, resolve);
+    }
+  };
+  for (const r of resources) {
+    if (!r.metadata?.name || !r.kind) continue;
+    if (isForeign(r)) {
+      walkShapeFields(r, isForwardedShape(r) ? ["schema"] : forwardedShapeFieldsOf(r));
+      continue;
+    }
+    if (extent === "shapes") {
+      if (r.kind === "Telo.Definition" || r.kind === "Telo.Abstract") {
+        walkShapeFields(r, KIND_SHAPE_FIELDS);
+      }
+      continue;
+    }
+    if (r.kind === "Telo.Import") {
+      const supplied = r.resources;
+      if (supplied) r.resources = walk5(supplied);
+      continue;
+    }
+    if (isKindDocument(r)) {
+      if (r.kind === "Telo.Definition" || r.kind === "Telo.Abstract") {
+        walkShapeFields(r, KIND_SHAPE_FIELDS);
+      }
+      continue;
+    }
+    walk5(r);
+  }
+}
+
+// ../../analyzer/nodejs/src/referrer-rule.ts
+var REFERRER_RULES_ANNOTATION = "x-telo-referrer-rules";
+function isObject8(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+function readRawReferrerRules(schema4) {
+  if (!isObject8(schema4)) return void 0;
+  return schema4[REFERRER_RULES_ANNOTATION];
+}
+function readReferrerRules(schema4) {
+  const raw = readRawReferrerRules(schema4);
+  if (!Array.isArray(raw)) return [];
+  const rules = [];
+  raw.forEach((entry, index) => {
+    if (!isObject8(entry)) return;
+    const condition = celSourceOf(entry.condition);
+    const { code, message, referrer, peers } = entry;
+    if (!condition || typeof code !== "string" || typeof message !== "string") return;
+    if (code.length === 0 || message.length === 0) return;
+    if (referrer !== void 0 && typeof referrer !== "string") return;
+    if (peers !== void 0 && typeof peers !== "string") return;
+    if (entry.severity !== void 0 && entry.severity !== "warning" && entry.severity !== "error") {
+      return;
+    }
+    rules.push({
+      ...referrer === void 0 ? {} : { referrer },
+      ...peers === void 0 ? {} : { peers },
+      condition,
+      code,
+      message,
+      severity: entry.severity === "warning" ? "warning" : "error",
+      index
+    });
+  });
+  return rules;
+}
+function hasReferrerRules(node) {
+  return Array.isArray(node[REFERRER_RULES_ANNOTATION]);
+}
+function rewriteReferrerRuleKinds(node, rewrite) {
+  const raw = node[REFERRER_RULES_ANNOTATION];
+  if (!Array.isArray(raw)) return;
+  for (const entry of raw) {
+    if (!isObject8(entry) || typeof entry.referrer !== "string") continue;
+    const rewritten = rewrite(entry.referrer);
+    if (rewritten !== void 0) entry.referrer = rewritten;
+  }
+}
+
+// ../../analyzer/nodejs/src/resolve-schema-ref-kinds.ts
+var REF_ANNOTATION = "x-telo-ref";
+function isLegacyRefIdentity(ref) {
+  return ref.includes("#");
+}
+function resolveSchemaRefKinds(definition, resolver) {
+  const issues = [];
+  const record = (ref, path, annotation = "ref") => {
+    if (isLegacyRefIdentity(ref)) {
+      issues.push({ ref, path, manifest: definition, reason: "legacy", annotation });
+      return;
+    }
+    const result = resolver.resolveKindResult(ref);
+    if (result.status === "ok") return;
+    issues.push(
+      result.status === "gated" ? {
+        ref,
+        path,
+        manifest: definition,
+        reason: "gated",
+        annotation,
+        gate: { module: result.module, exported: result.exported }
+      } : {
+        ref,
+        path,
+        manifest: definition,
+        reason: "unknown",
+        annotation,
+        knownAliases: resolver.knownAliases()
+      }
+    );
+  };
+  const walk5 = (value2, path) => {
+    if (value2 === null || typeof value2 !== "object") return;
+    if (Array.isArray(value2)) {
+      value2.forEach((item, i) => walk5(item, `${path}[${i}]`));
+      return;
+    }
+    const obj = value2;
+    if (obj[REF_ANNOTATION] !== void 0) {
+      rewriteRefSlotKinds(obj, (ref) => {
+        const result = isLegacyRefIdentity(ref) ? null : resolver.resolveKindResult(ref);
+        if (result?.status === "ok") return result.kind;
+        record(ref, path);
+        return void 0;
+      });
+    }
+    if (hasRequiresZone(obj)) {
+      rewriteRequiresZoneKind(obj, (zone) => {
+        const result = resolver.resolveKindResult(zone);
+        if (result.status === "ok") return result.kind;
+        record(zone, `${path}.x-telo-requires-zone`, "zone");
+        return void 0;
+      });
+    }
+    if (hasReferrerRules(obj)) {
+      rewriteReferrerRuleKinds(obj, (kind) => {
+        const result = resolver.resolveKindResult(kind);
+        if (result.status === "ok") return result.kind;
+        record(kind, `${path}.${REFERRER_RULES_ANNOTATION}`, "referrer");
+        return void 0;
+      });
+    }
+    for (const key2 of Object.keys(obj)) {
+      walk5(obj[key2], path ? `${path}.${key2}` : key2);
+    }
+  };
+  walk5(definition, "");
+  return issues;
+}
+
+// ../../analyzer/nodejs/src/resolve-zone-requirements.ts
+var SOURCE3 = "telo-analyzer";
+function definitionResolver(defs, aliases, aliasesByModule) {
+  return (kind, module) => {
+    const scope = moduleAliasScope({ module }, aliases, aliasesByModule);
+    const canonical = scope.resolveKind(kind);
+    return defs.resolve(kind) ?? (canonical ? defs.resolve(canonical) : void 0);
+  };
+}
+var canonicalOf = (def) => `${def.metadata.module}.${def.metadata.name}`;
+function correlationIdOf(node) {
+  if (node.scoped) return `${node.scopeOwner}\0${node.scopeSite}\0${node.name}`;
+  const source = node.manifest.metadata?.source ?? "";
+  return `${source}\0${node.name}`;
+}
+var labelOf = (node) => `${node.kind} '${node.name}'`;
+function schemaNodeAt(rootSchema, slotPath) {
+  if (!rootSchema) return void 0;
+  let current = rootSchema;
+  for (const segment of slotPath.split(".")) {
+    if (!current) return void 0;
+    const bare = segment.replace(/(\[\]|\{\})+$/g, "");
+    let next = propertySchemas(current).find(
+      ([k]) => k === bare
+    )?.[1];
+    for (const marker of segment.slice(bare.length).match(/\[\]|\{\}/g) ?? []) {
+      next = resolveLocalRef(
+        marker === "[]" ? next?.items : next?.additionalProperties,
+        rootSchema
+      );
+      if (!next || typeof next !== "object") return void 0;
+    }
+    current = resolveLocalRef(next, rootSchema);
+  }
+  return current;
+}
+function refName2(value2) {
+  const sentinel = refSentinelTarget(value2);
+  if (sentinel) {
+    if (sentinel.alias === void 0) return sentinel.name;
+    return sentinel.alias === "Self" ? sentinel.name : void 0;
+  }
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  const v = value2;
+  const pure = typeof v.kind === "string" && typeof v.name === "string" && Object.keys(v).every((k) => k === "kind" || k === "name" || k === "alias" || k === "__ref");
+  if (!pure) return void 0;
+  const alias = v.alias;
+  if (typeof alias === "string" && alias !== "Self") return void 0;
+  return v.name;
+}
+function resolveStaticKey(start, pointers, resolveName) {
+  for (const pointer of pointers) {
+    if (!pointer.startsWith("/")) continue;
+    let manifest = start.manifest;
+    let context = start;
+    let value2 = void 0;
+    let failed = false;
+    const segments = pointer.slice(1).split("/");
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i].replace(/~1/g, "/").replace(/~0/g, "~");
+      if (i > 0) {
+        const name2 = refName2(value2);
+        const target2 = name2 ? resolveName(name2, context) : void 0;
+        if (!target2) {
+          failed = true;
+          break;
+        }
+        manifest = target2.manifest;
+        context = target2;
+      }
+      value2 = manifest?.[segment];
+      if (value2 === void 0 || value2 === null) {
+        failed = true;
+        break;
+      }
+    }
+    if (failed) continue;
+    const terminalName = refName2(value2);
+    const target = terminalName ? resolveName(terminalName, context) : void 0;
+    if (target) return target;
+  }
+  return void 0;
+}
+function resolveProviderKey(provider, edge, pointer, resolveName) {
+  const enclosing = enclosingOf(provider.manifest, edge.path);
+  if (enclosing === provider.manifest || enclosing === void 0) {
+    return resolveStaticKey(provider, [pointer], resolveName);
+  }
+  const synthetic = { ...provider, manifest: enclosing };
+  return resolveStaticKey(synthetic, [pointer], resolveName);
+}
+function projectZoneRequirements(args) {
+  const { graph, defs, aliases, aliasesByModule, reportModules, seeds, exportOf } = args;
+  const resolveDef = definitionResolver(defs, aliases, aliasesByModule);
+  const diagnostics = [];
+  const openExports = /* @__PURE__ */ new Map();
+  const reported = /* @__PURE__ */ new Set();
+  const scopeLocal = /* @__PURE__ */ new Map();
+  for (const node of graph.nodes.values()) {
+    if (node.type !== "resource" || !node.scoped) continue;
+    const key2 = `${node.scopeOwner}\0${node.scopeSite}`;
+    let bucket2 = scopeLocal.get(key2);
+    if (!bucket2) scopeLocal.set(key2, bucket2 = /* @__PURE__ */ new Map());
+    bucket2.set(node.name, node);
+  }
+  const resolveName = (name2, from) => {
+    if (from.scoped) {
+      const local = scopeLocal.get(`${from.scopeOwner}\0${from.scopeSite}`)?.get(name2);
+      if (local) return local;
+    }
+    return graph.resourceByName(
+      name2,
+      from.manifest.metadata?.module
+    );
+  };
+  const acceptedFor = (zone) => {
+    const out = /* @__PURE__ */ new Set([zone]);
+    for (const def of defs.getByExtends(zone)) {
+      const module = def.metadata?.module;
+      if (module && def.metadata?.name) out.add(`${module}.${def.metadata.name}`);
+    }
+    return out;
+  };
+  const moduleOf6 = (node) => node.manifest.metadata?.module;
+  const reportable = (node) => {
+    const module = moduleOf6(node);
+    return module === void 0 || reportModules.has(module);
+  };
+  const emit = (severity, code, edge, caller, req, via, why) => {
+    if (!reportable(caller)) return;
+    const dedupe2 = `${code}\0${edge.from}\0${edge.path}\0${req.key}`;
+    if (reported.has(dedupe2)) return;
+    reported.add(dedupe2);
+    const wanted = req.correlationLabel ? `a ${req.zone} zone on ${req.correlationLabel}` : `a ${req.zone} zone`;
+    const path = [...via, `${caller.name}.${edge.path}`].join(" \u2192 ");
+    const reason = req.reason ? ` ${req.reason}.` : "";
+    diagnostics.push({
+      severity,
+      code,
+      source: SOURCE3,
+      message: `${req.origin} requires ${wanted}, and the path ${path} ${why}.${reason}`,
+      data: {
+        resource: { kind: caller.kind, name: caller.name },
+        filePath: caller.manifest.metadata?.source,
+        path: edge.path
+      }
+    });
+  };
+  const visited = /* @__PURE__ */ new Set();
+  const propagate = (node, req, via) => {
+    const visitKey = `${node.id}\0${req.key}`;
+    if (visited.has(visitKey)) return;
+    visited.add(visitKey);
+    const exportName = exportOf?.(node);
+    if (exportName !== void 0) {
+      let bucket2 = openExports.get(exportName);
+      if (!bucket2) openExports.set(exportName, bucket2 = []);
+      if (!bucket2.some((r) => `${r.zone}\0${r.correlation ?? ""}` === req.key)) {
+        bucket2.push({
+          zone: req.zone,
+          ...req.attributes.length > 0 ? { attributes: req.attributes } : {},
+          correlation: req.correlation,
+          correlationLabel: req.correlationLabel,
+          correlationName: req.correlationName,
+          reason: req.reason,
+          origin: req.origin,
+          via: [...via]
+        });
+      }
+    }
+    for (const edge of graph.edgesTo(node.id)) {
+      const from = graph.nodes.get(edge.from);
+      if (!from) continue;
+      const caller = from.type === "step" ? graph.nodes.get(from.owner) : from;
+      if (!caller || caller.type !== "resource") continue;
+      const callerDef = resolveDef(caller.kind, moduleOf6(caller));
+      const bodySlot = from.type === "step" ? from.array.replace(/\[\d+\].*$/, "") : edge.slot;
+      const slotSchema = schemaNodeAt(
+        callerDef?.schema,
+        bodySlot
+      );
+      const provides = readProvidesZone(slotSchema);
+      if (provides && callerDef && req.accepted.has(canonicalOf(callerDef))) {
+        const providerKey = provides.key ? from.type === "step" ? resolveStaticKey(caller, [provides.key], resolveName) : resolveProviderKey(caller, edge, provides.key, resolveName) : void 0;
+        const discharged = req.correlation === void 0 || providerKey !== void 0 && correlationIdOf(providerKey) === req.correlation;
+        if (discharged) {
+          const missing = req.attributes.filter((a) => !(a in provides.attributes));
+          if (missing.length > 0) {
+            emit(
+              DiagnosticSeverity2.Error,
+              "ZONE_ATTRIBUTE_MISSING",
+              edge,
+              caller,
+              req,
+              via,
+              `reaches a ${canonicalOf(callerDef)} zone that does not declare ${missing.join(", ")}, so the guarantee this requirement is built on does not hold inside it`
+            );
+          }
+          continue;
+        }
+      }
+      if (edge.unresolvedReason === "dynamic") continue;
+      if (edge.use.length === 0) {
+        emit(
+          DiagnosticSeverity2.Warning,
+          "ZONE_REQUIREMENT_DEFERRED",
+          edge,
+          caller,
+          req,
+          via,
+          "reaches a slot that declares no use, so whether the zone survives it cannot be decided statically; the runtime check remains the enforcement"
+        );
+        continue;
+      }
+      if (edge.unresolved) {
+        emit(
+          DiagnosticSeverity2.Warning,
+          "ZONE_REQUIREMENT_DEFERRED",
+          edge,
+          caller,
+          req,
+          via,
+          `reaches a slot whose use selector could not be resolved (${edge.unresolvedReason}), so whether the zone survives it cannot be decided statically; the runtime check remains the enforcement`
+        );
+        continue;
+      }
+      if (edge.use.every((u) => u === "dependency" || u === "schema")) continue;
+      if (edge.use.length > 1) {
+        if (edge.use.every((u) => u === "call")) {
+          continueUp(caller, edge, req, via);
+          continue;
+        }
+        const guaranteedCleared = edge.use.filter(
+          (u) => u === "detached" || u === "trigger.inbound"
+        );
+        if (guaranteedCleared.length > 0) {
+          emit(
+            DiagnosticSeverity2.Error,
+            "ZONE_REQUIREMENT_UNSATISFIED",
+            edge,
+            caller,
+            req,
+            via,
+            `reaches a slot that dispatches its target several ways in one invocation ([${edge.use.join(", ")}]), and the ${guaranteedCleared.join(" / ")} dispatch is guaranteed a fresh context \u2014 so on that path the zone is gone`
+          );
+          continue;
+        }
+        emit(
+          DiagnosticSeverity2.Warning,
+          "ZONE_REQUIREMENT_DEFERRED",
+          edge,
+          caller,
+          req,
+          via,
+          `reaches a slot whose declared use is the set [${edge.use.join(", ")}]; whether the zone survives depends on where the consumer drains it, so it cannot be decided statically and the runtime check remains the enforcement`
+        );
+        continue;
+      }
+      switch (edge.use[0]) {
+        case "call":
+          continueUp(caller, edge, req, via);
+          break;
+        case "detached":
+          emit(
+            DiagnosticSeverity2.Error,
+            "ZONE_REQUIREMENT_UNSATISFIED",
+            edge,
+            caller,
+            req,
+            via,
+            "detaches there \u2014 the runtime guarantees the detached work a fresh context, outside every zone its caller was in"
+          );
+          break;
+        case "trigger.inbound":
+          emit(
+            DiagnosticSeverity2.Error,
+            "ZONE_REQUIREMENT_UNSATISFIED",
+            edge,
+            caller,
+            req,
+            via,
+            "is an inbound trigger registration \u2014 the handler runs on a fresh context driven by a request or timer, outside every zone"
+          );
+          break;
+        case "trigger.consumer":
+          emit(
+            DiagnosticSeverity2.Warning,
+            "ZONE_REQUIREMENT_DEFERRED",
+            edge,
+            caller,
+            req,
+            via,
+            "is dispatched when a returned value is drained, so where it runs is the drain site's choice; the runtime check remains the enforcement"
+          );
+          break;
+      }
+    }
+  };
+  const continueUp = (caller, edge, req, via) => {
+    if (caller.kind === "Telo.Application") {
+      emit(
+        DiagnosticSeverity2.Error,
+        "ZONE_REQUIREMENT_UNSATISFIED",
+        edge,
+        caller,
+        req,
+        via,
+        "reaches the application's boot targets, which nothing encloses"
+      );
+      return;
+    }
+    propagate(caller, req, [...via, caller.name]);
+  };
+  for (const node of graph.nodes.values()) {
+    if (node.type !== "resource") continue;
+    const meta = node.manifest.metadata;
+    if (isForwardedDeclaration(node.manifest)) continue;
+    const def = resolveDef(node.kind, meta?.module);
+    const schema4 = def?.schema;
+    if (!def || !schema4) continue;
+    const slots = [[schema4, void 0]];
+    for (const [field, propSchema] of Object.entries(
+      schema4.properties ?? {}
+    )) {
+      slots.push([propSchema, field]);
+    }
+    for (const [slotSchema, field] of slots) {
+      const requires = readRequiresZone(slotSchema);
+      if (!requires) continue;
+      if (field !== void 0 && node.manifest[field] === void 0) {
+        continue;
+      }
+      const zoneDef = resolveDef(requires.zone, def.metadata.module);
+      if (!zoneDef) continue;
+      const zone = canonicalOf(zoneDef);
+      const target = resolveStaticKey(node, requires.key, resolveName);
+      const req = {
+        zone,
+        accepted: acceptedFor(zone),
+        attributes: requires.attributes,
+        correlation: target ? correlationIdOf(target) : void 0,
+        correlationLabel: target ? labelOf(target) : void 0,
+        correlationName: target?.name,
+        reason: requires.reason,
+        origin: labelOf(node),
+        key: ""
+      };
+      req.key = `${req.zone}\0${req.correlation ?? ""}`;
+      propagate(node, req, [node.name]);
+    }
+  }
+  if (seeds && seeds.size > 0) {
+    for (const node of graph.nodes.values()) {
+      if (node.type !== "resource") continue;
+      const meta = node.manifest.metadata;
+      if (!meta?.forwardedExport || !meta.module) continue;
+      const specs = seeds.get(`${meta.module}\0${node.name}`);
+      if (!specs) continue;
+      for (const spec of specs) {
+        const zoneDef = defs.resolve(spec.zone);
+        const req = {
+          zone: spec.zone,
+          accepted: zoneDef ? acceptedFor(spec.zone) : /* @__PURE__ */ new Set([spec.zone]),
+          attributes: spec.attributes ?? [],
+          correlation: spec.correlation,
+          correlationLabel: spec.correlationLabel,
+          correlationName: spec.correlationName,
+          reason: spec.reason,
+          origin: spec.origin,
+          key: `${spec.zone}\0${spec.correlation ?? ""}`
+        };
+        propagate(node, req, [...spec.via, node.name]);
+      }
+    }
+  }
+  return { diagnostics, openExports };
+}
+function zoneDocumentsSignature(manifests) {
+  let hash = 2166136261;
+  const mix = (text3) => {
+    for (let i = 0; i < text3.length; i++) {
+      hash ^= text3.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+  };
+  for (const m of manifests) mix(JSON.stringify(m) ?? "");
+  return (hash >>> 0).toString(16);
+}
+function deriveLibraryExportRequirements(docs, defs, aliases, aliasesByModule, cache) {
+  const signature = docs.signature ?? zoneDocumentsSignature(docs.manifests);
+  const cached = cache?.get(docs.sourceId);
+  if (cached && cached.signature === signature) return cached.exports;
+  const exported = new Set(docs.exportedNames);
+  const graph = buildCallGraph(docs.manifests, defs, { aliases, aliasesByModule });
+  const { openExports } = projectZoneRequirements({
+    graph,
+    defs,
+    aliases,
+    aliasesByModule,
+    reportModules: /* @__PURE__ */ new Set(),
+    exportOf: (node) => !node.scoped && exported.has(node.name) ? node.name : void 0
+  });
+  cache?.set(docs.sourceId, { signature, exports: openExports });
+  return openExports;
+}
+function runZoneAnalysis(args) {
+  const { manifests, graph, defs, aliases, aliasesByModule, rootModules } = args;
+  const seeds = /* @__PURE__ */ new Map();
+  for (const docs of args.moduleDocuments ?? []) {
+    if (docs.exportedNames.length === 0) continue;
+    const contracts = deriveLibraryExportRequirements(
+      docs,
+      defs,
+      aliases,
+      aliasesByModule,
+      args.cache
+    );
+    for (const [exportName, specs] of contracts) {
+      if (specs.length > 0) seeds.set(`${docs.module}\0${exportName}`, specs);
+    }
+  }
+  const rootLibraries = [];
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Library") continue;
+    const name2 = m.metadata?.name;
+    if (!name2 || !rootModules.has(name2)) continue;
+    const exportedNames = /* @__PURE__ */ new Set();
+    for (const entry of m.exports?.resources ?? []) {
+      if (typeof entry !== "string") continue;
+      const dot = entry.indexOf(".");
+      exportedNames.add(dot > 0 ? entry.slice(dot + 1) : entry);
+    }
+    if (exportedNames.size > 0) rootLibraries.push({ module: name2, exportedNames, doc: m });
+  }
+  const exportOf = rootLibraries.length > 0 ? (node) => {
+    if (node.scoped) return void 0;
+    const module = node.manifest.metadata?.module;
+    const lib = rootLibraries.find((l) => l.module === module);
+    return lib?.exportedNames.has(node.name) ? node.name : void 0;
+  } : void 0;
+  const { diagnostics, openExports } = projectZoneRequirements({
+    graph,
+    defs,
+    aliases,
+    aliasesByModule,
+    reportModules: rootModules,
+    seeds: seeds.size > 0 ? seeds : void 0,
+    exportOf
+  });
+  for (const lib of rootLibraries) {
+    for (const [exportName, specs] of openExports) {
+      if (!lib.exportedNames.has(exportName)) continue;
+      const node = graph.resourceByName(exportName, lib.module);
+      if (!node || node.manifest.metadata?.module !== lib.module) {
+        continue;
+      }
+      for (const spec of specs) {
+        if (spec.correlationName === void 0) continue;
+        if (lib.exportedNames.has(spec.correlationName)) continue;
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "ZONE_EXPORT_UNSATISFIABLE",
+          source: SOURCE3,
+          message: `exported resource '${exportName}' carries an open requirement: ${spec.origin} requires a ${spec.zone} zone on ${spec.correlationLabel}, which this library does not export \u2014 no importer can satisfy it. Export '${spec.correlationName}' too (importers wrap '${exportName}' in their own zone on it), or export a resource that goes through the provider instead of '${exportName}' directly.` + (spec.reason ? ` ${spec.reason}.` : ""),
+          data: {
+            resource: { kind: node.kind, name: node.name },
+            filePath: node.manifest.metadata?.source,
+            path: ""
+          }
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
+
+// ../../analyzer/nodejs/src/validate-durable-regions.ts
+var SOURCE4 = "telo";
+function impureCalls(source, moduleNames, moduleCallFlags) {
+  const env = moduleNamesEnvironment(CEL_ENV, moduleNames);
+  const parsed = env.parse(source);
+  if (parsed.diagnostics.length > 0) {
+    return [];
+  }
+  const labels = [];
+  for (const call of auditCalls(source, parsed.root, env, moduleCallFlags).calls) {
+    if (call.deterministic !== false) continue;
+    const label2 = call.moduleCall ? renderChain(moduleCallFlags(call.name)?.nondeterministicVia ?? [call.name]) : `${call.name}()`;
+    if (!labels.includes(label2)) labels.push(label2);
+  }
+  return labels;
+}
+var CEL_ENV = buildCelEnvironment();
+function celSources(value2, path, out) {
+  if (!value2 || typeof value2 !== "object") return;
+  if (isTaggedSentinel(value2)) {
+    for (const expression of celExpressionsOf(value2.engine, value2.source)) {
+      out.push([path, expression]);
+    }
+    return;
+  }
+  if (isCompiledValue(value2)) {
+    if (typeof value2.source === "string") out.push([path, value2.source]);
+    return;
+  }
+  if (Array.isArray(value2)) {
+    value2.forEach((item, i) => celSources(item, `${path}[${i}]`, out));
+    return;
+  }
+  const record = value2;
+  if (path && typeof record.kind === "string") return;
+  for (const [key2, child] of Object.entries(record)) {
+    if (key2 === "kind" || key2 === "metadata") continue;
+    celSources(child, path ? `${path}.${key2}` : key2, out);
+  }
+}
+function checkNondeterminism(region, graph, reportModules, moduleCallNames2, moduleCallFlags, diagnostics) {
+  for (const { node } of region.contents.values()) {
+    const [manifest, base, prefix] = celScopeOf(node, graph);
+    if (!manifest || !owned(manifest, reportModules)) continue;
+    const found = [];
+    celSources(base, prefix, found);
+    for (const [path, source] of found) {
+      for (const fn of impureCalls(
+        source,
+        moduleCallNamesOf(moduleCallNames2, manifest),
+        (qualified) => moduleCallFlags(manifest, qualified)
+      )) {
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "DURABLE_NONDETERMINISM",
+          source: SOURCE4,
+          message: `'${fn}' is evaluated inside a region declared idempotent by ${region.provider.kind} '${region.provider.name}' \u2014 "${region.reason}". A region with that claim re-runs on a resume with its earlier effects intact, so an expression that produces a different value each time makes the re-run something other than a no-op and the claim false. Pin the value once for the region instead of computing it per pass. A native function counts as deterministic only where its kind declares \`deterministic: true\`.`,
+          data: {
+            resource: { kind: manifest.kind, name: manifest.metadata?.name },
+            filePath: manifest.metadata?.source,
+            path
+          }
+        });
+        break;
+      }
+    }
+  }
+}
+function checkDetach(region, reportModules, diagnostics) {
+  for (const boundary of region.boundaries) {
+    if (!boundary.escaping.includes("detached")) continue;
+    if (!owned(boundary.from.manifest, reportModules)) continue;
+    diagnostics.push({
+      severity: DiagnosticSeverity2.Error,
+      code: "DURABLE_DETACH_FORBIDDEN",
+      source: SOURCE4,
+      message: `${boundary.from.kind} '${boundary.from.name}' dispatches '${boundary.edge.slot}' detached inside a durable region (${region.provider.kind} '${region.provider.name}'). Progress is recorded when a step COMPLETES, so a detached dispatch would be recorded as done while its work was still running \u2014 a resume would skip it and a crash would lose it, which is the opposite of what durability provides. Start a nested durable run instead and let the step record its run id: the work keeps its own identity and its own recovery, and nothing is awaited.`,
+      data: {
+        resource: { kind: boundary.from.kind, name: boundary.from.name },
+        filePath: boundary.from.manifest.metadata?.source,
+        path: boundary.edge.path
+      }
+    });
+  }
+}
+function checkUnjournalableResults(region, resolveDef, graph, reportModules, diagnostics) {
+  for (const { node } of region.contents.values()) {
+    if (node.type !== "step") continue;
+    for (const edge of graph.edgesFrom(node.id)) {
+      const target = edge.to ? graph.nodes.get(edge.to) : void 0;
+      if (!target || target.type !== "resource") continue;
+      const def = resolveDef(
+        target.kind,
+        target.manifest.metadata?.module
+      );
+      const declared = target.manifest.outputType ?? def?.outputType;
+      if (!isLiveSchema(declared)) continue;
+      const owner = graph.nodes.get(node.owner);
+      const manifest = owner?.type === "resource" ? owner.manifest : target.manifest;
+      if (!owned(manifest, reportModules)) continue;
+      diagnostics.push({
+        severity: DiagnosticSeverity2.Warning,
+        code: "DURABLE_UNJOURNALABLE_RESULT",
+        source: SOURCE4,
+        message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', whose declared output is a live value, inside a durable region (${region.provider.kind} '${region.provider.name}'). A live handle is produced by consuming it, so it cannot be recorded and replayed \u2014 the run will fail at this step with ERR_DURABLE_UNJOURNALABLE_VALUE. Collect what you need from it into a plain value inside the step, or move the streaming work outside the durable body.`,
+        data: {
+          resource: { kind: manifest.kind, name: manifest.metadata?.name },
+          filePath: manifest.metadata?.source,
+          path: node.path
+        }
+      });
+    }
+  }
+}
+function isLiveSchema(schema4) {
+  if (!schema4 || typeof schema4 !== "object") return false;
+  const annotation = schema4["x-telo-type"];
+  const name2 = typeof annotation === "string" ? annotation : annotation?.name;
+  if (!name2) {
+    const inner = schema4.schema;
+    return inner !== void 0 && inner !== schema4 ? isLiveSchema(inner) : false;
+  }
+  return LIVE_TYPE_NAMES.has(name2);
+}
+var LIVE_TYPE_NAMES = new Set(
+  [...VALUE_TYPES.values()].filter((e) => e.live).map((e) => e.name)
+);
+function celScopeOf(node, graph) {
+  if (node.type === "resource") return [node.manifest, node.manifest, ""];
+  const owner = graph.nodes.get(node.owner);
+  const manifest = owner?.type === "resource" ? owner.manifest : void 0;
+  return [manifest, node.step, node.path];
+}
+function owned(manifest, reportModules) {
+  const module = manifest.metadata?.module;
+  return !module || reportModules.size === 0 || reportModules.has(module);
+}
+function validateDurableRegions(args) {
+  const diagnostics = [];
+  for (const region of findZoneRegions(args.graph, args.resolveDef, "replayed")) {
+    checkDetach(region, args.reportModules, diagnostics);
+    checkUnjournalableResults(
+      region,
+      args.resolveDef,
+      args.graph,
+      args.reportModules,
+      diagnostics
+    );
+  }
+  for (const region of findZoneRegions(args.graph, args.resolveDef, "idempotent")) {
+    checkNondeterminism(
+      region,
+      args.graph,
+      args.reportModules,
+      args.moduleCallNames,
+      args.moduleCallFlags,
+      diagnostics
+    );
+  }
+  return diagnostics;
+}
+
+// ../../analyzer/nodejs/src/validate-zone-violations.ts
+var SOURCE5 = "telo";
+function validateZoneViolations(args) {
+  const { graph, resolveDef, reportModules } = args;
+  const diagnostics = [];
+  const reported = /* @__PURE__ */ new Set();
+  const violationsOf = /* @__PURE__ */ new Map();
+  const violations = (kind, module) => {
+    const key2 = `${module ?? ""}\0${kind}`;
+    let found = violationsOf.get(key2);
+    if (!found) {
+      const def = resolveDef(kind, module);
+      found = readViolatesZone(def?.schema);
+      violationsOf.set(key2, found);
+    }
+    return found;
+  };
+  for (const attribute of ZONE_ATTRIBUTES.keys()) {
+    for (const region of findZoneRegions(graph, resolveDef, attribute)) {
+      for (const contained of region.contents.values()) {
+        if (attribute === "noSuspend" && contained.node.type === "step") {
+          const ownerNode = graph.nodes.get(contained.node.owner);
+          const owner = ownerNode?.type === "resource" ? ownerNode : void 0;
+          if (owner && owned2(owner.manifest, reportModules) && suspendingBackoff(contained.node.step.retry)) {
+            const dedupe3 = `retry\0${contained.node.id}`;
+            if (!reported.has(dedupe3)) {
+              reported.add(dedupe3);
+              diagnostics.push({
+                severity: DiagnosticSeverity2.Error,
+                code: "ZONE_ATTRIBUTE_VIOLATED",
+                source: SOURCE5,
+                message: `Step '${contained.node.name ?? contained.node.path}' declares a retry whose last backoff reaches ${SUSPENDING_BACKOFF_MS}ms, at which point a re-attempt waits by PARKING the run rather than by sleeping \u2014 but it is inside a ${region.provider.kind} '${region.provider.name}' region that declares 'noSuspend' (${region.reason}). Shorten the backoff, or move the retry outside the region so it re-attempts the region as a whole.`,
+                data: {
+                  resource: { kind: owner.kind, name: owner.name },
+                  filePath: owner.manifest.metadata?.source,
+                  path: contained.node.path
+                }
+              });
+            }
+          }
+        }
+        if (contained.node.type !== "resource") continue;
+        const manifest = contained.node.manifest;
+        const module = manifest.metadata?.module;
+        const rebuttal = violations(contained.node.kind, module)[attribute];
+        if (!rebuttal) continue;
+        if (!owned2(manifest, reportModules)) continue;
+        const dedupe2 = `${region.provider.id}\0${region.slot}\0${contained.node.id}\0${attribute}`;
+        if (reported.has(dedupe2)) continue;
+        reported.add(dedupe2);
+        const path = [`${region.provider.name}.${region.slot}`, ...contained.via].join(" \u2192 ");
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "ZONE_ATTRIBUTE_VIOLATED",
+          source: SOURCE5,
+          message: `${contained.node.kind} '${contained.node.name}' is inside a ${region.provider.kind} '${region.provider.name}' region that declares '${attribute}' (${region.reason}), but ${contained.node.kind} cannot honour it: ${rebuttal}. Reached by ${path}. Move it outside the region, or use a region that does not make that promise.`,
+          data: {
+            resource: { kind: contained.node.kind, name: contained.node.name },
+            filePath: manifest.metadata?.source
+          }
+        });
+      }
+    }
+  }
+  return diagnostics;
+}
+function suspendingBackoff(raw) {
+  if (!raw || typeof raw !== "object") return false;
+  const policy = raw;
+  if (!Object.values(policy).every(isStaticValue)) return false;
+  const attempts = policy.attempts;
+  if (typeof attempts !== "number" || attempts <= 0) return false;
+  return retryBackoffMs(policy, attempts - 1) >= SUSPENDING_BACKOFF_MS;
+}
+function isStaticValue(value2) {
+  return value2 === void 0 || typeof value2 === "number" || typeof value2 === "string";
+}
+function owned2(manifest, reportModules) {
+  const module = manifest.metadata?.module;
+  return !module || reportModules.size === 0 || reportModules.has(module);
+}
+
+// ../../analyzer/nodejs/src/validate-zone-slots.ts
+var PROVIDES2 = "x-telo-provides-zone";
+var REQUIRES2 = "x-telo-requires-zone";
+var VIOLATES2 = "x-telo-violates-zone";
+function isPointer2(value2) {
+  return typeof value2 === "string" && value2.startsWith("/") && value2.length > 1;
+}
+function describe2(value2) {
+  if (typeof value2 === "string") return `'${value2}'`;
+  if (Array.isArray(value2)) return `a list`;
+  if (value2 === null) return "null";
+  return typeof value2;
+}
+function suggestAttribute(name2) {
+  if (!name2) return void 0;
+  const threshold = Math.min(3, Math.floor(name2.length / 3));
+  if (threshold < 1) return void 0;
+  let best;
+  let bestDist = threshold + 1;
+  let tied = false;
+  for (const candidate of ZONE_ATTRIBUTES.keys()) {
+    const d = distance(name2, candidate);
+    if (d < bestDist) {
+      best = candidate;
+      bestDist = d;
+      tied = false;
+    } else if (d === bestDist) {
+      tied = true;
+    }
+  }
+  return !best || bestDist > threshold || tied ? void 0 : best;
+}
+function checkAttributes(obj, definition, path, issues, annotation = PROVIDES2) {
+  const declared = /* @__PURE__ */ new Set();
+  for (const [name2, value2] of Object.entries(obj)) {
+    if (name2 === "key") continue;
+    const entry = ZONE_ATTRIBUTES.get(name2);
+    if (!entry) {
+      const suggestion = suggestAttribute(name2);
+      issues.push({
+        code: "ZONE_ATTRIBUTE_UNKNOWN",
+        manifest: definition,
+        path,
+        message: `${annotation} at '${path}' declares '${name2}', which is not a zone attribute. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `The vocabulary is closed: ${zoneAttributeNames().join(", ")}. An attribute states a property of everything executed inside this zone, and every reader of one is core \u2014 a name outside the set would be read by nothing.`
+      });
+      continue;
+    }
+    if (typeof value2 !== "string" || !value2) {
+      issues.push({
+        code: "ZONE_ANNOTATION_INVALID",
+        manifest: definition,
+        path,
+        message: `${annotation} at '${path}' declares '${name2}' as ${describe2(value2)}. Every zone attribute's value is the author's REASON \u2014 a non-empty sentence, quoted verbatim by the diagnostics that enforce it (${entry.description}).`
+      });
+      continue;
+    }
+    declared.add(name2);
+  }
+  if (annotation !== PROVIDES2) return;
+  for (const name2 of declared) {
+    for (const dependency of ZONE_ATTRIBUTES.get(name2).requires) {
+      if (declared.has(dependency)) continue;
+      issues.push({
+        code: "ZONE_ATTRIBUTE_INCOMPLETE",
+        manifest: definition,
+        path,
+        message: `${PROVIDES2} at '${path}' declares '${name2}' without '${dependency}', which it requires. ${ZONE_ATTRIBUTES.get(dependency).description} Declare it with its own reason \u2014 a generic message is exactly what the required reason exists to prevent.`
+      });
+    }
+  }
+}
+function checkProvides(raw, definition, path, issues) {
+  if (raw === true) return;
+  if (isPointer2(raw)) return;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const obj = raw;
+    if (obj.key !== void 0 && !isPointer2(obj.key)) {
+      issues.push({
+        code: "ZONE_ANNOTATION_INVALID",
+        manifest: definition,
+        path,
+        message: `${PROVIDES2} at '${path}' declares the correlation key ${describe2(obj.key)}, which is not a self-relative JSON Pointer. Write '/connection'. A bare field name is read as a pointer by the runtime but skipped by the checker, so the two halves would disagree about what this manifest means.`
+      });
+    }
+    checkAttributes(obj, definition, path, issues);
+    return;
+  }
+  issues.push({
+    code: "ZONE_ANNOTATION_INVALID",
+    manifest: definition,
+    path,
+    message: `${PROVIDES2} at '${path}' is ${describe2(raw)}. It takes 'true' (the zone is uncorrelated), a self-relative JSON Pointer naming this kind's own field whose resolved reference the zone carries as its correlation payload (e.g. '/connection'), or an object carrying that pointer as 'key' beside the zone attributes this region declares (${zoneAttributeNames().join(", ")}). It never names the zone \u2014 the zone a slot provides is always the declaring kind.`
+  });
+}
+function checkRequires(raw, definition, path, issues) {
+  const fail = (message) => {
+    issues.push({ code: "ZONE_ANNOTATION_INVALID", manifest: definition, path, message });
+  };
+  if (typeof raw === "string") {
+    if (!raw) fail(`${REQUIRES2} at '${path}' is an empty string; name the providing kind.`);
+    return;
+  }
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    fail(
+      `${REQUIRES2} at '${path}' is ${describe2(raw)}. It takes an alias-qualified kind name (e.g. 'Self.Transaction') or an object with 'zone', an optional 'key' and an optional 'reason'.`
+    );
+    return;
+  }
+  const obj = raw;
+  if (typeof obj.zone !== "string" || !obj.zone) {
+    fail(
+      `${REQUIRES2} at '${path}' declares no 'zone'. Name the providing kind with the same alias-qualified grammar 'extends' and 'x-telo-ref' use \u2014 '<Alias>.<Kind>', 'Self.<Kind>', or 'Telo.<Kind>'. Without it the requirement is silently unenforced, and the resource throws at dispatch instead.`
+    );
+  }
+  if (obj.key !== void 0) {
+    const pointers = Array.isArray(obj.key) ? obj.key : [obj.key];
+    if (Array.isArray(obj.key) && obj.key.length === 0) {
+      fail(`${REQUIRES2} at '${path}' declares an empty 'key' list; omit 'key' instead.`);
+    }
+    for (const pointer of pointers) {
+      if (isPointer2(pointer)) continue;
+      fail(
+        `${REQUIRES2} at '${path}' declares the correlation key ${describe2(pointer)}, which is not a self-relative JSON Pointer. Write '/connection' (or a list of pointers tried in order, first hit winning). A bare field name is read as a pointer by the runtime but skipped by the checker, so the two halves would disagree about what this manifest means.`
+      );
+    }
+  }
+  if (obj.reason !== void 0 && typeof obj.reason !== "string") {
+    fail(`${REQUIRES2} at '${path}' declares a non-string 'reason'.`);
+  }
+  if (obj.attributes !== void 0) {
+    if (!Array.isArray(obj.attributes) || obj.attributes.length === 0) {
+      fail(
+        `${REQUIRES2} at '${path}' declares 'attributes' as ${describe2(obj.attributes)}. It takes a non-empty list of zone attribute names; omit it to require the kind alone.`
+      );
+    } else {
+      for (const name2 of obj.attributes) {
+        if (typeof name2 === "string" && ZONE_ATTRIBUTES.has(name2)) continue;
+        const suggestion = typeof name2 === "string" ? suggestAttribute(name2) : void 0;
+        issues.push({
+          code: "ZONE_ATTRIBUTE_UNKNOWN",
+          manifest: definition,
+          path,
+          message: `${REQUIRES2} at '${path}' requires '${String(name2)}', which is not a zone attribute. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `The vocabulary is closed: ${zoneAttributeNames().join(", ")}.`
+        });
+      }
+    }
+  }
+  for (const key2 of Object.keys(obj)) {
+    if (key2 === "zone" || key2 === "key" || key2 === "reason" || key2 === "attributes") {
+      continue;
+    }
+    fail(
+      `${REQUIRES2} at '${path}' declares an unknown property '${key2}'. The object form takes 'zone', 'key', 'reason' and 'attributes'.`
+    );
+  }
+}
+function checkViolates(raw, definition, path, issues) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    issues.push({
+      code: "ZONE_ANNOTATION_INVALID",
+      manifest: definition,
+      path,
+      message: `${VIOLATES2} at '${path}' is ${describe2(raw)}. It takes a map of zone attribute names to the reason this kind cannot honour each \u2014 \`noSuspend: this waits for a delivery that may be days away\`.`
+    });
+    return;
+  }
+  checkAttributes(raw, definition, path, issues, VIOLATES2);
+}
+function walkSchema(node, path, visited, definition, issues) {
+  if (!node || typeof node !== "object") return;
+  if (visited.has(node)) return;
+  visited.add(node);
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => walkSchema(item, `${path}[${i}]`, visited, definition, issues));
+    return;
+  }
+  const obj = node;
+  if (obj[PROVIDES2] !== void 0) checkProvides(obj[PROVIDES2], definition, path, issues);
+  if (obj[REQUIRES2] !== void 0) checkRequires(obj[REQUIRES2], definition, path, issues);
+  if (obj[VIOLATES2] !== void 0) checkViolates(obj[VIOLATES2], definition, path, issues);
+  for (const [key2, value2] of Object.entries(obj)) {
+    if (key2 === PROVIDES2 || key2 === REQUIRES2 || key2 === VIOLATES2) continue;
+    if (key2 === "examples" || key2 === "default") continue;
+    walkSchema(value2, path ? `${path}.${key2}` : key2, visited, definition, issues);
+  }
+}
+function validateZoneSlotDeclarations(definition) {
+  const issues = [];
+  const schema4 = definition.schema;
+  if (!schema4 || typeof schema4 !== "object") return issues;
+  walkSchema(schema4, "schema", /* @__PURE__ */ new Set(), definition, issues);
+  return issues;
+}
+
+// ../../analyzer/nodejs/src/validate-schema-projection.ts
+var PROJECTION = "x-telo-schema-projection";
+function isObject9(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+var PROJECTION_FROM2 = "x-telo-schema-projection-from";
+function validateSchemaProjection(manifest) {
+  const kindDocument = manifest.kind === "Telo.Definition" || manifest.kind === "Telo.Abstract";
+  return kindDocument ? [...derivationIssues(manifest, true), ...projectionIssues(manifest)] : derivationIssues(manifest, false);
+}
+function derivationIssues(manifest, kindDocument) {
+  const issues = [];
+  const doc = manifest;
+  const report = (path, message) => {
+    issues.push({ code: "SCHEMA_PROJECTION_INVALID", manifest, path, message });
+  };
+  if (kindDocument) {
+    const kind = readKindDerivation(doc);
+    if (kind && "invalid" in kind) report(PROJECTION_FROM2, kind.invalid);
+  }
+  const visit3 = (node, path, segments) => {
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => visit3(item, `${path}[${index}]`, [...segments, index]));
+      return;
+    }
+    if (!isObject9(node)) return;
+    for (const [key2, value2] of Object.entries(node)) {
+      const at2 = path === "" ? key2 : `${path}.${key2}`;
+      if (key2 === PROJECTION_FROM2) {
+        if (!isInSchemaRegion([...segments, key2])) continue;
+        const read = readProjectionDerivation(value2);
+        if (read && "invalid" in read) report(at2, read.invalid);
+        continue;
+      }
+      visit3(value2, at2, [...segments, key2]);
+    }
+  };
+  visit3(doc, "", []);
+  return issues;
+}
+function projectionIssues(manifest) {
+  const doc = manifest;
+  const raw = rawSchemaProjection(doc);
+  if (raw === void 0) return [];
+  const misplaced = schemaProjectionIsMisplaced(doc);
+  const base = misplaced ? `schema.${PROJECTION}` : PROJECTION;
+  const issue = (code, path, message) => ({ code, manifest, path, message });
+  const issues = [];
+  if (misplaced) {
+    issues.push(
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        base,
+        `'${PROJECTION}' belongs on the kind DOCUMENT, beside 'schema:', not inside it \u2014 it describes the whole declaration rather than one field. It is read from here too, so nothing is broken; move it up a level.`
+      )
+    );
+  }
+  if (!isObject9(raw)) {
+    return [
+      ...issues,
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        base,
+        `'${PROJECTION}' must be an object naming the entry collection and the field that keys it.`
+      )
+    ];
+  }
+  for (const key2 of Object.keys(raw)) {
+    if (SCHEMA_PROJECTION_KEYS.includes(key2)) continue;
+    issues.push(
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        `${base}.${key2}`,
+        `'${PROJECTION}' has no '${key2}'. It declares ${SCHEMA_PROJECTION_KEYS.map((k) => `'${k}'`).join(", ")}.`
+      )
+    );
+  }
+  const missing = ["entries", "key"].filter((field2) => typeof raw[field2] !== "string");
+  if (missing.length > 0) {
+    return [
+      ...issues,
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        base,
+        `'${PROJECTION}' is missing ${missing.map((f2) => `'${f2}'`).join(" and ")}. 'entries' is a JSON Pointer to the collection, 'key' the entry field whose value selects an 'x-telo-schema-map' entry.`
+      )
+    ];
+  }
+  const projection = readSchemaProjection(doc);
+  const schema4 = doc.schema;
+  if (isArrayCollection(projectionCollectionSchema(schema4, projection.entries)) && !projection.nameField) {
+    return [
+      ...issues,
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        base,
+        `'${PROJECTION}' names '${projection.entries}', which is an array, but declares no 'name'. An array's entries have no key, so 'name' must say which field holds an entry's identity \u2014 without it the projection yields a schema that rejects every value.`
+      )
+    ];
+  }
+  const nestedIssue = nestedProblem(raw.nested, schema4, projection);
+  if (nestedIssue) issues.push(issue("SCHEMA_PROJECTION_INVALID", `${base}.nested`, nestedIssue));
+  for (const [modifier, message] of modifierDefaultProblems(schema4, projection)) {
+    issues.push(issue("SCHEMA_PROJECTION_INVALID", `${base}.${modifier}`, message));
+  }
+  const reference = raw.reference;
+  if (reference !== void 0) {
+    if (!isObject9(reference)) {
+      issues.push(
+        issue(
+          "SCHEMA_PROJECTION_INVALID",
+          `${base}.reference`,
+          `'reference' says how an entry whose '${projection.key}' holds a REFERENCE projects. It is an object naming 'from' (the target field to read), 'keyword' (the schema keyword its values become) and one of 'base' / 'baseFrom'.`
+        )
+      );
+    } else {
+      const absent = ["from", "keyword"].filter((f2) => typeof reference[f2] !== "string");
+      if (absent.length > 0) {
+        issues.push(
+          issue(
+            "SCHEMA_PROJECTION_INVALID",
+            `${base}.reference`,
+            `'reference' is missing ${absent.map((f2) => `'${f2}'`).join(" and ")}. Without them a referenced entry projects to nothing, so it vanishes from every consumer's view.`
+          )
+        );
+      }
+      const bases = ["base", "baseFrom"].filter((f2) => reference[f2] !== void 0);
+      if (bases.length !== 1) {
+        issues.push(
+          issue(
+            "SCHEMA_PROJECTION_INVALID",
+            `${base}.reference`,
+            bases.length === 0 ? `'reference' declares neither 'base' nor 'baseFrom', so the projected node has no type. Write 'base' where the named type IS its own base type, or 'baseFrom' naming the target field that holds a value of this kind's own map.` : `'reference' declares both 'base' and 'baseFrom'. They are two answers to one question \u2014 where the projected node's type comes from \u2014 so declare exactly one.`
+          )
+        );
+      }
+    }
+  }
+  const map3 = projectionKeyMap(schema4, projection);
+  if (!map3) {
+    return [
+      ...issues,
+      issue(
+        "SCHEMA_PROJECTION_INVALID",
+        base,
+        `'${PROJECTION}' names '${projection.entries}' keyed on '${projection.key}', but that field carries no 'x-telo-schema-map'. The map declares the JSON Schema each of its values means, and without it the projection types nothing.`
+      )
+    ];
+  }
+  const field = projectionEntryField(schema4, projection, projection.key);
+  const keyField = field && (schemaMapBranch(field) ?? field);
+  const values = Array.isArray(keyField?.enum) ? keyField.enum : [];
+  const unmapped = values.filter((value2) => typeof value2 === "string" && !(value2 in map3));
+  if (unmapped.length === 0) return issues;
+  return [
+    ...issues,
+    issue(
+      "SCHEMA_MAP_INCOMPLETE",
+      base,
+      `'x-telo-schema-map' has no entry for ${unmapped.map((v) => `'${v}'`).join(", ")}. An entry declaring an unmapped value projects to nothing, so it disappears from every consumer's view of the shape.`
+    )
+  ];
+}
+function modifierDefaultProblems(schema4, projection) {
+  const entry = collectionEntrySchema(projectionCollectionSchema(schema4, projection.entries), schema4);
+  if (!entry) return [];
+  const problems = [];
+  for (const [modifier, field] of [
+    ["array", projection.array],
+    ["nullable", projection.nullable]
+  ]) {
+    if (field === void 0) continue;
+    const sites = modifierDefaultSites(entry, field, schema4);
+    if (sites.length > 1) {
+      problems.push([
+        modifier,
+        `the default of '${field}' is declared in ${sites.length} places of the entry schema (${sites.map((s) => `'${s.path}'`).join(", ")}). An entry that omits '${field}' reads ONE default \u2014 the field's own, or the 'then' / 'else' of one conditional \u2014 so declare it once.`
+      ]);
+      continue;
+    }
+    for (const site of sites) {
+      if (site.kind !== "conditional") continue;
+      const check2 = compileDefaultCondition(site.condition);
+      if (typeof check2 === "function") continue;
+      problems.push([
+        modifier,
+        `the conditional at '${site.path}' decides the default of '${field}', but it does not compile as JSON Schema: ${check2.error}`
+      ]);
+    }
+  }
+  return problems;
+}
+function isArrayCollection(collection) {
+  return !!collection && isObject9(collection.items) && !isObject9(collection.additionalProperties);
+}
+function nestedProblem(nested, schema4, projection) {
+  if (nested === void 0) return void 0;
+  if (typeof nested !== "string") {
+    return `'nested' names the entry field holding a sub-collection of entries, as a string.`;
+  }
+  const entry = collectionEntrySchema(projectionCollectionSchema(schema4, projection.entries), schema4);
+  const field = projectionEntryField(schema4, projection, nested);
+  if (!entry || !field) {
+    return `'nested' names '${nested}', which the entries of '${projection.entries}' do not declare.`;
+  }
+  const sub = collectionEntrySchema(field, schema4);
+  if (!sub || !sameShape(sub, entry)) {
+    return `'nested' names '${nested}', which is not a collection of entries shaped like those of '${projection.entries}'. A nested entry is projected with the same key, map and modifiers, so its collection's entries must be the same schema \u2014 inline, or a local '$ref' to it.`;
+  }
+  if (isArrayCollection(field) && !projection.nameField) {
+    return `'nested' names '${nested}', an array, but the projection declares no 'name' \u2014 its entries would have no identity to project under.`;
+  }
+  return void 0;
+}
+function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
+  if (a === b) return true;
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  if (seen.get(a) === b) return true;
+  seen.set(a, b);
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const left = a;
+  const right = b;
+  const keys = Object.keys(left);
+  return keys.length === Object.keys(right).length && keys.every((key2) => Object.hasOwn(right, key2) && sameShape(left[key2], right[key2], seen));
+}
+
+// ../../analyzer/nodejs/src/validate-referrer-rules.ts
+function isObject10(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+function validateReferrerRuleDeclarations(manifest, context = {}) {
+  const own2 = manifest.schema;
+  const raw = readRawReferrerRules(own2);
+  if (raw === void 0) return [];
+  const base = `schema.${REFERRER_RULES_ANNOTATION}`;
+  const issues = [];
+  const issue = (path, message, fix) => {
+    issues.push({ code: "REFERRER_RULE_INVALID", manifest, path, message, ...fix ? { fix } : {} });
+  };
+  if (!Array.isArray(raw)) {
+    issue(base, `'${REFERRER_RULES_ANNOTATION}' must be an array of rules.`);
+    return issues;
+  }
+  const seen = /* @__PURE__ */ new Map();
+  raw.forEach((entry, index) => {
+    const at2 = `${base}[${index}]`;
+    if (!isObject10(entry)) {
+      issue(at2, "A rule must be an object with 'condition', 'code' and 'message'.");
+      return;
+    }
+    const condition = celSourceOf(entry.condition);
+    if (condition === void 0 || condition.length === 0) {
+      issue(
+        `${at2}.condition`,
+        "A rule needs a 'condition' \u2014 a CEL expression over 'referrer' (the resource that references this one) and 'self', TRUE when the rule holds. Write it with the !cel tag."
+      );
+    }
+    if (typeof entry.code !== "string" || entry.code.length === 0) {
+      issue(
+        `${at2}.code`,
+        "A rule needs a 'code' naming it. It is reported in the diagnostic's data.rule, not as a diagnostic code \u2014 every violation reports under REFERRER_RULE_VIOLATED."
+      );
+    } else {
+      const first = seen.get(entry.code);
+      if (first !== void 0) {
+        issue(
+          `${at2}.code`,
+          `Rule code '${entry.code}' is already used by rule ${first}. A code names one rule, so two rules sharing it are indistinguishable in data.rule.`
+        );
+      } else {
+        seen.set(entry.code, index);
+      }
+    }
+    if (typeof entry.message !== "string" || entry.message.length === 0) {
+      issue(
+        `${at2}.message`,
+        "A rule needs a 'message' saying what the referrer must do \u2014 only the kind's author knows that, and the analyzer supplies only where and what."
+      );
+    }
+    if (entry.referrer !== void 0 && typeof entry.referrer !== "string") {
+      issue(
+        `${at2}.referrer`,
+        "'referrer' names the kind a referring resource must be, in the same alias-qualified grammar as extends: (Self.Server, Http.Server, Telo.Something). Omit it to apply the rule to every referrer."
+      );
+    }
+    if (entry.severity !== void 0 && entry.severity !== "error" && entry.severity !== "warning") {
+      issue(`${at2}.severity`, "'severity' must be 'error' or 'warning'.");
+    }
+    if (condition !== void 0 && condition.length > 0 && !isTaggedCondition(entry.condition)) {
+      issue(`${at2}.condition`, UNTAGGED_CONDITION, untaggedConditionFix(condition));
+    }
+    validatePeersDeclaration(entry, at2, issue, context);
+    if (condition) {
+      for (const refusal of conditionRefusals(condition, context.moduleNames)) {
+        issue(`${at2}.condition`, refusal);
+      }
+    }
+  });
+  return issues;
+}
+function referrerRuleCallIssues(manifest, moduleNames, flagsOf) {
+  const raw = readRawReferrerRules(manifest.schema);
+  if (!Array.isArray(raw)) return [];
+  const issues = [];
+  raw.forEach((entry, index) => {
+    const condition = isObject10(entry) ? celSourceOf(entry.condition) : void 0;
+    if (!condition) return;
+    for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
+      issues.push({
+        code: "REFERRER_RULE_INVALID",
+        manifest,
+        path: `schema.${REFERRER_RULES_ANNOTATION}[${index}].condition`,
+        message
+      });
+    }
+  });
+  return issues;
+}
+function validatePeersDeclaration(entry, at2, issue, context) {
+  const { peers } = entry;
+  if (peers === void 0) return;
+  if (typeof peers !== "string") {
+    issue(
+      `${at2}.peers`,
+      "'peers' is a JSON Pointer naming a collection OF THE REFERRER (e.g. /tables), whose other entries bind as 'peers' and whose own entry binds as 'entry'."
+    );
+    return;
+  }
+  if (pointerSegments(peers) === void 0 || peers === "" || peers === "/") {
+    issue(
+      `${at2}.peers`,
+      `'peers' must be a JSON Pointer to a collection, e.g. /tables \u2014 '${peers}' is not one.`
+    );
+    return;
+  }
+  if (typeof entry.referrer !== "string" || entry.referrer.length === 0) {
+    issue(
+      `${at2}.peers`,
+      "'peers' names a collection of the REFERRER, so the rule must also declare 'referrer:' \u2014 without a kind there is nothing to check the pointer against, and a pointer that resolves to nothing disables the rule in silence."
+    );
+    return;
+  }
+  const target = context.peersTarget?.(entry.referrer, peers);
+  if (target === "absent") {
+    issue(
+      `${at2}.peers`,
+      `'${entry.referrer}' declares no collection at '${peers}'. A pointer that resolves to nothing binds no peers, so the rule would never see a sibling declaration.`
+    );
+  } else if (target === "plain") {
+    issue(
+      `${at2}.peers`,
+      `'${peers}' on '${entry.referrer}' holds plain data \u2014 nothing in it is a reference, so no entry resolves to a declaration and the rule would run against values it cannot compare. Name a collection whose items are, or contain, a reference.`
+    );
+  }
+}
+function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatches, context = {}) {
+  const rules = readReferrerRules(definitionSchema);
+  if (rules.length === 0) return [];
+  const view = (declaration) => context.peerBinder?.view(declaration) ?? declaration;
+  const self = view(manifest);
+  const findings = [];
+  for (const rule of rules) {
+    const perEntry = rule.peers !== void 0;
+    const compiled2 = compileRuleCondition(rule.condition, context.moduleNames);
+    if ("reason" in compiled2) {
+      findings.push({ kind: "failed", rule, reason: compiled2.reason });
+      continue;
+    }
+    const { parsed, chains } = compiled2;
+    const seen = /* @__PURE__ */ new Set();
+    const started = Date.now();
+    for (const referrer of referrers) {
+      if (rule.referrer !== void 0 && !kindMatches(rule.referrer, referrer.kind)) continue;
+      if (!perEntry) {
+        if (seen.has(referrer.manifest)) continue;
+        seen.add(referrer.manifest);
+      }
+      const scope = {
+        self,
+        referrer: view(referrer.manifest),
+        ...context.functions ? { [MODULE_CALL_DISPATCH_KEY]: context.functions } : {}
+      };
+      if (perEntry) {
+        const bound = context.peerBinder ? context.peerBinder.bind(referrer.manifest, referrer.kind, rule.peers, referrer.path) : {
+          ok: false,
+          failure: { reason: "unknown-shape", at: pointerToPath(rule.peers) }
+        };
+        if (!bound.ok) {
+          findings.push({ kind: "unbound", rule, referrer, failure: bound.failure });
+          continue;
+        }
+        scope.peers = bound.binding.peers;
+        scope.entry = bound.binding.entry;
+      }
+      const dynamic = findDynamicRead(chains, scope);
+      if (dynamic !== void 0) {
+        findings.push({ kind: "skipped", rule, referrer, dynamic });
+        continue;
+      }
+      let held;
+      try {
+        held = parsed(scope);
+      } catch (err) {
+        findings.push({
+          kind: "failed",
+          rule,
+          referrer,
+          reason: err instanceof Error ? err.message : String(err)
+        });
+        break;
+      }
+      if (held !== true) {
+        findings.push({ kind: "violation", rule, referrer, message: rule.message });
+      }
+      const elapsed = Date.now() - started;
+      if (elapsed > RULE_BUDGET_MS) {
+        findings.push({ kind: "over-budget", rule, referrer, elapsedMs: elapsed });
+        break;
+      }
+    }
+  }
+  return findings;
+}
+function referrerRuleExercised(rule, referrers, kindMatches, context = {}) {
+  const matching = rule.referrer === void 0 ? referrers : referrers.filter((referrer) => kindMatches(rule.referrer, referrer.kind));
+  if (matching.length === 0) return false;
+  if (rule.peers === void 0) return true;
+  const binder = context.peerBinder;
+  if (!binder) return false;
+  return matching.some(
+    (referrer) => binder.hasPeers(referrer.manifest, referrer.kind, rule.peers, referrer.path)
+  );
+}
+var nameOf2 = (manifest) => manifest.metadata?.name ?? "<unnamed>";
+function reportReferrerRules(manifest, definition, findings, declarationIsOurs) {
+  const declaringKind = manifest.kind;
+  const out = [];
+  for (const finding of findings) {
+    if (finding.kind === "violation") {
+      out.push({
+        code: "REFERRER_RULE_VIOLATED",
+        severity: finding.rule.severity,
+        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)} at '${finding.referrer.path}': required by ${declaringKind} \u2014 ${finding.message}`,
+        manifest: finding.referrer.manifest,
+        path: finding.referrer.path,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    if (finding.kind === "skipped") {
+      out.push({
+        code: "REFERRER_RULE_SKIPPED",
+        severity: "information",
+        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)}: rule '${finding.rule.code}' from ${declaringKind} did not run at '${finding.referrer.path}' \u2014 the value holds ${finding.dynamic.what} at '${finding.dynamic.path}', which is not known until the resource is created. Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
+        manifest: finding.referrer.manifest,
+        path: finding.referrer.path,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    if (finding.kind === "unbound") {
+      if (isSilentBindingFailure(finding.failure)) continue;
+      out.push({
+        code: "REFERRER_RULE_SKIPPED",
+        severity: "information",
+        message: `${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)}: rule '${finding.rule.code}' from ${declaringKind} did not run at '${finding.referrer.path}' \u2014 ${bindingFailureReason(finding.failure)} Reported rather than dropped: a check whose coverage varies invisibly reads as passing.`,
+        manifest: finding.referrer.manifest,
+        path: finding.referrer.path,
+        rule: finding.rule.code
+      });
+      continue;
+    }
+    const because = finding.kind === "failed" ? `failed to evaluate: ${finding.reason}. Guard an optional field with 'in' or '.?'.` : `exceeded its evaluation budget (${finding.elapsedMs}ms) and was stopped, so coverage from here on is incomplete. Simplify the condition.`;
+    out.push({
+      code: "REFERRER_RULE_INVALID",
+      // Once for the whole analysis, not per referrer. An ERROR when this
+      // workspace declares the rule — the author can fix it — and a warning for
+      // a dependency's, where an error would block `telo check` on a line the
+      // consumer cannot change.
+      severity: declarationIsOurs ? "error" : "warning",
+      message: `Referrer rule '${finding.rule.code}' on kind '${declaringKind}' ${because} This is a defect in the rule, not in the manifest it ran against` + (finding.referrer ? ` (first seen at ${finding.referrer.kind}/${nameOf2(finding.referrer.manifest)} at '${finding.referrer.path}')` : "") + (declarationIsOurs ? "." : " \u2014 it is declared by a module this workspace does not own.") + " Reported once for this rule, however many referrers it fails on.",
+      // The rule's own declaration site is a path in the DEFINITION; with no
+      // definition in hand the referenced resource is the only node to name.
+      // Where the declaring kind is a dependency's the caller re-anchors this at
+      // the `imports:` entry that brought it in.
+      ...definition ? {
+        manifest: definition,
+        path: `schema.${REFERRER_RULES_ANNOTATION}[${finding.rule.index}]`
+      } : { manifest },
+      rule: finding.rule.code,
+      evaluationFailure: true
+    });
+  }
+  return out;
+}
+function reportUnexercisedReferrerRule(definition, rule) {
+  return {
+    code: "REFERRER_RULE_UNEXERCISED",
+    severity: "information",
+    message: rule.peers !== void 0 ? `Referrer rule '${rule.code}' never ran with peers to compare: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + ` references a resource of this kind while '${rule.peers}' held another declaration, so nothing has proven the condition. An empty peer set everywhere is what a typo in 'peers:' looks like from outside.` : `Referrer rule '${rule.code}' never ran: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + " references a resource of this kind, so nothing has proven the condition." + (rule.referrer === void 0 ? "" : " A 'referrer' naming a kind no manifest uses disables the rule in silence."),
+    manifest: definition,
+    path: `schema.${REFERRER_RULES_ANNOTATION}[${rule.index}]`,
+    rule: rule.code
+  };
+}
+
+// ../../analyzer/nodejs/src/validate-ref-slots.ts
+var VALID_USES = REF_USES.join(", ");
+function rawUseTokens(use) {
+  if (use === void 0) return [];
+  if (Array.isArray(use)) return use;
+  if (use && typeof use === "object") {
+    const cases = use.cases;
+    if (!cases || typeof cases !== "object") return [];
+    return Object.values(cases).flatMap(
+      (v) => Array.isArray(v) ? v : [v]
+    );
+  }
+  return [use];
+}
+function declaredUses(use) {
+  if (isRefUse(use)) return [use];
+  if (Array.isArray(use)) return use.filter(isRefUse);
+  return [];
+}
+function checkAnnotation(annotation, manifest, path, issues) {
+  if (typeof annotation === "string" || annotation === void 0) return void 0;
+  if (!annotation || typeof annotation !== "object" || Array.isArray(annotation)) return void 0;
+  const obj = annotation;
+  const kind = obj.kind;
+  const hasKind = typeof kind === "string" && kind.length > 0 || Array.isArray(kind) && kind.some((k) => typeof k === "string" && k.length > 0);
+  if (!hasKind) {
+    issues.push({
+      code: "X_TELO_REF_MISSING_KIND",
+      manifest,
+      path,
+      message: `x-telo-ref at '${path}' declares no 'kind'. The structured form is '{ kind: <Alias>.<Kind> | [<kinds>], use: <use> }' \u2014 without a kind the slot constrains nothing and the editor has nothing to pick against.`
+    });
+  }
+  const use = obj.use;
+  const isCaseMap = !!use && typeof use === "object" && !Array.isArray(use) && "by" in use;
+  if (use === void 0) {
+    issues.push({
+      code: "X_TELO_REF_MISSING_USE",
+      manifest,
+      path,
+      message: `x-telo-ref at '${path}' declares no 'use'. The structured form must say what the declaring resource does with the target \u2014 one of: ${VALID_USES} \u2014 or a '{ by, cases }' map when a sibling config field selects the mode. Only the legacy bare-string spelling ('x-telo-ref: <Kind>') may omit it.`
+    });
+  } else {
+    for (const token of rawUseTokens(use)) {
+      if (isRefUse(token)) continue;
+      issues.push({
+        code: "X_TELO_REF_INVALID_USE",
+        manifest,
+        path,
+        message: `x-telo-ref at '${path}' declares unrecognized use '${String(token)}'. Valid uses: ${VALID_USES}. An unrecognized token would silently degrade the slot to the legacy no-use reading.`
+      });
+    }
+    if (isCaseMap) {
+      const by = use.by;
+      if (typeof by !== "string" || !by.startsWith("/")) {
+        issues.push({
+          code: "X_TELO_REF_INVALID_USE",
+          manifest,
+          path,
+          message: `x-telo-ref at '${path}' has a 'use' case map whose 'by' is not a JSON Pointer. 'by' names a sibling field of the object enclosing the slot, e.g. '/detach'.`
+        });
+      }
+    }
+  }
+  if (obj.throwsThrough !== void 0 && typeof obj.throwsThrough !== "boolean") {
+    issues.push({
+      code: "X_TELO_REF_INVALID_THROWS_THROUGH",
+      manifest,
+      path,
+      message: `x-telo-ref at '${path}' declares 'throwsThrough: ${JSON.stringify(obj.throwsThrough)}', which is not a boolean. Only 'true' declares that throws from this slot's target surface through the declaring resource; anything else reads as absent, which silently stops its catch list from enclosing what it holds.`
+    });
+  }
+  if (obj.outputType !== void 0 && (!obj.outputType || typeof obj.outputType !== "object" || Array.isArray(obj.outputType))) {
+    issues.push({
+      code: "X_TELO_REF_INVALID_OUTPUT_TYPE",
+      manifest,
+      path,
+      message: `x-telo-ref at '${path}' declares 'outputType: ${JSON.stringify(obj.outputType)}', which is not a JSON Schema object. It names the shape the target's output must have (e.g. '{ type: object, required: [output] }'); anything else reads as absent, so the slot would accept a target returning anything.`
+    });
+  }
+  for (const key2 of Object.keys(obj)) {
+    if (REF_ANNOTATION_KEYS.has(key2)) continue;
+    issues.push({
+      code: "X_TELO_REF_UNKNOWN_KEY",
+      manifest,
+      path,
+      message: `x-telo-ref at '${path}' declares unrecognized key '${key2}'. Known keys: ${[...REF_ANNOTATION_KEYS].sort().join(", ")}. An unrecognized key is read by nothing, so it has exactly the effect of leaving it out.`
+    });
+  }
+  return declaredUses(use);
+}
+var REF_ANNOTATION_KEYS = /* @__PURE__ */ new Set([
+  "kind",
+  "use",
+  "inputs",
+  "throwsThrough",
+  "outputType",
+  "observes"
+]);
+function carriesRefAnnotation(obj) {
+  if (obj["x-telo-ref"] !== void 0) return true;
+  for (const key2 of ["anyOf", "oneOf"]) {
+    const branches = obj[key2];
+    if (!Array.isArray(branches)) continue;
+    if (branches.some(
+      (b) => b && typeof b === "object" && b["x-telo-ref"] !== void 0
+    )) {
+      return true;
+    }
+  }
+  return false;
+}
+function forEachRefSlotNode(schema4, path, onSlot) {
+  walkSchema2(schema4, path, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), onSlot);
+}
+function walkSchema2(node, path, visited, claimedBranches, onSlot) {
+  if (!node || typeof node !== "object") return;
+  if (visited.has(node)) return;
+  visited.add(node);
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => walkSchema2(item, `${path}[${i}]`, visited, claimedBranches, onSlot));
+    return;
+  }
+  const obj = node;
+  if (carriesRefAnnotation(obj) && !claimedBranches.has(obj)) {
+    onSlot(obj, path);
+    for (const key2 of ["anyOf", "oneOf"]) {
+      const branches = obj[key2];
+      if (!Array.isArray(branches)) continue;
+      for (const branch of branches) {
+        if (branch && typeof branch === "object") claimedBranches.add(branch);
+      }
+    }
+  }
+  for (const [key2, value2] of Object.entries(obj)) {
+    if (key2 === "x-telo-ref" || key2 === "examples" || key2 === "default") continue;
+    walkSchema2(value2, path ? `${path}.${key2}` : key2, visited, claimedBranches, onSlot);
+  }
+}
+function validateRefSlotDeclarations(definition) {
+  const issues = [];
+  const schema4 = definition.schema;
+  if (!schema4 || typeof schema4 !== "object") return issues;
+  walkSchema2(schema4, "schema", /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), (node, path) => {
+    const branchUses = [];
+    const own2 = checkAnnotation(node["x-telo-ref"], definition, path, issues);
+    if (own2) branchUses.push(own2);
+    for (const key2 of ["anyOf", "oneOf"]) {
+      const branches = node[key2];
+      if (!Array.isArray(branches)) continue;
+      branches.forEach((branch, i) => {
+        if (!branch || typeof branch !== "object") return;
+        const declared = checkAnnotation(
+          branch["x-telo-ref"],
+          definition,
+          `${path}.${key2}[${i}]`,
+          issues
+        );
+        if (declared) branchUses.push(declared);
+      });
+    }
+    const nonEmpty = branchUses.filter((uses) => uses.length > 0);
+    if (nonEmpty.length > 1) {
+      const first = [...nonEmpty[0]].sort().join(",");
+      const disagrees = nonEmpty.some((uses) => [...uses].sort().join(",") !== first);
+      if (disagrees) {
+        issues.push({
+          code: "X_TELO_REF_USE_CONFLICT",
+          manifest: definition,
+          path,
+          message: `x-telo-ref branches at '${path}' declare disagreeing uses (${nonEmpty.map((u) => u.join("|")).join(" vs ")}). 'use' is a property of the slot, never of a branch \u2014 declare several acceptable kinds as one 'kind: [<kinds>]' list with one 'use'.`
+        });
+      }
+    }
+  });
+  return issues;
+}
+function untypedCallableSlotIssues(schema4, path, from, resolve) {
+  const out = [];
+  walkSchema2(schema4, path, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set(), (node, at2) => {
+    const slot = readRefSlot(node);
+    if (!slot) return;
+    for (const kind of slot.kinds) {
+      if (kind !== CALLABLE_CAPABILITY) {
+        const target = resolve(kind, from);
+        if (!target || !isCallableKind(target, resolve)) continue;
+        const signature = resolveSignature(void 0, target, resolve);
+        if (signature.params !== void 0 || signature.returns !== void 0) continue;
+      }
+      const what = kind === CALLABLE_CAPABILITY ? `bare '${CALLABLE_CAPABILITY}'` : `'${kind}', a function kind that declares no signature of its own`;
+      out.push({
+        code: "X_TELO_REF_CALLABLE_UNTYPED",
+        path: at2,
+        message: `x-telo-ref at '${at2}' constrains to ${what}, which accepts any function whatever its signature. Nothing would then check the arguments the holder passes, so a wrongly typed function passes \`telo check\` and fails at the first call with ERR_INPUT_INVALID. Name a callable abstract that declares the signature this slot needs.`
+      });
+    }
+  });
+  return out;
+}
+function validateDynamicSelectors(allManifests, registry, aliases, aliasesByModule, graph) {
+  const issues = [];
+  const callGraph = graph ?? buildCallGraph(allManifests, registry, { aliases, aliasesByModule });
+  for (const edge of callGraph.edges) {
+    if (edge.unresolvedReason !== "dynamic") continue;
+    const from = callGraph.nodes.get(edge.from);
+    const owner = from?.type === "step" ? callGraph.nodes.get(from.owner) : from;
+    if (!owner || owner.type !== "resource") continue;
+    const selectorPath = selectorPathOf(edge.path, edge.unresolved?.by ?? "");
+    issues.push({
+      code: "X_TELO_REF_DYNAMIC_SELECTOR",
+      manifest: owner.manifest,
+      path: selectorPath,
+      message: `The mode selector at '${selectorPath}' is a CEL expression, so which 'use' holds for the reference at '${edge.path}' cannot be resolved statically. The selector must be a literal or take its schema default \u2014 a call graph known only at runtime is not statically analyzable. Write the mode as a literal, or split the wiring into one resource per mode.`
+    });
+  }
+  return issues;
+}
+function selectorPathOf(slotPath, pointer) {
+  const lastDot = slotPath.lastIndexOf(".");
+  const enclosing = lastDot < 0 ? "" : slotPath.slice(0, lastDot);
+  const segments = pointer.replace(/^\//, "").split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~")).join(".");
+  return enclosing ? `${enclosing}.${segments}` : segments;
+}
+
+// ../../analyzer/nodejs/src/validate-scope-slots.ts
+function scopeSlotProblems(definition) {
+  const schema4 = definition.schema;
+  if (!schema4 || typeof schema4 !== "object" || Array.isArray(schema4)) return [];
+  return misplacedScopeSlots(schema4).map(({ location, reason }) => {
+    const path = `${location ? `schema.${location}` : "schema"}.x-telo-scope`;
+    return {
+      path,
+      message: `'${String(definition.metadata?.name)}' declares \`x-telo-scope\` at '${path}', where no scope can be stood up: ${reason}. A scope belongs on a named top-level property \u2014 one in the schema root's \`properties\` or in a root \`anyOf\` / \`oneOf\` / \`allOf\` branch's, written directly or through a local \`$ref\`. Move the annotation there.`
+    };
+  });
+}
+
+// ../../analyzer/nodejs/src/validate-value-type-slots.ts
+function suggestValueType(name2) {
+  if (!name2) return void 0;
+  const threshold = Math.min(3, Math.floor(name2.length / 3));
+  if (threshold < 1) return void 0;
+  let best;
+  let bestDist = threshold + 1;
+  let tied = false;
+  for (const candidate of VALUE_TYPES.keys()) {
+    const d = distance(name2, candidate);
+    if (d < bestDist) {
+      best = candidate;
+      bestDist = d;
+      tied = false;
+    } else if (d === bestDist) {
+      tied = true;
+    }
+  }
+  return !best || bestDist > threshold || tied ? void 0 : best;
+}
+function declaredNames() {
+  return [...VALUE_TYPES.keys()].join(", ");
+}
+var JSON_TYPES = /* @__PURE__ */ new Set([
+  "string",
+  "integer",
+  "number",
+  "boolean",
+  "object",
+  "array",
+  "null"
+]);
+function checkNode(node, manifest, path, issues) {
+  const slot = readValueTypeSlot(node);
+  if (!slot) return;
+  if (!slot.entry) {
+    const suggestion = suggestValueType(slot.name);
+    const bareName = typeof node[X_TELO_TYPE] === "string";
+    issues.push({
+      code: "X_TELO_TYPE_UNKNOWN",
+      manifest,
+      path,
+      message: `'${slot.name || "(missing name)"}' is not a value type. ` + (suggestion ? `Did you mean '${suggestion}'? ` : "") + `Declared types: ${declaredNames()}. A value type names how a value is REPRESENTED and is kernel-owned; to name a shape, reference it with !ref.`,
+      ...suggestion && bareName ? { fix: { replacement: suggestion } } : {}
+    });
+    return;
+  }
+  const base = slot.entry.representation === "json" ? slot.entry.base : void 0;
+  const declaredTypes = typeof node.type === "string" ? [node.type] : node.type;
+  if (base !== void 0 && Array.isArray(declaredTypes) && declaredTypes.every((t) => typeof t === "string" && JSON_TYPES.has(t))) {
+    const fits = declaredTypes.includes(base) || base === "integer" && declaredTypes.includes("number");
+    if (!fits) {
+      issues.push({
+        code: "X_TELO_TYPE_BASE_MISMATCH",
+        manifest,
+        path,
+        message: `'${slot.entry.name}' is ${/^[aeiou]/.test(base) ? "an" : "a"} ${base}, but this node declares type '${declaredTypes.join(" | ")}', so no value satisfies both. Declare type: ${base}.`
+      });
+    }
+  }
+  const declared = new Set(slot.entry.parameters.map((p) => p.name));
+  for (const argument of Object.keys(slot.args)) {
+    if (declared.has(argument)) continue;
+    issues.push({
+      code: "X_TELO_TYPE_ARGUMENT_UNKNOWN",
+      manifest,
+      path,
+      message: `'${slot.entry.name}' declares no type parameter '${argument}'. ` + (declared.size > 0 ? `Its parameters: ${[...declared].join(", ")}.` : `It takes no type parameters.`)
+    });
+  }
+}
+function walk2(value2, manifest, path, segments, seen, issues, schemaRoot = false) {
+  if (value2 === null || typeof value2 !== "object") return;
+  if (seen.has(value2)) return;
+  seen.add(value2);
+  if (Array.isArray(value2)) {
+    value2.forEach(
+      (item, i) => walk2(item, manifest, `${path}[${i}]`, [...segments, i], seen, issues, schemaRoot)
+    );
+    return;
+  }
+  const node = value2;
+  if (schemaRoot || isInSchemaRegion([...segments, X_TELO_TYPE])) {
+    checkNode(node, manifest, path, issues);
+  }
+  for (const [key2, child] of Object.entries(node)) {
+    if (key2 === X_TELO_TYPE) {
+      const slot = readValueTypeSlot(node);
+      for (const [argName, argValue] of Object.entries(slot?.args ?? {})) {
+        walk2(
+          argValue,
+          manifest,
+          `${path}.${X_TELO_TYPE}.${argName}`,
+          [...segments, X_TELO_TYPE, argName],
+          seen,
+          issues,
+          schemaRoot
+        );
+      }
+      continue;
+    }
+    walk2(
+      child,
+      manifest,
+      path ? `${path}.${key2}` : key2,
+      [...segments, key2],
+      seen,
+      issues,
+      schemaRoot
+    );
+  }
+}
+var MODULE_INPUT_BLOCKS = ["variables", "secrets"];
+function validateValueTypeSlots(manifest) {
+  const issues = [];
+  const seen = /* @__PURE__ */ new Set();
+  if (manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library") {
+    for (const block of MODULE_INPUT_BLOCKS) {
+      const entries = manifest[block];
+      if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+      for (const [name2, entry] of Object.entries(entries)) {
+        if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+        walk2(entry, manifest, `${block}.${name2}`, [block, name2], seen, issues, true);
+      }
+    }
+  }
+  walk2(manifest, manifest, "", [], seen, issues);
+  return issues;
+}
+
+// ../../analyzer/nodejs/src/contract-mark-reach.ts
+var CONTRACT_KEYS = /* @__PURE__ */ new Set(["inputType", "outputType"]);
+function contractSites(manifests) {
+  const all = manifests;
+  const sites = [];
+  for (const manifest of manifests) {
+    const walk5 = (node, path, seen) => {
+      if (!node || typeof node !== "object" || seen.has(node)) return;
+      seen.add(node);
+      if (Array.isArray(node)) {
+        node.forEach((child, i) => walk5(child, [...path, i], seen));
+        return;
+      }
+      for (const [key2, child] of Object.entries(node)) {
+        if (CONTRACT_KEYS.has(key2)) {
+          const schema4 = resolveTypeFieldToSchema(child, all);
+          if (schema4) sites.push({ manifest, path: [...path, key2], schema: schema4 });
+          continue;
+        }
+        if (SCHEMA_REGION_KEYS.includes(key2)) continue;
+        walk5(child, [...path, key2], seen);
+      }
+    };
+    walk5(manifest, [], /* @__PURE__ */ new Set());
+  }
+  return sites;
+}
+function namedShapeResolver(manifests) {
+  const all = manifests;
+  return (ref) => resolveTypeFieldToSchema({ $ref: ref }, all);
+}
+function writtenNodeIndex(manifests) {
+  const index = /* @__PURE__ */ new Map();
+  for (const manifest of manifests) {
+    const walk5 = (node, path) => {
+      if (!node || typeof node !== "object" || index.has(node)) return;
+      index.set(node, { manifest, path });
+      if (Array.isArray(node)) node.forEach((child, i) => walk5(child, [...path, i]));
+      else for (const [key2, child] of Object.entries(node)) walk5(child, [...path, key2]);
+    };
+    walk5(manifest, []);
+  }
+  return index;
+}
+function markedNodes(manifests, annotation) {
+  const marks = /* @__PURE__ */ new Map();
+  for (const manifest of manifests) {
+    const seen = /* @__PURE__ */ new Set();
+    const walk5 = (node, path) => {
+      if (!node || typeof node !== "object" || seen.has(node)) return;
+      seen.add(node);
+      if (Array.isArray(node)) {
+        node.forEach((child, i) => walk5(child, [...path, i]));
+        return;
+      }
+      if (Object.hasOwn(node, annotation) && !marks.has(node)) marks.set(node, { manifest, path });
+      for (const [key2, child] of Object.entries(node)) walk5(child, [...path, key2]);
+    };
+    walk5(manifest, []);
+  }
+  return marks;
+}
+function inNamedShape(written, capabilityOf) {
+  const origin = written.manifest.metadata?.xTeloOrigin;
+  return origin === void 0 && written.path[0] === "schema" && capabilityOf(written.manifest) === "Telo.Type";
+}
+function isExportedShape(manifest, manifests) {
+  const owner = manifest.metadata?.module;
+  const name2 = manifest.metadata?.name;
+  if (typeof name2 !== "string") return false;
+  return manifests.some((m) => {
+    if (m.kind !== "Telo.Library" || m.metadata?.name !== owner) return false;
+    const exported = m.exports?.resources;
+    return Array.isArray(exported) && exported.includes(name2);
+  });
+}
+function unreachedMarkPlace(written, capabilityOf) {
+  if (inNamedShape(written, capabilityOf)) return "in a named shape no contract uses";
+  const extracted = written.manifest.metadata?.xTeloOrigin !== void 0;
+  const region = written.path.find(
+    (segment) => typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)
+  );
+  if (extracted || region === "inputType" || region === "outputType") {
+    return "somewhere the contract does not reach through `properties`";
+  }
+  return region === void 0 ? "not inside a schema at all" : `inside \`${region}\``;
+}
+
+// ../../analyzer/nodejs/src/validate-sensitive-slots.ts
+var ANNOTATION2 = "x-telo-sensitive";
+function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
+  const marks = markedNodes(manifests, ANNOTATION2);
+  if (marks.size === 0) return [];
+  const issues = [];
+  const own2 = (written) => {
+    const owner = written.manifest.metadata?.module;
+    return owner === void 0 || rootModules.has(owner);
+  };
+  const reached = /* @__PURE__ */ new Set();
+  const resolveRef2 = namedShapeResolver(manifests);
+  for (const site of contractSites(manifests)) sensitivePaths(site.schema, resolveRef2, reached);
+  const needFields = /* @__PURE__ */ new Set();
+  for (const manifest of manifests) {
+    if (!isNeedTypeDoc(manifest)) continue;
+    for (const schema4 of Object.values(readNeedTypeShape(manifest).fields)) {
+      if (Object.hasOwn(schema4, ANNOTATION2)) needFields.add(schema4);
+    }
+  }
+  for (const [node, written] of marks) {
+    if (!own2(written) || needFields.has(node)) continue;
+    const value2 = node[ANNOTATION2];
+    const path = written.path.join(".");
+    if (value2 !== true) {
+      issues.push({
+        code: "SENSITIVE_ANNOTATION_INVALID",
+        manifest: written.manifest,
+        path,
+        message: `'${ANNOTATION2}' must be \`true\`; got ${JSON.stringify(value2)}. It is a marker, not a level \u2014 a value other than \`true\` reads as "not sensitive".`
+      });
+      continue;
+    }
+    if (reached.has(node)) continue;
+    const shape = inNamedShape(written, capabilityOf);
+    if (shape && isExportedShape(written.manifest, manifests)) continue;
+    issues.push({
+      code: "SENSITIVE_ANNOTATION_MISPLACED",
+      manifest: written.manifest,
+      path,
+      message: `'${ANNOTATION2}' is only read where a resource's declared contract (\`inputType\` / \`outputType\`) reaches it, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}. The kernel will not redact it, so the value would still reach trace payloads and the debug wire. Move the mark onto the contract property that carries the value.`
+    });
+  }
+  return issues;
+}
+
+// ../../analyzer/nodejs/src/validate-sink-attachment.ts
+var SOURCE6 = "telo-analyzer";
+function validateSinkAttachment(manifests, graph, registry, aliases, aliasesByModule, rootModules) {
+  const exported = /* @__PURE__ */ new Map();
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Library") continue;
+    const names = m.exports?.resources;
+    if (Array.isArray(names)) {
+      exported.set(m.metadata?.name, new Set(names.filter((n) => typeof n === "string")));
+    }
+  }
+  const diagnostics = [];
+  for (const m of manifests) {
+    if (typeof m.kind !== "string") continue;
+    const module = m.metadata?.module;
+    if (module !== void 0 && !rootModules.has(module)) continue;
+    const resolver = moduleAliasScope(m.metadata, aliases, aliasesByModule);
+    const canonical = resolver.resolveKind(m.kind) ?? m.kind;
+    const definition = registry.resolve(canonical);
+    if (definition?.kind === "Telo.Abstract" || definition?.capability !== "Telo.Sink") continue;
+    const name2 = m.metadata?.name;
+    if (!name2) continue;
+    if (graph.edgesTo(nodeIdFor(m)).length > 0) continue;
+    if (module !== void 0 && exported.get(module)?.has(name2)) continue;
+    diagnostics.push({
+      severity: DiagnosticSeverity2.Warning,
+      code: "SINK_UNATTACHED",
+      source: SOURCE6,
+      message: `${m.kind}/${name2} is a sink nothing attaches: the runtime attaches only the sinks the root Application lists in \`logging.sinks\` / \`tracing.sinks\`, so this one receives nothing. List it there (\`- !ref ${name2}\`), or remove it.`,
+      data: {
+        resource: { kind: m.kind, name: name2 },
+        filePath: m.metadata?.source
+      }
+    });
+  }
+  return diagnostics;
+}
+
+// ../../analyzer/nodejs/src/span-attribute.ts
+var X_TELO_SPAN_ATTRIBUTE = "x-telo-span-attribute";
+var SPAN_ATTRIBUTE_NAME = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)*$/;
+var MAX_NAME_LENGTH = 255;
+var RUNTIME_SPAN_ATTRIBUTES = [
+  "error.type",
+  "telo.cancellation.reason",
+  "telo.resource.kind",
+  "telo.resource.name"
+];
+var SCALAR_TYPES = /* @__PURE__ */ new Set(["string", "integer", "number", "boolean", "null"]);
+function spanAttributeNameProblem(value2) {
+  if (typeof value2 !== "string") {
+    return `'${X_TELO_SPAN_ATTRIBUTE}' must be an attribute name; got ${JSON.stringify(value2)}`;
+  }
+  if (value2.length > MAX_NAME_LENGTH || !SPAN_ATTRIBUTE_NAME.test(value2)) {
+    return `'${X_TELO_SPAN_ATTRIBUTE}: ${JSON.stringify(value2)}' is not an attribute name: write dot-separated lowercase segments of letters, digits and underscores, each starting with a letter (e.g. 'telo.check.exit_code'), at most ${MAX_NAME_LENGTH} characters`;
+  }
+  if (RUNTIME_SPAN_ATTRIBUTES.includes(value2)) {
+    return `'${X_TELO_SPAN_ATTRIBUTE}: ${value2}' names an attribute the runtime sets on every span itself (${RUNTIME_SPAN_ATTRIBUTES.join(", ")}); choose another name`;
+  }
+  return void 0;
+}
+function spanAttributeNodeProblem(node) {
+  if (node["x-telo-sensitive"] === true) {
+    return `'${X_TELO_SPAN_ATTRIBUTE}' sits beside 'x-telo-sensitive: true': a value marked as auth material is never exported to a trace backend. Remove one of the two marks`;
+  }
+  if (!isScalarNode(node)) {
+    return `'${X_TELO_SPAN_ATTRIBUTE}' must mark a scalar property (type string, integer, number or boolean); this node is ${describeNode(node)}`;
+  }
+  return void 0;
+}
+function isScalarNode(node) {
+  const type = node.type;
+  if (typeof type === "string") return SCALAR_TYPES.has(type) && type !== "null";
+  if (Array.isArray(type)) {
+    return type.length > 0 && type.every((t) => typeof t === "string" && SCALAR_TYPES.has(t)) && type.some((t) => t !== "null");
+  }
+  if (type !== void 0) return false;
+  const values = Array.isArray(node.enum) ? node.enum : "const" in node ? [node.const] : void 0;
+  return values !== void 0 && values.length > 0 && values.every((v) => v === null || ["string", "number", "boolean"].includes(typeof v));
+}
+function describeNode(node) {
+  if (node.type !== void 0) return `declared type ${JSON.stringify(node.type)}`;
+  if (typeof node.$ref === "string") return `a reference ('${node.$ref}'), whose shape is not fixed here`;
+  return "declared with no scalar type";
+}
+function spanAttributeReachProblem(reason) {
+  return reason === "root" ? `'${X_TELO_SPAN_ATTRIBUTE}' marks the contract's whole value; mark one of its properties` : `the contract reaches an '${X_TELO_SPAN_ATTRIBUTE}' mark through this property's array item or map value, which holds any number of values per dispatch; a span attribute is one value \u2014 mark a property reached through 'properties' alone`;
+}
+function spanAttributePaths(schema4, resolveRef2) {
+  const attributes = [];
+  const problems = [];
+  const reached = /* @__PURE__ */ new Set();
+  const reachReported = /* @__PURE__ */ new Set();
+  const reachProblem = (reach, reason) => {
+    if (reachReported.has(reach.node)) return;
+    reachReported.add(reach.node);
+    problems.push({
+      code: "SPAN_ATTRIBUTE_MISPLACED",
+      at: "reach",
+      node: reach.node,
+      path: reach.path,
+      message: spanAttributeReachProblem(reason)
+    });
+  };
+  const walk5 = (node, path, root, collection, chain) => {
+    if (!node || typeof node !== "object" || Array.isArray(node)) return;
+    if (chain.includes(node)) return;
+    const written = [node];
+    let s = node;
+    let document = root;
+    while (typeof s.$ref === "string") {
+      const { schema: target, root: targetRoot } = resolveRefIn(s, document, resolveRef2);
+      if (target === s || written.includes(target) || chain.includes(target)) break;
+      written.push(target);
+      const siblings = { ...s };
+      delete siblings.$ref;
+      s = { ...target, ...siblings };
+      document = targetRoot;
+    }
+    if (isLiveSlot(s)) return;
+    const here = [...chain, ...written];
+    const owner = written.find((o) => Object.hasOwn(o, X_TELO_SPAN_ATTRIBUTE));
+    if (owner) {
+      for (const o of written) if (Object.hasOwn(o, X_TELO_SPAN_ATTRIBUTE)) reached.add(o);
+      const value2 = s[X_TELO_SPAN_ATTRIBUTE];
+      const nameProblem = spanAttributeNameProblem(value2);
+      if (nameProblem) {
+        problems.push({ code: "SPAN_ATTRIBUTE_INVALID", at: "mark", node: owner, path, message: nameProblem });
+      }
+      let placed = false;
+      if (collection) reachProblem(collection, "collection");
+      else if (path.length === 0) reachProblem({ node, path }, "root");
+      else {
+        const nodeProblem = spanAttributeNodeProblem(s);
+        if (nodeProblem) {
+          problems.push({ code: "SPAN_ATTRIBUTE_MISPLACED", at: "mark", node: owner, path, message: nodeProblem });
+        } else placed = true;
+      }
+      if (placed && !nameProblem) attributes.push({ path, name: value2 });
+    }
+    const properties = s.properties;
+    if (properties && typeof properties === "object") {
+      for (const [key2, child] of Object.entries(properties)) {
+        walk5(child, [...path, key2], document, collection, here);
+      }
+    }
+    for (const branch of ["allOf", "anyOf", "oneOf"]) {
+      const list5 = s[branch];
+      if (Array.isArray(list5)) for (const child of list5) walk5(child, path, document, collection, here);
+    }
+    const entered = collection ?? { node, path };
+    if (s.additionalProperties && typeof s.additionalProperties === "object") {
+      walk5(s.additionalProperties, [...path, "{}"], document, entered, here);
+    }
+    if (s.patternProperties && typeof s.patternProperties === "object") {
+      for (const child of Object.values(s.patternProperties)) {
+        walk5(child, [...path, "{}"], document, entered, here);
+      }
+    }
+    for (const child of [s.items].flat()) walk5(child, [...path, "[]"], document, entered, here);
+  };
+  walk5(schema4, [], schema4, void 0, []);
+  return { attributes, problems, reached };
+}
+
+// ../../analyzer/nodejs/src/validate-span-attributes.ts
+function validateSpanAttributes(manifests, rootModules, capabilityOf) {
+  const marks = markedNodes(manifests, X_TELO_SPAN_ATTRIBUTE);
+  if (marks.size === 0) return [];
+  const resolveRef2 = namedShapeResolver(manifests);
+  const issues = /* @__PURE__ */ new Map();
+  let index;
+  const locate = (node) => marks.get(node) ?? (index ??= writtenNodeIndex(manifests)).get(node);
+  const report = (code, at2, message) => {
+    const owner = at2.manifest.metadata?.module;
+    if (owner !== void 0 && !rootModules.has(owner)) return;
+    const path = at2.path.join(".");
+    const key2 = [code, at2.manifest.kind, at2.manifest.metadata?.name, path, message].join("\0");
+    if (!issues.has(key2)) issues.set(key2, { code, manifest: at2.manifest, path, message: `${message}.` });
+  };
+  const reached = /* @__PURE__ */ new Set();
+  for (const site of contractSites(manifests)) {
+    const reading = spanAttributePaths(site.schema, resolveRef2);
+    for (const node of reading.reached) reached.add(node);
+    for (const problem of reading.problems) {
+      const at2 = problem.at === "reach" && problem.path.length === 0 ? site : locate(problem.node) ?? site;
+      report(problem.code, at2, problem.message);
+    }
+  }
+  for (const [node, written] of marks) {
+    if (reached.has(node)) continue;
+    const mark = node;
+    const nameProblem = spanAttributeNameProblem(mark[X_TELO_SPAN_ATTRIBUTE]);
+    if (nameProblem) report("SPAN_ATTRIBUTE_INVALID", written, nameProblem);
+    const shape = inNamedShape(written, capabilityOf);
+    if (shape && isExportedShape(written.manifest, manifests)) {
+      const root = written.manifest.schema ?? mark;
+      const resolved = resolveRefIn(mark, root, resolveRef2).schema;
+      const nodeProblem = spanAttributeNodeProblem(resolved === mark ? mark : { ...resolved, ...mark });
+      if (nodeProblem) report("SPAN_ATTRIBUTE_MISPLACED", written, nodeProblem);
+      continue;
+    }
+    report("SPAN_ATTRIBUTE_MISPLACED", written, unreachedProblem(written, capabilityOf));
+  }
+  return [...issues.values()];
+}
+function unreachedProblem(written, capabilityOf) {
+  return `'${X_TELO_SPAN_ATTRIBUTE}' is read only where a resource's contract (\`inputType\` / \`outputType\`) reaches it through \`properties\`, following \`$ref\`, and this node is ${unreachedMarkPlace(written, capabilityOf)}, so no span would ever carry it. Move the mark onto the contract property that carries the value`;
+}
+
+// ../../analyzer/nodejs/src/validate-schema-type-refs.ts
+var SOURCE7 = "telo-analyzer";
+var SCHEMA_FIELDS2 = ["schema", "inputType", "outputType", "params", "returns"];
+function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, rootModules) {
+  const diagnostics = [];
+  for (const m of manifests) {
+    const ownModule = m.metadata?.module;
+    const name2 = m.metadata?.name;
+    if (!name2) continue;
+    if (ownModule && !rootModules.has(ownModule)) continue;
+    const resolver = moduleAliasScope(m.metadata, aliases, aliasesByModule);
+    const filePath = m.metadata?.source;
+    const label2 = `${m.kind}/${name2}`;
+    const walk5 = (value2, path) => {
+      if (value2 === null || typeof value2 !== "object") return;
+      if (Array.isArray(value2)) {
+        value2.forEach((item, i) => walk5(item, `${path}[${i}]`));
+        return;
+      }
+      const obj = value2;
+      const parsed = parseTeloTypeRef(obj.$ref);
+      if (parsed) {
+        const module = parsed.authority === "Self" ? ownModule : resolver.moduleForAlias(parsed.authority);
+        if (!module) {
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "SCHEMA_TYPE_REF_UNKNOWN_ALIAS",
+            source: SOURCE7,
+            message: `${label2}: schema $ref '${obj.$ref}' \u2014 '${parsed.authority}' is not 'Self' or a Telo.Import in this module. Declare the import or correct the authority.`,
+            data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
+          });
+        } else if (!registry.hasSchemaId(canonicalTypeSchemaId(module, parsed.typeName))) {
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "SCHEMA_TYPE_REF_UNRESOLVED",
+            source: SOURCE7,
+            message: `${label2}: schema $ref '${obj.$ref}' resolves to module '${module}', which declares no Telo.Type named '${parsed.typeName}'.`,
+            data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
+          });
+        }
+      }
+      for (const key2 of Object.keys(obj)) walk5(obj[key2], `${path}/${key2}`);
+    };
+    for (const field of SCHEMA_FIELDS2) {
+      walk5(m[field], field);
+    }
+  }
+  return diagnostics;
+}
+
+// ../../analyzer/nodejs/src/rewrite-synthetic-origins.ts
+function readOrigin(manifest) {
+  if (!manifest || typeof manifest !== "object") return void 0;
+  const origin = manifest.metadata?.xTeloOrigin;
+  if (!origin || typeof origin.parentKind !== "string" || typeof origin.parentName !== "string" || typeof origin.pathFromParent !== "string") {
+    return void 0;
+  }
+  return origin;
+}
+function rewriteSyntheticOrigins(diagnostics, manifests) {
+  const byName = /* @__PURE__ */ new Map();
+  for (const m of manifests) {
+    const name2 = m.metadata?.name;
+    if (typeof name2 === "string") byName.set(name2, m);
+  }
+  return diagnostics.map((d) => {
+    const data = d.data;
+    if (!data?.resource?.name) return d;
+    let current = byName.get(data.resource.name);
+    let origin = readOrigin(current);
+    const path = typeof data.path === "string" ? data.path : "";
+    let accumPath = path;
+    let root = data.resource;
+    while (origin) {
+      accumPath = accumPath ? `${origin.pathFromParent}.${accumPath}` : origin.pathFromParent;
+      root = { kind: origin.parentKind, name: origin.parentName };
+      current = byName.get(origin.parentName);
+      origin = readOrigin(current);
+    }
+    const rerouted = root !== data.resource;
+    const unfolded = current ? unfoldScopedOrigins(current, accumPath) : accumPath;
+    if (!rerouted && unfolded === path) return d;
+    return {
+      ...d,
+      data: {
+        ...data,
+        resource: root,
+        filePath: rerouted ? current?.metadata?.source ?? data.filePath : data.filePath,
+        path: unfolded
+      }
+    };
+  });
+}
+function unfoldScopedOrigins(root, path) {
+  let segments = parseSegments(path);
+  let unfoldedAny = false;
+  for (let hops = 0; hops <= segments.length + 16; hops++) {
+    const next = unfoldOnce(root, segments);
+    if (!next) break;
+    segments = next;
+    unfoldedAny = true;
+  }
+  return unfoldedAny ? formatSegments(segments) : path;
+}
+function unfoldOnce(root, segments) {
+  let node = root;
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    const container = node;
+    node = typeof segment === "number" ? Array.isArray(container) ? container[segment] : void 0 : container && typeof container === "object" && !Array.isArray(container) ? container[segment] : void 0;
+    if (node === void 0 || node === null) return void 0;
+    if (typeof segment !== "number" || i === 0) continue;
+    const origin = readOrigin(node);
+    if (!origin) continue;
+    const holderPath = segments.slice(0, i - 1);
+    let parentPath2;
+    if (nameOf3(at(root, holderPath)) === origin.parentName) {
+      parentPath2 = holderPath;
+    } else {
+      const sibling = container.findIndex((m) => nameOf3(m) === origin.parentName);
+      if (sibling >= 0) parentPath2 = [...segments.slice(0, i), sibling];
+    }
+    if (!parentPath2) return void 0;
+    return [...parentPath2, ...parseSegments(origin.pathFromParent), ...segments.slice(i + 1)];
+  }
+  return void 0;
+}
+function at(root, segments) {
+  let node = root;
+  for (const segment of segments) {
+    if (!node || typeof node !== "object") return void 0;
+    node = node[segment];
+  }
+  return node;
+}
+function nameOf3(value2) {
+  const name2 = value2?.metadata?.name;
+  return typeof name2 === "string" ? name2 : void 0;
+}
+function parseSegments(path) {
+  const out = [];
+  for (const match of path.matchAll(/\[(\d+)\]|([^.[\]]+)/g)) {
+    out.push(match[1] !== void 0 ? Number(match[1]) : match[2]);
+  }
+  return out;
+}
+function formatSegments(segments) {
+  let out = "";
+  for (const segment of segments) {
+    if (typeof segment === "number") out += `[${segment}]`;
+    else out += out ? `.${segment}` : segment;
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/validate-value-schema.ts
+function collectValueSchemaIssues(manifest, defSchema, allManifests, validator, valueSchemaHost) {
+  const issues = [];
+  for (const { path, value: value2, schema: schema4, from } of valueSchemaSites(manifest, defSchema, {
+    typeManifests: allManifests,
+    valueSchemaHost
+  })) {
+    const standIns = /* @__PURE__ */ new Map();
+    const substituted = substituteDecodedCelFields(value2, schema4, void 0, {
+      standIns,
+      external: validator.external
+    });
+    for (const issue of validator.validate(substituted, schema4, standIns)) {
+      issues.push({
+        // A value type's own refusal keeps what names it, so it reports under the
+        // type's code wherever the slot is.
+        ...valueTypeRefusalCode(issue) ? { keyword: issue.keyword, valueType: issue.valueType } : {},
+        message: `\`${path}\` does not satisfy the type declared at \`${from}\`: ${issue.message}`,
+        path: issue.path ? `${path}.${issue.path}` : path
+      });
+    }
+  }
+  return issues;
+}
+
+// ../../analyzer/nodejs/src/schema-nullability.ts
+function producerAdmitsNull(schema4) {
+  const type = schema4.type;
+  if (type === "null" || Array.isArray(type) && type.includes("null")) return true;
+  if (schema4.nullable === true) return true;
+  if (Array.isArray(schema4.enum) && schema4.enum.includes(null)) return true;
+  if ("const" in schema4 && schema4.const === null) return true;
+  return unionBranches(schema4)?.some(producerAdmitsNull) ?? false;
+}
+function slotAdmitsNull(schema4) {
+  if (producerAdmitsNull(schema4)) return true;
+  const branches = unionBranches(schema4);
+  if (branches) return branches.some(slotAdmitsNull);
+  return schema4.type === void 0;
+}
+
+// ../../analyzer/nodejs/src/ref-slot-computed.ts
+function computedValue(value2) {
+  if (!isTaggedSentinel(value2) && !isCompiledValue(value2)) return void 0;
+  const { engine, source } = value2;
+  if (typeof engine !== "string" || typeof source !== "string") return void 0;
+  if (!defaultRegistry().get(engine)?.expressionRegions) return void 0;
+  if (engine === CEL_ENGINE && isSelfForward(source)) return void 0;
+  return { tag: engine, source };
+}
+function computedRefSlots(positions, isEvaluated = () => true) {
+  const out = [];
+  for (const position of positions) {
+    const computed = computedValue(position.value);
+    if (computed === void 0 || !isEvaluated(position.path)) continue;
+    out.push({ path: position.path, fieldPath: position.fieldPath, ...computed });
+  }
+  return out;
+}
+function evaluatedField(sites, path) {
+  const mode = celEvalModeAt(sites, path);
+  return mode === "compile" || mode === "runtime";
+}
+function refSlotComputedReason(slot, options = {}) {
+  return `'${slot.path}: !${slot.tag} "${slot.source}"'${options.at ? ` ${options.at}` : ""} computes a value that holds the reference slot '${slot.fieldPath}'. CEL values are data, so the reference cannot survive the expression. ` + (options.forwardable ? `Forward it verbatim with a bare 'self.<path>' (the whole value, shaped as the slot expects), or write the slot itself as '!ref'.` : `Write the slot itself as '!ref'.`);
+}
+
+// ../../analyzer/nodejs/src/accessor-binding.ts
+function tagOf(value2) {
+  if (!isTaggedSentinel(value2) && !isCompiledValue(value2)) return void 0;
+  const { engine, source } = value2;
+  return typeof engine === "string" && typeof source === "string" ? { engine, source } : void 0;
+}
+var compileEnv2;
+function isLiteralTag(value2, tag) {
+  if (isCompiledValue(value2) || isRefSentinel(value2)) return false;
+  const engine = defaultRegistry().get(tag.engine);
+  if (!engine || engine.expressionRegions) return false;
+  compileEnv2 ??= buildCelEnvironment();
+  const compiled2 = engine.compile(tag.source, { celEnv: compileEnv2 });
+  return !isCompiledValue(compiled2) && !isTaggedSentinel(compiled2);
+}
+function describeBindings(site) {
+  return site.bindings.length > 0 ? site.bindings.map((name2) => `'${name2}'`).join(", ") : "none \u2014 the field has no x-telo-context";
+}
+function accessorFields(resource, sites) {
+  if (!sites.accessor?.length) return [];
+  const out = [];
+  const walk5 = (node, path, keys) => {
+    if (path !== "") {
+      const site = accessorFieldAt(sites, path);
+      if (site) {
+        if (node !== void 0) out.push({ site, path, keys, value: node });
+        return;
+      }
+    }
+    if (!node || typeof node !== "object" || tagOf(node)) return;
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => walk5(item, `${path}[${index}]`, [...keys, index]));
+      return;
+    }
+    const prototype = Object.getPrototypeOf(node);
+    if (prototype !== Object.prototype && prototype !== null) return;
+    for (const [key2, child] of Object.entries(node)) {
+      walk5(child, path === "" ? key2 : `${path}.${key2}`, [...keys, key2]);
+    }
+  };
+  walk5(resource, "", []);
+  return out;
+}
+function accessorTagEngines(atField) {
+  return atField ? [CEL_ENGINE] : [];
+}
+function accessorProblems(field, resolvedEarlier = () => false) {
+  const { site, path, value: value2 } = field;
+  const isLiteral = (node, tag2) => isLiteralTag(node, tag2) || resolvedEarlier(tag2);
+  const tag = tagOf(value2);
+  if (tag && !isLiteral(value2, tag)) {
+    const chain = plainChainOf(value2);
+    if (chain === void 0) {
+      return [
+        {
+          path,
+          message: `'${path}: !${tag.engine} "${tag.source}"' is not a plain chain. An accessor field names a value for its consumer to resolve and is never evaluated, so only identifiers joined by dots can be written there as an expression \u2014 rooted at one of the field's bindings (${describeBindings(site)}). A call, an operator, an index or interpolation has nothing to run it. Write a plain chain, or a literal value.`
+        }
+      ];
+    }
+    const root = chain.split(".")[0];
+    if (!site.bindings.includes(root)) {
+      return [
+        {
+          path,
+          unboundRoot: root,
+          message: `'${path}: !cel "${tag.source}"' is not a plain chain the field can name: it starts at '${root}', which the field's context does not declare (${describeBindings(site)}). An accessor field is never evaluated, so a chain there starts at one of its own bindings.`
+        }
+      ];
+    }
+    return [];
+  }
+  const problems = [];
+  const walk5 = (node, at2) => {
+    const nested = tagOf(node);
+    if (nested) {
+      if (isLiteral(node, nested)) return;
+      problems.push({
+        path: at2,
+        message: `'${at2}: !${nested.engine} "${nested.source}"' is written beneath the accessor field '${path}', so it is not a plain chain the field names. An accessor field is never evaluated: it holds one plain chain as its whole value, or a literal with no tag inside it.`
+      });
+      return;
+    }
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => walk5(item, `${at2}[${index}]`));
+      return;
+    }
+    const prototype = Object.getPrototypeOf(node);
+    if (prototype !== Object.prototype && prototype !== null) return;
+    for (const [key2, child] of Object.entries(node)) {
+      walk5(child, `${at2}.${key2}`);
+    }
+  };
+  walk5(value2, path);
+  return problems;
+}
+function readsOnlySelf(tag) {
+  const expressions = celExpressionsOf(tag.engine, tag.source);
+  return expressions.length > 0 && expressions.every((expression) => {
+    const chains = accessChains(expression);
+    return chains.length > 0 && chains.every((chain) => chain[0] === "self");
+  });
+}
+function accessorBindingOf(value2, resolvedEarlier = () => false) {
+  const tag = tagOf(value2);
+  if (tag && resolvedEarlier(tag)) return { value: value2 };
+  const chain = plainChainOf(value2);
+  if (chain === void 0) return { value: value2 };
+  const [root, ...path] = chain.split(".");
+  return { root, path };
+}
+function withAccessorBindings(resource, fields, resolvedEarlier) {
+  if (fields.length === 0) return resource;
+  const copied = /* @__PURE__ */ new Set();
+  const copy = (holder, key2) => {
+    const child = holder[key2];
+    if (copied.has(child)) return child;
+    const fresh = Array.isArray(child) ? [...child] : { ...child };
+    copied.add(fresh);
+    holder[key2] = fresh;
+    return fresh;
+  };
+  const root = { ...resource };
+  for (const { keys, value: value2 } of fields) {
+    let holder = root;
+    for (const key2 of keys.slice(0, -1)) holder = copy(holder, key2);
+    holder[keys[keys.length - 1]] = accessorBindingOf(value2, resolvedEarlier);
+  }
+  return root;
+}
+
+// ../../analyzer/nodejs/src/rule-declaration-view.ts
+function isPlainContainer(value2) {
+  if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return false;
+  if (Array.isArray(value2)) return true;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+}
+var RuleDeclarationViews = class {
+  constructor(sitesOf2, forwardedReference) {
+    this.sitesOf = sitesOf2;
+    this.forwardedReference = forwardedReference;
+  }
+  views = /* @__PURE__ */ new WeakMap();
+  of(declaration) {
+    const module = declaration.metadata?.module;
+    return this.view(
+      declaration,
+      module,
+      isForwardedDeclaration(declaration)
+    );
+  }
+  /** `forwarded`: the declaration is a dependency's, or an inline declaration
+   *  beneath one. */
+  view(declaration, module, forwarded) {
+    const cached = this.views.get(declaration);
+    if (cached) return cached;
+    const reading = typeof declaration.kind === "string" ? this.sitesOf(declaration, module) : void 0;
+    const fields = reading?.sites ? accessorFields(declaration, reading.sites) : [];
+    const bound = withAccessorBindings(
+      declaration,
+      fields,
+      reading?.bodyEntry ? readsOnlySelf : void 0
+    );
+    const written = new Set(fields.map((field) => field.path));
+    const resolve = forwarded && typeof module === "string" ? this.forwardedReference : void 0;
+    const walk5 = (node, path) => {
+      if (written.has(path)) return node;
+      if (resolve) {
+        const target = refSentinelTarget(node);
+        if (target) return resolve(target, module) ?? node;
+      }
+      if (!isPlainContainer(node)) return node;
+      if (Array.isArray(node)) {
+        const items = node.map((item, index) => walk5(item, `${path}[${index}]`));
+        return items.some((item, index) => item !== node[index]) ? items : node;
+      }
+      if (path !== "" && isInlineResource(node)) return this.view(node, module, forwarded);
+      let copy;
+      for (const [key2, child] of Object.entries(node)) {
+        const read = walk5(child, path === "" ? key2 : `${path}.${key2}`);
+        if (read !== child) (copy ??= { ...node })[key2] = read;
+      }
+      return copy ?? node;
+    };
+    const view = walk5(bound, "");
+    this.views.set(declaration, view);
+    return view;
+  }
+};
+
+// ../../analyzer/nodejs/src/browser-export-slot.ts
+var BROWSER_EXPORT_ANNOTATION = "x-telo-browser-export";
+function pointerSegments3(pointer) {
+  if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
+  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+}
+var isPlainObject8 = (value2) => {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+};
+var declaring = /* @__PURE__ */ new WeakMap();
+function declaresBrowserExport(schema4) {
+  let known = declaring.get(schema4);
+  if (known === void 0) {
+    const seen = /* @__PURE__ */ new Set();
+    const scan = (node) => {
+      if (!node || typeof node !== "object" || seen.has(node)) return false;
+      seen.add(node);
+      if (Array.isArray(node)) return node.some(scan);
+      return BROWSER_EXPORT_ANNOTATION in node || Object.values(node).some(scan);
+    };
+    declaring.set(schema4, known = scan(schema4));
+  }
+  return known;
+}
+function browserExportSites(schema4, data) {
+  if (!declaresBrowserExport(schema4)) return [];
+  const out = /* @__PURE__ */ new Map();
+  const entered = /* @__PURE__ */ new Set();
+  const ids = /* @__PURE__ */ new WeakMap();
+  let nextId = 0;
+  const nodeId = (node) => {
+    let id = ids.get(node);
+    if (id === void 0) ids.set(node, id = nextId++);
+    return id;
+  };
+  const walk5 = (node, value2, path, holder) => {
+    if (!node || typeof node !== "object" || Array.isArray(node) || value2 === void 0) return;
+    const declared = node;
+    const key2 = `${nodeId(declared)}\0${path}`;
+    if (entered.has(key2)) return;
+    entered.add(key2);
+    const segments = pointerSegments3(declared[BROWSER_EXPORT_ANNOTATION]?.entry);
+    if (segments && holder && !out.has(path)) {
+      let specifier = holder.value;
+      for (const segment of segments) {
+        specifier = isPlainObject8(specifier) ? specifier[segment] : void 0;
+      }
+      out.set(path, {
+        path,
+        entryPath: [holder.path, ...segments].filter((part) => part !== "").join("."),
+        exportName: value2,
+        specifier
+      });
+    }
+    if (typeof declared.$ref === "string" && declared.$ref.startsWith("#")) {
+      walk5(resolveSchemaPointer(schema4, declared.$ref), value2, path, holder);
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(declared[union2])) {
+        for (const branch of declared[union2]) walk5(branch, value2, path, holder);
+      }
+    }
+    if (Array.isArray(value2)) {
+      if (declared.items && typeof declared.items === "object" && !Array.isArray(declared.items)) {
+        value2.forEach((item, index) => walk5(declared.items, item, `${path}[${index}]`, holder));
+      }
+      return;
+    }
+    if (!isPlainObject8(value2)) return;
+    const properties = isPlainObject8(declared.properties) ? declared.properties : {};
+    const here = { value: value2, path };
+    for (const [name2, child] of Object.entries(value2)) {
+      const childPath = path === "" ? name2 : `${path}.${name2}`;
+      if (name2 in properties) walk5(properties[name2], child, childPath, here);
+      else if (declared.additionalProperties && typeof declared.additionalProperties === "object") {
+        walk5(declared.additionalProperties, child, childPath, here);
+      }
+    }
+  };
+  walk5(schema4, data, "", void 0);
+  return [...out.values()];
+}
+function browserExportProblems(sites, entries) {
+  const out = [];
+  for (const site of sites) {
+    if (typeof site.specifier !== "string" || typeof site.exportName !== "string") continue;
+    const entry = entries.find((candidate) => candidate.specifier === site.specifier);
+    if (!entry) {
+      out.push({
+        code: "BROWSER_ENTRY_UNKNOWN",
+        path: site.entryPath,
+        message: `'${site.entryPath}: ${site.specifier}' names no browser entry of the module declaring this resource. ` + (entries.length > 0 ? `It declares ${entries.map((e) => `'${e.specifier}'`).join(", ")} under exports.browser.` : `It declares none \u2014 add the entry under exports.browser on the module doc.`)
+      });
+      continue;
+    }
+    if (!entry.exports.includes(site.exportName)) {
+      out.push({
+        code: "BROWSER_EXPORT_UNKNOWN",
+        path: site.path,
+        message: `'${site.path}: ${site.exportName}' is not an export the browser entry '${entry.specifier}' declares. ` + (entry.exports.length > 0 ? `It declares ${entry.exports.map((name2) => `'${name2}'`).join(", ")}.` : `It declares none \u2014 list the name under the entry's 'exports'.`)
+      });
+    }
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/artifact-axes.ts
+var PLATFORM_AXES = ["os", "arch", "libc", "abi"];
+var AXIS_VALUE_FORMS = {
+  abi: {
+    pattern: new RegExp("^[a-z][a-z0-9_]*-[0-9]+(\\.[0-9]+)*$"),
+    form: "<family>-<version>",
+    examples: ["node-137", "telo-3"]
+  }
+};
+
+// ../../analyzer/nodejs/src/artifact-selector.ts
+var LAYER_ROLES = [
+  "controller",
+  "library",
+  "native",
+  "browser",
+  "assets",
+  "common"
+];
+function isLayerRole(value2) {
+  return typeof value2 === "string" && LAYER_ROLES.includes(value2);
+}
+var CODE_LAYER_ROLES = ["controller", "library"];
+var SELECTOR_LAYER_ROLES = [...CODE_LAYER_ROLES, "native", "browser"];
+function roleCarriesSelector(role) {
+  return SELECTOR_LAYER_ROLES.includes(role);
+}
+var ArtifactSelectorError = class extends Error {
+  code = "INVALID_ARTIFACT_SELECTOR";
+  constructor(detail) {
+    super(detail);
+    this.name = "ArtifactSelectorError";
+  }
+};
+var TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
+function normalizeAxisValue(axis, raw, describe5) {
+  if (typeof raw !== "string") {
+    throw new ArtifactSelectorError(
+      `${describe5}: ${axis} must be a string, got ${raw === null ? "null" : typeof raw}.`
+    );
+  }
+  const value2 = raw.trim().toLowerCase();
+  if (!TOKEN.test(value2)) {
+    throw new ArtifactSelectorError(
+      `${describe5}: ${axis} value '${raw}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
+    );
+  }
+  const valueForm = AXIS_VALUE_FORMS[axis];
+  if (valueForm && !valueForm.pattern.test(value2)) {
+    throw new ArtifactSelectorError(
+      `${describe5}: ${axis} value '${raw}' must have the form ${valueForm.form}, e.g. ${valueForm.examples.map((e) => `'${e}'`).join(" or ")}.`
+    );
+  }
+  return value2;
+}
+function selectorFromQualifiers(format2, qualifiers, describe5 = "controller selector") {
+  const selector = {
+    format: normalizeAxisValue("format", format2, describe5)
+  };
+  for (const axis of PLATFORM_AXES) {
+    const raw = qualifiers?.[axis];
+    if (raw === void 0 || raw === "") continue;
+    selector[axis] = normalizeAxisValue(axis, raw, describe5);
+  }
+  return selector;
+}
+function normalizeSelector(value2, describe5 = "layer selector") {
+  if (typeof value2 !== "object" || value2 === null || Array.isArray(value2)) {
+    throw new ArtifactSelectorError(`${describe5}: expected an object of selector axes.`);
+  }
+  const record = value2;
+  const selector = selectorFromQualifiers(record.format, record, describe5);
+  const carriesUnknownAxis = Object.keys(record).some(
+    (k) => k !== "format" && !PLATFORM_AXES.includes(k)
+  );
+  return carriesUnknownAxis ? void 0 : selector;
+}
+function selectorKey(selector) {
+  let key2 = selectorKeys.get(selector);
+  if (key2 === void 0) {
+    const pairs2 = [`format=${selector.format}`];
+    for (const axis of PLATFORM_AXES) {
+      const value2 = selector[axis];
+      if (value2 !== void 0) pairs2.push(`${axis}=${value2}`);
+    }
+    key2 = pairs2.sort().join(";");
+    selectorKeys.set(selector, key2);
+  }
+  return key2;
+}
+var selectorKeys = /* @__PURE__ */ new WeakMap();
+function describeSelector(selector) {
+  const platform = PLATFORM_AXES.map((axis) => selector[axis]).filter(
+    (v) => v !== void 0
+  );
+  return platform.length === 0 ? selector.format : `${selector.format} (${platform.join("/")})`;
+}
+function selectorContradictions(selector) {
+  const out = [];
+  if (selector.format === "napi" && selector.abi !== void 0) {
+    out.push({
+      rule: "NAPI_ABI_FORBIDDEN",
+      axis: "abi",
+      detail: `an N-API addon is ABI-stable across runtime releases and states no abi \u2014 remove abi ${selector.abi}, which would keep it from loading anywhere else.`
+    });
+  }
+  if (selector.libc !== void 0 && selector.os !== void 0 && selector.os !== "linux") {
+    out.push({
+      rule: "LIBC_OFF_LINUX",
+      axis: "libc",
+      detail: `libc is only determined on linux, so a selector for os '${selector.os}' that states libc ${selector.libc} could never match a host. Remove libc.`
+    });
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/module-browser.ts
+var BROWSER_FORMAT = "esm";
+var KNOWN_KEYS = /* @__PURE__ */ new Set(["specifier", "path", "source", "abi", "external", "exports"]);
+function normalizeRelative(value2) {
+  return value2.replace(/^\.\//, "").replace(/\\/g, "/");
+}
+function outsideModule(key2, raw) {
+  if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(raw) || raw.startsWith("/") || raw.startsWith("\\")) {
+    return `'${key2}' is '${raw}', which is not relative to the module root. A browser entry ships inside the module, so name the file relative to the directory holding telo.yaml.`;
+  }
+  let depth = 0;
+  for (const segment of raw.split(/[/\\]+/)) {
+    if (segment === "" || segment === ".") continue;
+    depth += segment === ".." ? -1 : 1;
+    if (depth < 0) {
+      return `'${key2}' is '${raw}', which points above the module root. A browser entry ships inside the module, so the file must be inside the directory holding telo.yaml.`;
+    }
+  }
+  return void 0;
+}
+function stringList2(entry, key2) {
+  const raw = entry[key2];
+  if (raw === void 0) return { value: [] };
+  if (!Array.isArray(raw) || raw.some((item) => typeof item !== "string" || item.trim() === "")) {
+    return { detail: `'${key2}' must be a list of non-empty strings.` };
+  }
+  return { value: raw.map((item) => item.trim()) };
+}
+function readBrowserEntries(ownerJson) {
+  const declared = ownerJson?.exports?.browser;
+  const entries = [];
+  const problems = [];
+  if (declared === void 0) return { entries, problems };
+  if (!Array.isArray(declared)) {
+    return { entries, problems: [{ origin: "exports.browser", detail: "expected a list of entries." }] };
+  }
+  const seen = /* @__PURE__ */ new Set();
+  declared.forEach((raw, index) => {
+    const at2 = `exports.browser[${index}]`;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      problems.push({ origin: at2, detail: "expected an object.", index });
+      return;
+    }
+    const entry = raw;
+    const named = typeof entry.specifier === "string" && entry.specifier.trim() !== "";
+    const origin = named ? `${at2} ('${entry.specifier.trim()}')` : at2;
+    const refuse3 = (detail) => problems.push({ origin, detail, index });
+    const platform = Object.keys(entry).filter(
+      (key2) => key2 === "format" || PLATFORM_AXES.includes(key2) && key2 !== "abi"
+    );
+    if (platform.length > 0) {
+      refuse3(
+        `${platform.map((k) => `'${k}'`).join(", ")} cannot be stated. A browser entry is an ES module served to a page: its format is always '${BROWSER_FORMAT}' and it is the same file on every platform. The only axis it states is 'abi'.`
+      );
+      return;
+    }
+    const unknown = Object.keys(entry).filter((key2) => !KNOWN_KEYS.has(key2));
+    if (unknown.length > 0) {
+      refuse3(
+        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS].join(", ")}.`
+      );
+      return;
+    }
+    if (!named) {
+      refuse3("'specifier' is required and must be a non-empty string.");
+      return;
+    }
+    const specifier = entry.specifier.trim();
+    if (typeof entry.path !== "string" || entry.path.trim() === "") {
+      refuse3("'path' is required and must be a non-empty string.");
+      return;
+    }
+    if (entry.source !== void 0 && (typeof entry.source !== "string" || entry.source.trim() === "")) {
+      refuse3("'source' must be a non-empty string when present.");
+      return;
+    }
+    const outside = outsideModule("path", entry.path.trim()) ?? (typeof entry.source === "string" ? outsideModule("source", entry.source.trim()) : void 0);
+    if (outside !== void 0) {
+      refuse3(outside);
+      return;
+    }
+    let abi;
+    if (entry.abi !== void 0) {
+      try {
+        abi = normalizeAxisValue("abi", entry.abi, origin);
+      } catch (err) {
+        if (!(err instanceof ArtifactSelectorError)) throw err;
+        refuse3(err.message.slice(origin.length + 2));
+        return;
+      }
+    }
+    const external = stringList2(entry, "external");
+    if ("detail" in external) {
+      refuse3(external.detail);
+      return;
+    }
+    const names = stringList2(entry, "exports");
+    if ("detail" in names) {
+      refuse3(names.detail);
+      return;
+    }
+    if (seen.has(specifier)) {
+      refuse3(
+        `a second entry declares the specifier '${specifier}'. A specifier is one import-map key, so it names one entry.`
+      );
+      return;
+    }
+    seen.add(specifier);
+    entries.push({
+      specifier,
+      path: normalizeRelative(entry.path.trim()),
+      ...typeof entry.source === "string" ? { localPath: normalizeRelative(entry.source.trim()) } : {},
+      ...abi !== void 0 ? { abi } : {},
+      external: [...new Set(external.value)].sort(),
+      exports: [...new Set(names.value)],
+      selector: { format: BROWSER_FORMAT, ...abi !== void 0 ? { abi } : {} },
+      origin,
+      index
+    });
+  });
+  return { entries, problems };
+}
+
+// ../../analyzer/nodejs/src/validate-extends.ts
+var SOURCE8 = "telo-analyzer";
+var EXTENDS_ALIAS_RE = /^[A-Z][A-Za-z0-9_]*\.[A-Z][A-Za-z0-9_]*$/;
+var TELO_BUILTIN_ALIAS = "Telo";
+function validateExtends(manifests, registry, aliases) {
+  const diagnostics = [];
+  const importedModules = /* @__PURE__ */ new Set();
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Import") continue;
+    const resolved = m.metadata?.resolvedModuleName;
+    if (resolved) importedModules.add(resolved);
+  }
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
+    const isDefinition = m.kind === "Telo.Definition";
+    const name2 = m.metadata?.name;
+    if (!name2) continue;
+    const ownModule = m.metadata?.module;
+    if (ownModule && importedModules.has(ownModule)) continue;
+    const filePath = m.metadata?.source;
+    const resource = { kind: m.kind, name: name2 };
+    const label2 = `${m.kind}/${name2}`;
+    if (isDefinition && m.base != null) {
+      const hasBody = hasOwnControllerOrTemplate(m);
+      const bodyKey = ["resources", "controllers", "invoke", "run", "targets", "provide", "mount"].find(
+        (key2) => m[key2] !== void 0
+      ) ?? "resources";
+      if (hasBody) {
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "BASE_WITH_TEMPLATE_BODY",
+          source: SOURCE8,
+          message: `${label2}: 'base:' maps this kind's config onto the inherited controller of '${typeof extendsOf(m) === "string" ? extendsOf(m) : "<no extends>"}', so the definition may not also declare '${bodyKey}:'. With '${bodyKey}:' the kind is a template and 'base:' is never evaluated. Either drop 'base:' and dispatch to a 'resources:' entry with '!ref', or drop '${bodyKey}:' and build the parent's config in 'base:' alone.`,
+          data: { resource, filePath, path: bodyKey }
+        });
+      }
+    }
+    const extendsValue = m.extends;
+    if (extendsValue !== void 0) {
+      if (typeof extendsValue !== "string") {
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "EXTENDS_MALFORMED",
+          source: SOURCE8,
+          message: `${label2}: 'extends' must be a string in alias form "<Alias>.<Name>"`,
+          data: { resource, filePath, path: "extends" }
+        });
+      } else if (!EXTENDS_ALIAS_RE.test(extendsValue)) {
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "EXTENDS_MALFORMED",
+          source: SOURCE8,
+          message: `${label2}: 'extends: ${extendsValue}' must be in alias form "<Alias>.<Name>" (e.g. "Ai.Model"), resolved via this file's Telo.Import declarations.`,
+          data: { resource, filePath, path: "extends" }
+        });
+      } else {
+        const prefix = extendsValue.slice(0, extendsValue.indexOf("."));
+        if (prefix !== TELO_BUILTIN_ALIAS && !aliases.hasAlias(prefix)) {
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "EXTENDS_MALFORMED",
+            source: SOURCE8,
+            message: `${label2}: 'extends: ${extendsValue}' \u2014 alias '${prefix}' is not a Telo.Import in this file's scope. Declare the import or correct the alias.`,
+            data: { resource, filePath, path: "extends" }
+          });
+        } else {
+          const canonical = aliases.resolveKind(extendsValue);
+          if (!canonical) {
+            diagnostics.push({
+              severity: DiagnosticSeverity2.Error,
+              code: "EXTENDS_UNKNOWN_TARGET",
+              source: SOURCE8,
+              message: `${label2}: 'extends' target '${extendsValue}' is not an exported kind of alias '${prefix}'.`,
+              data: { resource, filePath, path: "extends" }
+            });
+          } else {
+            const targetDef = registry.resolve(canonical);
+            if (!targetDef) {
+              diagnostics.push({
+                severity: DiagnosticSeverity2.Error,
+                code: "EXTENDS_UNKNOWN_TARGET",
+                source: SOURCE8,
+                message: `${label2}: 'extends' target '${extendsValue}' (resolved: '${canonical}') is not a registered definition.`,
+                data: { resource, filePath, path: "extends" }
+              });
+            } else if (isDefinition) {
+              const resolveDef = (k) => registry.resolve(aliases.resolveKind(k) ?? k) ?? registry.resolve(k);
+              const ownCap = m.capability;
+              const ownCapRole = typeof ownCap === "string" && isCapabilityRole(ownCap) ? ownCap : void 0;
+              const ancestorCap = inheritedCapability(targetDef, resolveDef);
+              if (ownCapRole && ancestorCap && ownCapRole !== ancestorCap) {
+                diagnostics.push({
+                  severity: DiagnosticSeverity2.Error,
+                  code: "EXTENDS_CAPABILITY_MISMATCH",
+                  source: SOURCE8,
+                  message: `${label2}: declares 'capability: ${ownCap}' but extends '${extendsValue}' whose inherited capability is '${ancestorCap}'. Capability is inherited and immutable \u2014 omit 'capability' or restate it identically.`,
+                  data: { resource, filePath, path: "capability" }
+                });
+              }
+              if (m.base == null && isInheritedDelegation(m, resolveDef)) {
+                const ancestor = controllerBearingAncestor(m, resolveDef);
+                const ancestorSchema = ancestor ? effectiveAuthorSchema(ancestor, resolveDef) : void 0;
+                if (ancestorSchema?.additionalProperties === false) {
+                  const inherited = new Set(Object.keys(ancestorSchema.properties ?? {}));
+                  const ownProps = m.schema?.properties ?? {};
+                  const ancestorKind = `${ancestor?.metadata.module}.${ancestor?.metadata.name}`;
+                  for (const prop of Object.keys(ownProps)) {
+                    if (inherited.has(prop)) continue;
+                    diagnostics.push({
+                      severity: DiagnosticSeverity2.Error,
+                      code: "EXTENDS_CLOSED_PARENT_ADDS_FIELD",
+                      source: SOURCE8,
+                      message: `${label2}: declares '${prop}', but '${ancestorKind}' closes its schema (additionalProperties: false) and a child without 'base:' forwards its whole config as that kind's config \u2014 so '${prop}' is rejected when the resource is created. Add a 'base:' mapping, which makes this kind's fields construction inputs and builds the parent's config explicitly.`,
+                      data: {
+                        resource,
+                        filePath,
+                        path: `schema.properties.${prop}`
+                      }
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  return diagnostics;
+}
+function extendsOf(m) {
+  return m.extends;
+}
+
+// ../../analyzer/nodejs/src/redaction-path.ts
+var RedactionPathError = class extends Error {
+  code = "INVALID_REDACTION_PATH";
+  path;
+  offset;
+  constructor(path, offset, detail) {
+    super(`Invalid redaction path "${path}" at position ${offset}: ${detail}`);
+    this.name = "RedactionPathError";
+    this.path = path;
+    this.offset = offset;
+  }
+};
+var BARE_KEY_TERMINATORS = /* @__PURE__ */ new Set([".", "[", "]"]);
+function parseRedactionPath(path) {
+  if (path.length === 0) throw new RedactionPathError(path, 0, "path is empty");
+  const segments = [];
+  let index = 0;
+  let expectSegment = true;
+  while (index < path.length) {
+    const char = path[index];
+    if (char === "[") {
+      index = parseBracket(path, index, segments);
+      expectSegment = false;
+      continue;
+    }
+    if (char === ".") {
+      if (expectSegment) {
+        throw new RedactionPathError(path, index, "expected a key before '.'");
+      }
+      index += 1;
+      expectSegment = true;
+      continue;
+    }
+    if (char === "]") {
+      throw new RedactionPathError(path, index, "unmatched ']'");
+    }
+    const start = index;
+    while (index < path.length && !BARE_KEY_TERMINATORS.has(path[index])) index += 1;
+    const raw = path.slice(start, index);
+    if (raw.length === 0) throw new RedactionPathError(path, start, "empty key");
+    segments.push(raw === "*" ? { kind: "wildcard" } : { kind: "key", name: raw });
+    expectSegment = false;
+  }
+  if (expectSegment) {
+    throw new RedactionPathError(path, path.length, "path ends with a trailing '.'");
+  }
+  return segments;
+}
+function parseBracket(path, open, segments) {
+  let index = open + 1;
+  if (index >= path.length) throw new RedactionPathError(path, open, "unterminated '['");
+  const quote = path[index];
+  if (quote === '"' || quote === "'") {
+    index += 1;
+    const start2 = index;
+    while (index < path.length && path[index] !== quote) index += 1;
+    if (index >= path.length) {
+      throw new RedactionPathError(path, start2, `unterminated ${quote} quoted key`);
+    }
+    const name2 = path.slice(start2, index);
+    if (name2.length === 0) throw new RedactionPathError(path, start2, "empty quoted key");
+    index += 1;
+    if (path[index] !== "]") {
+      throw new RedactionPathError(path, index, "expected ']' after quoted key");
+    }
+    segments.push({ kind: "key", name: name2 });
+    return index + 1;
+  }
+  const start = index;
+  while (index < path.length && path[index] !== "]") index += 1;
+  if (index >= path.length) throw new RedactionPathError(path, open, "unterminated '['");
+  const raw = path.slice(start, index);
+  if (raw.length === 0) throw new RedactionPathError(path, start, "empty '[]'");
+  if (raw === "*") {
+    segments.push({ kind: "wildcard" });
+  } else if (/^\d+$/.test(raw)) {
+    segments.push({ kind: "key", name: raw });
+  } else {
+    throw new RedactionPathError(
+      path,
+      start,
+      `expected a quoted key, an integer index, or '*', got "${raw}" \u2014 quote it as ["${raw}"]`
+    );
+  }
+  return index + 1;
+}
+
+// ../../analyzer/nodejs/src/validate-logging.ts
+var SOURCE9 = "telo-analyzer";
+function validateLogging(manifests, registry, aliases, aliasesByModule) {
+  const diagnostics = [];
+  for (const manifest of manifests) {
+    const kind = manifest.kind;
+    if (kind === "Telo.Application" || kind === "Telo.Import" || kind === "Telo.Library") {
+      validateRedactPaths(manifest, diagnostics);
+    }
+    if (isSinkKind(manifest, registry, aliases, aliasesByModule)) {
+      validateOnFull(manifest, diagnostics);
+    }
+  }
+  return diagnostics;
+}
+function validateRedactPaths(manifest, out) {
+  const name2 = manifest.metadata?.name;
+  const filePath = manifest.metadata?.source;
+  const resource = { kind: manifest.kind, name: name2 };
+  for (const { block, prefix } of loggingBlocks(manifest)) {
+    const paths = block.redact?.paths;
+    if (!Array.isArray(paths)) continue;
+    paths.forEach((path, index) => {
+      if (typeof path !== "string") return;
+      try {
+        parseRedactionPath(path);
+      } catch (err) {
+        if (!(err instanceof RedactionPathError)) throw err;
+        out.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "INVALID_REDACTION_PATH",
+          source: SOURCE9,
+          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
+          data: { resource, filePath, path: `${prefix}redact.paths[${index}]` }
+        });
+      }
+    });
+  }
+}
+function validateOnFull(manifest, out) {
+  const onFull = manifest.on_full;
+  if (onFull !== "block") return;
+  const name2 = manifest.metadata?.name;
+  const filePath = manifest.metadata?.source;
+  out.push({
+    severity: DiagnosticSeverity2.Error,
+    code: "LOG_SINK_ON_FULL_UNSUPPORTED",
+    source: SOURCE9,
+    message: `${manifest.kind}/${name2 ?? "(unnamed)"}: on_full: block is not supported on a single-threaded runtime \u2014 blocking the producer would stall the writer. Use drop_new or drop_old.`,
+    data: { resource: { kind: manifest.kind, name: name2 }, filePath, path: "on_full" }
+  });
+}
+function loggingBlocks(manifest) {
+  const blocks = [];
+  const root = manifest.logging;
+  if (isObject11(root)) blocks.push({ block: root, prefix: "logging." });
+  const imports = manifest.imports;
+  if (isObject11(imports)) {
+    for (const [alias, entry] of Object.entries(imports)) {
+      if (!isObject11(entry)) continue;
+      const block = entry.logging;
+      if (isObject11(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
+    }
+  }
+  return blocks;
+}
+function isSinkKind(manifest, registry, aliases, aliasesByModule) {
+  if (typeof manifest.kind !== "string") return false;
+  if (manifest.kind === "Telo.ConsoleSink" || manifest.kind === "Telo.FileSink") return true;
+  const resolver = moduleAliasScope(manifest.metadata, aliases, aliasesByModule);
+  const canonical = resolver.resolveKind(manifest.kind) ?? manifest.kind;
+  return registry.resolve(canonical)?.capability === "Telo.Sink";
+}
+function isObject11(value2) {
+  return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
+}
+
+// ../../analyzer/nodejs/src/artifact-layer-index.ts
+var BLOB_DIGEST = /^sha256:[0-9a-f]{64}$/;
+var CONTENT_DIGEST = /^sha256-[A-Za-z0-9_-]{43}$/;
+var LayerIndexError = class extends Error {
+  code = "INVALID_LAYER_INDEX";
+  constructor(detail) {
+    super(detail);
+    this.name = "LayerIndexError";
+  }
+};
+function digest(field, raw, describe5) {
+  if (typeof raw !== "string" || raw === "") {
+    throw new LayerIndexError(`${describe5}: ${field} is required and must be a string.`);
+  }
+  const pattern2 = field === "blob" ? BLOB_DIGEST : CONTENT_DIGEST;
+  if (!pattern2.test(raw)) {
+    throw new LayerIndexError(
+      field === "blob" ? `${describe5}: blob '${raw}' is not an OCI digest (expected 'sha256:' + 64 hex characters).` : `${describe5}: integrity '${raw}' is not a content digest (expected 'sha256-' + 43 base64url characters).`
+    );
+  }
+  return raw;
+}
+function parseLayerIndex(value2, describe5 = "layers") {
+  if (!Array.isArray(value2)) {
+    throw new LayerIndexError(`${describe5}: expected an array of layer entries.`);
+  }
+  const layers = [];
+  const seenSelectors = /* @__PURE__ */ new Set();
+  const seenSingletons = /* @__PURE__ */ new Set();
+  value2.forEach((raw, index) => {
+    const where = `${describe5}[${index}]`;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      throw new LayerIndexError(`${where}: expected an object.`);
+    }
+    const entry = raw;
+    if (typeof entry.role !== "string" || entry.role === "") {
+      throw new LayerIndexError(
+        `${where}: role is required and must be a non-empty string; got ${entry.role === void 0 ? "nothing" : `'${String(entry.role)}'`}.`
+      );
+    }
+    const blob = digest("blob", entry.blob, where);
+    const integrity = digest("integrity", entry.integrity, where);
+    if (!isLayerRole(entry.role)) return;
+    const role = entry.role;
+    let selector;
+    if (roleCarriesSelector(role)) {
+      if (entry.selector === void 0) {
+        throw new LayerIndexError(`${where}: a ${role} layer must declare a selector.`);
+      }
+      selector = normalizeSelector(entry.selector, where);
+      if (selector === void 0) return;
+      const key2 = `${role}\0${selectorKey(selector)}`;
+      if (seenSelectors.has(key2)) {
+        throw new LayerIndexError(
+          `${where}: a second ${role} layer claims the selector ${selectorKey(selector)}. Each selector addresses exactly one layer of a role.`
+        );
+      }
+      seenSelectors.add(key2);
+    } else {
+      if (entry.selector !== void 0) {
+        throw new LayerIndexError(
+          `${where}: a '${role}' layer must not declare a selector \u2014 it is a singleton.`
+        );
+      }
+      if (seenSingletons.has(role)) {
+        throw new LayerIndexError(`${where}: a second '${role}' layer is declared.`);
+      }
+      seenSingletons.add(role);
+    }
+    layers.push({
+      role,
+      ...selector ? { selector } : {},
+      blob,
+      integrity
+    });
+  });
+  return layers;
+}
+
+// ../../analyzer/nodejs/src/module-library.ts
+var KNOWN_KEYS2 = /* @__PURE__ */ new Set(["specifier", "path", "source", "format", ...PLATFORM_AXES]);
+function normalizeRelative2(value2) {
+  return value2.replace(/^\.\//, "").replace(/\\/g, "/");
+}
+function requiredString(entry, key2) {
+  const raw = entry[key2];
+  if (typeof raw !== "string" || raw.trim() === "") {
+    return { detail: `'${key2}' is required and must be a non-empty string.` };
+  }
+  return { value: raw.trim() };
+}
+function readLibraryCandidates(ownerJson) {
+  const declared = ownerJson?.exports?.code;
+  const candidates = [];
+  const problems = [];
+  if (declared === void 0) return { candidates, problems };
+  if (!Array.isArray(declared)) {
+    return {
+      candidates,
+      problems: [{ origin: "exports.code", detail: "expected a list of entries." }]
+    };
+  }
+  declared.forEach((raw, index) => {
+    const origin = `exports.code[${index}]`;
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      problems.push({ origin, detail: "expected an object." });
+      return;
+    }
+    const entry = raw;
+    const unknown = Object.keys(entry).filter((key2) => !KNOWN_KEYS2.has(key2));
+    if (unknown.length > 0) {
+      problems.push({
+        origin,
+        detail: `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS2].join(", ")}.`
+      });
+      return;
+    }
+    const specifier = requiredString(entry, "specifier");
+    if ("detail" in specifier) {
+      problems.push({ origin, detail: specifier.detail });
+      return;
+    }
+    const file = requiredString(entry, "path");
+    if ("detail" in file) {
+      problems.push({ origin: `${origin} ('${specifier.value}')`, detail: file.detail });
+      return;
+    }
+    const format2 = requiredString(entry, "format");
+    if ("detail" in format2) {
+      problems.push({ origin: `${origin} ('${specifier.value}')`, detail: format2.detail });
+      return;
+    }
+    let selector;
+    try {
+      selector = selectorFromQualifiers(format2.value, entry, `${origin} ('${specifier.value}')`);
+    } catch (err) {
+      problems.push({
+        origin: `${origin} ('${specifier.value}')`,
+        detail: err instanceof ArtifactSelectorError ? err.message : String(err)
+      });
+      return;
+    }
+    const source = entry.source;
+    if (source !== void 0 && (typeof source !== "string" || source.trim() === "")) {
+      problems.push({
+        origin: `${origin} ('${specifier.value}')`,
+        detail: "'source' must be a non-empty string when present."
+      });
+      return;
+    }
+    candidates.push({
+      specifier: specifier.value,
+      path: normalizeRelative2(file.value),
+      ...typeof source === "string" ? { localPath: normalizeRelative2(source.trim()) } : {},
+      selector,
+      origin: `${origin} ('${specifier.value}')`
+    });
+  });
+  return { candidates, problems };
+}
+
+// ../../analyzer/nodejs/src/validate-module-artifact.ts
+var SOURCE10 = "telo-analyzer";
+function validateModuleArtifact(manifests) {
+  const out = [];
+  for (const manifest of manifests) {
+    validateLayerIndex(manifest, out);
+    validateControllerSelectors(manifest, out);
+    validateLibraryCandidates(manifest, out);
+    validateBrowserEntries(manifest, out);
+  }
+  return out;
+}
+function validateLibraryCandidates(manifest, out) {
+  if (manifest.kind !== "Telo.Library") return;
+  const metadata = manifest.metadata;
+  const { candidates, problems } = readLibraryCandidates(manifest);
+  const resource = { kind: manifest.kind, name: metadata?.name };
+  for (const problem of problems) {
+    out.push({
+      severity: DiagnosticSeverity2.Error,
+      code: "LIBRARY_CANDIDATE_INVALID",
+      source: SOURCE10,
+      message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
+      data: { resource, filePath: metadata?.source, path: "exports/code" }
+    });
+  }
+  const seen = /* @__PURE__ */ new Map();
+  for (const candidate of candidates) {
+    for (const contradiction of selectorContradictions(candidate.selector)) {
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: `LIBRARY_${contradiction.rule}`,
+        source: SOURCE10,
+        message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${candidate.origin}: ${contradiction.detail}`,
+        data: { resource, filePath: metadata?.source, path: "exports/code" }
+      });
+    }
+    const key2 = selectorKey(candidate.selector);
+    const first = seen.get(key2);
+    if (first) {
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "LIBRARY_CANDIDATE_DUPLICATE",
+        source: SOURCE10,
+        message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: two 'exports.code' entries declare the selector ${key2} ('${first.specifier}' and '${candidate.specifier}'). A module has one entry point per format \u2014 which is what makes "one specifier, one module scope" true.`,
+        data: { resource, filePath: metadata?.source, path: "exports/code" }
+      });
+      continue;
+    }
+    seen.set(key2, candidate);
+  }
+}
+function validateBrowserEntries(manifest, out) {
+  if (manifest.kind !== "Telo.Library") return;
+  const metadata = manifest.metadata;
+  const { entries, problems } = readBrowserEntries(manifest);
+  const published = manifest.layers !== void 0;
+  const all = [
+    ...problems,
+    ...entries.filter((entry) => !published && entry.localPath === void 0).map((entry) => ({
+      origin: entry.origin,
+      index: entry.index,
+      detail: "'source' is required: a module read from a source checkout builds the entry from it. Name the file 'path' is built from."
+    }))
+  ];
+  for (const problem of all) {
+    out.push({
+      severity: DiagnosticSeverity2.Error,
+      code: "BROWSER_ENTRY_INVALID",
+      source: SOURCE10,
+      message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
+      data: {
+        resource: { kind: manifest.kind, name: metadata?.name },
+        filePath: metadata?.source,
+        path: problem.index === void 0 ? "exports.browser" : `exports.browser[${problem.index}]`
+      }
+    });
+  }
+}
+var KNOWN_QUALIFIERS = /* @__PURE__ */ new Set(["path", "local_path", "siblings", ...PLATFORM_AXES]);
+function parseBundledPurl(purl) {
+  if (!purl.startsWith("pkg:telo/local/")) return null;
+  const withoutFragment = purl.split("#")[0];
+  const [head, query = ""] = withoutFragment.split("?");
+  const format2 = head.slice("pkg:telo/local/".length);
+  if (format2 === "") return null;
+  const qualifiers = {};
+  for (const pair of query.split("&")) {
+    if (pair === "") continue;
+    const eq = pair.indexOf("=");
+    if (eq < 0) continue;
+    qualifiers[decodeURIComponent(pair.slice(0, eq))] = decodeURIComponent(pair.slice(eq + 1));
+  }
+  return { format: format2, qualifiers };
+}
+function validateControllerSelectors(manifest, out) {
+  const controllers = manifest.controllers;
+  if (!Array.isArray(controllers)) return;
+  const metadata = manifest.metadata;
+  const name2 = metadata?.name;
+  const filePath = metadata?.source;
+  const resource = { kind: manifest.kind, name: name2 };
+  controllers.forEach((candidate, index) => {
+    if (typeof candidate !== "string") return;
+    const parsed = parseBundledPurl(candidate);
+    if (!parsed) return;
+    const at2 = `controllers[${index}]`;
+    const unknown = Object.keys(parsed.qualifiers).filter((k) => !KNOWN_QUALIFIERS.has(k));
+    for (const key2 of unknown) {
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "CONTROLLER_UNKNOWN_QUALIFIER",
+        source: SOURCE10,
+        message: `${manifest.kind}/${name2 ?? "(unnamed)"}: bundled controller qualifier '${key2}' is not recognized. Known qualifiers: ${[...KNOWN_QUALIFIERS].sort().join(", ")}. An unrecognized platform axis is ignored, which would make this candidate platform-neutral and offer a single-platform binary to every host.`,
+        data: { resource, filePath, path: `${at2}?${key2}` }
+      });
+    }
+    try {
+      const selector = selectorFromQualifiers(parsed.format, parsed.qualifiers, candidate);
+      for (const contradiction of selectorContradictions(selector)) {
+        out.push({
+          severity: DiagnosticSeverity2.Error,
+          code: `CONTROLLER_${contradiction.rule}`,
+          source: SOURCE10,
+          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: controller candidate "${candidate}": ` + contradiction.detail,
+          data: { resource, filePath, path: `${at2}?${contradiction.axis}` }
+        });
+      }
+      if (parsed.format === "dylib" && !selector.abi?.startsWith("telo-")) {
+        out.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "CONTROLLER_DYLIB_ABI_MISSING",
+          source: SOURCE10,
+          message: `${manifest.kind}/${name2 ?? "(unnamed)"}: dylib candidate "${candidate}" ` + (selector.abi === void 0 ? `states no abi. ` : `states abi=${selector.abi}, which is not a Rust controller ABI. `) + `A dylib is built against one version of the Rust controller ABI and must say which \u2014 add abi=telo-<version>, e.g. abi=telo-3. Without it the Rust kernel downloads the library on every host and refuses it only when it opens it.`,
+          data: { resource, filePath, path: at2 }
+        });
+      }
+    } catch (err) {
+      if (!(err instanceof ArtifactSelectorError)) throw err;
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "CONTROLLER_INVALID_SELECTOR",
+        source: SOURCE10,
+        message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
+        data: { resource, filePath, path: at2 }
+      });
+    }
+  });
+}
+function validateLayerIndex(manifest, out) {
+  if (manifest.kind !== "Telo.Application" && manifest.kind !== "Telo.Library") return;
+  const layers = manifest.layers;
+  if (layers === void 0) return;
+  const metadata = manifest.metadata;
+  const name2 = metadata?.name;
+  try {
+    parseLayerIndex(layers);
+  } catch (err) {
+    if (!(err instanceof LayerIndexError) && !(err instanceof ArtifactSelectorError)) throw err;
+    out.push({
+      severity: DiagnosticSeverity2.Error,
+      code: "INVALID_LAYER_INDEX",
+      source: SOURCE10,
+      message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
+      data: {
+        resource: { kind: manifest.kind, name: name2 },
+        filePath: metadata?.source,
+        path: "layers"
+      }
+    });
+  }
+}
+
 // ../../analyzer/nodejs/src/module-file-claims.ts
+var import_packageurl_js = __toESM(require_packageurl_js(), 1);
 var BUNDLED_TYPE = "telo";
 var BUNDLED_NAMESPACE = "local";
 var SIBLINGS_QUALIFIER = "siblings";
@@ -67297,7 +68586,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.118.0";
+var TELO_SURFACE_VERSION = "0.119.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE21 = "telo-analyzer";
@@ -68015,6 +69304,36 @@ function envNameSegment(name2) {
 }
 function derivedNeedEnvName(path, field) {
   return NEED_ENV_PREFIX + [...path, field].map(envNameSegment).join("__");
+}
+
+// ../../analyzer/nodejs/src/public-address.ts
+var PUBLIC_URL_TYPE = "Telo.PublicUrl";
+var PUBLIC_HOST_PATTERN_TYPE = "Telo.PublicHostPattern";
+function isAddressNeedType(type) {
+  return type === PUBLIC_URL_TYPE || type === PUBLIC_HOST_PATTERN_TYPE;
+}
+var HOST_PATTERN_ORIGIN = (() => {
+  const entry = BUILTIN_DOCUMENT_FILES.find(([file]) => file === "PublicHostPattern.json")?.[1];
+  const pattern2 = entry?.fields?.pattern?.pattern;
+  if (typeof pattern2 !== "string") {
+    throw new Error(
+      "sdk/builtins/PublicHostPattern.json declares no `fields.pattern.pattern` \u2014 the host-pattern grammar is read from it."
+    );
+  }
+  return pattern2;
+})();
+function addressNeedPorts(moduleDoc2) {
+  const needs = moduleDoc2.needs;
+  if (!needs || typeof needs !== "object" || Array.isArray(needs)) return [];
+  const ports = [];
+  for (const need of Object.values(needs)) {
+    if (!need || typeof need !== "object") continue;
+    const { kind, parameters } = need;
+    if (typeof kind !== "string" || !isAddressNeedType(kind)) continue;
+    const port = parameters?.port;
+    if (typeof port === "string") ports.push(port);
+  }
+  return ports;
 }
 
 // ../../analyzer/nodejs/src/need-table.ts
@@ -69904,27 +71223,6 @@ function sameSuppliedValue(a, b) {
   return false;
 }
 
-// ../../analyzer/nodejs/src/nearest-name.ts
-function nearestName(target, candidates) {
-  if (!target) return void 0;
-  const threshold = Math.min(3, Math.floor(target.length / 3));
-  if (threshold < 1) return void 0;
-  let best;
-  let bestDist = threshold + 1;
-  let tied = false;
-  for (const candidate of candidates) {
-    const d = distance(target, candidate);
-    if (d < bestDist) {
-      best = candidate;
-      bestDist = d;
-      tied = false;
-    } else if (d === bestDist) {
-      tied = true;
-    }
-  }
-  return !best || bestDist > threshold || tied ? void 0 : best;
-}
-
 // ../../analyzer/nodejs/src/validate-exports.ts
 var SOURCE30 = "telo-analyzer";
 function validateExports(manifests, registry, aliases, rootModules) {
@@ -71087,6 +72385,155 @@ function resolvedLocalName(value2) {
   return ref.name;
 }
 
+// ../../analyzer/nodejs/src/reaching-import.ts
+var SOURCE37 = "telo-analyzer";
+function importReach(manifests, rootModules) {
+  const edges = [];
+  for (const m of manifests) {
+    if (m.kind !== "Telo.Import") continue;
+    const meta = m.metadata;
+    if (typeof meta?.name !== "string" || !meta.resolvedModuleName) continue;
+    edges.push({
+      manifest: m,
+      alias: meta.name,
+      target: meta.resolvedModuleName,
+      ...meta.resolvedSource ? { source: meta.resolvedSource } : {}
+    });
+  }
+  const ownerOf = (edge) => edge.manifest.metadata?.module;
+  const isEntry = (module) => !module || rootModules.has(module);
+  const byOwner = /* @__PURE__ */ new Map();
+  for (const edge of edges) {
+    const owner = ownerOf(edge);
+    if (owner === void 0) continue;
+    const list5 = byOwner.get(owner);
+    if (list5) list5.push(edge);
+    else byOwner.set(owner, [edge]);
+  }
+  const first = /* @__PURE__ */ new Map();
+  for (const entry of edges) {
+    if (!isEntry(ownerOf(entry))) continue;
+    const anchor = {
+      alias: entry.alias,
+      filePath: entry.manifest.metadata?.source,
+      path: `imports.${entry.alias}`
+    };
+    const seen = /* @__PURE__ */ new Set();
+    const queue = [entry.target];
+    while (queue.length > 0) {
+      const module = queue.shift();
+      if (seen.has(module) || rootModules.has(module)) continue;
+      seen.add(module);
+      if (!first.has(module)) first.set(module, anchor);
+      for (const next of byOwner.get(module) ?? []) queue.push(next.target);
+    }
+  }
+  const sources = /* @__PURE__ */ new Map();
+  for (const edge of edges) {
+    const set2 = sources.get(edge.target);
+    if (set2) set2.add(edge.source);
+    else sources.set(edge.target, /* @__PURE__ */ new Set([edge.source]));
+  }
+  return {
+    of: (module) => first.get(module),
+    loads: ({ module, sourceId }) => {
+      const reaching = sources.get(module);
+      return !!reaching && (reaching.has(sourceId) || reaching.has(void 0));
+    }
+  };
+}
+function importAnchoredDiagnostic(code, module, via, message) {
+  return {
+    severity: DiagnosticSeverity2.Error,
+    code,
+    source: SOURCE37,
+    message: `Imported library '${module}', reached through import '${via.alias}': ${message}`,
+    data: { filePath: via.filePath, path: via.path }
+  };
+}
+
+// ../../analyzer/nodejs/src/validate-scoped-kind-documents.ts
+var SOURCE38 = "telo-analyzer";
+var isDeclarationDocument3 = (m) => m.kind === "Telo.Application" || m.kind === "Telo.Library" || m.kind === "Telo.Import" || isKindDocument(m);
+function validateScopedKindDocuments(manifests, libraries, registry, aliases, aliasesByModule, rootModules, reach, validate2) {
+  const out = [];
+  const judgeScopes = (root, module, report) => {
+    const at2 = (prefix, path) => path ? `${prefix}.${path}` : prefix;
+    const judge = (member, kind, prefix) => {
+      const label2 = `${kind} '${member.metadata.name}'`;
+      const capability = capabilityProblem(
+        member.capability,
+        member.extends !== void 0
+      );
+      if (capability) {
+        report(capability.code, `${label2}: ${capability.message}`, at2(prefix, "capability"));
+      }
+      for (const issue of validate2(member, kind)) {
+        if (capability && issue.path === "capability") continue;
+        report(
+          "SCHEMA_VIOLATION",
+          `${kind}/${member.metadata.name}: ${issue.message}`,
+          at2(prefix, issue.path)
+        );
+      }
+    };
+    const visit3 = (declaration, prefix) => {
+      const view = module !== void 0 && typeof declaration.metadata?.module !== "string" ? { ...declaration, metadata: { ...declaration.metadata, module } } : declaration;
+      for (const scope of declaredScopes(
+        registry.referenceSites(view, aliases, aliasesByModule, declaration)
+      )) {
+        scope.declarations.forEach((member, i) => {
+          if (!isScopeMember(member)) return;
+          const path = `${prefix ? `${prefix}.` : ""}${scope.path}[${i}]`;
+          if (member.kind === "Telo.Definition" || member.kind === "Telo.Abstract") {
+            judge(member, member.kind, path);
+            return;
+          }
+          visit3(member, path);
+        });
+      }
+    };
+    visit3(root, "");
+  };
+  const scopeHolder = (m) => {
+    if (!m.kind || isDeclarationDocument3(m) || isForwardedDeclaration(m)) return void 0;
+    const meta = m.metadata;
+    if (typeof meta?.name !== "string") return void 0;
+    return { name: meta.name, ...typeof meta.module === "string" ? { module: meta.module } : {} };
+  };
+  for (const root of manifests) {
+    const holder = scopeHolder(root);
+    if (!holder || holder.module && !rootModules.has(holder.module)) continue;
+    const resource = { kind: root.kind, name: holder.name };
+    const filePath = root.metadata.source;
+    judgeScopes(
+      root,
+      holder.module,
+      (code, message, path) => out.push({
+        severity: DiagnosticSeverity2.Error,
+        code,
+        source: SOURCE38,
+        message,
+        data: { resource, filePath: typeof filePath === "string" ? filePath : void 0, path }
+      })
+    );
+  }
+  for (const library of libraries) {
+    if (rootModules.has(library.module) || !reach.loads(library)) continue;
+    const via = reach.of(library.module);
+    if (!via) continue;
+    for (const root of library.manifests) {
+      if (!scopeHolder(root)) continue;
+      judgeScopes(
+        root,
+        library.module,
+        (code, message) => out.push(importAnchoredDiagnostic(code, library.module, via, message))
+      );
+    }
+  }
+  return out;
+}
+
 // ../../analyzer/nodejs/src/catch-scope.ts
 var NO_COVERAGE = { codes: /* @__PURE__ */ new Set(), hasCatchAll: false };
 function collectScopedManifests(manifests, defs, aliases, aliasesByModule, rootModules) {
@@ -71155,7 +72602,7 @@ function enclosingCoverage(manifest, ownScope, enclosers, memo = /* @__PURE__ */
 }
 
 // ../../analyzer/nodejs/src/validate-throws-coverage.ts
-var SOURCE37 = "telo-analyzer";
+var SOURCE39 = "telo-analyzer";
 function collectOutcomeLists(manifest, schema4, onReturns, onCatches) {
   if (!schema4) return;
   walkSchemaData(schema4, manifest, "", {
@@ -71263,7 +72710,7 @@ function checkCatchAllPlacement(entries, resource, channel, filePath, arrayPath,
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "CATCHALL_NOT_LAST",
-        source: SOURCE37,
+        source: SOURCE39,
         message: `${channel}: catch-all entry (no \`when:\`) at index ${i} must be last \u2014 entries after it are unreachable.`,
         data: { resource: routing, filePath, path: `${arrayPath}[${i}]` }
       });
@@ -71300,7 +72747,7 @@ function checkUndeclaredCodes(entries, union2, resource, filePath, arrayPath, en
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "UNDECLARED_THROW_CODE",
-        source: SOURCE37,
+        source: SOURCE39,
         message: `catches[${i}] references code '${c}' which is not in ${denominator} {${[...declaredCodes].sort().join(", ") || "\u2205"}} (ambient kernel codes ${AMBIENT_CONTRACT_ERROR_CODES.join(", ")} may also be named)${union2.unbounded ? "; the union is unbounded, so a catch-all is required" : ""}.`,
         data: { resource: routing, filePath, path: `${arrayPath}[${i}].when` }
       });
@@ -71315,7 +72762,7 @@ function checkCoverage(union2, resource, filePath, arrayPath, handler, covered, 
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "UNBOUNDED_UNION_NEEDS_CATCHALL",
-      source: SOURCE37,
+      source: SOURCE39,
       message: `The handler's throw union is unbounded (inherit/passthrough resolution couldn't enumerate all codes). A catch-all entry (no \`when:\`) is required \u2014 on this catches: list or on an enclosing one.`,
       data: { resource: routing, filePath, path: arrayPath }
     });
@@ -71325,7 +72772,7 @@ function checkCoverage(union2, resource, filePath, arrayPath, handler, covered, 
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "UNCOVERED_THROW_CODE",
-      source: SOURCE37,
+      source: SOURCE39,
       message: `handler ${handler?.name ? `\`!ref ${handler.name}\`` : `\`${handler?.kind ?? "?"}\``} can throw ${uncovered.length} code${uncovered.length === 1 ? "" : "s"} that no catches: entry handles \u2014 at this list or any enclosing scope: ${uncovered.map((c) => `'${c}'`).join(", ")}. Give each a matching \`when:\` (e.g. \`when: !cel "error.code == '${uncovered[0]}'"\`), or add a catch-all entry \u2014 one with no \`when:\`, placed last.`,
       data: { resource: routing, filePath, path: arrayPath, uncovered }
     });
@@ -71415,7 +72862,7 @@ function checkCelChainAgainstDataSchema(entry, dataSchema, resource, filePath, e
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "CEL_UNKNOWN_FIELD",
-        source: SOURCE37,
+        source: SOURCE39,
         message: `${resource.kind}/${resource.name}: CEL at '${entry.path}': error.data.${err}`,
         data: { resource: routing, filePath, path: entry.path }
       });
@@ -71423,11 +72870,19 @@ function checkCelChainAgainstDataSchema(entry, dataSchema, resource, filePath, e
   }
   return diagnostics;
 }
-var THROWS_CAPABLE = new Set(THROWS_CAPABLE_CAPABILITIES);
+var THROWS_CAPABLE = new Set(throwsAllowedCapabilities());
+var DECLARABLE3 = new Set(declarableCapabilities());
+function abstractThrowsSchema() {
+  const throws2 = builtinDocumentSchema("Abstract").properties?.throws;
+  if (!throws2 || typeof throws2 !== "object") {
+    throw new Error("The built-in Telo.Abstract schema declares no `throws` property.");
+  }
+  return throws2;
+}
 var abstractThrowsValidator;
 var atThrows = (message) => message.startsWith("/ ") ? `/throws ${message.slice(2)}` : message.startsWith("/") ? `/throws${message}` : `/throws ${message}`;
 var validateAbstractThrows = (value2) => {
-  const validate2 = abstractThrowsValidator ??= createAjv().compile(ABSTRACT_THROWS_SCHEMA);
+  const validate2 = abstractThrowsValidator ??= createAjv().compile(abstractThrowsSchema());
   return validate2(value2) ? [] : schemaIssues(validate2.errors, value2);
 };
 function validateThrowsDeclarations(manifests) {
@@ -71444,7 +72899,7 @@ function validateThrowsDeclarations(manifests) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_VIOLATION",
-          source: SOURCE37,
+          source: SOURCE39,
           message: `Telo.Abstract/${name2}: ${atThrows(issue.message)}`,
           data: { resource: { kind: m.kind, name: name2 }, filePath, path: issue.path ? `throws.${issue.path}` : "throws" }
         });
@@ -71452,12 +72907,12 @@ function validateThrowsDeclarations(manifests) {
       if (issues.length > 0) continue;
     }
     const capability = m.capability;
-    if (typeof capability === "string" && !THROWS_CAPABLE.has(capability)) {
+    if (typeof capability === "string" && DECLARABLE3.has(capability) && !THROWS_CAPABLE.has(capability)) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "THROWS_ON_NON_DISPATCH_CAPABILITY",
-        source: SOURCE37,
-        message: `${m.kind} '${name2}' declares throws: but its capability is '${capability}'. A throw union describes what a CALLER can catch, so it is only meaningful on ${THROWS_CAPABLE_CAPABILITIES.join(" or ")}; on '${capability}' a thrown error is a boot-time failure with no caller to render it. The kernel refuses this definition at create(), so a manifest carrying it cannot start.`,
+        source: SOURCE39,
+        message: `${m.kind} '${name2}' declares throws: but its capability is '${capability}'. A throw union describes what a CALLER can catch, so it is only meaningful on ${throwsAllowedCapabilities().join(" or ")}; on '${capability}' a thrown error is a boot-time failure with no caller to render it. The kernel refuses this definition at create(), so a manifest carrying it cannot start.`,
         data: { resource: { kind: m.kind, name: name2 }, filePath, path: "throws" }
       });
       continue;
@@ -71468,7 +72923,7 @@ function validateThrowsDeclarations(manifests) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "INHERIT_WITHOUT_STEP_CONTEXT",
-          source: SOURCE37,
+          source: SOURCE39,
           message: `Telo.Definition '${name2}' declares throws.inherit: true but its schema dispatches nothing a failure can come back through. inherit makes the kind's union the union of what it dispatches, so the schema needs a step body (an array field with 'items: { $ref: "telo://manifest#/$defs/Step" }', or the legacy x-telo-step-context annotation) or a reference slot whose use includes 'call' or 'trigger.consumer' (for a use case map, in any case; a slot declaring no use counts as 'call'). 'detached' and 'trigger.inbound' run where no caller awaits them, and 'dependency' / 'schema' dispatch nothing.`,
           data: { resource: { kind: m.kind, name: name2 }, filePath, path: "throws.inherit" }
         });
@@ -71662,7 +73117,7 @@ function assertManifestPositions(manifests) {
     );
   }
 }
-var SOURCE38 = "telo-analyzer";
+var SOURCE40 = "telo-analyzer";
 var STEPS_ROOT = "steps.";
 function contractOwnerLabel(definition, contract) {
   const declaredBy = contract.declaredBy;
@@ -71687,7 +73142,7 @@ function refSlotIssueDiagnostic(issue) {
   return {
     severity: DiagnosticSeverity2.Error,
     code: issue.code,
-    source: SOURCE38,
+    source: SOURCE40,
     message: issue.message,
     data: {
       resource: { kind: issue.manifest.kind, name: issue.manifest.metadata?.name },
@@ -71696,11 +73151,16 @@ function refSlotIssueDiagnostic(issue) {
     }
   };
 }
+function kindDocumentFindingReportedElsewhere(issue) {
+  if (issue.path === "capability" || issue.path === "extends") return true;
+  if (issue.path === "throws" && issue.keyword === "false schema") return true;
+  return issue.path === "" && issue.keyword === "if";
+}
 function ruleIssueDiagnostic(issue) {
   return {
     severity: DiagnosticSeverity2.Error,
     code: issue.code,
-    source: SOURCE38,
+    source: SOURCE40,
     message: issue.message,
     data: {
       resource: { kind: issue.manifest.kind, name: issue.manifest.metadata?.name },
@@ -71772,7 +73232,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "UNRESOLVED_REFERENCE",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 '${refName3}' is not an exported instance of module '${module ?? aliasPrefix}' (reference a declared instance, not a kind)`,
           data: { resource, filePath, path }
         });
@@ -71783,7 +73243,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "UNRESOLVED_REFERENCE",
-        source: SOURCE38,
+        source: SOURCE40,
         message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 resource '${localName2}' not found`,
         data: { resource, filePath, path }
       });
@@ -71797,7 +73257,7 @@ function validateStepInvokeReferences(allManifests, defs, aliases) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "REFERENCE_KIND_MISMATCH",
-        source: SOURCE38,
+        source: SOURCE40,
         message: `${resource.kind}/${resource.name}: step invoke at '${path}' \u2192 '${kind}' is a ${capability} and cannot be invoked in a step \u2014 it has no invoke or run method (runtime ERR_RESOURCE_NOT_INVOKABLE)`,
         data: { resource, filePath, path }
       });
@@ -72098,7 +73558,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "DUPLICATE_IMPORT_ALIAS",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `Duplicate import alias '${alias}'. An alias may be declared once per module \u2014 across both inline 'imports:' entries and 'Telo.Import' documents. Rename or remove the duplicate.`,
               data: {
                 resource: { kind: "Telo.Import", name: alias },
@@ -72152,7 +73612,7 @@ var StaticAnalyzer = class {
     const resourceRuleDiagnostic = (report2) => ({
       severity: SEVERITY[report2.severity],
       code: report2.code,
-      source: SOURCE38,
+      source: SOURCE40,
       message: report2.message,
       data: {
         resource: {
@@ -72167,7 +73627,7 @@ var StaticAnalyzer = class {
     const referrerRuleDiagnostic = (report2) => ({
       severity: SEVERITY[report2.severity],
       code: report2.code,
-      source: SOURCE38,
+      source: SOURCE40,
       message: report2.message,
       data: {
         resource: {
@@ -72180,29 +73640,34 @@ var StaticAnalyzer = class {
       }
     });
     const ruleFailureLedger = new RuleFailureLedger();
-    const importAnchors = /* @__PURE__ */ new Map();
-    for (const m of manifests) {
-      if (m.kind !== "Telo.Import") continue;
-      const alias = m.metadata?.name;
-      const target = m.metadata?.resolvedModuleName;
-      if (!alias || !target) continue;
-      const owner = m.metadata?.module;
-      const ours = !owner || rootModules.has(owner);
-      if (!ours) continue;
-      importAnchors.set(target, {
-        filePath: m.metadata?.source,
-        path: `imports.${alias}`
-      });
-    }
+    const reach = importReach(manifests, rootModules);
     const ruleFailureDiagnostic = (report2, declaringModule3, fallback) => {
-      const anchor = declaringModule3 && !rootModules.has(declaringModule3) ? importAnchors.get(declaringModule3) : void 0;
+      const anchor = declaringModule3 ? reach.of(declaringModule3) : void 0;
       if (!anchor) return fallback;
       return {
         severity: SEVERITY[report2.severity],
         code: report2.code,
-        source: SOURCE38,
+        source: SOURCE40,
         message: report2.message,
         data: { filePath: anchor.filePath, path: anchor.path, rule: report2.rule }
+      };
+    };
+    const capabilityDiagnostic = (m, declaringModule3, issue) => {
+      const label2 = `${m.kind} '${m.metadata?.name}'`;
+      const via = declaringModule3 ? reach.of(declaringModule3) : void 0;
+      if (declaringModule3 && via) {
+        return importAnchoredDiagnostic(issue.code, declaringModule3, via, `${label2}: ${issue.message}`);
+      }
+      return {
+        severity: DiagnosticSeverity2.Error,
+        code: issue.code,
+        source: SOURCE40,
+        message: `${label2}: ${issue.message}`,
+        data: {
+          resource: { kind: m.kind, name: m.metadata?.name },
+          filePath: m.metadata?.source,
+          path: "capability"
+        }
       };
     };
     const projectionIssues2 = [];
@@ -72244,7 +73709,7 @@ var StaticAnalyzer = class {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCOPE_SLOT_MISPLACED",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `${m.kind} ${problem.message}`,
             data: {
               resource: { kind: m.kind, name: def.metadata?.name },
@@ -72261,7 +73726,7 @@ var StaticAnalyzer = class {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "VALUE_SCHEMA_FROM_INVALID",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `${m.kind} ${problem.message}`,
             data: {
               resource: { kind: m.kind, name: def.metadata?.name },
@@ -72289,23 +73754,10 @@ var StaticAnalyzer = class {
           });
         }
       }
-      const resolvedCapability = def.capability ? scopeResolver.resolveKind(def.capability) ?? def.capability : def.capability;
-      if (resolvedCapability === "Telo.Executable" && (!ownModule || rootModules.has(ownModule))) {
-        diagnostics.push({
-          severity: DiagnosticSeverity2.Error,
-          code: "CAPABILITY_NOT_DECLARABLE",
-          source: SOURCE38,
-          message: `'${def.metadata?.name}' declares capability: Telo.Executable, which is an x-telo-ref slot constraint (the parent Telo.Invocable and Telo.Runnable extend), not a declarable lifecycle role. Declare 'Telo.Invocable' (invoke) or 'Telo.Runnable' (run) instead.`,
-          data: {
-            resource: { kind: m.kind, name: m.metadata?.name },
-            filePath: m.metadata?.source,
-            path: "capability"
-          }
-        });
-      }
+      const capabilityIssue = capabilityProblem(def.capability, def.extends !== void 0);
+      if (capabilityIssue) diagnostics.push(capabilityDiagnostic(m, ownModule, capabilityIssue));
       const resolvedExtends = def.extends ? scopeResolver.resolveKind(def.extends) ?? def.extends : def.extends;
-      const needsPatch = resolvedCapability !== def.capability || resolvedExtends !== def.extends;
-      const normalized = needsPatch ? { ...def, capability: resolvedCapability, extends: resolvedExtends } : def;
+      const normalized = resolvedExtends !== def.extends ? { ...def, extends: resolvedExtends } : def;
       defs.register(normalized);
     }
     const namedShapeOf = (m) => {
@@ -72379,7 +73831,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "REFERRER_RULE_INVALID",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `x-telo-referrer-rules 'referrer: ${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in. A filter that matches nothing leaves the rule inert. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -72389,7 +73841,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "ZONE_PROVIDER_UNRESOLVED",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `x-telo-requires-zone '${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in. An unresolvable zone would leave the requirement silently unenforced. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -72399,7 +73851,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Warning,
             code: "X_TELO_REF_LEGACY_IDENTITY",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' uses the deprecated '<namespace>/<module>#<Kind>' form. Write the target as an alias-qualified kind instead \u2014 '<Alias>.<Kind>' for a module declared in this file's 'imports:' map, 'Self.<Kind>' for a kind in this library, or 'Telo.<Kind>' for a built-in capability.`,
             data
           });
@@ -72407,7 +73859,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "KIND_NOT_EXPORTED",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' targets a kind module '${issue.gate?.module}' does not export. Add '${issue.ref.slice(issue.ref.indexOf(".") + 1)}' to that module's exports.kinds. Exported kinds: ${issue.gate?.exported.join(", ") || "(none)"}.`,
             data
           });
@@ -72415,7 +73867,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "X_TELO_REF_UNRESOLVED",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `x-telo-ref '${issue.ref}' at '${issue.path}' names no kind. The prefix must be an import alias declared in this file's 'imports:' map, 'Self' for a kind in this library, or 'Telo' for a built-in capability. An unresolvable constraint would leave the slot accepting any resource. Known aliases: ${issue.knownAliases?.join(", ") || "(none)"}.`,
             data
           });
@@ -72428,7 +73880,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE38,
+          source: SOURCE40,
           message: issue.message,
           data: {
             resource: {
@@ -72448,7 +73900,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE38,
+          source: SOURCE40,
           message: issue.message,
           data: {
             resource: {
@@ -72464,7 +73916,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: issue.code,
-          source: SOURCE38,
+          source: SOURCE40,
           message: issue.message,
           data: {
             resource: {
@@ -72556,7 +74008,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "DUPLICATE_SCHEMA_ID",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `Type '${typeName2}' collides with the kind '${ownModule}.${typeName2}': both claim the schema id '${canonicalTypeSchemaId(ownModule, typeName2)}'. A '$ref' to it would resolve to the kind's schema. Rename one of them.`,
           data: {
             resource: { kind: m.kind, name: typeName2 },
@@ -72710,7 +74162,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: issue.code,
-        source: SOURCE38,
+        source: SOURCE40,
         message: issue.message,
         data: {
           resource: {
@@ -72733,7 +74185,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_COMPILE_ERROR",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${m.kind}/${name2}: definition schema failed to compile: ${compileError}`,
           data: {
             resource: { kind: m.kind, name: name2 },
@@ -72757,7 +74209,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "LIBRARY_ENV_KEY_REJECTED",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `Telo.Library ${block}/${entryName}: 'env:' is only permitted on Telo.Application entries. Libraries must receive values from importers via the parent manifest's variables / secrets block.`,
               data: { resource, filePath, path: `${block}.${entryName}.env` }
             });
@@ -72766,7 +74218,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "LIBRARY_ARG_KEY_REJECTED",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `Telo.Library ${block}/${entryName}: 'arg:' is only permitted on Telo.Application entries \u2014 only the application being run reads the command line. Libraries must receive values from importers via the parent manifest's variables / secrets block.`,
               data: { resource, filePath, path: `${block}.${entryName}.arg` }
             });
@@ -72780,7 +74232,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "INVALID_EXPORT",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `Telo.Library exports.resources[${i}]: write the exported name as a plain string \u2014 'Name' to export a local instance, or 'Alias.Name' to re-export an imported one. The '!ref' tag is not allowed in exports.resources.`,
             data: { resource, filePath, path: `exports.resources.${i}` }
           });
@@ -72932,13 +74384,32 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "MISSING_KIND_OR_NAME",
-          source: SOURCE38,
+          source: SOURCE40,
           message: "Resource is missing required 'kind' or 'metadata.name' field.",
           data: { filePath, path: !m.kind ? "kind" : "metadata.name" }
         });
         continue;
       }
       if (m.kind === "Telo.Abstract") {
+        const abstractDefinition = defs.resolve("Telo.Abstract");
+        if (abstractDefinition) {
+          for (const issue of defs.validateResourceConfig(m, validationSchemaFor(abstractDefinition))) {
+            if (kindDocumentFindingReportedElsewhere(issue) || /^throws(\.|$)/.test(issue.path)) {
+              continue;
+            }
+            diagnostics.push({
+              severity: DiagnosticSeverity2.Error,
+              code: "SCHEMA_VIOLATION",
+              source: SOURCE40,
+              message: `${m.kind}/${m.metadata?.name}: ${issue.message}`,
+              data: {
+                resource: { kind: m.kind, name: m.metadata?.name },
+                filePath,
+                path: issue.path
+              }
+            });
+          }
+        }
         continue;
       }
       if (isForwardedDeclaration(m)) continue;
@@ -72953,7 +74424,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "KIND_NOT_EXPORTED",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `Kind '${m.kind}' is not exported by module '${kindResult.module}'. Add '${m.kind.slice(m.kind.indexOf(".") + 1)}' to that module's exports.kinds to make it importable. Exported kinds: ${kindResult.exported.join(", ") || "(none)"}.`,
           data: { resource, filePath, path: "kind" }
         });
@@ -72961,13 +74432,23 @@ var StaticAnalyzer = class {
       }
       const resolvedKind = kindResult.status === "ok" ? kindResult.kind : void 0;
       const definition = defs.resolve(m.kind) ?? (resolvedKind ? defs.resolve(resolvedKind) : void 0);
+      if (!definition && m.kind === BUILTIN_VOCABULARY_KIND) {
+        diagnostics.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "UNDEFINED_KIND",
+          source: SOURCE40,
+          message: BUILTIN_VOCABULARY_NOT_A_MODULE,
+          data: { resource, filePath, path: "kind" }
+        });
+        continue;
+      }
       if (!definition) {
         const suggestedKind = computeSuggestKind(m.kind, aliases, defs);
         const hint = suggestedKind ? ` Did you mean '${suggestedKind}'?` : "";
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "UNDEFINED_KIND",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `No Telo.Definition found for kind '${m.kind}'.${hint}`,
           // `suggestedKind` is kept beside the generic `fix` because it names
           // what the replacement IS; the fix is how to apply it.
@@ -72989,7 +74470,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "ABSTRACT_KIND_INSTANTIATED",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `Kind ${kindInfo} is abstract and cannot be instantiated directly; ${hint}.`,
           data: { resource, filePath, path: "kind" }
         });
@@ -73006,7 +74487,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Warning,
           code: "DEPRECATED_KIND",
-          source: SOURCE38,
+          source: SOURCE40,
           // Warning-grade AND a deprecation: the severity says it must
           // eventually be dealt with, the tag says what it is, and an editor
           // strikes the kind through on the strength of the second.
@@ -73049,7 +74530,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "SCHEMA_PROJECTION_FROM_UNRESOLVED",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: ${describeProjectionFailure(failure)}`,
               data: { resource, filePath, path: pointerToPath(failure.pointer) }
             });
@@ -73080,8 +74561,10 @@ var StaticAnalyzer = class {
         );
         const parentKind = definition?.extends;
         const fulfilment = needTypeOf(definition) !== void 0;
+        const kindDocument = m.kind === "Telo.Definition";
         for (const issue of issues) {
           if (fulfilment && needTableReportsFinding(issue)) continue;
+          if (kindDocument && kindDocumentFindingReportedElsewhere(issue)) continue;
           const inherited = issue.keyword === "required" && issue.missingProperty !== void 0 ? inheritedRequired.filter((f2) => f2 === issue.missingProperty) : [];
           const hint = inherited.length > 0 && parentKind ? ` \u2014 ${inherited.map((f2) => `'${f2}'`).join(", ")} ${inherited.length > 1 ? "come" : "comes"} from '${parentKind}', which this kind extends without a 'base:' mapping, so the parent's required fields stay on this kind's author surface. Add 'base:' to set them internally; that also narrows the surface to this kind's own schema.` : "";
           const textRefusal = valueTypeRefusalCode(issue);
@@ -73089,7 +74572,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: textRefusal,
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: ${issue.message}`,
               data: { resource, filePath, path: issue.path }
             });
@@ -73102,7 +74585,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "HOST_PATH_UNTYPED_SOURCE",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${resource.name}: '${issue.path}' is a Telo.HostPath, but !${written.engine} produces a plain string. ${HOST_PATH_SOURCES}${alsoAccepts(slotSchema)}`,
                 data: { resource, filePath, path: issue.path }
               });
@@ -73111,7 +74594,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "HOST_PATH_RELATIVE",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: ${issue.message}.${alsoAccepts(slotSchema)}`,
               data: {
                 resource,
@@ -73125,7 +74608,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCHEMA_VIOLATION",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `${m.kind}/${resource.name}: ${issue.message}${hint}`,
             data: { resource, filePath, path: issue.path }
           });
@@ -73276,7 +74759,7 @@ var StaticAnalyzer = class {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "TEMPLATE_TARGET_MISMATCH",
-            source: SOURCE38,
+            source: SOURCE40,
             message: `${m.kind}/${name2}: ${path} does not satisfy ${targetKind}'s contract: ${issue.message}`,
             data: { resource, filePath, path: issue.path ? `${path}.${issue.path}` : path }
           });
@@ -73336,7 +74819,7 @@ var StaticAnalyzer = class {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_PROJECTION_FROM_UNRESOLVED",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${md.kind}: ${describeProjectionFailure(failure)}`,
           data: {
             resource: { kind: md.kind, name: md.metadata?.name },
@@ -73401,7 +74884,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "REFERENCE_OUTPUT_MISMATCH",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${stepName}: at '${issue.path}', ${issue.message}`,
                 data: {
                   resource: { kind: m.kind, name: stepName ?? "" },
@@ -73440,7 +74923,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: issue.code ?? "CONTRACT_INPUTS_MISMATCH",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: issue.code === "LIVE_VALUE_RETRIED" ? `${m.kind}/${stepName}: at '${issue.path}', ${issue.message}` : `${m.kind}/${stepName}: inputs at '${issue.path}' do not satisfy ${issue.targetLabel}'s declared inputType: ${issue.message}`,
                 data: {
                   resource: { kind: m.kind, name: stepName ?? "" },
@@ -73460,7 +74943,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "BINDING_FIELD_AMBIGUOUS",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${bindingsName}: the kind's schema points '${BINDINGS_ANNOTATION}' at more than one field (${celBindingSites.fields.join(", ")}). Every annotated context must name the same bindings field.`,
                 data: { resource: resourceRef, filePath: bindingsFile, path: celBindingSites.field }
               });
@@ -73473,7 +74956,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "BINDING_CYCLE",
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${bindingsName}: '${celBindingSites.field}' has a cycle \u2014 ${cycle.join(" \u2192 ")}. A binding is resolved from the ones it references, so it cannot reference itself, directly or through others.`,
                   data: {
                     resource: resourceRef,
@@ -73497,7 +74980,7 @@ var StaticAnalyzer = class {
                   diagnostics.push({
                     severity: DiagnosticSeverity2.Error,
                     code: "BINDING_NAME_RESERVED",
-                    source: SOURCE38,
+                    source: SOURCE40,
                     message: shadows ? `${m.kind}/${bindingsName}: binding '${name2}' shadows a variable already in scope here (${[...inScope].sort().join(", ")}). Rename the binding \u2014 a scope variable always wins, so this one would never be read.` : namesModule ? `${m.kind}/${bindingsName}: binding '${name2}' names a module here (an imports: alias, Self, or this module's own name), so a call written '${name2}.f(\u2026)' resolves to that module's function. Rename the binding.` : `${m.kind}/${bindingsName}: binding '${name2}' is a CEL keyword, so no expression can read it as a reference. Rename the binding.`,
                     data: {
                       resource: resourceRef,
@@ -73512,7 +74995,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: violation.severity,
                   code: violation.code,
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${bindingsName}: ${violation.message}`,
                   data: {
                     resource: resourceRef,
@@ -73543,7 +75026,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "ACCESSOR_NOT_PLAIN_CHAIN",
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${m.metadata?.name}: ${problem.message}`,
                   data: {
                     resource: { kind: m.kind, name: m.metadata?.name },
@@ -73562,7 +75045,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: problem.code,
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${m.metadata?.name}: ${problem.message}`,
                   data: {
                     resource: { kind: m.kind, name: m.metadata?.name },
@@ -73581,7 +75064,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "REF_SLOT_COMPUTED",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${m.metadata?.name}: ${refSlotComputedReason(slot)}`,
                 data: {
                   resource: { kind: m.kind, name: m.metadata?.name },
@@ -73609,7 +75092,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "CEL_IN_NON_EVAL_FIELD",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: CEL at '${path}' is never evaluated \u2014 the field has no x-telo-eval / x-telo-context annotation, so its value is read as a literal. Annotate the field as a CEL slot or remove the !${engineName} tag.`,
               data: { resource, filePath, path }
             });
@@ -73636,7 +75119,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_IN_STARTUP_FIELD",
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${resource.name}: '${path}' is resolved once at startup, so '${chain2.join(".")}' cannot be read there \u2014 '${read.name}' is declared in the '${field}' scope of ${kind}/${name2 ?? "(unnamed)"}, which is created only when that scope opens. Read reported values where the call happens: a step's inputs:, a request's url, a route handler, or a returns: expression.`,
                   data: { resource, filePath, path }
                 });
@@ -73646,7 +75129,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_IN_STARTUP_FIELD",
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${resource.name}: '${path}' is resolved once at startup, so '${chain2.join(".")}' does not exist yet \u2014 '${read.name}' reports it only while the application is running. Read reported values where the call happens: a step's inputs:, a request's url, a route handler, or a returns: expression.`,
                   data: { resource, filePath, path }
                 });
@@ -73656,7 +75139,7 @@ var StaticAnalyzer = class {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "OBSERVED_STATE_NEVER_RUN",
-                  source: SOURCE38,
+                  source: SOURCE40,
                   message: `${m.kind}/${resource.name}: '${read.name}' reports '${read.field ?? OBSERVED_STATE_KEY}' only while it is running, and nothing starts it. Add '!ref ${read.name}' to a targets: list, or invoke it from a step.`,
                   data: { resource, filePath, path }
                 });
@@ -73668,7 +75151,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "UNKNOWN_ENGINE",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: no templating engine registered for '!${engineName}' at '${path}'.`,
               data: { resource, filePath, path }
             });
@@ -73778,7 +75261,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Warning,
                 code: "CEL_NONDETERMINISTIC_IN_COMPILE_FIELD",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${resource.name}: '${path}' is evaluated once at startup, so ${volatile.map((n) => `\`${n}\``).join(", ")} ${volatile.length === 1 ? "is" : "are"} baked in at load and never re-evaluated. Move the expression to a field evaluated per call (x-telo-eval: runtime) if it should change over time.`,
                 data: { resource, filePath, path }
               });
@@ -73789,7 +75272,7 @@ var StaticAnalyzer = class {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "ACCESSOR_NOT_PLAIN_CHAIN",
-              source: SOURCE38,
+              source: SOURCE40,
               message: `${m.kind}/${resource.name}: ${unbound.message}`,
               data: { resource, filePath, path }
             });
@@ -73802,7 +75285,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "CEL_SYNTAX_ERROR",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `CEL syntax error: ${f2.message}`,
                 data
               });
@@ -73810,7 +75293,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "ENGINE_DIAGNOSTIC",
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${resource.name}: !${engineName}: ${f2.message}`,
                 data
               });
@@ -73818,7 +75301,7 @@ var StaticAnalyzer = class {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: f2.code,
-                source: SOURCE38,
+                source: SOURCE40,
                 message: `${m.kind}/${resource.name}: !${engineName}: ${f2.message}` + (f2.code === "CEL_TYPE_ERROR" ? valueBrandHint(result.readTypes) : ""),
                 data
               });
@@ -73855,7 +75338,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: leading2 !== void 0 ? "HOST_PATH_RELATIVE" : "HOST_PATH_UNTYPED_SOURCE",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but ` + (leading2 !== void 0 ? `this expression builds a path starting with '${leading2}', which is relative.` : `this expression produces a plain '${type}'.`) + ` ${HOST_PATH_SOURCES}${alsoAccepts(target)}`,
           data
         };
@@ -73865,13 +75348,13 @@ var StaticAnalyzer = class {
         return result ? {
           severity: DiagnosticSeverity2.Error,
           code: "FUNCTION_RETURN_MISMATCH",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' returns '${type}' but '${slot.schema[RETURNS_FROM_ANNOTATION]}' declares '${expected}'.`,
           data
         } : {
           severity: DiagnosticSeverity2.Error,
           code: "CEL_TYPE_ERROR",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' returns '${type}' but ${holder} expects '${expected}'.`,
           data
         };
@@ -73882,7 +75365,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "CEL_TYPE_ERROR",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' reads '${chain}', which may be null, but ${holder} expects '${describeSlotType(target)}', which does not admit null. Guard it: '${chain} != null ? ${chain} : <a value for the null case>'.`,
           data
         };
@@ -73892,7 +75375,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "HOST_PATH_RELATIVE",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but this expression builds a path starting with '${leading}', which is relative. ${HOST_PATH_SOURCES}${alsoAccepts(target)}`,
           data
         };
@@ -73903,7 +75386,7 @@ var StaticAnalyzer = class {
         return {
           severity: DiagnosticSeverity2.Error,
           code: "HOST_PATH_UNTYPED_SOURCE",
-          source: SOURCE38,
+          source: SOURCE40,
           message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' is a Telo.HostPath, but the value it reads is declared '${produced["x-telo-type"] ?? produced.type ?? "a union with no host-path branch"}', so a relative path reaches it unresolved and is refused when the resource is created. Declare the source 'x-telo-type: Telo.HostPath' \u2014 a variable resolves a relative value against the working directory; any other source must already hold an absolute one.`,
           data
         };
@@ -73917,7 +75400,7 @@ var StaticAnalyzer = class {
       return result ? {
         severity: DiagnosticSeverity2.Error,
         code: "FUNCTION_RETURN_MISMATCH",
-        source: SOURCE38,
+        source: SOURCE40,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' produces a value whose declared shape disagrees with '${slot.schema[RETURNS_FROM_ANNOTATION]}': ${issues.join("; ")}.`,
         data
       } : conflicts.every((conflict) => conflict.beneathTypeArgument) ? {
@@ -73925,13 +75408,13 @@ var StaticAnalyzer = class {
         // both sides name; one outside makes it a shape misfit.
         severity: DiagnosticSeverity2.Error,
         code: "CEL_TYPE_ARGUMENT_MISMATCH",
-        source: SOURCE38,
+        source: SOURCE40,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' produces a value whose type arguments disagree with ${slot.callTarget !== void 0 ? holder : "the field's"}: ${issues.join("; ")}.`,
         data
       } : {
         severity: DiagnosticSeverity2.Error,
         code: "CEL_TYPE_ERROR",
-        source: SOURCE38,
+        source: SOURCE40,
         message: `${slot.resource.kind}/${slot.resource.name}: CEL at '${slot.path}' reads '${expression.trim()}', whose declared shape does not fit what ${holder} expects: ${issues.join("; ")}.`,
         data
       };
@@ -73982,7 +75465,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "DEPENDENCY_CYCLE",
-        source: SOURCE38,
+        source: SOURCE40,
         message: formatCycle(cycle),
         data: {
           resource: { kind: anchor.kind, name: anchor.name },
@@ -73996,7 +75479,7 @@ var StaticAnalyzer = class {
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: "OBSERVED_STATE_REQUIRED_FORBIDDEN",
-        source: SOURCE38,
+        source: SOURCE40,
         message: issue.message,
         data: {
           resource: { kind: issue.kind, name: issue.name },
@@ -74074,6 +75557,31 @@ var StaticAnalyzer = class {
         aliasesByModule,
         rootModules,
         (expr, declaringManifest) => celAccessChains(expr, moduleCallNamesOf(moduleCallNames2, declaringManifest))
+      )
+    );
+    diagnostics.push(
+      ...validateScopedKindDocuments(
+        allManifests,
+        options?.moduleDocuments ?? [],
+        defs,
+        aliases,
+        aliasesByModule,
+        rootModules,
+        reach,
+        (member, kind) => {
+          const definition = defs.resolve(kind);
+          if (!definition) throw new Error(`the built-in kind '${kind}' is not registered`);
+          const schema4 = validationSchemaFor(definition);
+          const standIns = /* @__PURE__ */ new Map();
+          return defs.validateResourceConfig(
+            substituteDecodedCelFields(member, schema4, void 0, {
+              standIns,
+              external: (ref) => defs.schemaForId(ref)
+            }),
+            schema4,
+            standIns
+          );
+        }
       )
     );
     const rooted = rewriteSyntheticOrigins(
@@ -74156,11 +75664,12 @@ function isOciRef(ref) {
 }
 
 // ../../analyzer/nodejs/src/import-resolution-diagnostics.ts
-var SOURCE39 = "telo-analyzer";
+var SOURCE41 = "telo-analyzer";
 function isRecognizedSourceShape(source) {
   return isOciRef(source) || source.startsWith("http://") || source.startsWith("https://") || isLocalPathSource(source);
 }
 function classify(e) {
+  if (e.reason === "reserved-prefix") return "KIND_PREFIX_RESERVED";
   if (e.reason === "unusable-target") return "INVALID_IMPORT_TARGET";
   return isRecognizedSourceShape(e.source ?? e.url) ? "IMPORT_UNRESOLVED" : "INVALID_IMPORT_SOURCE";
 }
@@ -74174,12 +75683,17 @@ function messageFor(e, code) {
     const removedForm = isRemovedBareRef(authored) ? ` The bare '<namespace>/<name>@<version>' form was removed \u2014 rewrite it to the module's 'oci://' ref (\`telo search <name>\` reports it).` : "";
     return `Cannot resolve ${via}: not a recognized module reference. Expected 'oci://host/repo@tag', 'https://\u2026', or a relative path.${removedForm}`;
   }
-  if (code === "INVALID_IMPORT_TARGET") return `Cannot use ${via}: ${e.error.message}`;
+  if (code === "INVALID_IMPORT_TARGET" || code === "KIND_PREFIX_RESERVED") {
+    return `Cannot use ${via}: ${e.error.message}`;
+  }
   return `Cannot resolve ${via}: ${e.error.message}`;
 }
 function importResolutionDiagnostics(graph) {
-  return graph.errors.map((e) => {
-    const filePath = e.fromSource ?? graph.entry.owner.source;
+  return importFailureDiagnostics(graph.errors, graph.entry.owner.source);
+}
+function importFailureDiagnostics(errors, entrySource) {
+  return errors.map((e) => {
+    const filePath = e.fromSource ?? entrySource;
     const code = classify(e);
     const data = { filePath };
     if (e.alias) data.path = `imports.${e.alias}`;
@@ -74187,239 +75701,99 @@ function importResolutionDiagnostics(graph) {
     return {
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE39,
+      source: SOURCE41,
       message: messageFor(e, code),
       data
     };
   });
 }
 
-// ../../analyzer/nodejs/src/yaml-source-edit.ts
-var PLAIN_UNSAFE_LEAD = /* @__PURE__ */ new Set([
-  "&",
-  "*",
-  "!",
-  "|",
-  ">",
-  "%",
-  "@",
-  "`",
-  "#",
-  "'",
-  '"',
-  "{",
-  "[",
-  "}",
-  "]",
-  ","
-]);
-function isPlainSafe(value2) {
-  if (value2 === "" || value2.trim() !== value2) return false;
-  if (PLAIN_UNSAFE_LEAD.has(value2[0])) return false;
-  if (/^[-?:]\s/.test(value2)) return false;
-  if (value2.includes(": ") || value2.includes(" #")) return false;
-  if (value2.endsWith(":")) return false;
-  return !/[\n\r]/.test(value2);
-}
-function quoteStyleOf(source) {
-  if (source.length >= 2 && source.startsWith('"') && source.endsWith('"')) return "double";
-  if (source.length >= 2 && source.startsWith("'") && source.endsWith("'")) return "single";
-  return "plain";
-}
-function renderFixReplacement(originalSource, replacement, tag) {
-  if (/[\n\r]/.test(originalSource) || /[\n\r]/.test(replacement)) return void 0;
-  if (tag === "ref" || tag === "module-path") {
-    return `!${tag} ${isPlainSafe(replacement) ? replacement : doubleQuoted(replacement)}`;
+// ../../analyzer/nodejs/src/diagnostic-location.ts
+function findPositions(graph, diagnosticData) {
+  const data = diagnosticData;
+  if (!data) return void 0;
+  if (data.resource?.kind && data.resource.name) {
+    const result = (data.filePath !== void 0 ? findByResource(graph, data.resource.kind, data.resource.name, data.filePath) : void 0) ?? findByResource(graph, data.resource.kind, data.resource.name);
+    if (result) return result;
   }
-  if (tag === "cel") return `!cel ${escapeFreeQuoted(replacement)}`;
-  const style = quoteStyleOf(originalSource);
-  if (style === "single") {
-    return `'${replacement.replaceAll("'", "''")}'`;
+  if (data.filePath) {
+    const result = findByFile(graph, data.filePath);
+    if (result) return result;
   }
-  if (style === "double" || !isPlainSafe(replacement)) return escapeFreeQuoted(replacement);
-  return replacement;
+  return void 0;
 }
-function doubleQuoted(value2) {
-  return `"${value2.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
-}
-function escapeFreeQuoted(value2) {
-  const needsEscapeWhenDoubled = value2.includes('"') || value2.includes("\\");
-  return needsEscapeWhenDoubled && !value2.includes("'") ? `'${value2}'` : doubleQuoted(value2);
-}
-
-// ../../analyzer/nodejs/src/module-compatibility.ts
-function manifestCompatibility(manifestText, teloVersion, host = {}) {
-  let doc;
-  try {
-    for (const parsed of parseAllDocuments(manifestText, { customTags: defaultCustomTags() })) {
-      const value2 = parsed.toJS();
-      const kind = value2?.kind;
-      if (typeof kind === "string" && isModuleKind(kind)) {
-        doc = value2;
-        break;
+function findByResource(graph, kind, name2, inFile) {
+  for (const mod of graph.modules.values()) {
+    for (const file of [mod.owner, ...mod.partials]) {
+      if (inFile !== void 0 && file.source !== inFile) continue;
+      for (let i = 0; i < file.manifests.length; i++) {
+        const m = file.manifests[i];
+        if (!m) continue;
+        if (m.kind !== kind) continue;
+        if (m.metadata?.name !== name2) continue;
+        const pos = file.positions[i];
+        return {
+          file: file.source,
+          positionIndex: pos?.positionIndex,
+          sourceLine: pos?.sourceLine
+        };
       }
     }
-  } catch {
-    return "unknown";
   }
-  if (!doc) return "unknown";
-  const { block, issues } = readRequires(doc);
-  if (issues.some((i) => !i.unknownAxis)) return "unreadable";
-  return evaluateRequires(block, teloVersion, host).satisfied ? "yes" : "too-new";
+  return void 0;
 }
-
-// ../../analyzer/nodejs/src/inline-imports.ts
-function inlineImportManifests(moduleManifest, modulePosition) {
-  const raw = moduleManifest.imports;
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
-  const out = [];
-  for (const [alias, value2] of Object.entries(raw)) {
-    const scalar2 = typeof value2 === "string";
-    const entry = scalar2 ? { source: value2 } : value2 && typeof value2 === "object" && !Array.isArray(value2) ? value2 : void 0;
-    if (!entry || typeof entry.source !== "string") continue;
-    const source = foldIntegrity(entry.source, entry.integrity);
-    const manifest = {
-      kind: "Telo.Import",
-      metadata: { name: alias },
-      source,
-      ...entry.variables !== void 0 ? { variables: entry.variables } : {},
-      ...entry.secrets !== void 0 ? { secrets: entry.secrets } : {},
-      ...entry.resources !== void 0 ? { resources: entry.resources } : {},
-      ...entry.needs !== void 0 ? { needs: entry.needs } : {},
-      ...entry.runtime !== void 0 ? { runtime: entry.runtime } : {},
-      ...entry.logging !== void 0 ? { logging: entry.logging } : {}
+function findByFile(graph, filePath) {
+  for (const mod of graph.modules.values()) {
+    for (const file of [mod.owner, ...mod.partials]) {
+      if (file.source === filePath) {
+        const pos = file.positions[0];
+        return {
+          file: file.source,
+          positionIndex: pos?.positionIndex,
+          sourceLine: pos?.sourceLine
+        };
+      }
+    }
+  }
+  return void 0;
+}
+var ZERO_RANGE = {
+  start: { line: 0, character: 0 },
+  end: { line: 0, character: 0 }
+};
+function resolveRange(d, positions) {
+  if (d.range) return d.range;
+  const fieldPath = d.data?.path;
+  if (fieldPath !== void 0 && positions.positionIndex) {
+    const direct = positions.positionIndex.get(fieldPath);
+    if (direct) return direct;
+    for (const parent of parentPaths(fieldPath).slice(1)) {
+      const keyRange2 = positions.positionIndex.get(`@key:${parent}`);
+      if (keyRange2) return keyRange2;
+      const valueRange2 = positions.positionIndex.get(parent);
+      if (valueRange2) return valueRange2;
+    }
+  }
+  if (positions.sourceLine !== void 0) {
+    return {
+      start: { line: positions.sourceLine, character: 0 },
+      end: { line: positions.sourceLine, character: Number.MAX_SAFE_INTEGER }
     };
-    out.push({ manifest, position: synthPosition(modulePosition, alias, scalar2) });
   }
-  return out;
+  return ZERO_RANGE;
 }
-function desugarLoadedFile(file) {
-  let moduleIndex = -1;
-  for (let i = 0; i < file.manifests.length; i++) {
-    const m = file.manifests[i];
-    if (m && isModuleKind(m.kind)) {
-      moduleIndex = i;
-      break;
-    }
-  }
-  if (moduleIndex < 0) return file;
-  const synthetic = inlineImportManifests(file.manifests[moduleIndex], file.positions[moduleIndex]);
-  if (synthetic.length === 0) return file;
-  const out = Object.defineProperties({}, Object.getOwnPropertyDescriptors(file));
-  out.manifests = [...file.manifests, ...synthetic.map((s) => s.manifest)];
-  out.positions = [...file.positions, ...synthetic.map((s) => s.position)];
-  return out;
-}
-function synthPosition(modulePosition, alias, scalar2) {
-  if (!modulePosition) return { sourceLine: 0, positionIndex: /* @__PURE__ */ new Map() };
-  const base = modulePosition.positionIndex;
-  const index = /* @__PURE__ */ new Map();
-  const keyRange2 = base.get(`@key:imports.${alias}`);
-  const valueRange2 = base.get(`imports.${alias}`);
-  if (keyRange2) {
-    index.set("metadata.name", keyRange2);
-    index.set("@key:metadata.name", keyRange2);
-  }
-  if (scalar2) {
-    if (valueRange2) index.set("source", valueRange2);
-  } else {
-    const valuePrefix = `imports.${alias}.`;
-    const keyPrefix = `@key:imports.${alias}.`;
-    for (const [path, range] of base) {
-      if (path.startsWith(valuePrefix)) {
-        index.set(path.slice(valuePrefix.length), range);
-      } else if (path.startsWith(keyPrefix)) {
-        index.set(`@key:${path.slice(keyPrefix.length)}`, range);
-      }
-    }
-  }
-  if (valueRange2) index.set("", valueRange2);
-  const sourceLine = (keyRange2 ?? valueRange2)?.start.line ?? modulePosition.sourceLine;
-  return { sourceLine, positionIndex: index };
-}
-
-// ../../analyzer/nodejs/src/module-file-existence.ts
-async function collectLocalModuleFileDiagnostics(entry, modules, importEdges, sourceFor) {
+function parentPaths(path) {
   const out = [];
-  const seen = /* @__PURE__ */ new Set([entry.owner.source]);
-  const queue = [entry];
-  for (let next = queue.shift(); next; next = queue.shift()) {
-    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
-    for (const file of [next.owner, ...next.partials]) {
-      for (const edge of importEdges.get(file.source)?.values() ?? []) {
-        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
-        seen.add(edge.targetSource);
-        const target = modules.get(edge.targetSource);
-        if (target) queue.push(target);
-      }
-    }
+  let cur = path;
+  while (cur.length > 0) {
+    out.push(cur);
+    const lastDot = cur.lastIndexOf(".");
+    const lastBracket = cur.lastIndexOf("[");
+    const cut = Math.max(lastDot, lastBracket);
+    if (cut <= 0) break;
+    cur = cur.slice(0, cut);
   }
   return out;
-}
-function isPathImport(ref) {
-  return ref.startsWith(".") || ref.startsWith("/");
-}
-async function collectModuleFileDiagnostics(module, source) {
-  if (!source?.exists) return [];
-  const registry = defaultRegistry();
-  const out = [];
-  const ownerSource = module.owner.source;
-  let staged;
-  for (const file of [module.owner, ...module.partials]) {
-    const found = [];
-    file.manifests.forEach((manifest, index) => {
-      if (!manifest || isNeverInstantiated(manifest.kind)) return;
-      walkCelExpressions(manifest, "", (written, at2, engine) => {
-        for (const claim of registry.get(engine)?.fileClaims?.(written) ?? []) {
-          found.push({ index, at: at2, engine, written, relative: claim.path, code: claim.notFoundCode });
-        }
-      });
-    });
-    for (const { index, at: at2, engine, written, relative, code } of found) {
-      staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
-      if (pathsAtOrBeneath(staged, relative).length > 0) continue;
-      if (await source.exists(ownerSource, relative)) continue;
-      const manifest = file.manifests[index];
-      const name2 = manifest.metadata?.name;
-      const range = file.positions[index]?.positionIndex?.get(at2);
-      const absolute = source.locate?.(ownerSource, relative);
-      const hint = await nearMiss(source, ownerSource, relative, written);
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code,
-        source: "telo-analyzer",
-        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
-        data: {
-          resource: { kind: manifest.kind, name: name2 ?? "" },
-          filePath: file.source,
-          path: at2,
-          ...hint?.replacement ? { fix: { replacement: hint.replacement } } : {}
-        },
-        ...range ? { range } : {}
-      });
-    }
-  }
-  return out;
-}
-async function nearMiss(source, ownerSource, relative, written) {
-  if (!source.listDirectory) return void 0;
-  const slash = relative.lastIndexOf("/");
-  const directory = slash === -1 ? "" : relative.slice(0, slash);
-  const entries = await source.listDirectory(ownerSource, directory || ".");
-  if (!entries) return { text: `The directory '${directory}/' does not exist.` };
-  const meant = nearestName(relative.slice(slash + 1), entries);
-  if (!meant) return void 0;
-  const path = directory ? `${directory}/${meant}` : meant;
-  const replacement = written.trim().startsWith("./") ? `./${path}` : path;
-  return { text: `Did you mean '${replacement}'?`, replacement };
-}
-function stagedFilesOf(owner) {
-  const { sources, problems } = readModuleSources(owner);
-  if (problems.length > 0) return [];
-  return stagedModuleFiles(readNativeEntries(owner).entries, {
-    patterns: readAssetPatterns(owner),
-    sources
-  });
 }
 
 // ../../analyzer/nodejs/src/migrations/patch.ts
@@ -74607,6 +75981,59 @@ function formatMigrationPath(path) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/yaml-source-edit.ts
+var PLAIN_UNSAFE_LEAD = /* @__PURE__ */ new Set([
+  "&",
+  "*",
+  "!",
+  "|",
+  ">",
+  "%",
+  "@",
+  "`",
+  "#",
+  "'",
+  '"',
+  "{",
+  "[",
+  "}",
+  "]",
+  ","
+]);
+function isPlainSafe(value2) {
+  if (value2 === "" || value2.trim() !== value2) return false;
+  if (PLAIN_UNSAFE_LEAD.has(value2[0])) return false;
+  if (/^[-?:]\s/.test(value2)) return false;
+  if (value2.includes(": ") || value2.includes(" #")) return false;
+  if (value2.endsWith(":")) return false;
+  return !/[\n\r]/.test(value2);
+}
+function quoteStyleOf(source) {
+  if (source.length >= 2 && source.startsWith('"') && source.endsWith('"')) return "double";
+  if (source.length >= 2 && source.startsWith("'") && source.endsWith("'")) return "single";
+  return "plain";
+}
+function renderFixReplacement(originalSource, replacement, tag) {
+  if (/[\n\r]/.test(originalSource) || /[\n\r]/.test(replacement)) return void 0;
+  if (tag === "ref" || tag === "module-path") {
+    return `!${tag} ${isPlainSafe(replacement) ? replacement : doubleQuoted(replacement)}`;
+  }
+  if (tag === "cel") return `!cel ${escapeFreeQuoted(replacement)}`;
+  const style = quoteStyleOf(originalSource);
+  if (style === "single") {
+    return `'${replacement.replaceAll("'", "''")}'`;
+  }
+  if (style === "double" || !isPlainSafe(replacement)) return escapeFreeQuoted(replacement);
+  return replacement;
+}
+function doubleQuoted(value2) {
+  return `"${value2.replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
+}
+function escapeFreeQuoted(value2) {
+  const needsEscapeWhenDoubled = value2.includes('"') || value2.includes("\\");
+  return needsEscapeWhenDoubled && !value2.includes("'") ? `'${value2}'` : doubleQuoted(value2);
+}
+
 // ../../analyzer/nodejs/src/migrations/types.ts
 var MIGRATION_OPS = [
   "rename-key",
@@ -74773,6 +76200,37 @@ function parseMigrationEntry(file, data, surface = "core") {
   };
 }
 
+// ../../analyzer/nodejs/src/migrations/entries/capability-as-extends.json
+var capability_as_extends_default = {
+  $comment: "The legacy spelling is told apart WITHOUT resolving a name: every lifecycle role is written `Telo.<Role>`, so an alias-qualified value whose alias is not `Telo` named a module's kind. The two patterns are the RE2 form of that test. A typo such as `Telo.Invokable` is not matched \u2014 it stays for `CAPABILITY_UNKNOWN`, which names the nearest role, rather than being moved into `extends:` and reported as a missing parent. Where `extends:` is already declared the rename refuses the occupied key and the node is left to the validator.",
+  id: "capability-as-extends",
+  code: "CAPABILITY_SHADOWS_EXTENDS",
+  severity: "warning",
+  reason: "`capability:` names a lifecycle role and nothing else. A kind this one specializes is declared in `extends:`, which also applies the parent's schema, invocation contract and throws ceiling to it.",
+  rules: [
+    {
+      match: {
+        key: "capability",
+        inKind: [
+          "Telo.Definition",
+          "Telo.Abstract"
+        ],
+        under: [
+          "capability"
+        ],
+        valuePattern: "[A-Za-z_][A-Za-z0-9_]*\\.[A-Za-z_][A-Za-z0-9_]*",
+        valueNotPattern: "Telo\\..*"
+      },
+      patch: [
+        {
+          op: "rename-key",
+          to: "extends"
+        }
+      ]
+    }
+  ]
+};
+
 // ../../analyzer/nodejs/src/migrations/entries/normalize-value-types.json
 var normalize_value_types_default = {
   $comment: "Three keywords answered one question \u2014 what is the value at this slot, beyond what JSON Schema's `type` can say \u2014 and each answered it differently. `inSchema` with the wildcard `inKind` / `under` is what makes this reachable at all: these annotations occur in author-written schema fragments inside ORDINARY resource documents (an inline `inputType:` on any kind that declares one, a route's `request.schema.body`), and that set of kinds is open, so enumerating it would be both incomplete and a violation of the topology-driven constraint. The wildcards are earned by the pairing the reader enforces: a schema region bounds where the walk may go, and an `x-telo-*` key \u2014 Telo vocabulary wherever it appears \u2014 bounds what it may touch. Each rule sets the value BEFORE renaming the key, so both match the frozen pre-migration tree; a rename first would leave the second rule looking for a node that no longer exists. `notUnder` keeps all three out of the data-bearing keywords, where a value may merely look like a schema.",
@@ -74922,6 +76380,7 @@ var untagged_interpolation_default = {
 
 // ../../analyzer/nodejs/src/migrations/entries/index.ts
 var MIGRATION_ENTRY_FILES = [
+  ["capability-as-extends.json", capability_as_extends_default],
   ["normalize-value-types.json", normalize_value_types_default],
   ["ref-slot-scalar-type.json", ref_slot_scalar_type_default],
   ["schema-prepare-bucket.json", schema_prepare_bucket_default],
@@ -75114,6 +76573,292 @@ function indexIsStale(documentIndex, path, shiftedArrays) {
     }
   }
   return false;
+}
+
+// ../../analyzer/nodejs/src/migrations/provenance.ts
+function identityKey2(kind, name2) {
+  return `${kind}\0${name2}`;
+}
+function push2(index, key2, record) {
+  const bucket2 = index.get(key2);
+  if (bucket2) bucket2.push(record);
+  else index.set(key2, [record]);
+}
+function buildIndex(graph) {
+  const byFile = /* @__PURE__ */ new Map();
+  const byIdentity = /* @__PURE__ */ new Map();
+  let size = 0;
+  for (const mod of graph.modules.values()) {
+    for (const file of [mod.owner, ...mod.partials]) {
+      for (const rewrite of file.migrations.rewrites) {
+        const manifest = file.manifests[rewrite.documentIndex];
+        const kind = typeof manifest?.kind === "string" ? manifest.kind : void 0;
+        const name2 = typeof manifest?.metadata?.name === "string" ? manifest.metadata.name : void 0;
+        const record = { source: file.source, kind, name: name2, rewrite };
+        push2(byFile, file.source, record);
+        if (kind !== void 0 && name2 !== void 0) {
+          push2(byIdentity, identityKey2(kind, name2), record);
+        }
+        size++;
+      }
+    }
+  }
+  return { byFile, byIdentity, size };
+}
+function candidatesFor(index, filePath, kind, name2) {
+  if (kind !== void 0 && name2 !== void 0) {
+    const records = index.byIdentity.get(identityKey2(kind, name2));
+    if (!records) return void 0;
+    if (filePath !== void 0) return records.filter((r) => r.source === filePath);
+    return new Set(records.map((r) => r.source)).size > 1 ? void 0 : records;
+  }
+  if (filePath !== void 0) return index.byFile.get(filePath);
+  return void 0;
+}
+function remapPath(path, records) {
+  let best;
+  let ambiguous = false;
+  for (const { rewrite } of records) {
+    const migrated = rewrite.migratedPath;
+    if (migrated === rewrite.legacyPath) continue;
+    const covers2 = path === migrated || path.startsWith(`${migrated}.`) || path.startsWith(`${migrated}[`);
+    if (!covers2) continue;
+    if (!best || migrated.length > best.migratedPath.length) {
+      best = rewrite;
+      ambiguous = false;
+    } else if (migrated.length === best.migratedPath.length && rewrite.legacyPath !== best.legacyPath) {
+      ambiguous = true;
+    }
+  }
+  if (!best || ambiguous) return void 0;
+  return best.legacyPath + path.slice(best.migratedPath.length);
+}
+function remapMigratedPaths(graph, diagnostics) {
+  const index = buildIndex(graph);
+  if (index.size === 0) return [...diagnostics];
+  return diagnostics.map((d) => {
+    const data = d.data;
+    if (typeof data?.path !== "string") return d;
+    const records = candidatesFor(
+      index,
+      typeof data.filePath === "string" ? data.filePath : void 0,
+      typeof data.resource?.kind === "string" ? data.resource.kind : void 0,
+      typeof data.resource?.name === "string" ? data.resource.name : void 0
+    );
+    if (!records || records.length === 0) return d;
+    const remapped = remapPath(data.path, records);
+    if (remapped === void 0 || remapped === data.path) return d;
+    return { ...d, data: { ...data, path: remapped } };
+  });
+}
+
+// ../../analyzer/nodejs/src/graph-diagnostics.ts
+function compromisedFiles(graph) {
+  const entrySource = graph.entry.owner.source;
+  const files = /* @__PURE__ */ new Set();
+  for (const d of graph.parseDiagnostics) {
+    const f2 = d.data?.filePath;
+    if (f2) files.add(f2);
+  }
+  for (const e of graph.errors) files.add(e.fromSource ?? entrySource);
+  return files;
+}
+function assembleGraphDiagnostics(graph, analysisDiagnostics) {
+  const compromised = compromisedFiles(graph);
+  const entrySource = graph.entry.owner.source;
+  const live = [];
+  const suppressed = [];
+  for (const d of remapMigratedPaths(graph, analysisDiagnostics)) {
+    const rawFilePath = d.data?.filePath;
+    const file = findPositions(graph, d.data)?.file ?? rawFilePath ?? entrySource;
+    (compromised.has(file) ? suppressed : live).push(d);
+  }
+  return {
+    diagnostics: [
+      ...graph.parseDiagnostics,
+      ...graph.migrationDiagnostics,
+      ...graph.versionDiagnostics,
+      ...graph.moduleFileDiagnostics,
+      ...importResolutionDiagnostics(graph),
+      ...live
+    ],
+    suppressed
+  };
+}
+
+// ../../analyzer/nodejs/src/module-compatibility.ts
+function manifestCompatibility(manifestText, teloVersion, host = {}) {
+  let doc;
+  try {
+    for (const parsed of parseAllDocuments(manifestText, { customTags: defaultCustomTags() })) {
+      const value2 = parsed.toJS();
+      const kind = value2?.kind;
+      if (typeof kind === "string" && isModuleKind(kind)) {
+        doc = value2;
+        break;
+      }
+    }
+  } catch {
+    return "unknown";
+  }
+  if (!doc) return "unknown";
+  const { block, issues } = readRequires(doc);
+  if (issues.some((i) => !i.unknownAxis)) return "unreadable";
+  return evaluateRequires(block, teloVersion, host).satisfied ? "yes" : "too-new";
+}
+
+// ../../analyzer/nodejs/src/inline-imports.ts
+function inlineImportManifests(moduleManifest, modulePosition) {
+  const raw = moduleManifest.imports;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
+  const out = [];
+  for (const [alias, value2] of Object.entries(raw)) {
+    const scalar2 = typeof value2 === "string";
+    const entry = scalar2 ? { source: value2 } : value2 && typeof value2 === "object" && !Array.isArray(value2) ? value2 : void 0;
+    if (!entry || typeof entry.source !== "string") continue;
+    const source = foldIntegrity(entry.source, entry.integrity);
+    const manifest = {
+      kind: "Telo.Import",
+      metadata: { name: alias },
+      source,
+      ...entry.variables !== void 0 ? { variables: entry.variables } : {},
+      ...entry.secrets !== void 0 ? { secrets: entry.secrets } : {},
+      ...entry.resources !== void 0 ? { resources: entry.resources } : {},
+      ...entry.needs !== void 0 ? { needs: entry.needs } : {},
+      ...entry.runtime !== void 0 ? { runtime: entry.runtime } : {},
+      ...entry.logging !== void 0 ? { logging: entry.logging } : {}
+    };
+    out.push({ manifest, position: synthPosition(modulePosition, alias, scalar2) });
+  }
+  return out;
+}
+function desugarLoadedFile(file) {
+  let moduleIndex = -1;
+  for (let i = 0; i < file.manifests.length; i++) {
+    const m = file.manifests[i];
+    if (m && isModuleKind(m.kind)) {
+      moduleIndex = i;
+      break;
+    }
+  }
+  if (moduleIndex < 0) return file;
+  const synthetic = inlineImportManifests(file.manifests[moduleIndex], file.positions[moduleIndex]);
+  if (synthetic.length === 0) return file;
+  const out = Object.defineProperties({}, Object.getOwnPropertyDescriptors(file));
+  out.manifests = [...file.manifests, ...synthetic.map((s) => s.manifest)];
+  out.positions = [...file.positions, ...synthetic.map((s) => s.position)];
+  return out;
+}
+function synthPosition(modulePosition, alias, scalar2) {
+  if (!modulePosition) return { sourceLine: 0, positionIndex: /* @__PURE__ */ new Map() };
+  const base = modulePosition.positionIndex;
+  const index = /* @__PURE__ */ new Map();
+  const keyRange2 = base.get(`@key:imports.${alias}`);
+  const valueRange2 = base.get(`imports.${alias}`);
+  if (keyRange2) {
+    index.set("metadata.name", keyRange2);
+    index.set("@key:metadata.name", keyRange2);
+  }
+  if (scalar2) {
+    if (valueRange2) index.set("source", valueRange2);
+  } else {
+    const valuePrefix = `imports.${alias}.`;
+    const keyPrefix = `@key:imports.${alias}.`;
+    for (const [path, range] of base) {
+      if (path.startsWith(valuePrefix)) {
+        index.set(path.slice(valuePrefix.length), range);
+      } else if (path.startsWith(keyPrefix)) {
+        index.set(`@key:${path.slice(keyPrefix.length)}`, range);
+      }
+    }
+  }
+  if (valueRange2) index.set("", valueRange2);
+  const sourceLine = (keyRange2 ?? valueRange2)?.start.line ?? modulePosition.sourceLine;
+  return { sourceLine, positionIndex: index };
+}
+
+// ../../analyzer/nodejs/src/module-file-existence.ts
+async function collectLocalModuleFileDiagnostics(entry, modules, importEdges, sourceFor) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set([entry.owner.source]);
+  const queue = [entry];
+  for (let next = queue.shift(); next; next = queue.shift()) {
+    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
+    for (const file of [next.owner, ...next.partials]) {
+      for (const edge of importEdges.get(file.source)?.values() ?? []) {
+        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
+        seen.add(edge.targetSource);
+        const target = modules.get(edge.targetSource);
+        if (target) queue.push(target);
+      }
+    }
+  }
+  return out;
+}
+function isPathImport(ref) {
+  return ref.startsWith(".") || ref.startsWith("/");
+}
+async function collectModuleFileDiagnostics(module, source) {
+  if (!source?.exists) return [];
+  const registry = defaultRegistry();
+  const out = [];
+  const ownerSource = module.owner.source;
+  let staged;
+  for (const file of [module.owner, ...module.partials]) {
+    const found = [];
+    file.manifests.forEach((manifest, index) => {
+      if (!manifest || isNeverInstantiated(manifest.kind)) return;
+      walkCelExpressions(manifest, "", (written, at2, engine) => {
+        for (const claim of registry.get(engine)?.fileClaims?.(written) ?? []) {
+          found.push({ index, at: at2, engine, written, relative: claim.path, code: claim.notFoundCode });
+        }
+      });
+    });
+    for (const { index, at: at2, engine, written, relative, code } of found) {
+      staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
+      if (pathsAtOrBeneath(staged, relative).length > 0) continue;
+      if (await source.exists(ownerSource, relative)) continue;
+      const manifest = file.manifests[index];
+      const name2 = manifest.metadata?.name;
+      const range = file.positions[index]?.positionIndex?.get(at2);
+      const absolute = source.locate?.(ownerSource, relative);
+      const hint = await nearMiss(source, ownerSource, relative, written);
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code,
+        source: "telo-analyzer",
+        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
+        data: {
+          resource: { kind: manifest.kind, name: name2 ?? "" },
+          filePath: file.source,
+          path: at2,
+          ...hint?.replacement ? { fix: { replacement: hint.replacement } } : {}
+        },
+        ...range ? { range } : {}
+      });
+    }
+  }
+  return out;
+}
+async function nearMiss(source, ownerSource, relative, written) {
+  if (!source.listDirectory) return void 0;
+  const slash = relative.lastIndexOf("/");
+  const directory = slash === -1 ? "" : relative.slice(0, slash);
+  const entries = await source.listDirectory(ownerSource, directory || ".");
+  if (!entries) return { text: `The directory '${directory}/' does not exist.` };
+  const meant = nearestName(relative.slice(slash + 1), entries);
+  if (!meant) return void 0;
+  const path = directory ? `${directory}/${meant}` : meant;
+  const replacement = written.trim().startsWith("./") ? `./${path}` : path;
+  return { text: `Did you mean '${replacement}'?`, replacement };
+}
+function stagedFilesOf(owner) {
+  const { sources, problems } = readModuleSources(owner);
+  if (problems.length > 0) return [];
+  return stagedModuleFiles(readNativeEntries(owner).entries, {
+    patterns: readAssetPatterns(owner),
+    sources
+  });
 }
 
 // ../../analyzer/nodejs/src/position-metadata.ts
@@ -75637,7 +77382,7 @@ function parseLoadedFile(source, requestedUrl, text3, options, shared) {
 }
 
 // ../../analyzer/nodejs/src/reconcile-module-versions.ts
-var SOURCE40 = "telo-analyzer";
+var SOURCE42 = "telo-analyzer";
 function refIdentity(ref) {
   const base = ref.split("#")[0];
   if (!base || base.startsWith(".") || base.startsWith("/") || base.startsWith("file:")) {
@@ -75681,7 +77426,7 @@ function hoistDiagnostic(identity, importerSource, alias, loser, winner, conflic
     return {
       severity: DiagnosticSeverity2.Error,
       code: "MODULE_VERSION_CONFLICT",
-      source: SOURCE40,
+      source: SOURCE42,
       message: `Module '${identity}' is imported at incompatible major versions: ${loser.version || "<unknown>"} here and ${winner.version} elsewhere in the same graph. Major versions can carry breaking changes and cannot be reconciled automatically \u2014 align every importer on one major.`,
       data
     };
@@ -75691,7 +77436,7 @@ function hoistDiagnostic(identity, importerSource, alias, loser, winner, conflic
     return {
       severity: DiagnosticSeverity2.Warning,
       code: "MODULE_VERSION_HOISTED",
-      source: SOURCE40,
+      source: SOURCE42,
       message: `Module '${identity}@${winner.version}' is imported from two sources whose contents differ ('${loser.source}' and '${winner.source}'). Using '${winner.source}' for every importer \u2014 pin a single source to remove the ambiguity.`,
       data
     };
@@ -75781,6 +77526,23 @@ function collectMigrationDiagnostics(entry) {
   return diagnostics;
 }
 function importTargetIdentity(target, importSource) {
+  const identity = libraryIdentity(target, importSource);
+  if ("unusable" in identity) return { ...identity, reason: "unusable-target" };
+  if (isReservedKindPrefix(identity.name)) {
+    return { unusable: reservedLibraryNameMessage(importSource, identity.name), reason: "reserved-prefix" };
+  }
+  return identity;
+}
+function libraryIdentity(target, importSource) {
+  const first = target.owner.manifests[0];
+  if (isBuiltinVocabularyRoot(first)) {
+    return {
+      unusable: builtinVocabularyImportMessage(
+        importSource,
+        first?.metadata?.version
+      )
+    };
+  }
   const library = target.owner.manifests.find((m) => m?.kind === "Telo.Library");
   const application = target.owner.manifests.find((m) => m?.kind === "Telo.Application");
   if (!library && application) {
@@ -75803,6 +77565,57 @@ function importTargetIdentity(target, importSource) {
   }
   const namespace = library.metadata?.namespace;
   return { name: name2, namespace: typeof namespace === "string" ? namespace : null };
+}
+async function loadImportTarget(request, port) {
+  const { fromSource, source, alias, sourceLine } = request;
+  const failure = (url, error, reason, stampLine = true) => {
+    if (stampLine && sourceLine !== void 0) {
+      error.sourceLine = sourceLine;
+    }
+    return {
+      failure: {
+        url,
+        source,
+        fromSource,
+        ...alias !== void 0 ? { alias } : {},
+        ...sourceLine !== void 0 ? { sourceLine } : {},
+        ...reason ? { reason } : {},
+        error
+      }
+    };
+  };
+  if (alias !== void 0 && isReservedKindPrefix(alias)) {
+    return failure(source, new Error(reservedImportAliasMessage(alias)), "reserved-prefix");
+  }
+  let resolvedUrl;
+  try {
+    resolvedUrl = port.resolve(fromSource, source);
+  } catch (err) {
+    return failure(source, err instanceof Error ? err : new Error(String(err)), void 0, false);
+  }
+  let module;
+  try {
+    module = await port.load(resolvedUrl);
+  } catch (err) {
+    return failure(resolvedUrl, err instanceof Error ? err : new Error(String(err)));
+  }
+  const identity = importTargetIdentity(module, source);
+  if ("unusable" in identity) {
+    return failure(module.owner.source, new Error(identity.unusable), identity.reason);
+  }
+  return { resolvedUrl, module, identity };
+}
+function builtinVocabularyEntryRefusal(file) {
+  if (!isBuiltinVocabularyRoot(file.manifests[0])) return void 0;
+  const range = file.positions[0]?.positionIndex.get("kind");
+  return {
+    severity: DiagnosticSeverity2.Error,
+    code: "UNDEFINED_KIND",
+    source: "telo-analyzer",
+    message: BUILTIN_VOCABULARY_NOT_A_MODULE,
+    ...range ? { range } : {},
+    data: { filePath: file.source }
+  };
 }
 var SYSTEM_KINDS2 = /* @__PURE__ */ new Set([
   "Telo.Application",
@@ -76017,6 +77830,21 @@ var Loader = class {
     const rootSource = entry.owner.source;
     const modules = /* @__PURE__ */ new Map();
     modules.set(rootSource, entry);
+    const refusal = builtinVocabularyEntryRefusal(entry.owner);
+    if (refusal) {
+      return {
+        rootSource,
+        entry,
+        modules,
+        importEdges: /* @__PURE__ */ new Map(),
+        overrides: /* @__PURE__ */ new Map(),
+        migrationDiagnostics: [],
+        versionDiagnostics: [],
+        moduleFileDiagnostics: [],
+        parseDiagnostics: [...collectParseDiagnostics(modules), refusal],
+        errors: []
+      };
+    }
     const importEdges = /* @__PURE__ */ new Map();
     const errors = [];
     const queue = [entry];
@@ -76033,64 +77861,26 @@ var Loader = class {
           const alias = m.metadata?.name;
           if (!alias) continue;
           const sourceLine = file.positions[i]?.sourceLine ?? 0;
-          let resolvedTarget;
-          try {
-            resolvedTarget = this.resolveImportUrl(file.source, importSource);
-          } catch (err) {
-            errors.push({
-              url: importSource,
-              source: importSource,
-              fromSource: file.source,
-              alias,
-              sourceLine,
-              error: err instanceof Error ? err : new Error(String(err))
-            });
-            continue;
-          }
-          let targetCanonical;
-          let targetModule;
-          if (modules.has(resolvedTarget)) {
-            targetCanonical = resolvedTarget;
-            targetModule = modules.get(resolvedTarget);
-          } else {
-            try {
-              const loaded = await this.loadModule(resolvedTarget, options);
-              targetCanonical = loaded.owner.source;
-              if (!modules.has(targetCanonical)) {
-                modules.set(targetCanonical, loaded);
-                targetModule = loaded;
-              } else {
-                targetModule = modules.get(targetCanonical);
+          const loaded = await loadImportTarget(
+            { fromSource: file.source, source: importSource, alias, sourceLine },
+            {
+              resolve: (from, source) => this.resolveImportUrl(from, source),
+              load: async (url) => {
+                const known = modules.get(url);
+                if (known) return known;
+                const target = await this.loadModule(url, options);
+                const canonical = target.owner.source;
+                if (!modules.has(canonical)) modules.set(canonical, target);
+                return modules.get(canonical);
               }
-            } catch (err) {
-              const e = err instanceof Error ? err : new Error(String(err));
-              e.sourceLine = sourceLine;
-              errors.push({
-                url: resolvedTarget,
-                source: importSource,
-                fromSource: file.source,
-                alias,
-                sourceLine,
-                error: e
-              });
-              continue;
             }
-          }
-          const identity = importTargetIdentity(targetModule, importSource);
-          if ("unusable" in identity) {
-            const e = new Error(identity.unusable);
-            e.sourceLine = sourceLine;
-            errors.push({
-              url: targetCanonical,
-              source: importSource,
-              fromSource: file.source,
-              alias,
-              sourceLine,
-              reason: "unusable-target",
-              error: e
-            });
+          );
+          if ("failure" in loaded) {
+            errors.push(loaded.failure);
             continue;
           }
+          const { module: targetModule, identity } = loaded;
+          const targetCanonical = targetModule.owner.source;
           aliases.set(alias, {
             targetSource: targetCanonical,
             targetRef: importSource,
@@ -76201,83 +77991,6 @@ var Loader = class {
   }
 };
 
-// ../../analyzer/nodejs/src/migrations/provenance.ts
-function identityKey2(kind, name2) {
-  return `${kind}\0${name2}`;
-}
-function push2(index, key2, record) {
-  const bucket2 = index.get(key2);
-  if (bucket2) bucket2.push(record);
-  else index.set(key2, [record]);
-}
-function buildIndex(graph) {
-  const byFile = /* @__PURE__ */ new Map();
-  const byIdentity = /* @__PURE__ */ new Map();
-  let size = 0;
-  for (const mod of graph.modules.values()) {
-    for (const file of [mod.owner, ...mod.partials]) {
-      for (const rewrite of file.migrations.rewrites) {
-        const manifest = file.manifests[rewrite.documentIndex];
-        const kind = typeof manifest?.kind === "string" ? manifest.kind : void 0;
-        const name2 = typeof manifest?.metadata?.name === "string" ? manifest.metadata.name : void 0;
-        const record = { source: file.source, kind, name: name2, rewrite };
-        push2(byFile, file.source, record);
-        if (kind !== void 0 && name2 !== void 0) {
-          push2(byIdentity, identityKey2(kind, name2), record);
-        }
-        size++;
-      }
-    }
-  }
-  return { byFile, byIdentity, size };
-}
-function candidatesFor(index, filePath, kind, name2) {
-  if (kind !== void 0 && name2 !== void 0) {
-    const records = index.byIdentity.get(identityKey2(kind, name2));
-    if (!records) return void 0;
-    if (filePath !== void 0) return records.filter((r) => r.source === filePath);
-    return new Set(records.map((r) => r.source)).size > 1 ? void 0 : records;
-  }
-  if (filePath !== void 0) return index.byFile.get(filePath);
-  return void 0;
-}
-function remapPath(path, records) {
-  let best;
-  let ambiguous = false;
-  for (const { rewrite } of records) {
-    const migrated = rewrite.migratedPath;
-    if (migrated === rewrite.legacyPath) continue;
-    const covers2 = path === migrated || path.startsWith(`${migrated}.`) || path.startsWith(`${migrated}[`);
-    if (!covers2) continue;
-    if (!best || migrated.length > best.migratedPath.length) {
-      best = rewrite;
-      ambiguous = false;
-    } else if (migrated.length === best.migratedPath.length && rewrite.legacyPath !== best.legacyPath) {
-      ambiguous = true;
-    }
-  }
-  if (!best || ambiguous) return void 0;
-  return best.legacyPath + path.slice(best.migratedPath.length);
-}
-function remapMigratedPaths(graph, diagnostics) {
-  const index = buildIndex(graph);
-  if (index.size === 0) return [...diagnostics];
-  return diagnostics.map((d) => {
-    const data = d.data;
-    if (typeof data?.path !== "string") return d;
-    const records = candidatesFor(
-      index,
-      typeof data.filePath === "string" ? data.filePath : void 0,
-      typeof data.resource?.kind === "string" ? data.resource.kind : void 0,
-      typeof data.resource?.name === "string" ? data.resource.name : void 0
-    );
-    if (!records || records.length === 0) return d;
-    const remapped = remapPath(data.path, records);
-    if (remapped === void 0 || remapped === data.path) return d;
-    return { ...d, data: { ...data, path: remapped } };
-  });
-}
-
 // ../../analyzer/nodejs/src/sources/versioned-ref.ts
 function parseVersionedRef(ref) {
   const { base, integrity } = splitIntegrity(ref);
@@ -76305,6 +78018,189 @@ function versionSeparator(base) {
   const at2 = base.lastIndexOf("@");
   return at2 > OCI_SCHEME.length ? at2 : null;
 }
+
+// ../../analyzer/nodejs/src/schema-keywords.ts
+var X_TELO_SENSITIVE = "x-telo-sensitive";
+var X_TELO_SPAN_ATTRIBUTE2 = "x-telo-span-attribute";
+var TELO_SCHEMA_ANNOTATIONS = {
+  "x-telo-eval": {
+    title: "Evaluation mode",
+    description: "When CEL in this field (`!cel`, `!interpolate`) is evaluated: `compile` at load, `runtime` per invocation. `accessor` is never evaluated \u2014 the field holds a plain `!cel` chain rooted at one of its `x-telo-context` bindings, or a literal, and the controller receives it as a binding. A CEL-bearing field MUST declare one, or the expression is read as a literal.",
+    type: "string",
+    enum: ["compile", "runtime", "accessor"]
+  },
+  "x-telo-browser-export": {
+    title: "Browser export",
+    description: "This string names an export of a browser entry. `entry` is a JSON Pointer, relative to the enclosing object, to the sibling string holding the entry's specifier \u2014 one the module declaring the resource lists under `exports.browser`.",
+    type: "object",
+    required: ["entry"],
+    properties: { entry: { type: "string" } },
+    additionalProperties: false
+  },
+  "x-telo-ref": {
+    title: "Reference slot",
+    description: "This field holds a `!ref` to a resource \u2014 plus what the declaring resource DOES with it (`use`), which is what every topology analysis reads.",
+    anyOf: [{ type: "string" }, { type: "object" }]
+  },
+  "x-telo-type": {
+    title: "Value type",
+    description: "What the value IS beyond JSON's types: `Telo.Bytes`, `Telo.Stream`, `Telo.TcpPort`, \u2026 Optionally parameterized (`{ name: Telo.Stream, of: Telo.Bytes }`).",
+    anyOf: [{ type: "string" }, { type: "object" }]
+  },
+  "x-telo-scope": {
+    title: "Execution scope",
+    description: "JSON Pointer to a region whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit. Legal only on a named top-level property of the resource.",
+    anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
+  },
+  "x-telo-context": {
+    title: "CEL context",
+    description: "The CEL variables in scope inside this field, as a JSON Schema. Analyzer-only.",
+    type: "object"
+  },
+  "x-telo-error-context": {
+    title: "Error context",
+    description: "Schema of the `error` CEL variable inside this field, at any nesting depth.",
+    type: "object"
+  },
+  "x-telo-step-context": {
+    title: "Step context",
+    description: "On a step array: how to build typed `steps.<name>.result` from each item's invoked resource.",
+    type: "object"
+  },
+  "x-telo-schema-from": {
+    title: "Schema from",
+    description: "Derive this field's validation schema from a sibling ref's definition schema.",
+    type: "string"
+  },
+  "x-telo-schema-map": {
+    title: "Schema map",
+    description: "On the field a projection keys on: the JSON Schema node each of its values means. A lookup, never a computed expression.",
+    type: "object"
+  },
+  "x-telo-schema-projection": {
+    title: "Schema projection",
+    description: "How a collection of typed entries projects to a JSON Schema object \u2014 which collection, which field keys it, and which fields modify it. Belongs on the kind DOCUMENT, beside 'schema:' rather than inside it, because it describes the whole declaration and not one field; written here it still works and is reported so it can be moved.",
+    type: "object"
+  },
+  "x-telo-resource-rules": {
+    title: "Resource rules",
+    description: "Relationships between this kind's own fields that JSON Schema cannot state, as CEL over `self` (the resource) and `this` (the element `in:` iterates). `condition` is TRUE when the rule holds.",
+    type: "array"
+  },
+  "x-telo-schema-projection-from": {
+    title: "Schema projection from",
+    description: "Replace this node with the projection of the declaration at the named field \u2014 a JSON Pointer that crosses references, or `{ from, pick?, omit? }` to select one entry or drop some. On a kind document, beside `schema:`: every declaration of the kind projects as that derivation.",
+    anyOf: [{ type: "string" }, { type: "object" }]
+  },
+  "x-telo-returns-from": {
+    title: "Returns from",
+    description: "The CEL value here is a function's result: it must satisfy the `returns:` declaration at the named root field.",
+    type: "string"
+  },
+  "x-telo-unbound-calls": {
+    title: "Unbound calls",
+    description: "Expressions here are evaluated where no module function is bound, so a module call in them is refused. On a string field, the field's plain text is itself such an expression. The value is the reason the diagnostic quotes.",
+    type: "string"
+  },
+  "x-telo-value-schema-from": {
+    title: "Value schema from",
+    description: "The value here must satisfy the type declared at the named location \u2014 a field of the resource, or a JSON Pointer from its root that may cross a reference and range over a list with '*'. On a configuration slot every such slot is checked, not only the branch a given input selects; inside inputType / outputType the node is typed by every type the location reaches.",
+    type: "string"
+  },
+  "x-telo-bindings-from": {
+    title: "Bindings from",
+    description: "Merge the names declared in the named field's map into this field's CEL scope.",
+    type: "string"
+  },
+  "x-telo-context-from": {
+    title: "Context from",
+    description: "Merge the navigated value as a property map into this context node.",
+    type: "string"
+  },
+  "x-telo-context-from-root": {
+    title: "Context from root",
+    description: "Replace this context node's schema with the value navigated from the manifest root. When the path holds nothing, the node keeps the schema keywords it declares itself.",
+    type: "string"
+  },
+  "x-telo-context-from-ref-kind": {
+    title: "Context from ref kind",
+    description: "Type this node from a referenced kind's declared `inputType` / `outputType`.",
+    type: "string"
+  },
+  "x-telo-context-ref-from": {
+    title: "Context ref from",
+    description: "Type this node from the named manifest's field, falling back to its kind's.",
+    type: "string"
+  },
+  "x-telo-context-parameters-from": {
+    title: "Context parameters from",
+    description: "Merge the named ordered parameter list (`[{ name, schema, nullable?, optional? }]`) into this context node \u2014 one binding per parameter, typed from its schema, and the node closed so a typo below one is reported.",
+    type: "string"
+  },
+  "x-telo-context-element-from": {
+    title: "Context element from",
+    description: "Type this binding from the ELEMENT of a sibling collection expression.",
+    type: "string"
+  },
+  "x-telo-context-element-from-item": {
+    title: "Context element from item",
+    description: "Type this binding from the ELEMENT of the collection the named field of the enclosing array item points at \u2014 a plain chain rooted at another binding of this context, or at inputs. Untyped when the chain does not resolve to a collection.",
+    type: "string"
+  },
+  "x-telo-context-collection-from": {
+    title: "Context collection from",
+    description: "Type this binding from a sibling collection expression itself. Withheld when the collection is live \u2014 re-exposing a cursor being drained is what no member-access rule catches.",
+    type: "string"
+  },
+  "x-telo-provides-zone": {
+    title: "Provides zone",
+    description: "This resource opens an execution zone; the annotated value is the CORRELATION KEY, never the zone (a zone is identified by the kind that provides it).",
+    anyOf: [{ type: "boolean" }, { type: "string" }]
+  },
+  "x-telo-requires-zone": {
+    title: "Requires zone",
+    description: "This resource must be reached through the named providing kind's body, optionally correlated through an ordered pointer list.",
+    anyOf: [{ type: "string" }, { type: "object" }]
+  },
+  "x-telo-widget": {
+    title: "Editor widget",
+    description: "Render this field with a richer control \u2014 `code` gives a Monaco editor.",
+    type: "string",
+    enum: ["code"]
+  },
+  "x-telo-topology-role": {
+    title: "Topology role",
+    description: "Names this field's part in the kind's topology, for the editor's graph view.",
+    type: "string"
+  },
+  "x-telo-inline": {
+    title: "Inline",
+    description: "Renders this field's value inline in the editor rather than behind an accordion.",
+    type: "boolean"
+  },
+  "x-telo-outcome-list": {
+    title: "Outcome list",
+    description: "Marks an array of conditional response-rendering entries (`returns:`).",
+    anyOf: [{ type: "boolean" }, { type: "string" }]
+  },
+  "x-telo-catches-for": {
+    title: "Catches for",
+    description: "Whose failures this catch list renders: a sibling field naming the handler, or the EMPTY string for everything this resource drives \u2014 a scope-level list, which owes coverage of nothing itself and answers for every site it encloses.",
+    type: "string"
+  }
+};
+var TELO_DATA_SCHEMA_ANNOTATIONS = {
+  [X_TELO_SENSITIVE]: {
+    title: "Sensitive",
+    description: "This value is auth material or equivalent: carry it as `[redacted]` in trace payloads and on the debug wire rather than verbatim. Read only from a resource's declared `inputType` / `outputType`.",
+    type: "boolean"
+  },
+  [X_TELO_SPAN_ATTRIBUTE2]: {
+    title: "Span attribute",
+    description: "Put this scalar property's value on the resource's dispatch span under this attribute name (e.g. `telo.check.exit_code`). Read only from a resource's declared `inputType` / `outputType`, on a property reached through `properties`.",
+    type: "string"
+  }
+};
 
 // ../../analyzer/nodejs/src/release/bump-level.ts
 var FRAGMENT_KINDS = {
@@ -77847,28 +79743,6 @@ function buildItems(properties, existingKeys, required) {
   return items;
 }
 
-// ../ide-support/src/completions/valid-capabilities.ts
-var CAPABILITY_VALUES = [
-  "Telo.Service",
-  "Telo.Runnable",
-  "Telo.Invocable",
-  "Telo.Provider",
-  "Telo.Mount",
-  "Telo.Sink",
-  "Telo.Callable",
-  "Telo.Type"
-];
-var CAPABILITY_DOCS = {
-  "Telo.Service": "Long-lived resource: `init()` + `run()`, returning what undoes them (servers, pools).",
-  "Telo.Runnable": "One-shot task: `run()` (pipelines, boot steps).",
-  "Telo.Invocable": "Request handler: `invoke(inputs)` (scripts, endpoints).",
-  "Telo.Provider": "Value-flow source: `init()` + optional `provide()` (config, secrets).",
-  "Telo.Mount": "Mounted into a Service (HTTP APIs, middleware).",
-  "Telo.Sink": "Record-stream destination: `write(record)` + `flush()` / `flushSync()` / `close()`, written to directly rather than dispatched.",
-  "Telo.Callable": "Function: synchronous `call(args)` against a declared `params` / `returns` signature, called from CEL through a module name.",
-  "Telo.Type": "Pure schema definition \u2014 no runtime instance."
-};
-
 // ../ide-support/src/completions/build.ts
 function extractInFileResources(docs) {
   const out = [];
@@ -77968,10 +79842,11 @@ function valueSuggestions(registry, docKind, yamlPath, replaceRange) {
   }));
 }
 function capabilityCompletions() {
-  return CAPABILITY_VALUES.map((cap) => ({
+  return declarableCapabilities().map((cap) => ({
     label: cap,
     kind: "enumMember",
-    detail: "Telo capability"
+    detail: "Telo capability",
+    documentation: capabilityDescription(cap)
   }));
 }
 async function buildCompletions(text3, line, character, registry, adapter, docs, analysis) {
@@ -78027,130 +79902,6 @@ async function buildCompletions(text3, line, character, registry, adapter, docs,
       ctx.concretePath
     )
   );
-}
-
-// ../ide-support/src/diagnostics/find-positions.ts
-function findPositions(graph, diagnosticData) {
-  const data = diagnosticData;
-  if (!data) return void 0;
-  if (data.resource?.kind && data.resource.name) {
-    const result = (data.filePath !== void 0 ? findByResource(graph, data.resource.kind, data.resource.name, data.filePath) : void 0) ?? findByResource(graph, data.resource.kind, data.resource.name);
-    if (result) return result;
-  }
-  if (data.filePath) {
-    const result = findByFile(graph, data.filePath);
-    if (result) return result;
-  }
-  return void 0;
-}
-function findByResource(graph, kind, name2, inFile) {
-  for (const mod of graph.modules.values()) {
-    for (const file of [mod.owner, ...mod.partials]) {
-      if (inFile !== void 0 && file.source !== inFile) continue;
-      for (let i = 0; i < file.manifests.length; i++) {
-        const m = file.manifests[i];
-        if (!m) continue;
-        if (m.kind !== kind) continue;
-        if (m.metadata?.name !== name2) continue;
-        const pos = file.positions[i];
-        return {
-          file: file.source,
-          positionIndex: pos?.positionIndex,
-          sourceLine: pos?.sourceLine
-        };
-      }
-    }
-  }
-  return void 0;
-}
-function findByFile(graph, filePath) {
-  for (const mod of graph.modules.values()) {
-    for (const file of [mod.owner, ...mod.partials]) {
-      if (file.source === filePath) {
-        const pos = file.positions[0];
-        return {
-          file: file.source,
-          positionIndex: pos?.positionIndex,
-          sourceLine: pos?.sourceLine
-        };
-      }
-    }
-  }
-  return void 0;
-}
-
-// ../ide-support/src/diagnostics/graph-diagnostics.ts
-function compromisedFiles(graph) {
-  const entrySource = graph.entry.owner.source;
-  const files = /* @__PURE__ */ new Set();
-  for (const d of graph.parseDiagnostics) {
-    const f2 = d.data?.filePath;
-    if (f2) files.add(f2);
-  }
-  for (const e of graph.errors) files.add(e.fromSource ?? entrySource);
-  return files;
-}
-function assembleGraphDiagnostics(graph, analysisDiagnostics) {
-  const compromised = compromisedFiles(graph);
-  const entrySource = graph.entry.owner.source;
-  const live = [];
-  const suppressed = [];
-  for (const d of remapMigratedPaths(graph, analysisDiagnostics)) {
-    const rawFilePath = d.data?.filePath;
-    const file = findPositions(graph, d.data)?.file ?? rawFilePath ?? entrySource;
-    (compromised.has(file) ? suppressed : live).push(d);
-  }
-  return {
-    diagnostics: [
-      ...graph.parseDiagnostics,
-      ...graph.migrationDiagnostics,
-      ...graph.versionDiagnostics,
-      ...graph.moduleFileDiagnostics,
-      ...importResolutionDiagnostics(graph),
-      ...live
-    ],
-    suppressed
-  };
-}
-
-// ../ide-support/src/diagnostics/range-resolver.ts
-var ZERO_RANGE = {
-  start: { line: 0, character: 0 },
-  end: { line: 0, character: 0 }
-};
-function resolveRange(d, ctx) {
-  if (d.range) return d.range;
-  const fieldPath = d.data?.path;
-  if (fieldPath !== void 0 && ctx.positionIndex) {
-    const direct = ctx.positionIndex.get(fieldPath);
-    if (direct) return direct;
-    for (const parent of parentPaths(fieldPath).slice(1)) {
-      const keyRange2 = ctx.positionIndex.get(`@key:${parent}`);
-      if (keyRange2) return keyRange2;
-      const valueRange2 = ctx.positionIndex.get(parent);
-      if (valueRange2) return valueRange2;
-    }
-  }
-  if (ctx.sourceLine !== void 0) {
-    return {
-      start: { line: ctx.sourceLine, character: 0 },
-      end: { line: ctx.sourceLine, character: Number.MAX_SAFE_INTEGER }
-    };
-  }
-  return ZERO_RANGE;
-}
-function parentPaths(path) {
-  const out = [];
-  let cur = path;
-  while (cur.length > 0) {
-    out.push(cur);
-    const lastDot = cur.lastIndexOf(".");
-    const lastBracket = cur.lastIndexOf("[");
-    const cut = Math.max(lastDot, lastBracket);
-    if (cut <= 0) break;
-    cur = cur.slice(0, cut);
-  }
-  return out;
 }
 
 // ../ide-support/src/diagnostics/severity.ts
@@ -78301,7 +80052,7 @@ function hoverForValue(resolved, registry) {
     return { contents: kindHover(value2, registry?.resolveDefinition(value2)), range };
   }
   if (key2 === "capability" && resolved.docKind === "Telo.Definition" && value2) {
-    const doc = CAPABILITY_DOCS[value2];
+    const doc = declarableCapabilities().includes(value2) ? capabilityDescription(value2) : void 0;
     return doc ? { contents: `**${value2}**
 
 ${doc}`, range } : void 0;
@@ -78435,7 +80186,7 @@ function celSegmentTokens(text3, segment, scope) {
 }
 
 // ../ide-support/src/semantic-tokens/build-semantic-tokens.ts
-var CAPABILITIES = new Set(CAPABILITY_VALUES);
+var CAPABILITIES = new Set(declarableCapabilities());
 function joinKey3(concrete, key2) {
   return concrete ? `${concrete}.${key2}` : key2;
 }
@@ -79567,7 +81318,7 @@ async function resolveVersions(baseRefs, listVersions, failures) {
 }
 
 // ../ide-support/src/workspace/workspace-marker.ts
-var SOURCE41 = "telo-workspace";
+var SOURCE43 = "telo-workspace";
 function workspaceDiagnostics(text3, env) {
   const doc = parseDocument(text3);
   const { config, diagnostics } = readWorkspaceConfig(text3, "telo-workspace.yaml");
@@ -79659,7 +81410,7 @@ function normalize2(diagnostic, doc, text3) {
   );
 }
 function make(code, message, path, doc, text3, severity) {
-  return { range: rangeOf(doc, text3, path), severity, code, source: SOURCE41, message };
+  return { range: rangeOf(doc, text3, path), severity, code, source: SOURCE43, message };
 }
 function rangeOf(doc, text3, path) {
   const span2 = offsetsOf(doc, path);
