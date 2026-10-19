@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.119.0";
+var TELO_ENGINE_VERSION = "0.120.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -31472,7 +31472,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.119.0";
+var ENGINE_VERSION = "0.120.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -68586,7 +68586,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.119.0";
+var TELO_SURFACE_VERSION = "0.120.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE21 = "telo-analyzer";
@@ -78216,23 +78216,46 @@ var FRAGMENT_KIND_ORDER = Object.keys(
 );
 
 // ../../analyzer/nodejs/src/release/workspace-schema.ts
+var REGISTRY = {
+  type: "string",
+  description: "Publish destination base. A module's ref is `<registry>/<its own directory name>`. Omitted: --registry, then TELO_OCI_REGISTRY, then the base each module's own ledger entry recorded.",
+  examples: ["oci://ghcr.io/telorun"]
+};
+var RELEASE_IGNORE = {
+  type: "string[]",
+  description: "Paths under a module whose changes are not release-relevant, so no changelog fragment is asked for. Module-relative, gitignore-style. Declaring it replaces the built-in default; [] ignores nothing.",
+  examples: ["**/tests/**", "**/docs/**", "**/plans/**", "**/README.md", "**/CHANGELOG.md"]
+};
+var MODULE_ENTRY_KEYS = {
+  path: {
+    type: "string",
+    description: "The gitignore-style pattern this entry matches modules with."
+  },
+  registry: REGISTRY,
+  ignore: RELEASE_IGNORE
+};
+var ENV_FILE_ENTRY_KEYS = {
+  name: {
+    type: "string",
+    description: "The filename collected in each directory the walk visits. A / or a glob is an error.",
+    examples: [".env", ".env.local"]
+  },
+  sensitive: {
+    type: "boolean",
+    description: "The file holds values that must not be committed or synced: secrets and sensitive need fields are written to it, and a secret read from any other file is warned about. It does not affect log redaction."
+  }
+};
 var WORKSPACE_SCHEMA = {
   release: {
     description: "How `telo release` behaves: where modules are, where they publish, and which of their paths are not release-relevant.",
     properties: {
-      registry: {
-        type: "string",
-        description: "Publish destination base. A module's ref is `<registry>/<its own directory name>`. Omitted: --registry, then TELO_OCI_REGISTRY, then the base each module's own ledger entry recorded.",
-        examples: ["oci://ghcr.io/telorun"]
-      },
-      ignore: {
-        type: "string[]",
-        description: "Paths under a module whose changes are not release-relevant, so no changelog fragment is asked for. Module-relative, gitignore-style. Declaring it replaces the built-in default; [] ignores nothing.",
-        examples: ["**/tests/**", "**/docs/**", "**/plans/**", "**/README.md", "**/CHANGELOG.md"]
-      },
+      registry: REGISTRY,
+      ignore: RELEASE_IGNORE,
       modules: {
         type: "entry[]",
-        description: "The subtrees that may hold modules \u2014 a place to look, never a module: what makes a directory a module is its telo.yaml. Workspace-relative, gitignore-style, last match wins. A bare string is an entry with no overrides."
+        description: "The subtrees that may hold modules \u2014 a place to look, never a module: what makes a directory a module is its telo.yaml. Workspace-relative, gitignore-style, last match wins. A bare string is an entry with no overrides.",
+        examples: ["modules/*", "apps/*"],
+        entry: { key: "path", properties: MODULE_ENTRY_KEYS }
       }
     }
   },
@@ -78244,20 +78267,13 @@ var WORKSPACE_SCHEMA = {
         description: "How far up the .env walk may climb. Workspace-relative, gitignore-style, matched against each ancestor directory; the nearest match stops the walk. Omitted: the walk stops at this file."
       },
       files: {
-        type: "string[]",
-        description: "Which files are collected in each directory, later winning within one directory. Filenames only \u2014 a / or a glob is an error. Declaring it replaces the default; [] collects none.",
-        examples: [".env", ".env.local"]
+        type: "entry[]",
+        description: "Which files are collected in each directory, later winning within one directory. Each is a filename, or { name, sensitive } \u2014 a sensitive file holds values that must not be committed or synced. Filenames only \u2014 a / or a glob is an error. Declaring it replaces the default [.env, { name: .env.local, sensitive: true }]; [] collects none.",
+        examples: [".env", ".env.local"],
+        entry: { key: "name", properties: ENV_FILE_ENTRY_KEYS }
       }
     }
   }
-};
-var MODULE_ENTRY_KEYS = {
-  path: {
-    type: "string",
-    description: "The gitignore-style pattern this entry matches modules with."
-  },
-  registry: WORKSPACE_SCHEMA.release.properties.registry,
-  ignore: WORKSPACE_SCHEMA.release.properties.ignore
 };
 var WORKSPACE_BLOCKS = Object.keys(WORKSPACE_SCHEMA);
 var DEFAULT_RELEASE_IGNORE = [
@@ -78330,70 +78346,79 @@ function readRelease(raw, where, report) {
   }
   const block = raw;
   const read = readBlock(block, WORKSPACE_SCHEMA.release.properties, where, ["release"], report);
+  if (Array.isArray(block.modules) && block.modules.length === 0) {
+    report(
+      "WORKSPACE_INVALID_VALUE",
+      `${where}: 'release.modules' is empty, so no directory can ever be discovered as a module. List the subtrees that hold them, e.g. [modules/*, apps/*].`,
+      ["release", "modules"]
+    );
+  }
+  const entries = read.modules ?? [];
   return {
     ...read.registry !== void 0 ? { registry: read.registry } : {},
     ...read.ignore !== void 0 ? { ignore: read.ignore } : {},
-    modules: read.modules ?? []
+    modules: entries.map(({ fields }) => ({
+      path: fields.path,
+      ...fields.registry !== void 0 ? { registry: fields.registry } : {},
+      ...fields.ignore !== void 0 ? { ignore: fields.ignore } : {}
+    }))
   };
 }
 function readBlock(block, properties, where, at2, report) {
   reportUnknownKeys(block, properties, where, at2, report);
   const out = {};
   for (const [name2, schema4] of Object.entries(properties)) {
-    const value2 = schema4.type === "string" ? readString(block[name2], where, [...at2, name2], report) : schema4.type === "string[]" ? readStringList(block[name2], where, [...at2, name2], report) : readModuleEntries(block[name2], where, report);
+    const value2 = schema4.type === "string" ? readString(block[name2], where, [...at2, name2], report) : schema4.type === "boolean" ? readBoolean(block[name2], where, [...at2, name2], report) : schema4.type === "string[]" ? readStringList(block[name2], where, [...at2, name2], report) : readEntries(block[name2], schema4, where, [...at2, name2], report);
     if (value2 !== void 0) out[name2] = value2;
   }
   return out;
 }
-function readModuleEntries(raw, where, report) {
-  if (raw === void 0 || raw === null) return [];
+function readEntries(raw, schema4, where, at2, report) {
+  if (raw === void 0 || raw === null) return void 0;
+  const entry = schema4.entry;
+  const name2 = at2.join(".");
+  const example = schema4.examples?.length ? `, e.g. [${schema4.examples.join(", ")}]` : "";
   if (!Array.isArray(raw)) {
     report(
       "WORKSPACE_INVALID_VALUE",
-      `${where}: 'release.modules' must be a list of path patterns, e.g. [modules/*, apps/*].`,
-      ["release", "modules"]
+      `${where}: '${name2}' must be a list, each entry a string or a mapping carrying '${entry.key}:'${example}.`,
+      at2
     );
-    return [];
-  }
-  if (raw.length === 0) {
-    report(
-      "WORKSPACE_INVALID_VALUE",
-      `${where}: 'release.modules' is empty, so no directory can ever be discovered as a module. List the subtrees that hold them, e.g. [modules/*, apps/*].`,
-      ["release", "modules"]
-    );
-    return [];
+    return void 0;
   }
   const entries = [];
   for (const [index, item] of raw.entries()) {
-    const at2 = ["release", "modules", index];
+    const itemAt = [...at2, index];
     if (typeof item === "string") {
-      entries.push({ path: item });
+      entries.push({ index, bare: true, fields: { [entry.key]: item } });
       continue;
     }
     if (item === null || typeof item !== "object" || Array.isArray(item)) {
       report(
         "WORKSPACE_INVALID_VALUE",
-        `${where}: 'release.modules' entry ${index} must be a pattern string, or a mapping carrying 'path:' plus the keys it overrides.`,
-        at2
+        `${where}: '${name2}' entry ${index} must be a string, or a mapping carrying '${entry.key}:' plus the keys it adds.`,
+        itemAt
       );
       continue;
     }
-    const entry = item;
-    const read = readBlock(entry, MODULE_ENTRY_KEYS, where, at2, report);
-    const path = read.path;
-    if (path === void 0) {
-      report(
-        "WORKSPACE_INVALID_VALUE",
-        `${where}: 'release.modules' entry ${index} declares no 'path:', so it matches nothing.`,
-        at2
-      );
+    for (const [key2, keySchema] of Object.entries(entry.properties)) {
+      if (!Object.hasOwn(item, key2) || item[key2] !== null) continue;
+      const keyName = [...itemAt, key2].join(".");
+      const message = key2 === entry.key ? `${where}: '${keyName}' has no value, so the entry names nothing.` : keySchema.type === "boolean" ? `${where}: '${keyName}' must be true or false.` : keySchema.type === "string[]" ? `${where}: '${keyName}' must be a list of strings.` : `${where}: '${keyName}' must be a string.`;
+      report("WORKSPACE_INVALID_VALUE", message, [...itemAt, key2]);
+    }
+    const read = readBlock(item, entry.properties, where, itemAt, report);
+    if (read[entry.key] === void 0) {
+      if (!Object.hasOwn(item, entry.key)) {
+        report(
+          "WORKSPACE_INVALID_VALUE",
+          `${where}: '${name2}' entry ${index} declares no '${entry.key}:', so it names nothing.`,
+          itemAt
+        );
+      }
       continue;
     }
-    entries.push({
-      path,
-      ...read.registry !== void 0 ? { registry: read.registry } : {},
-      ...read.ignore !== void 0 ? { ignore: read.ignore } : {}
-    });
+    entries.push({ index, bare: false, fields: read });
   }
   return entries;
 }
@@ -78406,18 +78431,21 @@ function readEnv(raw, where, report) {
   const block = raw;
   const read = readBlock(block, WORKSPACE_SCHEMA.env.properties, where, ["env"], report);
   const roots = read.roots;
-  const files = read.files;
-  if (files) {
-    for (const [index, name2] of files.entries()) {
-      if (name2.includes("/") || name2.includes("\\") || name2.includes("*")) {
-        report(
-          "WORKSPACE_INVALID_VALUE",
-          `${where}: 'env.files' entry '${name2}' is a path or a glob. It names a file collected in each directory the walk visits, so it must be a bare filename \u2014 the walk's reach is 'env.roots'.`,
-          ["env", "files", index]
-        );
-      }
+  const entries = read.files;
+  for (const { index, bare, fields } of entries ?? []) {
+    const name2 = fields.name;
+    if (name2.includes("/") || name2.includes("\\") || name2.includes("*")) {
+      report(
+        "WORKSPACE_INVALID_VALUE",
+        `${where}: 'env.files' entry '${name2}' is a path or a glob. It names a file collected in each directory the walk visits, so it must be a bare filename \u2014 the walk's reach is 'env.roots'.`,
+        bare ? ["env", "files", index] : ["env", "files", index, "name"]
+      );
     }
   }
+  const files = entries?.map(({ fields }) => ({
+    name: fields.name,
+    sensitive: fields.sensitive === true
+  }));
   return {
     ...roots !== void 0 ? { roots } : {},
     ...files !== void 0 ? { files } : {}
@@ -78443,6 +78471,14 @@ function readString(raw, where, at2, report) {
   }
   if (raw === "") {
     report("WORKSPACE_INVALID_VALUE", `${where}: '${at2.join(".")}' is empty.`, at2);
+    return void 0;
+  }
+  return raw;
+}
+function readBoolean(raw, where, at2, report) {
+  if (raw === void 0 || raw === null) return void 0;
+  if (typeof raw !== "boolean") {
+    report("WORKSPACE_INVALID_VALUE", `${where}: '${at2.join(".")}' must be true or false.`, at2);
     return void 0;
   }
   return raw;
@@ -81471,9 +81507,10 @@ function workspaceCompletions(text3, position, env) {
       case "env.roots":
         return (env?.directories?.() ?? []).map((dir) => ({ label: dir, kind: "folder" }));
       case "env.files":
+      case "env.files.name":
         return valuesFrom(WORKSPACE_SCHEMA.env.properties.files.examples);
       default:
-        return [];
+        return keySchemaAt(at2.path)?.type === "boolean" ? valuesFrom(["true", "false"]) : [];
     }
   }
   if (at2.path.length === 0) {
@@ -81482,16 +81519,17 @@ function workspaceCompletions(text3, position, env) {
     );
   }
   const [block, ...rest] = at2.path;
-  if (block === "release") {
-    const properties = rest[0] === "modules" && rest.length > 1 ? MODULE_ENTRY_KEYS : WORKSPACE_SCHEMA.release.properties;
-    return Object.entries(properties).map(([name2, schema4]) => keyItem(name2, schema4.description));
-  }
-  if (block === "env") {
-    return Object.entries(WORKSPACE_SCHEMA.env.properties).map(
-      ([name2, schema4]) => keyItem(name2, schema4.description)
-    );
-  }
-  return [];
+  const blockSchema = WORKSPACE_SCHEMA[block];
+  if (!blockSchema) return [];
+  const entry = rest.length > 1 ? blockSchema.properties[rest[0]]?.entry : void 0;
+  return Object.entries(entry?.properties ?? blockSchema.properties).map(
+    ([name2, schema4]) => keyItem(name2, schema4.description)
+  );
+}
+function keySchemaAt(path) {
+  const [block, key2, entryKey] = path;
+  const keySchema = block === void 0 || key2 === void 0 ? void 0 : WORKSPACE_SCHEMA[block]?.properties[key2];
+  return entryKey === void 0 ? keySchema : keySchema?.entry?.properties[entryKey];
 }
 function valuesFrom(examples) {
   return (examples ?? []).map((label2) => ({ label: label2, kind: "value" }));
