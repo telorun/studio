@@ -17478,7 +17478,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.120.0";
+var TELO_ENGINE_VERSION = "0.120.1";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -30711,6 +30711,13 @@ var CALL_SITE_CACHE_CAPACITY = 16;
 function readHostValue(value2, range) {
   return asyncValueRefused(value2, range) ?? value2;
 }
+function noCelTypeRefusal(name2, value2, range) {
+  return celError(
+    "no_matching_overload",
+    value2 === void 0 ? `${name2} was handed undefined, which is no CEL value: the host held an absent value as present` : `${name2} was handed a value of no CEL type`,
+    range
+  );
+}
 function readName(activation, constants, name2, range) {
   if (activationHolds(activation, name2)) return readHostValue(activation[name2], range);
   const held = constants.get(name2);
@@ -30905,11 +30912,7 @@ var CallSite = class {
       if (held === void 0) {
         const named = readHostValue(values[at2], this.range);
         if (isCelError(named)) return named;
-        return celError(
-          "no_matching_overload",
-          `${this.name} was handed a value of no CEL type`,
-          this.range
-        );
+        return noCelTypeRefusal(this.name, values[at2], this.range);
       }
       names[at2] = held;
     }
@@ -30927,11 +30930,7 @@ var CallSite = class {
       if (held === void 0) {
         const named = readHostValue(value2, this.range);
         if (isCelError(named)) return named;
-        return celError(
-          "no_matching_overload",
-          `${this.name} was handed a value of no CEL type`,
-          this.range
-        );
+        return noCelTypeRefusal(this.name, value2, this.range);
       }
       names[at2] = held;
     }
@@ -31472,7 +31471,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.120.0";
+var ENGINE_VERSION = "0.120.1";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -68586,7 +68585,7 @@ function describe4(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.120.0";
+var TELO_SURFACE_VERSION = "0.120.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE21 = "telo-analyzer";
