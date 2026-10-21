@@ -17129,7 +17129,10 @@ var TeloMethod = {
   listDirectory: "telo/listDirectory",
   hubSearchRefs: "telo/hub/searchRefs",
   hubListVersions: "telo/hub/listVersions",
-  requirements: "telo/requirements"
+  requirements: "telo/requirements",
+  viewModel: "telo/viewModel",
+  celCompletion: "telo/celCompletion",
+  viewModelChanged: "telo/viewModelChanged"
 };
 var TeloCommand = {
   upgradeImport: "telo.upgradeImport",
@@ -55256,6 +55259,81 @@ function buildKindPlane(resources, nodes, deps, options) {
   }
   return out;
 }
+function templateModule(definition, moduleDoc2, moduleResources = []) {
+  const record = definition;
+  const metadata = definition.metadata ?? {};
+  const module = typeof metadata.module === "string" ? metadata.module : void 0;
+  const source = typeof metadata.source === "string" ? metadata.source : void 0;
+  const stamp = {
+    ...module ? { module } : {},
+    ...source ? { source } : {}
+  };
+  const resources = [];
+  for (const entry of Array.isArray(record.resources) ? record.resources : []) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const written = entry;
+    const entryMetadata = written.metadata ?? {};
+    if (typeof written.kind !== "string" || typeof entryMetadata.name !== "string") continue;
+    resources.push({
+      ...written,
+      metadata: { ...entryMetadata, ...stamp }
+    });
+  }
+  const targets = Array.isArray(record.targets) ? record.targets : record.run !== void 0 && record.run !== null ? [record.run] : [];
+  const moduleName2 = moduleDoc2?.metadata?.name ?? module ?? metadata.name;
+  const imports = moduleDoc2?.imports;
+  const root = {
+    kind: "Telo.Application",
+    metadata: { name: moduleName2, ...source ? { source } : {} },
+    ...imports !== void 0 ? { imports } : {},
+    targets
+  };
+  const entryNames = new Set(resources.map((r) => r.metadata.name));
+  const referenced2 = /* @__PURE__ */ new Set();
+  collectReferencedNames([record.resources, targets], referenced2);
+  for (const declared of moduleResources) {
+    const name2 = declared.metadata?.name;
+    if (typeof name2 !== "string" || typeof declared.kind !== "string") continue;
+    if (isDeclarationDocument(declared)) continue;
+    if (moduleOf5(declared) !== module || entryNames.has(name2) || !referenced2.has(name2)) continue;
+    resources.push({
+      ...declared,
+      metadata: { ...declared.metadata, [ENCLOSING_STAMP]: true }
+    });
+  }
+  const kindName = typeof metadata.name === "string" ? metadata.name : "";
+  return {
+    root,
+    resources,
+    options: {
+      root,
+      ...module ? { entryModule: module } : {},
+      forwardsOf: module ? `${module}.${kindName}` : kindName
+    }
+  };
+}
+function collectReferencedNames(value2, out) {
+  if (Array.isArray(value2)) {
+    for (const item of value2) collectReferencedNames(item, out);
+    return;
+  }
+  if (!value2 || typeof value2 !== "object") return;
+  if (isRefSentinel(value2)) {
+    if (!value2.source.includes(".")) out.add(value2.source);
+    return;
+  }
+  if (isTaggedSentinel(value2) || value2.__compiled) return;
+  const record = value2;
+  if (isResolvedRef(record)) {
+    if (record.alias === void 0) out.add(record.name);
+    return;
+  }
+  for (const child of Object.values(record)) collectReferencedNames(child, out);
+}
+function isResolvedRef(value2) {
+  const keys = Object.keys(value2);
+  return typeof value2.kind === "string" && typeof value2.name === "string" && keys.every((key2) => key2 === "kind" || key2 === "name" || key2 === "alias");
+}
 function exportEdges(root, manifest, resolveName, byQualifiedName, rowIdByPath) {
   const listed = manifest.exports;
   if (!Array.isArray(listed?.resources)) return [];
@@ -79939,6 +80017,16 @@ async function buildCompletions(text3, line, character, registry, adapter, docs,
   );
 }
 
+// ../ide-support/src/completions/cel-completion-at.ts
+function celCompletionAt(analysis, request) {
+  const { text: text3, offset } = request;
+  const segment = buildCelSegments(text3, 0, `!${request.tag}`, text3).find(
+    (s) => offset >= s.range[0] && offset <= s.range[1]
+  );
+  if (!segment) return [];
+  return celCompletions(text3, segment, offset, request.path, request.resource, analysis.celScope);
+}
+
 // ../ide-support/src/diagnostics/severity.ts
 function resolveSeverity(d) {
   return d.severity ?? DiagnosticSeverity2.Warning;
@@ -81610,6 +81698,314 @@ function indentPath(text3, at2) {
   return path;
 }
 
+// ../ide-support/src/view-model/module-graph-data.ts
+function moduleGraphData(graph) {
+  return {
+    ...graph.root ? { root: graph.root } : {},
+    nodes: graph.nodes,
+    edges: graph.edges,
+    regions: graph.regions,
+    kinds: graph.kinds
+  };
+}
+
+// ../ide-support/src/view-model/output-refusals.ts
+function outputSlotSites(schema4) {
+  const out = [];
+  const onPath = /* @__PURE__ */ new Set();
+  const walk5 = (node, pointer) => {
+    if (!node || typeof node !== "object" || onPath.has(node)) return;
+    onPath.add(node);
+    if (!Array.isArray(node) && isRefSlot(node)) {
+      const slot = readRefSlot(node);
+      if (slot?.outputType) out.push({ pointer, slot });
+    }
+    for (const [key2, child] of Object.entries(node)) walk5(child, `${pointer}/${escapePointerSegment(key2)}`);
+    onPath.delete(node);
+  };
+  walk5(schema4, "");
+  return out;
+}
+function declaredOutputSlots(registry, manifests) {
+  const byKey = /* @__PURE__ */ new Map();
+  const add = (kind, schema4) => {
+    for (const site of outputSlotSites(schema4)) {
+      const key2 = `${kind}#${site.pointer}`;
+      if (!byKey.has(key2)) byKey.set(key2, { kind, ...site });
+    }
+  };
+  for (const kind of registry.allKinds()) add(kind, registry.resolveDefinition(kind)?.schema);
+  for (const m of manifests) {
+    const declaration = kindDeclarationOf(m);
+    const name2 = m.metadata?.name;
+    if (!declaration || typeof name2 !== "string") continue;
+    const module = m.metadata?.module;
+    add(module ? `${module}.${name2}` : name2, declaration.schema);
+  }
+  return [...byKey.values()];
+}
+function outputCandidates(manifests) {
+  return manifests.flatMap((m) => {
+    if (!m || typeof m.kind !== "string" || isModuleKind(m.kind) || m.kind === "Telo.Import") return [];
+    const name2 = m.metadata?.name;
+    return typeof name2 === "string" ? [{ kind: m.kind, name: name2 }] : [];
+  });
+}
+function outputRefusalsOf(analysis, slots, candidates) {
+  return slots.map(({ kind, pointer, slot }) => {
+    const refusals = {};
+    for (const candidate of candidates) {
+      const lines = analysis.outputRefusal(slot, candidate);
+      if (lines.length > 0) refusals[candidate.name] = lines;
+    }
+    return { kind, pointer, refusals };
+  });
+}
+function escapePointerSegment(segment) {
+  return segment.replace(/~/g, "~0").replace(/\//g, "~1");
+}
+
+// ../ide-support/src/view-model/reference-sites.ts
+function referenceSitesOf(registry, module) {
+  const docs = [module.owner, ...module.partials].flatMap(
+    (file) => file.manifests.filter((m) => m !== null)
+  );
+  const resources = docs.flatMap((doc) => {
+    if (typeof doc.kind !== "string" || isModuleKind(doc.kind) || doc.kind === "Telo.Import") return [];
+    const name2 = doc.metadata?.name;
+    if (typeof name2 !== "string") return [];
+    const { kind, metadata, ...fields } = doc;
+    return [{ kind, metadata: { name: name2 }, ...fields }];
+  });
+  const moduleDoc2 = docs.find((doc) => typeof doc.kind === "string" && isModuleKind(doc.kind));
+  if (moduleDoc2) resources.push(moduleRootResource(moduleDoc2));
+  const out = [];
+  registry.visitManifest(
+    resources,
+    {
+      onRef: (e) => {
+        const target = refTargetName2(e.value);
+        const sourceName = e.source.metadata?.name;
+        if (target === void 0 || typeof e.source.kind !== "string" || typeof sourceName !== "string") return;
+        out.push({ source: { kind: e.source.kind, name: sourceName }, path: e.concretePath, target });
+      }
+    },
+    { expand: true, discoverNestedRefs: true }
+  );
+  return out;
+}
+function moduleRootResource(doc) {
+  const record = doc;
+  const metadata = doc.metadata ?? {};
+  const fields = {
+    metadata: {
+      name: metadata.name,
+      version: metadata.version,
+      description: metadata.description,
+      categories: metadata.categories
+    }
+  };
+  const imports = inlineImportEntries(record.imports);
+  if (imports) fields.imports = imports;
+  if (record.variables) fields.variables = record.variables;
+  if (record.secrets) fields.secrets = record.secrets;
+  if (doc.kind === "Telo.Application") {
+    fields.targets = record.targets ?? [];
+    if (record.ports) fields.ports = record.ports;
+    if (record.logging) fields.logging = record.logging;
+  } else if (record.exports) {
+    fields.exports = record.exports;
+  }
+  return { kind: doc.kind, ...fields };
+}
+function inlineImportEntries(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return void 0;
+  const entries = [];
+  for (const [alias, value2] of Object.entries(raw)) {
+    const entry = typeof value2 === "string" ? { source: value2 } : value2 && typeof value2 === "object" && !Array.isArray(value2) ? value2 : void 0;
+    if (typeof entry?.source !== "string") continue;
+    entries.push([
+      alias,
+      {
+        source: entry.source,
+        ...typeof entry.integrity === "string" ? { integrity: entry.integrity } : {},
+        ...entry.variables ? { variables: entry.variables } : {},
+        ...entry.secrets ? { secrets: entry.secrets } : {}
+      }
+    ]);
+  }
+  return entries.length > 0 ? Object.fromEntries(entries) : void 0;
+}
+function refTargetName2(value2) {
+  if (isRefSentinel(value2)) return value2.source;
+  if (typeof value2 === "string") {
+    const lastDot = value2.lastIndexOf(".");
+    return lastDot > 0 ? value2.slice(lastDot + 1) : value2;
+  }
+  if (value2 && typeof value2 === "object") {
+    const name2 = value2.name;
+    if (typeof name2 === "string") return name2;
+  }
+  return void 0;
+}
+
+// ../ide-support/src/view-model/template-graphs.ts
+function templateGraphOf(analysis, registry, kindId, uriOfSource2, outputSlots) {
+  const definition = analysis.manifests.find(
+    (m) => m.kind === "Telo.Definition" && canonicalIdOf(m) === kindId
+  );
+  if (!definition) return null;
+  const module = definition.metadata?.module;
+  const moduleDoc2 = analysis.manifests.find(
+    (m) => isModuleKind(m.kind) && (!module || m.metadata?.name === module)
+  );
+  const body2 = templateModule(definition, moduleDoc2, analysis.manifests);
+  const manifests = [...body2.resources, body2.root];
+  const bodyAnalysis = registry.analysisOf(manifests);
+  const graph = bodyAnalysis.moduleGraph(registry.moduleGraphDeps(manifests, body2.options), body2.options);
+  const asDefinition = definition;
+  const capability = inheritedCapability(asDefinition, registry.resolverForDefinition(asDefinition));
+  return {
+    kindId,
+    name: definition.metadata?.name,
+    ...module ? { module } : {},
+    ...capability ? { capability } : {},
+    definition: withSourceUris(definition, uriOfSource2),
+    graph: moduleGraphData(graph),
+    outputRefusals: outputRefusalsOf(bodyAnalysis, outputSlots, outputCandidates(body2.resources))
+  };
+}
+function canonicalIdOf(definition) {
+  const name2 = definition.metadata?.name;
+  if (typeof name2 !== "string") return void 0;
+  const module = definition.metadata?.module;
+  return module ? `${module}.${name2}` : name2;
+}
+function withSourceUris(value2, uriOfSource2) {
+  if (Array.isArray(value2)) return value2.map((item) => withSourceUris(item, uriOfSource2));
+  if (!value2 || typeof value2 !== "object") return value2;
+  const out = {};
+  for (const [key2, child] of Object.entries(value2)) {
+    if (child === void 0) continue;
+    out[key2] = withSourceUris(child, uriOfSource2);
+  }
+  const metadata = out.metadata;
+  if (metadata && typeof metadata === "object" && typeof metadata.source === "string") {
+    out.metadata = { ...metadata, source: uriOfSource2(metadata.source) };
+  }
+  return out;
+}
+
+// ../ide-support/src/view-model/build-view-model.ts
+function buildViewModel(input) {
+  const { registry, analysis } = input;
+  const graph = ownerModuleGraph(input);
+  const outputSlots = declaredOutputSlots(registry, analysis.manifests);
+  const templates = {};
+  for (const kind of graph?.kinds ?? []) {
+    if (!kind.template) continue;
+    const template = templateGraphOf(analysis, registry, kind.id, input.uriOfSource, outputSlots);
+    if (template) templates[kind.id] = template;
+  }
+  const graphs = [graph, ...Object.values(templates).map((t) => t.graph)];
+  const constraints = new Set(declaredRefSlots(registry, analysis.manifests).flatMap((slot) => slot.kinds));
+  for (const data of graphs) {
+    if (data) for (const kind of graphConstraints(data)) constraints.add(kind);
+  }
+  const refConstraints = {};
+  for (const constraint of [...constraints].sort()) {
+    const accepted = registry.acceptedKindsForRef(constraint);
+    if (!accepted) continue;
+    refConstraints[constraint] = {
+      accepted: [...accepted].sort(),
+      userFacing: registry.userFacingKindsForRef(constraint) ?? []
+    };
+  }
+  const resolved = /* @__PURE__ */ new Map();
+  const spellings = new Set(Object.keys(refConstraints));
+  for (const constraint of Object.values(refConstraints)) for (const s of constraint.userFacing) spellings.add(s);
+  for (const m of analysis.manifests) if (typeof m.kind === "string") spellings.add(m.kind);
+  for (const data of graphs) for (const node of data?.nodes ?? []) spellings.add(node.kind);
+  for (const spelling of spellings) {
+    const canonical = registry.resolveKind(spelling);
+    if (canonical) resolved.set(spelling, canonical);
+  }
+  for (const data of graphs) {
+    for (const node of data?.nodes ?? []) {
+      if (resolved.has(node.kind) || node.unknownKind) continue;
+      resolved.set(node.kind, node.canonicalKind ?? node.kind);
+    }
+  }
+  const kindSpellings = {};
+  for (const spelling of [...resolved.keys()].sort()) kindSpellings[spelling] = resolved.get(spelling);
+  const contracts = {};
+  for (const kind of registry.allKinds()) {
+    const inputType = registry.inputTypeForKind(kind);
+    const outputType = registry.outputTypeForKind(kind);
+    if (!inputType && !outputType) continue;
+    contracts[kind] = { ...inputType ? { inputType } : {}, ...outputType ? { outputType } : {} };
+  }
+  const root = input.graph.entry.owner.manifests.find((m) => m && isModuleKind(m.kind));
+  const rootDefinition = root ? registry.resolveDefinitionIn(root.kind, root.metadata.module) : void 0;
+  return {
+    owner: input.owner,
+    revision: input.revision,
+    moduleGraph: graph,
+    moduleRootSchema: rootDefinition?.schema ?? null,
+    kindSpellings,
+    refConstraints,
+    contracts,
+    outputRefusals: outputRefusalsOf(
+      analysis,
+      outputSlots,
+      outputCandidates([input.graph.entry.owner, ...input.graph.entry.partials].flatMap((file) => file.manifests))
+    ),
+    templates,
+    referenceSites: referenceSitesOf(registry, input.graph.entry),
+    documents: input.documents
+  };
+}
+function ownerModuleGraph({ graph, registry, analysis }) {
+  const rootDoc = analysis.manifests.find(
+    (m) => isModuleKind(m.kind) && m.metadata.source === graph.entry.owner.source
+  );
+  const entryModule = rootDoc?.metadata?.name;
+  const options = {
+    ...rootDoc ? { root: rootDoc } : {},
+    ...entryModule ? { entryModule } : {}
+  };
+  const built = analysis.moduleGraph(registry.moduleGraphDeps(analysis.manifests, options), options);
+  return moduleGraphData(built);
+}
+function declaredRefSlots(registry, manifests) {
+  const schemas3 = registry.allKinds().map((kind) => registry.resolveDefinition(kind)?.schema);
+  for (const m of manifests) schemas3.push(kindDeclarationOf(m)?.schema);
+  const slots = [];
+  const seen = /* @__PURE__ */ new WeakSet();
+  const walk5 = (node) => {
+    if (!node || typeof node !== "object" || seen.has(node)) return;
+    seen.add(node);
+    if (!Array.isArray(node) && isRefSlot(node)) {
+      slots.push(readRefSlot(node));
+    }
+    for (const child of Object.values(node)) walk5(child);
+  };
+  for (const schema4 of schemas3) walk5(schema4);
+  return slots;
+}
+function graphConstraints(graph) {
+  const out = [];
+  for (const node of graph.nodes) {
+    for (const port of node.ports) out.push(...port.refs);
+    for (const row of node.rows) {
+      if (!row.dispatch) continue;
+      out.push(...row.dispatch.refs);
+      for (const alternative of row.dispatch.alternatives ?? []) out.push(...alternative.refs);
+    }
+  }
+  return out;
+}
+
 // src/features/code-actions.ts
 var import_browser2 = __toESM(require_main3(), 1);
 function registerCodeActions({ connection, documents }) {
@@ -82132,6 +82528,34 @@ function registerSignatureHelp({ connection, documents, session }) {
   });
 }
 
+// src/features/view-model.ts
+function registerViewModel({ connection, session }) {
+  const built = /* @__PURE__ */ new WeakMap();
+  connection.onRequest(TeloMethod.viewModel, (params) => {
+    const owned3 = session.ownerAnalysis(params.owner);
+    if (!owned3) return null;
+    let model = built.get(owned3.state);
+    if (!model) {
+      model = buildViewModel({
+        owner: canonicalDocumentUri(params.owner),
+        revision: owned3.revision,
+        graph: owned3.state.graph,
+        registry: owned3.state.registry,
+        analysis: owned3.state.analysis,
+        uriOfSource,
+        documents: owned3.state.documents
+      });
+      built.set(owned3.state, model);
+    }
+    return model;
+  });
+  connection.onRequest(TeloMethod.celCompletion, (params) => {
+    const owned3 = session.ownerAnalysis(params.owner);
+    if (!owned3) return [];
+    return celCompletionAt(owned3.state.analysis, params).map(toCompletionItem);
+  });
+}
+
 // src/host-manifest-source.ts
 var HostManifestSource = class {
   constructor(host, openText) {
@@ -82378,7 +82802,12 @@ var WorkspaceSession = class {
     this.events = events;
   }
   texts = /* @__PURE__ */ new Map();
+  /** The version of each open document the analysis under way read. Analyses
+   *  are serialized, so every read between its start and its end is its own. */
+  reads = /* @__PURE__ */ new Map();
   owners = /* @__PURE__ */ new Map();
+  /** Per owner, never reset — a dropped and re-analysed owner keeps counting. */
+  revisions = /* @__PURE__ */ new Map();
   documentOwner = /* @__PURE__ */ new Map();
   /** Diagnostics about a document as a whole — a load failure, a partial no
    *  module includes, a workspace marker's checks. */
@@ -82386,12 +82815,17 @@ var WorkspaceSession = class {
   published = /* @__PURE__ */ new Map();
   pending = /* @__PURE__ */ new Set();
   draining;
+  /** The open buffer standing in for `source`, read by an analysis — which
+   *  records the version it read; the earliest, should it read one twice. */
   textOf(source) {
-    return this.texts.get(source);
+    const open = this.texts.get(source);
+    if (!open) return void 0;
+    if (!this.reads.has(source)) this.reads.set(source, open.version);
+    return open.text;
   }
   /** A document opened or edited — the host sends the whole text either way. */
-  changed(source, text3) {
-    this.texts.set(source, text3);
+  changed(source, text3, version2) {
+    this.texts.set(source, { text: text3, version: version2 });
     this.schedule(source);
   }
   closed(source) {
@@ -82420,6 +82854,16 @@ var WorkspaceSession = class {
       moduleRoot: dirnameOf(owner ?? source),
       docsFor: (text3) => loaded && loaded.text === text3 ? loaded.astDocuments : void 0
     };
+  }
+  /** The stored analysis of the owner a URI names, with its revision, or
+   *  undefined when it is not being analysed. Matched by canonical URI: a source
+   *  keeps the drive-letter case its document was opened with. */
+  ownerAnalysis(ownerUri) {
+    const wanted = canonicalDocumentUri(ownerUri);
+    for (const [owner, state] of this.owners) {
+      if (uriOfSource(owner) === wanted) return { state, revision: this.revisions.get(owner) };
+    }
+    return void 0;
   }
   schedule(source) {
     this.pending.add(source);
@@ -82453,7 +82897,7 @@ var WorkspaceSession = class {
   async refresh(source, done) {
     if (this.texts.has(source)) {
       if (this.markers.isMarker(source)) {
-        this.documentDiagnostics.set(source, await this.markers.diagnostics(source, this.texts.get(source)));
+        this.documentDiagnostics.set(source, await this.markers.diagnostics(source, this.texts.get(source).text));
         return;
       }
       await this.analyzeDocument(source, done);
@@ -82461,12 +82905,13 @@ var WorkspaceSession = class {
     for (const [owner, state] of [...this.owners]) {
       if (done.has(owner) || !state.closure.has(source)) continue;
       const member = [...this.documentOwner].find(([, o]) => o === owner)?.[0];
-      if (member === void 0) this.owners.delete(owner);
+      if (member === void 0) this.dropOwner(owner);
       else await this.analyzeDocument(member, done);
     }
   }
   async analyzeDocument(source, done) {
-    const text3 = this.texts.get(source);
+    const { text: text3 } = this.texts.get(source);
+    this.reads = /* @__PURE__ */ new Map();
     this.documentDiagnostics.delete(source);
     if (!QUALIFIED_KIND_RE.test(text3)) {
       this.documentOwner.delete(source);
@@ -82547,21 +82992,34 @@ var WorkspaceSession = class {
       closure.add(source);
       for (const file of [module.owner, ...module.partials]) closure.add(file.source);
     }
+    const documents = {};
+    for (const [source, version2] of this.reads) if (closure.has(source)) documents[uriOfSource(source)] = version2;
     this.owners.set(owner, {
       graph,
       registry,
       analysis: registry.analysisOf(manifests),
       closure,
+      documents,
       diagnostics
     });
     this.events.requirements(requirementsOf(owner, graph));
+    this.viewModelMoved(owner);
+  }
+  dropOwner(owner) {
+    this.owners.delete(owner);
+    this.viewModelMoved(owner);
+  }
+  viewModelMoved(owner) {
+    const revision = (this.revisions.get(owner) ?? 0) + 1;
+    this.revisions.set(owner, revision);
+    this.events.viewModelChanged({ owner: uriOfSource(owner), revision });
   }
   /** An owner no open document belongs to any more stops being analysed, and
    *  its diagnostics are withdrawn. */
   collectUnusedOwners() {
     const used = new Set(this.documentOwner.values());
     for (const owner of [...this.owners.keys()]) {
-      if (!used.has(owner)) this.owners.delete(owner);
+      if (!used.has(owner)) this.dropOwner(owner);
     }
   }
   /** Publish every file whose diagnostic set moved — including a file that has
@@ -82608,6 +83066,7 @@ function serve(port) {
   session = new WorkspaceSession(source, markers, {
     publishDiagnostics: (file, diagnostics) => connection.sendDiagnostics({ uri: uriOfSource(file), diagnostics }).catch(reportSendFailure(`diagnostics for ${file}`)),
     requirements: (params) => connection.sendNotification(TeloMethod.requirements, params).catch(reportSendFailure(`${TeloMethod.requirements} for ${params.owner}`)),
+    viewModelChanged: (params) => connection.sendNotification(TeloMethod.viewModelChanged, params).catch(reportSendFailure(`${TeloMethod.viewModelChanged} for ${params.owner}`)),
     analysed: () => {
       if (!client.semanticTokensRefresh) return;
       connection.languages.semanticTokens.refresh().catch(reportSendFailure("a semantic tokens refresh"));
@@ -82622,7 +83081,7 @@ function serve(port) {
     client.semanticTokensRefresh = workspace?.semanticTokens?.refreshSupport === true;
     watchedFilesRegistration = workspace?.didChangeWatchedFiles?.dynamicRegistration === true;
     const experimental = {
-      telo: { protocol: TELO_EDITOR_PROTOCOL }
+      telo: { protocol: TELO_EDITOR_PROTOCOL, viewModel: true }
     };
     return {
       serverInfo: { name: TELO_SERVER_NAME, version: TELO_ENGINE_VERSION },
@@ -82653,7 +83112,7 @@ function serve(port) {
     session.filesChanged(changes.map((c) => sourceOfUri(c.uri)), structural);
   });
   documents.onDidChangeContent(({ document }) => {
-    session.changed(sourceOfUri(document.uri), document.getText());
+    session.changed(sourceOfUri(document.uri), document.getText(), document.version);
   });
   documents.onDidClose(({ document }) => session.closed(sourceOfUri(document.uri)));
   const context = { connection, documents, session, markers, host, client };
@@ -82665,6 +83124,7 @@ function serve(port) {
   registerSemanticTokens(context);
   registerCodeActions(context);
   registerImportUpgrades(context);
+  registerViewModel(context);
   documents.listen(connection);
   connection.listen();
 }
