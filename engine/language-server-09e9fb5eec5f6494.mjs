@@ -20928,8 +20928,7 @@ function distance(a, b) {
 
 // ../../analyzer/nodejs/src/nearest-name.ts
 function nearestName(target, candidates) {
-  if (!target) return void 0;
-  const threshold = Math.min(3, Math.floor(target.length / 3));
+  const threshold = thresholdFor(target);
   if (threshold < 1) return void 0;
   let best;
   let bestDist = threshold + 1;
@@ -20945,6 +20944,25 @@ function nearestName(target, candidates) {
     }
   }
   return !best || bestDist > threshold || tied ? void 0 : best;
+}
+function thresholdFor(target) {
+  return target ? Math.min(3, Math.floor(target.length / 3)) : 0;
+}
+function nearestNames(target, candidates) {
+  const threshold = thresholdFor(target);
+  if (threshold < 1) return [];
+  let best = [];
+  let bestDist = threshold + 1;
+  for (const candidate of candidates) {
+    const d = distance(target, candidate);
+    if (d < bestDist) {
+      best = [candidate];
+      bestDist = d;
+    } else if (d === bestDist) {
+      best.push(candidate);
+    }
+  }
+  return best;
 }
 
 // ../../analyzer/nodejs/src/capability-roster.ts
@@ -39148,7 +39166,8 @@ function walkFragments(node, seen, ctx) {
   for (const key3 of keys) {
     const value2 = container[key3];
     if (isPlainObject3(value2) && isRootPosition(ctx, key3)) {
-      container[key3] = expandRoot(value2, seen);
+      if (typeof value2.kind === "string") expandManifestFragments(value2, seen);
+      else container[key3] = expandRoot(value2, seen);
       continue;
     }
     const localized = localizeRecursiveFragment(value2, ctx);
@@ -42602,7 +42621,7 @@ var REF_SOURCE_RE = /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$/;
 function isRefSourceSpelling(text3) {
   return REF_SOURCE_RE.test(text3);
 }
-function refSentinelTarget(value2) {
+function refSentinelTarget2(value2) {
   if (!isRefSentinel(value2)) return void 0;
   const source = value2.source;
   const dot = source.indexOf(".");
@@ -42806,7 +42825,7 @@ function readSuppliedNeeds(importDoc) {
 }
 function needSupplyOf(value2) {
   if (isRefSentinel(value2)) {
-    const target = refSentinelTarget(value2);
+    const target = refSentinelTarget2(value2);
     return target ? { form: "whole", target } : { form: "invalid" };
   }
   if (value2 && typeof value2 === "object" && !Array.isArray(value2)) {
@@ -45802,8 +45821,13 @@ function formatSingleError(err) {
       return `${p} must NOT have additional properties ('${params.additionalProperty}' is not allowed)`;
     case "required":
       return `${p} is missing required property '${params.missingProperty}'`;
-    case "enum":
-      return `${p} ${err.message ?? "is invalid"} (${params.allowedValues?.join(" | ")})`;
+    case "enum": {
+      const allowed = params.allowedValues ?? [];
+      if (allowed.length <= LISTED_ENUM_VALUES) {
+        return `${p} ${err.message ?? "is invalid"} (${allowed.join(" | ")})`;
+      }
+      return `${p} must be one of ${allowed.length} allowed values${suggestedValues(err.data, allowed)}`;
+    }
     case "type":
       return `${p} must be ${params.type}${describeActual(err)}`;
     // A `false` schema at a property is how a branch forbids a key it otherwise
@@ -45819,6 +45843,16 @@ function formatSingleError(err) {
     default:
       return `${p} ${err.message ?? "is invalid"}`;
   }
+}
+var LISTED_ENUM_VALUES = 20;
+var SUGGESTED_ENUM_VALUES = 5;
+function suggestedValues(value2, allowed) {
+  if (typeof value2 !== "string") return "";
+  const near = nearestNames(
+    value2,
+    allowed.filter((candidate) => typeof candidate === "string")
+  ).slice(0, SUGGESTED_ENUM_VALUES);
+  return near.length === 0 ? "" : `; did you mean ${near.map((name2) => `'${name2}'`).join(" or ")}?`;
 }
 function describeActual(err) {
   if (!("data" in err)) return "";
@@ -45846,7 +45880,10 @@ function describeAlternatives(errors, unionInstancePath) {
     if (e.keyword === "required") phrases.push(`one with '${e.params?.missingProperty}'`);
     else if (e.keyword === "type") phrases.push(`a ${e.params?.type}`);
     else if (e.keyword === "enum") {
-      phrases.push(`one of ${e.params?.allowedValues?.join(" | ")}`);
+      const allowed = e.params?.allowedValues ?? [];
+      phrases.push(
+        allowed.length <= LISTED_ENUM_VALUES ? `one of ${allowed.join(" | ")}` : `one of ${allowed.length} allowed values`
+      );
     }
   }
   return phrases.length > 0 ? phrases : ["another shape"];
@@ -46017,9 +46054,10 @@ function taggedReading(candidates, occurrence) {
       for (const value2 of values) if (!allowed.includes(value2)) allowed.push(value2);
     }
   }
+  const { data, ...union2 } = occurrence.error;
   return [
     {
-      ...occurrence.error,
+      ...union2,
       keyword: "enum",
       instancePath: at3,
       params: { allowedValues: allowed },
@@ -46096,12 +46134,21 @@ function valueTypeRefusalCode(issue) {
   if (issue.keyword !== X_TELO_TYPE || !issue.valueType) return void 0;
   return VALUE_TYPES.get(issue.valueType)?.acceptsText?.code;
 }
+function withEnumValues(errors, data) {
+  if (!errors || data === void 0) return errors;
+  return errors.map(
+    (err) => err.keyword === "enum" && !("data" in err) ? { ...err, data: valueAt(data, err.instancePath) } : err
+  );
+}
 function explained(errors, data) {
   return explainValueTypeErrors(explainFormatErrors(errors, data), data);
 }
+function reducedErrors(errors, data) {
+  return withEnumValues(reduceSchemaErrors(explained(errors, data)), data) ?? [];
+}
 function schemaIssues(errors, data) {
   const seen = /* @__PURE__ */ new Set();
-  return reduceSchemaErrors(explained(errors, data)).flatMap((err) => {
+  return reducedErrors(errors, data).flatMap((err) => {
     const { missingProperty: missing, valueType } = err.params ?? {};
     const issue = {
       message: formatSingleError(err),
@@ -48793,6 +48840,56 @@ function withTemplateSelf(contextSchema) {
   };
 }
 
+// ../../analyzer/nodejs/src/resolved-reference.ts
+var RESOLVED_REFERENCE_MARKER = "__ref";
+function resolvedReference(kind, name2, alias) {
+  return alias === void 0 ? { __ref: true, kind, name: name2 } : { __ref: true, kind, name: name2, alias };
+}
+var isPlainObject7 = (value2) => {
+  if (value2 === null || typeof value2 !== "object" || Array.isArray(value2)) return false;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+};
+function isResolvedReference(value2) {
+  return isPlainObject7(value2) && value2[RESOLVED_REFERENCE_MARKER] === true && typeof value2.kind === "string" && typeof value2.name === "string";
+}
+function isInlineDeclaration(value2) {
+  return isPlainObject7(value2) && typeof value2.kind === "string" && value2[RESOLVED_REFERENCE_MARKER] !== true;
+}
+function isLegacyReferenceForm(value2, kindDeclaresName) {
+  return isPlainObject7(value2) && !Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER) && typeof value2.kind === "string" && typeof value2.name === "string" && kindDeclaresName(value2.kind) === false;
+}
+function asResolvedReference(value2) {
+  return { [RESOLVED_REFERENCE_MARKER]: true, ...value2 };
+}
+function carriesReferenceMarker(value2) {
+  return isPlainObject7(value2) && Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER);
+}
+function declaresNameField(definition, resolve2) {
+  if (!definition) return false;
+  return schemaDeclaresTopLevel(effectiveAuthorSchema(definition, resolve2), "name");
+}
+function schemaDeclaresTopLevel(schema4, key3) {
+  if (!isPlainObject7(schema4)) return false;
+  const root = schema4;
+  const seen = /* @__PURE__ */ new Set();
+  const declares = (node) => {
+    if (!isPlainObject7(node) || seen.has(node)) return false;
+    seen.add(node);
+    if (isPlainObject7(node.properties) && Object.prototype.hasOwnProperty.call(node.properties, key3)) {
+      return true;
+    }
+    const ref = node.$ref;
+    if (typeof ref === "string" && ref.startsWith("#") && declares(resolveSchemaPointer(root, ref))) return true;
+    for (const keyword of ["allOf", "anyOf", "oneOf"]) {
+      const branches = node[keyword];
+      if (Array.isArray(branches) && branches.some(declares)) return true;
+    }
+    return false;
+  };
+  return declares(schema4);
+}
+
 // ../../analyzer/nodejs/src/schema-projection.ts
 function isObject4(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
@@ -49224,7 +49321,7 @@ function hopOf(holder, inner, run) {
 function referenceValueKind(value2, run) {
   if (run.scope.isLiveReference?.(value2) === true || isRefSentinel(value2)) return "reference";
   if (!isObject4(value2) || typeof value2.kind !== "string") return "data";
-  return typeof value2.name === "string" ? "reference" : "inline";
+  return isResolvedReference(value2) ? "reference" : "inline";
 }
 function followReference(value2, holder, inner, anchor, run) {
   const via = hopOf(holder, inner, run);
@@ -50001,7 +50098,7 @@ function resolveTypeFieldToSchema(value2, allManifests, ancestry = /* @__PURE__ 
     if (obj.type || obj.properties) {
       return obj;
     }
-    if (typeof obj.name === "string") {
+    if (isResolvedReference(obj)) {
       return resolveTypeFieldToSchema(obj.name, allManifests, ancestry);
     }
   }
@@ -50245,9 +50342,7 @@ function readContextRefFrom(annotation, holder) {
   if (slash === -1) return void 0;
   const subpath = annotation.slice(slash + 1);
   const ref = holder[annotation.slice(0, slash)];
-  if (!subpath || !ref || typeof ref !== "object" || typeof ref.kind !== "string" || typeof ref.name !== "string") {
-    return void 0;
-  }
+  if (!subpath || !isResolvedReference(ref)) return void 0;
   return { ref, subpath };
 }
 function getContextHolder(exprPath, scope, manifest) {
@@ -50413,16 +50508,14 @@ var ANNOTATION = "x-telo-value-schema-from";
 var ANNOTATED_FIELDS = ["schema", "inputType", "outputType"];
 function namedContractShape(typeField) {
   if (typeof typeField === "string") return typeField.length > 0 ? { name: typeField } : void 0;
-  const tagged = refSentinelTarget(typeField);
+  const tagged = refSentinelTarget2(typeField);
   if (tagged) return { name: tagged.name, alias: tagged.alias };
   if (!typeField || typeof typeField !== "object" || Array.isArray(typeField)) return void 0;
   const field = typeField;
   if (field.schema !== void 0 || field.type !== void 0 || field.properties !== void 0) {
     return void 0;
   }
-  if (typeof field.name === "string") {
-    return { name: field.name, alias: typeof field.alias === "string" ? field.alias : void 0 };
-  }
+  if (isResolvedReference(field)) return { name: field.name, alias: field.alias };
   const canonical = parseCanonicalTypeSchemaId(field.$ref);
   return canonical ? { name: canonical.typeName } : void 0;
 }
@@ -51076,7 +51169,7 @@ function forwardedContractShapes(moduleManifests, forwarded, libDoc) {
     }
     for (const field of fields) {
       for (const { sentinel } of refSentinelsIn(record[field], field)) {
-        const target = refSentinelTarget(sentinel);
+        const target = refSentinelTarget2(sentinel);
         if (target && (target.alias === void 0 || ownNames.has(target.alias))) {
           names.push(target.name);
         }
@@ -51796,7 +51889,7 @@ function followRef(node, path, walk7) {
   if (!stop.shapes.includes(ref)) stop.shapes.push(ref);
 }
 function shapeRefOfSentinel(sentinel) {
-  const target = refSentinelTarget(sentinel);
+  const target = refSentinelTarget2(sentinel);
   return target ? `telo://${target.alias ?? "Self"}/${target.name}` : void 0;
 }
 function followLocalRef(node, path, walk7) {
@@ -52963,6 +53056,7 @@ function resolveSchemaTypeRefs(resources, aliases, aliasesByModule) {
         if (isSlotRoot) {
           obj.$ref = canonical;
         } else {
+          delete obj[RESOLVED_REFERENCE_MARKER];
           delete obj.kind;
           delete obj.name;
           delete obj.alias;
@@ -52985,7 +53079,7 @@ function resolveSchemaTypeRefs(resources, aliases, aliasesByModule) {
   }
 }
 function withCanonicalRefSentinels(value2, ownModule, resolveModule) {
-  const target = refSentinelTarget(value2);
+  const target = refSentinelTarget2(value2);
   if (target) {
     const module = target.alias === void 0 || target.alias === "Self" ? ownModule : resolveModule(target.alias);
     return module ? { $ref: canonicalTypeSchemaId(module, target.name) } : value2;
@@ -53003,9 +53097,11 @@ function withCanonicalRefSentinels(value2, ownModule, resolveModule) {
   return out;
 }
 function resolvedRefInSchema(obj) {
-  if (typeof obj.kind !== "string" || typeof obj.name !== "string") return null;
+  if (!isResolvedReference(obj)) return null;
   for (const key3 of Object.keys(obj)) {
-    if (key3 !== "kind" && key3 !== "name" && key3 !== "alias" && key3 !== "$ref") return null;
+    if (key3 !== RESOLVED_REFERENCE_MARKER && key3 !== "kind" && key3 !== "name" && key3 !== "alias" && key3 !== "$ref") {
+      return null;
+    }
   }
   return typeof obj.alias === "string" ? { name: obj.name, alias: obj.alias } : { name: obj.name };
 }
@@ -53714,6 +53810,102 @@ function pointerSegments(pointer) {
   if (!pointer.startsWith("/")) return void 0;
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
+function parseRulePointer(pointer) {
+  if (pointer === "" || pointer === "/") return [];
+  let at3 = 0;
+  const steps = (closing) => {
+    const out = [];
+    while (at3 < pointer.length) {
+      const c = pointer[at3];
+      if (c === ")" || c === "|") return closing ? out : void 0;
+      if (c === "(") {
+        at3++;
+        const alternatives = [];
+        for (; ; ) {
+          const alternative = steps(true);
+          if (!alternative || alternative.length === 0) return void 0;
+          alternatives.push(alternative);
+          if (pointer[at3] === "|") {
+            at3++;
+            continue;
+          }
+          if (pointer.startsWith(")*", at3)) {
+            at3 += 2;
+            break;
+          }
+          return void 0;
+        }
+        out.push({ kind: "repeat", alternatives });
+        continue;
+      }
+      if (c !== "/") return void 0;
+      at3++;
+      let end = at3;
+      while (end < pointer.length && !"/()|".includes(pointer[end])) end++;
+      const raw = pointer.slice(at3, end);
+      at3 = end;
+      out.push(raw === "*" ? { kind: "any" } : { kind: "key", key: raw.replace(/~1/g, "/").replace(/~0/g, "~") });
+    }
+    return closing ? void 0 : out;
+  };
+  const parsed = steps(false);
+  return parsed && at3 === pointer.length ? parsed : void 0;
+}
+function namesOnePlace(steps) {
+  return steps.every((step) => step.kind === "key");
+}
+function joinPath(base, key3) {
+  if (typeof key3 === "number" || /^\d+$/.test(key3)) return `${base}[${key3}]`;
+  return base === "" ? key3 : `${base}.${key3}`;
+}
+var MAX_REPEAT_DEPTH = 64;
+function placesAlong(from, steps) {
+  let places = [...from];
+  for (const step of steps) {
+    const next = [];
+    const seen = /* @__PURE__ */ new Set();
+    const reach = (place2) => {
+      if (seen.has(place2.path)) return;
+      seen.add(place2.path);
+      next.push(place2);
+    };
+    const child = (value2, path) => {
+      const dynamic = dynamicNode(value2, path);
+      reach(dynamic ? { value: value2, path, dynamic } : { value: value2, path });
+    };
+    for (const place2 of places) {
+      const { value: value2, path } = place2;
+      if (place2.dynamic) {
+        reach(place2);
+        continue;
+      }
+      if (isTaggedSentinel(value2) || isCelNode(value2)) continue;
+      if (step.kind === "key") {
+        if (Array.isArray(value2)) {
+          const index = Number(step.key);
+          if (Number.isInteger(index) && value2[index] !== void 0) child(value2[index], joinPath(path, index));
+        } else if (isObject5(value2) && value2[step.key] !== void 0) {
+          child(value2[step.key], joinPath(path, step.key));
+        }
+      } else if (step.kind === "any") {
+        if (Array.isArray(value2)) value2.forEach((item, index) => child(item, joinPath(path, index)));
+        else if (isObject5(value2)) {
+          for (const [key3, item] of Object.entries(value2)) child(item, joinPath(path, key3));
+        }
+      } else {
+        let frontier = [place2];
+        reach(place2);
+        for (let depth = 0; frontier.length > 0 && depth < MAX_REPEAT_DEPTH; depth++) {
+          frontier = step.alternatives.flatMap((alternative) => placesAlong(frontier, alternative)).filter((reached) => !seen.has(reached.path));
+          frontier.forEach(reach);
+          frontier = frontier.filter((reached) => !reached.dynamic);
+        }
+      }
+    }
+    places = next;
+  }
+  return places;
+}
 function resolvePointer(value2, pointer) {
   const segments = pointerSegments(pointer);
   if (!segments) return void 0;
@@ -53740,9 +53932,26 @@ function pointerToPath(pointer) {
   }, "");
 }
 function resolveRuleSubjects(config, pointer) {
-  const collection = resolvePointer(config, pointer);
-  if (collection === void 0 || collection === null) return [];
-  const base = pointerToPath(pointer);
+  const steps = parseRulePointer(pointer);
+  if (!steps) return [];
+  const one = namesOnePlace(steps);
+  const subjects = [];
+  for (const place2 of placesAlong([{ value: config, path: "" }], steps)) {
+    if (place2.dynamic) {
+      subjects.push({ path: place2.path, value: place2.value, dynamic: place2.dynamic });
+      continue;
+    }
+    if (place2.value === null || isTaggedSentinel(place2.value)) continue;
+    const each = subjectsOf(place2.value, place2.path);
+    if (!each) {
+      if (one) return void 0;
+      continue;
+    }
+    subjects.push(...each);
+  }
+  return subjects;
+}
+function subjectsOf(collection, base) {
   if (Array.isArray(collection)) {
     return collection.map((value2, index) => ({ path: `${base}[${index}]`, value: value2 }));
   }
@@ -53865,9 +54074,9 @@ function isScopeMember(value2) {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2) || isRefSentinel(value2)) {
     return false;
   }
-  const entry = value2;
-  const name2 = entry.metadata?.name;
-  return typeof entry.kind === "string" && typeof entry.name !== "string" && typeof name2 === "string";
+  if (!isInlineDeclaration(value2)) return false;
+  const name2 = value2.metadata?.name;
+  return typeof name2 === "string";
 }
 function outsideScopesOf(manifest) {
   const origin = manifest?.metadata?.xTeloOrigin?.outsideScopes;
@@ -53876,25 +54085,27 @@ function outsideScopesOf(manifest) {
 
 // ../../analyzer/nodejs/src/manifest-visitor.ts
 var NESTED_REF_ENTRY = { refs: [], uses: [], isArray: false };
-function walkRefValues(value2, path, cb) {
+function walkRefValues(value2, path, cb, authored) {
   if (isRefSentinel(value2)) {
     cb(value2, path);
     return;
   }
   if (isTaggedSentinel(value2)) return;
   if (Array.isArray(value2)) {
-    value2.forEach((v, i) => walkRefValues(v, `${path}[${i}]`, cb));
+    value2.forEach((v, i) => walkRefValues(v, `${path}[${i}]`, cb, authored));
     return;
   }
   if (value2 === null || typeof value2 !== "object") return;
   if (value2.__compiled) return;
   const obj = value2;
   if (typeof obj.kind === "string") {
-    if (typeof obj.name === "string") cb(value2, path);
+    if (isResolvedReference(obj) || authored && (typeof obj.name === "string" || carriesReferenceMarker(obj))) {
+      cb(value2, path);
+    }
     return;
   }
   for (const [k, v] of Object.entries(obj)) {
-    walkRefValues(v, path ? `${path}.${k}` : k, cb);
+    walkRefValues(v, path ? `${path}.${k}` : k, cb, authored);
   }
 }
 var scopePrefixOf = (pointer) => pointer.replace(/^\//, "").replace(/\//g, ".");
@@ -53930,11 +54141,10 @@ function visitManifest(resources, registry, visitor, options = {}) {
           items.forEach((v, i) => {
             if (!v || typeof v !== "object") return;
             const declarationPath = Array.isArray(site.data) ? `${site.path}[${i}]` : site.path;
-            const rec = v;
-            if (isRefSentinel(v) || typeof rec.kind === "string" && typeof rec.name === "string") {
+            if (isRefSentinel(v) || isResolvedReference(v)) {
               scopeRefEntries.push({
                 path: declarationPath,
-                refName: isRefSentinel(v) ? v.source : String(rec.name)
+                refName: isRefSentinel(v) ? v.source : v.name
               });
               return;
             }
@@ -54028,7 +54238,7 @@ function visitManifest(resources, registry, visitor, options = {}) {
         });
       };
       for (const [key3, value2] of Object.entries(r)) {
-        walkRefValues(value2, key3, emitNested);
+        walkRefValues(value2, key3, emitNested, options.authoredReferenceForms === true);
       }
     }
     if (wantsCel) {
@@ -54060,48 +54270,6 @@ function visitManifest(resources, registry, visitor, options = {}) {
   }
 }
 
-// ../../analyzer/nodejs/src/reference-field-map.ts
-function satisfiesValueBranch(value2, branches, registry, standIns) {
-  if (!branches?.length) return false;
-  return branches.some((branch) => {
-    const schema4 = valueBranchSchema(branch);
-    return registry.schemaCompileError(schema4) === void 0 && registry.validateWithRefs(value2, schema4, standIns).length === 0;
-  });
-}
-function satisfiesSiteValue(value2, refs, registry) {
-  return refs.some(
-    (ref) => (readRefSlot(ref.node)?.valueBranches ?? []).some((branch) => {
-      const standIns = /* @__PURE__ */ new Map();
-      const substituted = substituteCelFields(
-        value2,
-        valueBranchSchema(branch),
-        ref.declaredIn.document,
-        { standIns }
-      );
-      return satisfiesValueBranch(substituted, [branch], registry, standIns);
-    }) || ref.alternatives.some(
-      ({ node, members }) => members !== void 0 && satisfiesValueBranch(value2, [node], registry) && members.every(({ member, document, value: at3 }) => {
-        const standIns = /* @__PURE__ */ new Map();
-        const substituted = substituteCelFields(at3, member, document, { standIns });
-        return satisfiesValueBranch(substituted, [member], registry, standIns);
-      })
-    )
-  );
-}
-function isValueAtSlot(value2, refs, registry) {
-  const nodeUnionsValue = refs.some((ref) => (readRefSlot(ref.node)?.valueBranches.length ?? 0) > 0);
-  if (nodeUnionsValue && typeof value2 !== "object") return true;
-  return satisfiesSiteValue(value2, refs, registry);
-}
-function isInlineResource(val) {
-  if (typeof val.name === "string") return false;
-  if (typeof val.kind !== "string") return false;
-  return true;
-}
-function collectRefs2(node) {
-  return readRefSlot(node)?.kinds ?? [];
-}
-
 // ../../analyzer/nodejs/src/system-kinds.ts
 function isKindDocumentOrImport(doc) {
   return isKindDocument(doc) || doc?.kind === "Telo.Import";
@@ -54116,10 +54284,10 @@ function nodeIdFor(manifest) {
   return module ? `${module}\0${resourceId(kind, name2)}` : resourceId(kind, name2);
 }
 var declaringModule = (manifest) => manifest.metadata?.module;
-function resolveScopedName(candidates, moduleOf8, fromModule) {
+function resolveScopedName(candidates, moduleOf9, fromModule) {
   if (!candidates || candidates.length === 0) return void 0;
   if (candidates.length === 1) return candidates[0];
-  return candidates.find((candidate) => moduleOf8(candidate) === fromModule);
+  return candidates.find((candidate) => moduleOf9(candidate) === fromModule);
 }
 function resolveReferenceTarget(candidatesByName, ref, fromModule, moduleForAlias) {
   const candidates = candidatesByName.get(ref.name);
@@ -54206,8 +54374,7 @@ function resolveSlotUseAt(slot, resource, ref, concretePath2) {
   return resolveUseAtSite(entry, resource, concretePath2, reachDefault([ref]));
 }
 function isPlainRefValue(value2) {
-  if (typeof value2.kind !== "string" || typeof value2.name !== "string") return false;
-  return Object.keys(value2).every((k) => k === "kind" || k === "name" || k === "alias" || k === "__ref");
+  return isResolvedReference(value2);
 }
 function classifyStep(step, itemSchema, rootSchema) {
   if (!itemSchema) return {};
@@ -54253,7 +54420,7 @@ function emitStepEdges(node, ctx) {
     const slot = readRefSlot(propSchema);
     if (!slot || slot.kinds.length === 0) continue;
     const written = node.step[key3];
-    const inline = written !== null && typeof written === "object" && !Array.isArray(written) && isInlineResource(written);
+    const inline = written !== null && typeof written === "object" && !Array.isArray(written) && isInlineDeclaration(written);
     node.refSlots = [
       ...node.refSlots ?? [],
       {
@@ -54607,11 +54774,9 @@ function buildCallGraph(resources, registry, options = {}) {
   };
 }
 function refTargetName(value2) {
-  const sentinel = refSentinelTarget(value2);
+  const sentinel = refSentinelTarget2(value2);
   if (sentinel) return sentinel.source;
-  if (!value2 || typeof value2 !== "object") return void 0;
-  const name2 = value2.name;
-  return typeof name2 === "string" ? name2 : void 0;
+  return isResolvedReference(value2) ? value2.name : void 0;
 }
 function projectToPairs(graph, options = {}) {
   const out = /* @__PURE__ */ new Map();
@@ -54688,7 +54853,7 @@ function findManifest(manifests, kind, name2) {
 }
 
 // ../../analyzer/nodejs/src/cel-scope-query.ts
-function joinPath(base, segment) {
+function joinPath2(base, segment) {
   return base ? `${base}.${segment}` : segment;
 }
 function manifestItemPath(exprPath, scope) {
@@ -54830,9 +54995,9 @@ var CelScopeQuery = class {
     if (!origin) return void 0;
     let base = origin.path;
     for (let i = 1; i < parts.length; i++) {
-      const candidates = i === 1 && origin.propertyMap ? [joinPath(base, parts[i])] : [
-        joinPath(joinPath(base, "properties"), parts[i]),
-        joinPath(joinPath(joinPath(base, "schema"), "properties"), parts[i])
+      const candidates = i === 1 && origin.propertyMap ? [joinPath2(base, parts[i])] : [
+        joinPath2(joinPath2(base, "properties"), parts[i]),
+        joinPath2(joinPath2(joinPath2(base, "schema"), "properties"), parts[i])
       ];
       const hit = candidates.find(
         (candidate) => navigateConcretePath2(origin.manifest, candidate) !== void 0
@@ -54856,7 +55021,7 @@ var CelScopeQuery = class {
     const from = annotated["x-telo-context-from"];
     if (typeof from === "string") {
       const itemPath = manifestItemPath(sitePath, matchedScope);
-      return { manifest: root, path: joinPath(itemPath, from.split("/").join(".")), propertyMap: true };
+      return { manifest: root, path: joinPath2(itemPath, from.split("/").join(".")), propertyMap: true };
     }
     const fromRoot = annotated["x-telo-context-from-root"];
     if (typeof fromRoot === "string") {
@@ -55352,6 +55517,83 @@ function schemaAtPointer(schema4, pointer) {
   }
   return node;
 }
+var MAX_SCHEMA_REPEAT = 16;
+function ruleCollectionSchemas(schema4, pointer, module, shapes) {
+  const steps = parseRulePointer(pointer);
+  if (!steps) {
+    return { problem: `'in' must be a JSON Pointer starting with '/', optionally with '*' and repeated groups '(\u2026)*', got '${pointer}'.` };
+  }
+  if (!isObject6(schema4)) return { nodes: [] };
+  const resolved = (place2) => {
+    const out = [];
+    const seen = /* @__PURE__ */ new Set();
+    const visit3 = (current) => {
+      if (seen.has(current.node)) return;
+      seen.add(current.node);
+      const ref = current.node.$ref;
+      if (typeof ref === "string") {
+        if (ref.startsWith("#")) {
+          const target = resolveSchemaPointer(current.root, ref);
+          if (isObject6(target)) visit3({ ...current, node: target });
+        } else {
+          const shape = shapes?.(ref, current.module);
+          if (shape) visit3({ node: shape.schema, root: shape.schema, module: shape.module });
+        }
+      }
+      out.push(current);
+      for (const key3 of ["anyOf", "oneOf", "allOf"]) {
+        const branches = current.node[key3];
+        if (Array.isArray(branches)) {
+          for (const branch of branches) if (isObject6(branch)) visit3({ ...current, node: branch });
+        }
+      }
+    };
+    visit3(place2);
+    return out;
+  };
+  const along = (from, path) => {
+    let places = [...from];
+    for (const step of path) {
+      const next = [];
+      for (const place2 of places) {
+        if (step.kind === "repeat") {
+          next.push(place2);
+          let frontier = [place2];
+          const reached2 = /* @__PURE__ */ new Set([place2.node]);
+          for (let depth = 0; frontier.length > 0 && depth < MAX_SCHEMA_REPEAT; depth++) {
+            const found = [];
+            for (const alternative of step.alternatives) {
+              const each = along(frontier, alternative);
+              if (typeof each === "string") return each;
+              if (depth === 0 && each.length === 0) {
+                return `'in' repeats a group that names nothing this kind's schema declares at '${pointer}'.`;
+              }
+              found.push(...each);
+            }
+            frontier = found.filter((candidate) => !reached2.has(candidate.node));
+            for (const candidate of frontier) reached2.add(candidate.node);
+            next.push(...frontier);
+          }
+          continue;
+        }
+        for (const node of resolved(place2)) {
+          const children = step.kind === "any" ? [node.node.items, node.node.additionalProperties, ...Object.values(node.node.patternProperties ?? {})] : [
+            isObject6(node.node.properties) ? node.node.properties[step.key] : void 0,
+            node.node.type === "array" ? node.node.items : void 0,
+            node.node.additionalProperties
+          ];
+          const child = children.find(isObject6);
+          if (child) next.push({ ...node, node: child });
+        }
+      }
+      places = next;
+    }
+    return places;
+  };
+  const reached = along([{ node: schema4, root: schema4, module }], steps);
+  if (typeof reached === "string") return { problem: reached };
+  return { nodes: reached.flatMap(resolved).map((place2) => place2.node) };
+}
 function rulePointerReaches(schema4, pointer, kindSchemas) {
   const segments = pointerSegments(pointer);
   if (!segments) return "absent";
@@ -55388,7 +55630,7 @@ function isIterableSchema(node) {
   const types = Array.isArray(type) ? type : [type];
   return types.some((t) => t === "array" || t === "object");
 }
-function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames, kindSchemas) {
+function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames, kindSchemas, shapes) {
   const own2 = manifest.schema;
   const schema4 = effectiveSchema ?? own2;
   const raw = readRawResourceRules(own2);
@@ -55444,16 +55686,21 @@ function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames
     if (entry.in !== void 0) {
       if (typeof entry.in !== "string") {
         issue(`${at3}.in`, "'in' must be a JSON Pointer to the collection the rule iterates.");
-      } else if (!pointerSegments(entry.in)) {
-        issue(`${at3}.in`, `'in' must be a JSON Pointer starting with '/', got '${entry.in}'.`);
       } else {
-        const node = schemaAtPointer(schema4, entry.in);
-        if (node === void 0) {
+        const named = ruleCollectionSchemas(
+          schema4,
+          entry.in,
+          manifest.metadata?.module,
+          shapes
+        );
+        if ("problem" in named) {
+          issue(`${at3}.in`, named.problem);
+        } else if (named.nodes.length === 0) {
           issue(
             `${at3}.in`,
             `'in' points at '${entry.in}', which this kind's schema does not declare. The pointer is the diagnostic's anchor, so it must name a field of this kind.`
           );
-        } else if (!isIterableSchema(node)) {
+        } else if (!named.nodes.some(isIterableSchema)) {
           issue(
             `${at3}.in`,
             `'in' points at '${entry.in}', which is not a collection. A rule iterates an array or a map; omit 'in' for a rule about the resource as a whole.`
@@ -55527,6 +55774,10 @@ function evaluateResourceRules(manifest, definitionSchema, moduleNames, function
     const { parsed, chains } = compiled2;
     const started = Date.now();
     for (const subject of subjects) {
+      if (subject.dynamic) {
+        findings.push({ kind: "skipped", rule, path: subject.path, dynamic: subject.dynamic });
+        continue;
+      }
       const dynamic = findDynamicRead(chains, { self, this: subject.value });
       if (dynamic !== void 0) {
         findings.push({ kind: "skipped", rule, path: subject.path, dynamic });
@@ -55672,11 +55923,11 @@ function referenceValueOf(value2) {
     const dot = value2.source.indexOf(".");
     return dot > 0 ? { alias: value2.source.slice(0, dot), name: value2.source.slice(dot + 1) } : { name: value2.source };
   }
-  if (typeof value2.name === "string" && typeof value2.kind === "string") {
+  if (isResolvedReference(value2)) {
     return {
       name: value2.name,
       kind: value2.kind,
-      ...typeof value2.alias === "string" ? { alias: value2.alias } : {}
+      ...value2.alias !== void 0 ? { alias: value2.alias } : {}
     };
   }
   return void 0;
@@ -56126,6 +56377,43 @@ function analyzerKindSchemas(registry) {
   };
 }
 
+// ../../analyzer/nodejs/src/reference-field-map.ts
+function satisfiesValueBranch(value2, branches, registry, standIns) {
+  if (!branches?.length) return false;
+  return branches.some((branch) => {
+    const schema4 = valueBranchSchema(branch);
+    return registry.schemaCompileError(schema4) === void 0 && registry.validateWithRefs(value2, schema4, standIns).length === 0;
+  });
+}
+function satisfiesSiteValue(value2, refs, registry) {
+  return refs.some(
+    (ref) => (readRefSlot(ref.node)?.valueBranches ?? []).some((branch) => {
+      const standIns = /* @__PURE__ */ new Map();
+      const substituted = substituteCelFields(
+        value2,
+        valueBranchSchema(branch),
+        ref.declaredIn.document,
+        { standIns }
+      );
+      return satisfiesValueBranch(substituted, [branch], registry, standIns);
+    }) || ref.alternatives.some(
+      ({ node, members }) => members !== void 0 && satisfiesValueBranch(value2, [node], registry) && members.every(({ member, document, value: at3 }) => {
+        const standIns = /* @__PURE__ */ new Map();
+        const substituted = substituteCelFields(at3, member, document, { standIns });
+        return satisfiesValueBranch(substituted, [member], registry, standIns);
+      })
+    )
+  );
+}
+function isValueAtSlot(value2, refs, registry) {
+  const nodeUnionsValue = refs.some((ref) => (readRefSlot(ref.node)?.valueBranches.length ?? 0) > 0);
+  if (nodeUnionsValue && typeof value2 !== "object") return true;
+  return satisfiesSiteValue(value2, refs, registry);
+}
+function collectRefs2(node) {
+  return readRefSlot(node)?.kinds ?? [];
+}
+
 // ../../analyzer/nodejs/src/step-bodies.ts
 function stepBodiesOf(declaration, schema4) {
   const out = [];
@@ -56174,6 +56462,7 @@ function cloneForMutation(value2) {
 }
 function normalizeInlineResources(resources, registry, aliases, aliasesByModule) {
   const result = resources.map(cloneForMutation);
+  const resolveDef = (kind, from) => definitionInScope(registry, kind, from?.metadata, aliases, aliasesByModule);
   const queue = result.filter((r) => typeof r.metadata?.name === "string" && !!r.kind).map((manifest) => ({
     manifest,
     home: void 0,
@@ -56230,9 +56519,23 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
         names: scopeMembers(scope).map((member) => member.metadata.name)
       })).filter((scope) => scope.names.length > 0)
     ];
+    const legacyReference = (value2) => isLegacyReferenceForm(value2, (kind) => {
+      const definition = definitionInScope(
+        registry,
+        kind,
+        view.metadata,
+        aliases,
+        aliasesByModule
+      );
+      return definition ? declaresNameField(definition, resolveDef) : void 0;
+    });
     const extractedAt = [];
     for (const site of sites) {
       if (site.refs.length === 0) continue;
+      if (site.holder && site.key !== void 0 && legacyReference(site.data) && !isValueAtSlot(site.data, site.refs, registry)) {
+        site.holder[site.key] = asResolvedReference(site.data);
+        continue;
+      }
       const entry = siteRefEntry(site);
       if (!acceptsInline(resource.kind, entry)) continue;
       if (current.inBody && entry.uses.includes("schema")) continue;
@@ -56262,6 +56565,7 @@ function normalizeInlineResources(resources, registry, aliases, aliasesByModule)
       aliasesByModule,
       inherit,
       outsideAt,
+      legacyReference,
       (m) => place2(m, home, parentModule, current.inBody)
     );
   }
@@ -56278,7 +56582,7 @@ function provenanceOf(manifest, module) {
     moduleGlobals: manifest.metadata?.moduleGlobals
   };
 }
-function extractStepTargets(resource, view, registry, aliases, aliasesByModule, inherit, outsideAt, emit) {
+function extractStepTargets(resource, view, registry, aliases, aliasesByModule, inherit, outsideAt, legacyReference, emit) {
   const definition = definitionInScope(
     registry,
     view.kind,
@@ -56300,12 +56604,16 @@ function extractStepTargets(resource, view, registry, aliases, aliasesByModule, 
     forEachStep(body2, schema4, (step, stepPath2) => {
       const target = step[body2.invokeField];
       if (!target || typeof target !== "object" || Array.isArray(target)) return;
-      if (!isInlineResource(target)) return;
+      if (legacyReference(target)) {
+        step[body2.invokeField] = asResolvedReference(target);
+        return;
+      }
+      if (!isInlineDeclaration(target)) return;
       if (typeof step.name !== "string") return;
       const inline = target;
       const declared = inline.metadata?.name;
       const name2 = typeof declared === "string" ? declared : inlineStepTargetName(owner, [root, ...stepPathSegments(stepPath2).slice(1)], step.name);
-      step[body2.invokeField] = { kind: inline.kind, name: name2 };
+      step[body2.invokeField] = resolvedReference(inline.kind, name2);
       emit(
         buildManifest(
           inline,
@@ -56351,7 +56659,7 @@ function stepPathSegments(path) {
 function extractInlineAt(resource, site, parentName, parentKind, inherit, outsideScopes, invocationContext) {
   const inline = site.data;
   if (!inline || typeof inline !== "object" || Array.isArray(inline) || !site.holder) return void 0;
-  if (!isInlineResource(inline)) return void 0;
+  if (!isInlineDeclaration(inline)) return void 0;
   const nameParts = [];
   let value2 = resource;
   for (const key3 of site.keys) {
@@ -56364,10 +56672,7 @@ function extractInlineAt(resource, site, parentName, parentKind, inherit, outsid
     }
   }
   const name2 = sanitizeName([parentName, ...nameParts].join("_"));
-  site.holder[site.key] = {
-    kind: inline.kind,
-    name: name2
-  };
+  site.holder[site.key] = resolvedReference(inline.kind, name2);
   return buildManifest(
     inline,
     name2,
@@ -56736,7 +57041,7 @@ function fromSelf(manifest, self, crossing) {
   let within3 = [];
   let crossedAt;
   for (let i = 0; i < self.length; i++) {
-    if (!isPlainObject7(node)) return void 0;
+    if (!isPlainObject8(node)) return void 0;
     node = node[self[i]];
     within3.push(self[i]);
     if (i === self.length - 1 || !sites.has(formatPath(within3))) continue;
@@ -56758,7 +57063,7 @@ function throughBase(base, self, manifest, crossing) {
   for (let i = 0; i < self.length; i++) {
     const forwarded2 = selfForwardPath(node);
     if (forwarded2) return fromSelf(manifest, [...forwarded2, ...self.slice(i)], crossing);
-    if (!isPlainObject7(node)) return void 0;
+    if (!isPlainObject8(node)) return void 0;
     node = node[self[i]];
     if (node === void 0) return void 0;
   }
@@ -56775,7 +57080,7 @@ function throughBase(base, self, manifest, crossing) {
     }
     if (isOpaque(value3)) return void 0;
     if (Array.isArray(value3)) return value3.map((item, i) => materialize2(item, [...at3, i]) ?? {});
-    if (isPlainObject7(value3)) {
+    if (isPlainObject8(value3)) {
       const out = {};
       for (const [key3, child] of Object.entries(value3)) {
         const materialized = materialize2(child, [...at3, key3]);
@@ -56811,7 +57116,7 @@ function place(view, entry, at3, value2, canonicalKind) {
     let child = container[segment];
     if (!child || typeof child !== "object") {
       child = typeof at3[i + 1] === "number" ? [] : {};
-      const declared = isPlainObject7(literal) ? literal.kind : void 0;
+      const declared = isPlainObject8(literal) ? literal.kind : void 0;
       if (typeof declared === "string" && !Array.isArray(child)) {
         child.kind = canonicalKind(declared);
       }
@@ -56830,7 +57135,7 @@ function setAt(container, segment, value2) {
 function navigate2(root, path) {
   let node = root;
   for (const key3 of path) {
-    if (!isPlainObject7(node)) return void 0;
+    if (!isPlainObject8(node)) return void 0;
     node = node[key3];
   }
   return node;
@@ -56856,7 +57161,7 @@ function isCompiled(value2) {
 function isOpaque(value2) {
   return isTaggedSentinel(value2) || isRefSentinel(value2) || isCompiled(value2);
 }
-function isPlainObject7(value2) {
+function isPlainObject8(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2) && !isOpaque(value2);
 }
 
@@ -56920,17 +57225,13 @@ function entryListSpecsOf(rootSchema) {
     errorBranches: propertySchemas(list5.items ?? {}).filter(([, subSchema]) => isErrorBranch(subSchema)).map(([subKey]) => subKey)
   }));
 }
-function isInlineDeclaration(value2) {
-  if (isRefSentinel(value2) || !value2 || typeof value2 !== "object" || Array.isArray(value2)) {
-    return false;
-  }
-  return isInlineResource(value2);
+function isInlineDeclaration2(value2) {
+  if (isRefSentinel(value2)) return false;
+  return isInlineDeclaration(value2);
 }
 function refName(value2) {
   if (isRefSentinel(value2)) return value2.source;
-  if (!value2 || typeof value2 !== "object") return void 0;
-  const name2 = value2.name;
-  return typeof name2 === "string" ? name2 : void 0;
+  return isResolvedReference(value2) ? value2.name : void 0;
 }
 function buildModuleGraph(resources, callGraph, deps, options = {}) {
   const nodes = [];
@@ -57468,7 +57769,7 @@ function inlineRows(node, site, host, deps, rowIdByPath, out, forwarding) {
       });
     };
     for (const entry of sitesOf(declarationSites2, field.path)) {
-      if (isInlineDeclaration(entry.value)) {
+      if (isInlineDeclaration2(entry.value)) {
         inlineRows(
           node,
           { path: `${site.path}.${entry.path}`, value: entry.value },
@@ -57493,7 +57794,7 @@ function weaveInlineRows(node, manifest, callGraph, callGraphId, deps, rowIdByPa
   const ownRows = rowsByOwnerOf(rowIdByPath).get(node.id) ?? [];
   const sites = /* @__PURE__ */ new Map();
   const record = (rowId, path, value2, slot) => {
-    if (!rowId || sites.has(path) || !isInlineDeclaration(value2)) return;
+    if (!rowId || sites.has(path) || !isInlineDeclaration2(value2)) return;
     sites.set(path, { rowId, path, value: value2, slot });
   };
   for (const step of callGraph.steps(callGraphId)) {
@@ -57765,7 +58066,7 @@ function buildPorts(manifest, deps, rowArrays) {
       const target = refName(value2);
       const slot = { path };
       if (target !== void 0) slot.target = target;
-      else if (isInlineDeclaration(value2)) slot.inline = true;
+      else if (isInlineDeclaration2(value2)) slot.inline = true;
       slots.push(slot);
     }
     if (slots.length === 0 && !field.path.includes("[]") && !field.path.includes("{}")) {
@@ -57967,15 +58268,11 @@ function collectReferencedNames(value2, out) {
   }
   if (isTaggedSentinel(value2) || value2.__compiled) return;
   const record = value2;
-  if (isResolvedRef(record)) {
+  if (isResolvedReference(record)) {
     if (record.alias === void 0) out.add(record.name);
     return;
   }
   for (const child of Object.values(record)) collectReferencedNames(child, out);
-}
-function isResolvedRef(value2) {
-  const keys = Object.keys(value2);
-  return typeof value2.kind === "string" && typeof value2.name === "string" && keys.every((key3) => key3 === "kind" || key3 === "name" || key3 === "alias");
 }
 function exportEdges(root, manifest, resolveName, byQualifiedName, rowIdByPath) {
   const listed = manifest.exports;
@@ -58168,7 +58465,7 @@ function schemaFromSites(resource, slot, schemaFrom, ctx) {
   if (!anchorVal || typeof anchorVal !== "object") return out;
   const ref = anchorVal;
   if (typeof ref.kind !== "string") return out;
-  const target = typeof ref.name === "string" ? ctx.resolveTarget(ref) : void 0;
+  const target = isResolvedReference(ref) ? ctx.resolveTarget(ref) : void 0;
   const perInstance = target === void 0 ? void 0 : navigateJsonPointer(target, jsonPointer);
   if (perInstance !== void 0) {
     const instanceSchema = resolveTypeFieldToSchema(perInstance, ctx.typeManifests);
@@ -58228,7 +58525,7 @@ function callSite(origin, path, values, invoke, manifest, ctx, step) {
   const scope = contractScopeOf(ctx);
   const readingModule = manifest.metadata?.module;
   const invokedKind = typeof invoke.kind === "string" ? invoke.kind : void 0;
-  const invokedManifest = typeof invoke.name === "string" ? ctx.resolveTarget(invoke) : invoke;
+  const invokedManifest = isResolvedReference(invoke) ? ctx.resolveTarget(invoke) : invoke;
   const invokedDefinition = invokedKind ? scope.resolveIn(invokedKind, readingModule) : void 0;
   return {
     origin,
@@ -58320,7 +58617,7 @@ function templateCallSite(manifest, ctx) {
       origin: "template",
       path: "inputs",
       values,
-      invoke: { kind: target.kind, name: target.name },
+      invoke: resolvedReference(target.kind, target.name),
       invokedManifest: entry,
       invokedDefinition: definition2,
       contract: resolveContract("inputType", entry, definition2, scope)
@@ -58609,7 +58906,7 @@ function collectReferenceOutputIssues(manifest, sites, allManifests, defs, alias
     const reported = /* @__PURE__ */ new Set();
     for (const { slot } of site.refs) {
       if (!slot.outputType) continue;
-      const target = typeof reference.name === "string" ? ctx.resolveTarget(reference) : reference;
+      const target = isResolvedReference(reference) ? ctx.resolveTarget(reference) : reference;
       if (!target) continue;
       const definition = contractScope.resolveIn(reference.kind, readingModule);
       const issues = referenceOutputRefusal(
@@ -58938,7 +59235,7 @@ function resolveRefTargetThrows(refValue, ctx, ownerModule2, onPassthrough) {
   const ref = refValue;
   const invokedKind = ref.kind;
   if (!invokedKind) {
-    const sentinel = refSentinelTarget(ref);
+    const sentinel = refSentinelTarget2(ref);
     if (!sentinel) return emptyUnion();
     const target2 = findSentinelTarget(ctx, sentinel, ownerModule2);
     if (target2) return resolveThrowsUnion(target2, ctx);
@@ -58961,7 +59258,7 @@ function resolveRefManifest(refValue, ctx, ownerModule2) {
   const ref = refValue;
   const kind = ref.kind;
   if (!kind) {
-    const sentinel = refSentinelTarget(ref);
+    const sentinel = refSentinelTarget2(ref);
     return sentinel ? findSentinelTarget(ctx, sentinel, ownerModule2) : void 0;
   }
   const name2 = ref.name;
@@ -59128,14 +59425,14 @@ function answerFor(readings, code) {
   }
   return { undecided };
 }
-function buildEnclosers(manifests, definitionOf, moduleOf8, ctx) {
+function buildEnclosers(manifests, definitionOf, moduleOf9, ctx) {
   const enclosers = /* @__PURE__ */ new Map();
   for (const manifest of manifests) {
     const definition = definitionOf(manifest);
     if (!definition?.schema) continue;
     forEachDrivenSlot(definition.schema, manifest, (driven) => {
       if (driven.kind !== "ref" || !driven.slots.some(({ slot }) => slot.throwsThrough)) return;
-      const target = resolveRefManifest(driven.data, ctx, moduleOf8(manifest));
+      const target = resolveRefManifest(driven.data, ctx, moduleOf9(manifest));
       if (!target || target === manifest) return;
       const list5 = enclosers.get(target);
       if (list5) list5.push(manifest);
@@ -59150,7 +59447,7 @@ function handlerRefOf(sibling) {
   if (typeof sibling === "object") {
     const obj = sibling;
     if (typeof obj.kind === "string") {
-      return { kind: obj.kind, name: typeof obj.name === "string" ? obj.name : void 0 };
+      return { kind: obj.kind, name: isResolvedReference(sibling) ? sibling.name : void 0 };
     }
   }
   return null;
@@ -60459,13 +60756,11 @@ function moduleUnit(key3, manifests, scope, targetOf) {
 }
 function referenceTarget(value2) {
   if (isRefSentinel(value2)) {
-    const target = refSentinelTarget(value2);
+    const target = refSentinelTarget2(value2);
     return target ? { name: target.name, ...target.alias ? { alias: target.alias } : {} } : void 0;
   }
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const ref = value2;
-  if (typeof ref.kind !== "string" || typeof ref.name !== "string") return void 0;
-  return { name: ref.name, ...typeof ref.alias === "string" ? { alias: ref.alias } : {} };
+  if (!isResolvedReference(value2)) return void 0;
+  return { name: value2.name, ...value2.alias !== void 0 ? { alias: value2.alias } : {} };
 }
 function referencesOf(declarations, bodies, resolve2, sitesOf2) {
   const out = [];
@@ -60475,9 +60770,8 @@ function referencesOf(declarations, bodies, resolve2, sitesOf2) {
     for (const site of sitesOf2(view)) {
       const at3 = prefix ? `${prefix}.${site.path}` : site.path;
       const nested = (value2, path) => {
-        if (!value2 || typeof value2 !== "object" || Array.isArray(value2) || isRefSentinel(value2)) return;
+        if (!isInlineDeclaration(value2)) return;
         const inline = value2;
-        if (typeof inline.kind !== "string" || typeof inline.name === "string") return;
         visit3(declaration, inline, resolve2(inline.kind), path, siblings);
       };
       if (site.scopes.length > 0 && Array.isArray(site.data)) {
@@ -61704,6 +61998,15 @@ var DefinitionRegistry = class {
     this.kindReaches.clear();
     return true;
   }
+  /** The named shape a non-local `$ref` written in `module` names — announced
+   *  or registered — with the module declaring it; `scope` resolves the
+   *  authored `telo://<Alias>/<Type>` spelling. */
+  namedShapeAt(ref, module, scope) {
+    const id = shapeId(ref, module, scope);
+    if (id === void 0) return void 0;
+    const schema4 = this.namedShapes.get(id) ?? this.schemaForId(id);
+    return schema4 ? { schema: schema4, module: parseCanonicalTypeSchemaId(id).moduleName } : void 0;
+  }
   /**
    * Announces a named `Telo.Type`'s schema to the reference reach, ahead of its
    * registration: a kind whose schema `$ref`s the shape reaches the slots it
@@ -61811,7 +62114,7 @@ var DefinitionRegistry = class {
     const validate2 = this.compiledFor(schema4);
     if (!validate2 || validate2(data)) return [];
     const errors = this.judged(validate2.errors, data, schema4, standIns);
-    return reduceSchemaErrors(explainFormatErrors(errors, data)).map(formatSingleError);
+    return (withEnumValues(reduceSchemaErrors(explainFormatErrors(errors, data)), data) ?? []).map(formatSingleError);
   }
   /** {@link validateWithRefs}, with the path each issue is anchored at. */
   validateResourceConfig(data, schema4, standIns) {
@@ -67482,7 +67785,7 @@ function referencedAliases(manifest) {
       continue;
     }
     if (value2 === null || typeof value2 !== "object") continue;
-    const sentinel = refSentinelTarget(value2);
+    const sentinel = refSentinelTarget2(value2);
     if (sentinel) {
       if (sentinel.alias && sentinel.alias !== "Self") found.add(sentinel.alias);
       continue;
@@ -67490,7 +67793,7 @@ function referencedAliases(manifest) {
     const proto = Object.getPrototypeOf(value2);
     if (proto !== Object.prototype && proto !== null) continue;
     const record = value2;
-    if (typeof record.alias === "string" && typeof record.name === "string" && record.alias !== "Self") {
+    if (isResolvedReference(record) && record.alias !== void 0 && record.alias !== "Self") {
       found.add(record.alias);
     }
     for (const child of Object.values(record)) {
@@ -67616,9 +67919,8 @@ function addResourceInputEdges(resources, nodes, deps) {
   }
 }
 function suppliedResourceTarget(value2) {
-  const ref = value2;
-  const alias = typeof ref?.alias === "string" ? ref.alias : void 0;
-  return alias && alias !== "Self" ? alias : typeof ref?.name === "string" ? ref.name : void 0;
+  if (!isResolvedReference(value2)) return void 0;
+  return value2.alias && value2.alias !== "Self" ? value2.alias : value2.name;
 }
 function needSupplyTargets(supplied) {
   const out = [];
@@ -68016,7 +68318,7 @@ function renderValuePath(path) {
   }
   return out;
 }
-var isPlainObject8 = (value2) => {
+var isPlainObject9 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
@@ -68050,16 +68352,16 @@ function pointerSegments3(pointer) {
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
 function declaredTextValuesOf(schema4) {
-  if (!isPlainObject8(schema4)) return void 0;
+  if (!isPlainObject9(schema4)) return void 0;
   const declared = schema4[TEXT_VALUES_ANNOTATION];
-  return isPlainObject8(declared) ? declared : void 0;
+  return isPlainObject9(declared) ? declared : void 0;
 }
 function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
-  if (typeof value2 !== "string" && !isPlainObject8(value2)) return false;
-  const keys = isPlainObject8(value2) ? Object.keys(value2) : [];
+  if (typeof value2 !== "string" && !isPlainObject9(value2)) return false;
+  const keys = isPlainObject9(value2) ? Object.keys(value2) : [];
   const seen = /* @__PURE__ */ new Set();
   const admits = (node, at3) => {
-    if (!isPlainObject8(node) || seen.has(node)) return false;
+    if (!isPlainObject9(node) || seen.has(node)) return false;
     seen.add(node);
     if (typeof node.$ref === "string") {
       if (node.$ref.startsWith("#")) {
@@ -68075,7 +68377,7 @@ function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
     const types = node.type === void 0 ? [] : [node.type].flat();
     if (typeof value2 === "string") return types.includes("string");
     if (!types.includes("object")) return false;
-    const properties = isPlainObject8(node.properties) ? node.properties : {};
+    const properties = isPlainObject9(node.properties) ? node.properties : {};
     const required = Array.isArray(node.required) ? node.required : [];
     if (!required.every((name2) => typeof name2 === "string" && keys.includes(name2))) return false;
     return node.additionalProperties !== false || keys.every((key3) => key3 in properties);
@@ -68084,11 +68386,11 @@ function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
 }
 var RESOURCE_ENVELOPE = /* @__PURE__ */ new Set(["kind", "metadata"]);
 function branchExcludes(branch, root, value2, path, resolveRef2) {
-  if (!isPlainObject8(value2)) return false;
+  if (!isPlainObject9(value2)) return false;
   const keys = Object.keys(value2).filter((key3) => path.length > 0 || !RESOURCE_ENVELOPE.has(key3));
   const ancestry = /* @__PURE__ */ new Set();
   const excludes = (node, at3) => {
-    if (!isPlainObject8(node) || ancestry.has(node)) return false;
+    if (!isPlainObject9(node) || ancestry.has(node)) return false;
     ancestry.add(node);
     try {
       if (typeof node.$ref === "string") {
@@ -68098,8 +68400,8 @@ function branchExcludes(branch, root, value2, path, resolveRef2) {
       const required = Array.isArray(node.required) ? node.required : [];
       if (required.some((name2) => typeof name2 === "string" && !Object.hasOwn(value2, name2))) return true;
       if (node.additionalProperties === false) {
-        const properties = isPlainObject8(node.properties) ? node.properties : {};
-        const patterns = isPlainObject8(node.patternProperties) ? Object.keys(node.patternProperties) : [];
+        const properties = isPlainObject9(node.properties) ? node.properties : {};
+        const patterns = isPlainObject9(node.patternProperties) ? Object.keys(node.patternProperties) : [];
         const extra = keys.some(
           (key3) => !Object.hasOwn(properties, key3) && !patterns.some((pattern2) => safeRegExp(pattern2)?.test(key3))
         );
@@ -68152,7 +68454,7 @@ function textSites(schema4, data, options, root = schema4) {
     const pairing = pointerSegments3(declared[TEXT_VALUES_FOR_ANNOTATION]);
     if (pairing && holder && !values.has(renderValuePath(path))) {
       let text3 = holder.value;
-      for (const segment of pairing) text3 = isPlainObject8(text3) ? text3[segment] : void 0;
+      for (const segment of pairing) text3 = isPlainObject9(text3) ? text3[segment] : void 0;
       values.set(renderValuePath(path), {
         path,
         values: value2,
@@ -68187,9 +68489,9 @@ function textSites(schema4, data, options, root = schema4) {
       }
       return;
     }
-    if (!isPlainObject8(value2)) return;
-    const properties = isPlainObject8(declared.properties) ? declared.properties : {};
-    const patterns = isPlainObject8(declared.patternProperties) ? declared.patternProperties : {};
+    if (!isPlainObject9(value2)) return;
+    const properties = isPlainObject9(declared.properties) ? declared.properties : {};
+    const patterns = isPlainObject9(declared.patternProperties) ? declared.patternProperties : {};
     const here = { value: value2, path };
     for (const [name2, child] of Object.entries(value2)) {
       const childPath = [...path, name2];
@@ -68213,7 +68515,7 @@ function textSites(schema4, data, options, root = schema4) {
   return { texts: [...texts.values()], values: [...values.values()], expressions };
 }
 function siteValueOf(site) {
-  if (site.path.length > 0 || !isPlainObject8(site.value)) return site.value;
+  if (site.path.length > 0 || !isPlainObject9(site.value)) return site.value;
   const { kind, metadata, ...fields } = site.value;
   return fields;
 }
@@ -68270,7 +68572,7 @@ function safeRegExp(pattern2) {
 function expressionsWithin(value2, isExpression3, path = []) {
   if (isExpression3(value2)) return [{ path, value: value2 }];
   if (Array.isArray(value2)) return value2.flatMap((item, index) => expressionsWithin(item, isExpression3, [...path, index]));
-  if (isPlainObject8(value2)) {
+  if (isPlainObject9(value2)) {
     return Object.entries(value2).flatMap(([key3, child]) => expressionsWithin(child, isExpression3, [...path, key3]));
   }
   return [];
@@ -68278,15 +68580,15 @@ function expressionsWithin(value2, isExpression3, path = []) {
 
 // ../../analyzer/nodejs/src/text-schemas.ts
 var CONTRACT_KEYS = /* @__PURE__ */ new Set(["inputType", "outputType"]);
-var isPlainObject9 = (value2) => {
+var isPlainObject10 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
 function inlineSchemaOf(value2) {
-  if (!isPlainObject9(value2)) return void 0;
+  if (!isPlainObject10(value2)) return void 0;
   if (typeof value2.kind === "string") {
-    return typeof value2.name === "string" || !isPlainObject9(value2.schema) ? void 0 : value2.schema;
+    return isResolvedReference(value2) || !isPlainObject10(value2.schema) ? void 0 : value2.schema;
   }
   return value2;
 }
@@ -68314,7 +68616,7 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
       entered.add(key3);
       const fragment = manifestFragmentOf(declared);
       if (fragment === "KindSchema" || fragment === "JsonSchema7") {
-        if (isPlainObject9(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
+        if (isPlainObject10(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
         return;
       }
       if (fragment === "CallableParams" && Array.isArray(value2)) add("params", path, value2);
@@ -68333,14 +68635,14 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
         if (Array.isArray(declared[union2])) for (const branch of declared[union2]) walk7(branch, value2, path);
       }
       if (Array.isArray(value2)) {
-        if (isPlainObject9(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
+        if (isPlainObject10(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
         return;
       }
-      if (!isPlainObject9(value2)) return;
-      const properties = isPlainObject9(declared.properties) ? declared.properties : {};
+      if (!isPlainObject10(value2)) return;
+      const properties = isPlainObject10(declared.properties) ? declared.properties : {};
       for (const [name2, child] of Object.entries(value2)) {
         if (name2 in properties) walk7(properties[name2], child, [...path, name2]);
-        else if (isPlainObject9(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
+        else if (isPlainObject10(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
       }
     };
     walk7(kindSchema, manifest, []);
@@ -68351,7 +68653,7 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
       value2.forEach((item, index) => contracts(item, [...path, index]));
       return;
     }
-    if (!isPlainObject9(value2)) return;
+    if (!isPlainObject10(value2)) return;
     for (const [key3, child] of Object.entries(value2)) {
       if (CONTRACT_KEYS.has(key3)) {
         const inline = inlineSchemaOf(child);
@@ -68387,12 +68689,12 @@ function schemaNodes(schema4) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const visit3 = (node, path) => {
-    if (!isPlainObject9(node) || seen.has(node)) return;
+    if (!isPlainObject10(node) || seen.has(node)) return;
     seen.add(node);
     out.push({ node, path });
     for (const key3 of SUBSCHEMA_MAPS) {
       const map3 = node[key3];
-      if (!isPlainObject9(map3)) continue;
+      if (!isPlainObject10(map3)) continue;
       for (const [name2, child] of Object.entries(map3)) {
         if ((key3 === "$defs" || key3 === "definitions") && isHoistedFragmentDefKey(name2)) continue;
         visit3(child, [...path, key3, name2]);
@@ -68413,7 +68715,7 @@ function textContextOf(node) {
   return typeof context === "string" && context !== "" ? context : null;
 }
 function schemaTexts(schema4) {
-  if (!isPlainObject9(schema4)) return [];
+  if (!isPlainObject10(schema4)) return [];
   const cached = schemaTextMemo.get(schema4);
   if (cached) return cached;
   const out = [];
@@ -68454,10 +68756,10 @@ function shapeProblem(annotation, value2, path) {
 }
 function propertiesOf(node, root) {
   let at3 = node;
-  for (let hops = 0; hops < 32 && isPlainObject9(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
+  for (let hops = 0; hops < 32 && isPlainObject10(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
     at3 = resolveSchemaPointer(root, at3.$ref);
   }
-  return isPlainObject9(at3) && isPlainObject9(at3.properties) ? at3.properties : void 0;
+  return isPlainObject10(at3) && isPlainObject10(at3.properties) ? at3.properties : void 0;
 }
 function declaresObject(node) {
   const type = node.type;
@@ -68474,7 +68776,7 @@ function schemaAt(start, segments, root) {
 }
 function isTextNode(node, root) {
   if (isTextSchema(node)) return true;
-  if (isPlainObject9(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
+  if (isPlainObject10(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
     return isTextSchema(resolveSchemaPointer(root, node.$ref));
   }
   return false;
@@ -68541,13 +68843,13 @@ function paramsValuesForProblems(params) {
   const problems = [];
   const byName = /* @__PURE__ */ new Map();
   for (const param of params) {
-    if (isPlainObject9(param) && typeof param.name === "string" && isPlainObject9(param.schema)) {
+    if (isPlainObject10(param) && typeof param.name === "string" && isPlainObject10(param.schema)) {
       byName.set(param.name, param.schema);
     }
   }
   const paired = /* @__PURE__ */ new Map();
   params.forEach((param, index) => {
-    if (!isPlainObject9(param) || !isPlainObject9(param.schema)) return;
+    if (!isPlainObject10(param) || !isPlainObject10(param.schema)) return;
     const schema4 = param.schema;
     if (!(TEXT_VALUES_FOR_ANNOTATION in schema4)) return;
     const path = [index, "schema"];
@@ -68588,7 +68890,7 @@ function textParameters(params) {
   params.forEach((param, index) => {
     if (typeof param.name !== "string" || !isTextSchema(param.schema)) return;
     const pairedAt = params.findIndex((other) => {
-      const segments = isPlainObject9(other.schema) ? pointerSegments3(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
+      const segments = isPlainObject10(other.schema) ? pointerSegments3(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
       return segments?.length === 1 && segments[0] === param.name;
     });
     const paired = pairedAt === -1 ? void 0 : params[pairedAt];
@@ -68602,7 +68904,7 @@ function textParameters(params) {
 }
 function textContextNodes(value2, path = []) {
   if (Array.isArray(value2)) return value2.flatMap((item, index) => textContextNodes(item, [...path, index]));
-  if (!isPlainObject9(value2)) return [];
+  if (!isPlainObject10(value2)) return [];
   const own2 = TEXT_CONTEXT_ANNOTATION in value2 ? [{ node: value2, path }] : [];
   return [...own2, ...Object.entries(value2).flatMap(([key3, child]) => textContextNodes(child, [...path, key3]))];
 }
@@ -68911,7 +69213,7 @@ function resolveShapeRefs(resources, aliases, aliasesByModule) {
   resolveReferences(resources, aliases, aliasesByModule, [], void 0, "shapes");
 }
 function resolveReferences(resources, aliases, aliasesByModule, crossModuleTargets, defs, extent) {
-  const moduleOf8 = (r) => r.metadata?.module;
+  const moduleOf9 = (r) => r.metadata?.module;
   const isForeign2 = isForwardedDeclaration;
   const byName = /* @__PURE__ */ new Map();
   const byModuleName = /* @__PURE__ */ new Map();
@@ -68919,26 +69221,26 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
     if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
     const name2 = r.metadata.name;
     if (isForeign2(r)) {
-      if (isForwardedExport(r)) byModuleName.set(`${moduleOf8(r)}\0${name2}`, r);
+      if (isForwardedExport(r)) byModuleName.set(`${moduleOf9(r)}\0${name2}`, r);
     } else {
       byName.set(name2, r);
     }
   }
   for (const r of crossModuleTargets) {
     if (!r.metadata?.name || isKindDocumentOrImport(r) || !isForwardedExport(r)) continue;
-    byModuleName.set(`${moduleOf8(r)}\0${r.metadata.name}`, r);
+    byModuleName.set(`${moduleOf9(r)}\0${r.metadata.name}`, r);
   }
   const resolveTarget = (source) => {
     const dot = source.indexOf(".");
     if (dot === -1) {
       const t = byName.get(source);
-      return t ? { kind: t.kind, name: source } : void 0;
+      return t ? resolvedReference(t.kind, source) : void 0;
     }
     const alias = source.slice(0, dot);
     const name2 = source.slice(dot + 1);
     if (alias === "Self") {
       const t = byName.get(name2);
-      return t ? { kind: t.kind, name: name2 } : void 0;
+      return t ? resolvedReference(t.kind, name2) : void 0;
     }
     return resolveExported(alias, name2, aliases);
   };
@@ -68949,7 +69251,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
       if (t) {
         const rawKind = t.kind;
         const foreignKind = rawKind.startsWith("Self.") ? `${module}.${rawKind.slice("Self.".length)}` : aliasesByModule?.get(module)?.resolveKind(rawKind) ?? rawKind;
-        return { kind: foreignKind, name: name2, alias };
+        return resolvedReference(foreignKind, name2, alias);
       }
     }
     return void 0;
@@ -68957,10 +69259,10 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
   const byDeclaringModule = /* @__PURE__ */ new Map();
   for (const r of resources) {
     if (!r.metadata?.name || isKindDocumentOrImport(r)) continue;
-    byDeclaringModule.set(`${moduleOf8(r) ?? ""}\0${r.metadata.name}`, r);
+    byDeclaringModule.set(`${moduleOf9(r) ?? ""}\0${r.metadata.name}`, r);
   }
   const shapeResolverFor = (doc) => {
-    const module = moduleOf8(doc);
+    const module = moduleOf9(doc);
     const ownedByEntry = !isForeign2(doc) && (module === void 0 || !aliasesByModule?.has(module));
     if (ownedByEntry) return resolveTarget;
     const scope = moduleAliasScope(doc.metadata, aliases, aliasesByModule);
@@ -68970,7 +69272,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
       const name2 = dot === -1 ? source : source.slice(dot + 1);
       if (alias === void 0 || alias === "Self") {
         const t = byDeclaringModule.get(`${module ?? ""}\0${name2}`);
-        return t ? { kind: t.kind, name: name2 } : void 0;
+        return t ? resolvedReference(t.kind, name2) : void 0;
       }
       return resolveExported(alias, name2, scope);
     };
@@ -68996,7 +69298,7 @@ function resolveReferences(resources, aliases, aliasesByModule, crossModuleTarge
       const source = value2.source;
       const bare = source.indexOf(".") === -1;
       const shadow = bare ? scoped?.get(source) : void 0;
-      if (shadow) return { kind: shadow.kind, name: source };
+      if (shadow) return resolvedReference(shadow.kind, source);
       return resolve2(source) ?? value2;
     }
     if (value2 === null || typeof value2 !== "object") return value2;
@@ -69210,18 +69512,14 @@ function dottedPattern(text3) {
   return out;
 }
 function refName2(value2) {
-  const sentinel = refSentinelTarget(value2);
+  const sentinel = refSentinelTarget2(value2);
   if (sentinel) {
     if (sentinel.alias === void 0) return sentinel.name;
     return sentinel.alias === "Self" ? sentinel.name : void 0;
   }
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const v = value2;
-  const pure = typeof v.kind === "string" && typeof v.name === "string" && Object.keys(v).every((k) => k === "kind" || k === "name" || k === "alias" || k === "__ref");
-  if (!pure) return void 0;
-  const alias = v.alias;
-  if (typeof alias === "string" && alias !== "Self") return void 0;
-  return v.name;
+  if (!isResolvedReference(value2)) return void 0;
+  if (value2.alias !== void 0 && value2.alias !== "Self") return void 0;
+  return value2.name;
 }
 function resolveStaticKey(start, pointers, resolveName) {
   for (const pointer of pointers) {
@@ -69296,9 +69594,9 @@ function projectZoneRequirements(args) {
     }
     return out;
   };
-  const moduleOf8 = (node) => node.manifest.metadata?.module;
+  const moduleOf9 = (node) => node.manifest.metadata?.module;
   const reportable = (node) => {
-    const module = moduleOf8(node);
+    const module = moduleOf9(node);
     return module === void 0 || reportModules.has(module);
   };
   const emit = (severity, code, edge, caller, req, via, why) => {
@@ -69348,7 +69646,7 @@ function projectZoneRequirements(args) {
       if (!from) continue;
       const caller = from.type === "step" ? graph.nodes.get(from.owner) : from;
       if (!caller || caller.type !== "resource") continue;
-      const callerDef = resolveDef(caller.kind, moduleOf8(caller));
+      const callerDef = resolveDef(caller.kind, moduleOf9(caller));
       const bodySlot = from.type === "step" ? dottedPattern(from.array.replace(/\[\d+\].*$/, "")) : edge.slotKeys ?? dottedPattern(edge.slot);
       const slotSchema = schemaNodeAt(
         callerDef?.schema,
@@ -72209,7 +72507,7 @@ var RuleDeclarationViews = class {
     const walk7 = (node, path) => {
       if (written.has(path)) return node;
       if (resolve2) {
-        const target = refSentinelTarget(node);
+        const target = refSentinelTarget2(node);
         if (target) return resolve2(target, module) ?? node;
       }
       if (!isPlainContainer(node)) return node;
@@ -72217,7 +72515,7 @@ var RuleDeclarationViews = class {
         const items = node.map((item, index) => walk7(item, `${path}[${index}]`));
         return items.some((item, index) => item !== node[index]) ? items : node;
       }
-      if (path !== "" && isInlineResource(node)) return this.view(node, module, forwarded);
+      if (path !== "" && isInlineDeclaration(node)) return this.view(node, module, forwarded);
       let copy;
       for (const [key3, child] of Object.entries(node)) {
         const read = walk7(child, path === "" ? key3 : `${path}.${key3}`);
@@ -72249,7 +72547,7 @@ function pointerSegments4(pointer) {
   if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
-var isPlainObject10 = (value2) => {
+var isPlainObject11 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
@@ -72265,7 +72563,7 @@ function externalListProblem(value2) {
   return `'external' must be a list of the bare specifiers the kind supplies, each a non-empty string.`;
 }
 function readAnnotation(raw) {
-  if (!isPlainObject10(raw)) return void 0;
+  if (!isPlainObject11(raw)) return void 0;
   const entry = pointerSegments4(raw.entry);
   if (!entry) return void 0;
   return {
@@ -72310,7 +72608,7 @@ function browserExportSites(schema4, data) {
     if (annotation && holder && !out.has(path)) {
       let specifier = holder.value;
       for (const segment of annotation.entry) {
-        specifier = isPlainObject10(specifier) ? specifier[segment] : void 0;
+        specifier = isPlainObject11(specifier) ? specifier[segment] : void 0;
       }
       out.set(path, {
         path,
@@ -72335,8 +72633,8 @@ function browserExportSites(schema4, data) {
       }
       return;
     }
-    if (!isPlainObject10(value2)) return;
-    const properties = isPlainObject10(declared.properties) ? declared.properties : {};
+    if (!isPlainObject11(value2)) return;
+    const properties = isPlainObject11(declared.properties) ? declared.properties : {};
     const here = { value: value2, path };
     for (const [name2, child] of Object.entries(value2)) {
       const childPath = path === "" ? name2 : `${path}.${name2}`;
@@ -72421,7 +72719,7 @@ function browserExportAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const judge = (raw, path) => {
     const shape = `The annotation is { entry: <JSON Pointer>, abi?: [<generation>\u2026], external?: [<specifier>\u2026] }.`;
-    if (!isPlainObject10(raw)) {
+    if (!isPlainObject11(raw)) {
       refuse3(path, `it must be an object. ${shape}`);
       return;
     }
@@ -72449,11 +72747,11 @@ function browserExportAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const seen = /* @__PURE__ */ new Set();
   const visit3 = (node, path) => {
-    if (!isPlainObject10(node) || seen.has(node)) return;
+    if (!isPlainObject11(node) || seen.has(node)) return;
     seen.add(node);
     if (BROWSER_EXPORT_ANNOTATION in node) judge(node[BROWSER_EXPORT_ANNOTATION], [...path, BROWSER_EXPORT_ANNOTATION]);
     for (const key3 of SCHEMA_MAPS) {
-      if (isPlainObject10(node[key3])) {
+      if (isPlainObject11(node[key3])) {
         for (const [name2, child] of Object.entries(node[key3])) {
           visit3(child, [...path, key3, name2]);
         }
@@ -75445,7 +75743,7 @@ function contractSchemaFor(manifest, definition, resolveDef, manifests, directio
   const declared = own2 !== void 0 && own2 !== null ? own2 : effectiveContractField(definition, resolveDef, direction);
   const inline = inlineSchemaOf2(declared);
   if (inline) return inline;
-  const named = typeof declared === "string" ? declared : declared && typeof declared === "object" && typeof declared.name === "string" ? declared.name : void 0;
+  const named = typeof declared === "string" ? declared : isResolvedReference(declared) ? declared.name : void 0;
   if (!named) return void 0;
   const typeManifest = findInModule(manifests, named, declaringModule3);
   return typeManifest ? inlineSchemaOf2(typeManifest) : void 0;
@@ -75457,9 +75755,7 @@ function requiredInputsOf(schema4) {
 function referencedNames(value2) {
   const out = [];
   for (const item of Array.isArray(value2) ? value2 : [value2]) {
-    if (item && typeof item === "object" && typeof item.name === "string" && typeof item.kind === "string") {
-      out.push(item.name);
-    }
+    if (isResolvedReference(item)) out.push(item.name);
   }
   return out;
 }
@@ -75491,10 +75787,7 @@ function checkContractResolves(m, md, manifests, resource, filePath, diagnostics
 }
 function namedTypeReference(value2) {
   if (typeof value2 === "string") return value2;
-  if (!value2 || typeof value2 !== "object") return void 0;
-  const ref = value2;
-  if (ref.schema && typeof ref.schema === "object") return void 0;
-  return typeof ref.name === "string" ? ref.name : void 0;
+  return isResolvedReference(value2) ? value2.name : void 0;
 }
 function checkAncestorSubstitutability(m, md, manifests, resource, filePath, resolveDef, diagnostics) {
   const def = m;
@@ -75716,7 +76009,7 @@ function validateNestedInlineResources(manifest, rootSchema, lookupDefinition, a
     if (!schema4 || typeof schema4 !== "object") return;
     const resolved = resolveRef(schema4, schemaRoot);
     if (collectRefs2(resolved).length > 0) {
-      if (data && typeof data === "object" && !Array.isArray(data) && isInlineResource(data)) {
+      if (data && typeof data === "object" && !Array.isArray(data) && isInlineDeclaration(data)) {
         validateInline(data, path);
       }
       return;
@@ -75976,7 +76269,7 @@ function describeNamed(m, name2) {
   if (isModuleKind(m.kind)) return `this module's own name (${m.kind} '${name2}')`;
   return `resource ${m.kind}/${name2}`;
 }
-function duplicateNameDiagnostics(resources, isForeign2, moduleOf8) {
+function duplicateNameDiagnostics(resources, isForeign2, moduleOf9) {
   const diagnostics = [];
   const moduleDocNames = /* @__PURE__ */ new Set();
   for (const r of resources) {
@@ -75986,7 +76279,7 @@ function duplicateNameDiagnostics(resources, isForeign2, moduleOf8) {
   }
   const stampedModules = /* @__PURE__ */ new Set();
   for (const r of resources) {
-    const m = moduleOf8(r);
+    const m = moduleOf9(r);
     if (m) stampedModules.add(m);
   }
   const byScope = /* @__PURE__ */ new Map();
@@ -75994,7 +76287,7 @@ function duplicateNameDiagnostics(resources, isForeign2, moduleOf8) {
   for (const r of resources) {
     if (!r.metadata?.name || isForeign2(r)) continue;
     const name2 = r.metadata.name;
-    const scope = isModuleKind(r.kind) ? stampedModules.has(name2) ? name2 : "" : moduleOf8(r) ?? "";
+    const scope = isModuleKind(r.kind) ? stampedModules.has(name2) ? name2 : "" : moduleOf9(r) ?? "";
     if (scope !== "" && moduleDocNames.size > 0 && !moduleDocNames.has(scope)) continue;
     const meta = r.metadata;
     const fingerprint = `${r.kind} ${name2} ${meta.source} ${meta.sourceLine}`;
@@ -76128,7 +76421,7 @@ function validateReferences(resources, context, shared) {
   const registry = context.definitions;
   const aliasesByModule = context.aliasesByModule;
   if (!aliases || !registry) return diagnostics;
-  const moduleOf8 = (r) => r.metadata?.module;
+  const moduleOf9 = (r) => r.metadata?.module;
   const isForeign2 = isForwardedDeclaration;
   const byModuleName = /* @__PURE__ */ new Map();
   const loadedModules = /* @__PURE__ */ new Set();
@@ -76139,7 +76432,7 @@ function validateReferences(resources, context, shared) {
       continue;
     }
     if (!r.metadata?.name || isKindDocument(r) || !isForwardedExport(r)) continue;
-    const m = moduleOf8(r);
+    const m = moduleOf9(r);
     if (!m) continue;
     byModuleName.set(`${m}\0${r.metadata.name}`, r);
     loadedModules.add(m);
@@ -76160,7 +76453,7 @@ function validateReferences(resources, context, shared) {
     if (existing) existing.push(r);
     else byNameAll.set(name2, [r]);
   }
-  diagnostics.push(...duplicateNameDiagnostics(resources, isForeign2, moduleOf8));
+  diagnostics.push(...duplicateNameDiagnostics(resources, isForeign2, moduleOf9));
   const byName = /* @__PURE__ */ new Map();
   for (const [name2, list5] of byNameAll) byName.set(name2, list5[0]);
   let callableSlots;
@@ -76271,12 +76564,12 @@ function validateReferences(resources, context, shared) {
         if (typeof val !== "object") return;
         const refVal = val;
         if (satisfiesSiteValue(val, e.refs, registry)) return;
-        if (isInlineResource(refVal)) return;
+        if (isInlineDeclaration(refVal)) return;
         if (typeof refVal.kind !== "string" && ("invoke" in refVal || "ref" in refVal || carriesDeclaredBranchKeys(refVal, entry.valueBranches))) {
           return;
         }
         if (computedRefSlotPaths.has(concretePath2)) return;
-        if (typeof refVal.kind !== "string" || typeof refVal.name !== "string") {
+        if (!isResolvedReference(refVal)) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "INVALID_REFERENCE",
@@ -76291,7 +76584,7 @@ function validateReferences(resources, context, shared) {
           });
           return;
         }
-        const objectTarget = typeof refVal.name === "string" ? visibleScopeManifests.find((m) => m.metadata?.name === refVal.name) ?? byName.get(refVal.name) : void 0;
+        const objectTarget = visibleScopeManifests.find((m) => m.metadata?.name === refVal.name) ?? byName.get(refVal.name);
         const crossModule = typeof refVal.alias === "string" && refVal.alias !== "Self";
         const referentModule = crossModule ? aliases.moduleForAlias(refVal.alias) : void 0;
         const kindErrors = kindVerdict(
@@ -76362,7 +76655,7 @@ function validateReferences(resources, context, shared) {
         );
         return target === void 0 ? void 0 : byModuleName.get(`${target}\0${ref.name}`);
       }
-      return resolveScopedName(byNameAll.get(ref.name), moduleOf8, moduleOf8(r));
+      return resolveScopedName(byNameAll.get(ref.name), moduleOf9, moduleOf9(r));
     }
   });
   const reportFailure = (r, failure) => {
@@ -76463,14 +76756,35 @@ function carriesDeclaredBranchKeys(value2, branches) {
 
 // ../../analyzer/nodejs/src/validate-reference-forms.ts
 var SOURCE29 = "telo-analyzer";
+var CODE = "INVALID_REFERENCE_FORM";
 function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
   if (!aliases) return [];
   const diagnostics = [];
   const localResources = resources.filter((r) => !isForwardedDeclaration(r));
+  const resolveDef = (kind, from) => definitionInScope(registry, kind, from?.metadata, aliases, aliasesByModule);
+  const objectForm = (value2, holder) => authoredObjectForm(value2, (kind) => {
+    const definition = definitionInScope(
+      registry,
+      kind,
+      holder,
+      aliases,
+      aliasesByModule
+    );
+    return definition ? declaresNameField(definition, resolveDef) : void 0;
+  });
+  let stepTargets = /* @__PURE__ */ new Set();
   visitManifest(
     localResources,
     registry,
     {
+      onResourceEnter: (e) => {
+        stepTargets = /* @__PURE__ */ new Set();
+        const schema4 = e.definition ? registry.effectiveSchemaOf(e.definition) : void 0;
+        if (!schema4) return;
+        for (const body2 of stepBodiesOf(e.source, schema4)) {
+          forEachStep(body2, schema4, (_step, stepPath2) => stepTargets.add(`${stepPath2}.${body2.invokeField}`));
+        }
+      },
       onRef: (e) => {
         const value2 = e.value;
         if (isTaggedSentinel(value2)) return;
@@ -76484,7 +76798,7 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
           const hint = refHint(value2);
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
-            code: "INVALID_REFERENCE_FORM",
+            code: CODE,
             source: SOURCE29,
             message: `${resourceLabel}: string reference at '${path}' \u2192 '${value2}' is not supported; write it as '!ref ${hint}'`,
             data: {
@@ -76498,17 +76812,24 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
           });
           return;
         }
-        if (value2 && typeof value2 === "object" && !Array.isArray(value2)) {
-          const obj = value2;
-          if (typeof obj.name === "string" && typeof obj.kind === "string") {
-            diagnostics.push({
-              severity: DiagnosticSeverity2.Error,
-              code: "INVALID_REFERENCE_FORM",
-              source: SOURCE29,
-              message: `${resourceLabel}: object reference '{ kind, name }' at '${path}' is not supported; write it as '!ref ${obj.name}'`,
-              data: { resource: resourceData, filePath, path }
+        const form = objectForm(value2, r.metadata);
+        if (form) {
+          const refusal = {
+            severity: DiagnosticSeverity2.Error,
+            code: CODE,
+            source: SOURCE29,
+            message: `${resourceLabel}: ${formMessage(form, path)}`,
+            data: { resource: resourceData, filePath, path }
+          };
+          if (!e.nested || stepTargets.has(path)) {
+            refusedSites.set(refusal, {
+              module: moduleOf6(r.metadata),
+              holder: resourceData.name,
+              path,
+              form: form.form
             });
           }
+          diagnostics.push(refusal);
         }
       }
     },
@@ -76517,10 +76838,120 @@ function validateReferenceForms(resources, registry, aliases, aliasesByModule) {
       aliasesByModule,
       skip: isKindDocument,
       expand: true,
-      discoverNestedRefs: true
+      discoverNestedRefs: true,
+      authoredReferenceForms: true
     }
   );
+  for (const definition of localResources) {
+    const entries = templateBodyEntries(definition);
+    if (entries.length === 0) continue;
+    const meta = definition.metadata;
+    for (const entry of entries) {
+      const view = {
+        ...entry.manifest,
+        metadata: { ...entry.manifest.metadata ?? {}, module: meta.module }
+      };
+      for (const site of registry.referenceSites(view, aliases, aliasesByModule, entry.manifest)) {
+        if (site.refs.length === 0 || site.data == null) continue;
+        if (isTaggedSentinel(site.data) || typeof site.data === "string") continue;
+        if (isValueAtSlot(site.data, site.refs, registry)) continue;
+        const form = objectForm(site.data, view.metadata);
+        if (!form) continue;
+        const refusal = {
+          severity: DiagnosticSeverity2.Error,
+          code: CODE,
+          source: SOURCE29,
+          message: `${definition.kind}/${meta.name}: ${formMessage(form, site.path, `the ${entry.kind} entry`)}`,
+          data: {
+            resource: { kind: definition.kind, name: meta.name },
+            filePath: meta.source,
+            path: `${entry.prefix}.${site.path}`
+          }
+        };
+        const entryName = entry.manifest.metadata?.name;
+        if (typeof entryName === "string") {
+          refusedSites.set(refusal, { module: meta.module, holder: entryName, path: site.path, form: form.form });
+        }
+        diagnostics.push(refusal);
+      }
+    }
+  }
   return diagnostics;
+}
+function authoredObjectForm(value2, kindDeclaresName) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2) || isTaggedSentinel(value2)) {
+    return void 0;
+  }
+  const obj = value2;
+  const name2 = typeof obj.name === "string" ? obj.name : void 0;
+  if (carriesReferenceMarker(obj)) return { form: "marker", ...name2 !== void 0 ? { name: name2 } : {} };
+  return isLegacyReferenceForm(obj, kindDeclaresName) ? { form: "object", name: obj.name } : void 0;
+}
+function formMessage(form, path, on) {
+  const where = on ? `'${path}' on ${on}` : `'${path}'`;
+  if (form.form === "marker") {
+    return `'${RESOLVED_REFERENCE_MARKER}' at ${where} is not supported \u2014 it marks a reference the loader resolved; write a reference as '!ref ${form.name ?? "<name>"}'`;
+  }
+  return `object reference '{ kind, name }' at ${where} is not supported; write it as '!ref ${form.name}'`;
+}
+var refusedSites = /* @__PURE__ */ new WeakMap();
+var moduleOf6 = (metadata) => {
+  const module = metadata?.module;
+  return typeof module === "string" ? module : void 0;
+};
+var declarationKey = (module, name2) => `${module ?? ""}\0${name2}`;
+function markerFormRefusals(diagnostics) {
+  return diagnostics.filter((d) => refusedSites.get(d)?.form === "marker");
+}
+function withoutRefusedFormConsequences(diagnostics, manifests) {
+  const marked = /* @__PURE__ */ new Set();
+  for (const d of diagnostics) {
+    const site = refusedSites.get(d);
+    if (site?.form !== "marker") continue;
+    marked.add(`${declarationKey(site.module, site.holder)}\0${site.path}`);
+  }
+  if (marked.size === 0) return diagnostics;
+  const byKey = /* @__PURE__ */ new Map();
+  const byName = /* @__PURE__ */ new Map();
+  for (const m of manifests) {
+    const name2 = m.metadata?.name;
+    if (typeof name2 !== "string") continue;
+    byKey.set(declarationKey(moduleOf6(m.metadata), name2), m);
+    byName.set(name2, [...byName.get(name2) ?? [], m]);
+  }
+  const declarationOf = (data) => {
+    const name2 = data.resource?.name;
+    if (typeof name2 !== "string") return void 0;
+    let candidates = (byName.get(name2) ?? []).filter(
+      (m) => typeof data.resource?.kind !== "string" || m.kind === data.resource.kind
+    );
+    if (candidates.length > 1 && typeof data.filePath === "string") {
+      candidates = candidates.filter((m) => m.metadata.source === data.filePath);
+    }
+    return candidates.length === 1 ? candidates[0] : void 0;
+  };
+  const extractedFromRefused = (start) => {
+    const seen = /* @__PURE__ */ new Set();
+    for (let current = start; current; ) {
+      const origin = current.metadata.xTeloOrigin;
+      if (typeof origin?.parentName !== "string" || typeof origin.pathFromParent !== "string") return false;
+      const parent = declarationKey(moduleOf6(current.metadata), origin.parentName);
+      if (marked.has(`${parent}\0${origin.pathFromParent}`)) return true;
+      if (seen.has(parent)) return false;
+      seen.add(parent);
+      current = byKey.get(parent);
+    }
+    return false;
+  };
+  return diagnostics.filter((d) => {
+    if (refusedSites.has(d)) return true;
+    const data = d.data;
+    const holder = data ? declarationOf(data) : void 0;
+    if (!holder) return true;
+    const key3 = declarationKey(moduleOf6(holder.metadata), holder.metadata.name);
+    if (typeof data?.path === "string" && marked.has(`${key3}\0${data.path}`)) return false;
+    return !extractedFromRefused(holder);
+  });
 }
 function refHint(value2) {
   const dotCount = (value2.match(/\./g) ?? []).length;
@@ -77210,7 +77641,7 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
           forEachStep(steps, kindSchema, (step, stepPath2) => {
             const value2 = step[steps.invokeField];
             if (!isRefSentinel(value2)) return;
-            const target = refSentinelTarget(value2);
+            const target = refSentinelTarget2(value2);
             if (!target || target.alias && target.alias !== "Self") return;
             if (reachable.has(target.name) || anyDynamic) return;
             const suggestion = nearestName(
@@ -77278,7 +77709,7 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
         if (value2 == null) continue;
         const path = `${body2.prefix}.${site.path}`;
         if (isTaggedSentinel(value2)) {
-          const target = refSentinelTarget(value2);
+          const target = refSentinelTarget2(value2);
           if (!target) continue;
           const { alias, name: refName3 } = target;
           if (alias && alias !== "Self") continue;
@@ -77304,17 +77735,6 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
             isRefSourceSpelling(value2) ? { replacement: value2, tag: "ref" } : void 0
           );
           continue;
-        }
-        if (value2 && typeof value2 === "object" && !Array.isArray(value2)) {
-          const obj = value2;
-          if (typeof obj.name === "string" && extracted.has(obj.name)) continue;
-          if (typeof obj.kind === "string" && obj.name !== void 0) {
-            report(
-              "INVALID_REFERENCE_FORM",
-              path,
-              `object reference '{ kind, name }' at '${site.path}' on the ${kind} entry is not supported; write it as '!ref ${describeRefName(obj.name)}'`
-            );
-          }
         }
       }
     }
@@ -77344,11 +77764,6 @@ function describeDispatchValue(value2) {
   if (typeof value2 === "string") return `the string '${value2}'`;
   if (value2 && typeof value2 === "object" && "name" in value2) return "the '{ kind, name }' object form";
   return `a ${typeof value2}`;
-}
-function describeRefName(name2) {
-  if (typeof name2 === "string") return name2;
-  if (isTaggedSentinel(name2)) return "<entry>";
-  return String(name2);
 }
 
 // ../../analyzer/nodejs/src/validate-template-forward.ts
@@ -78095,8 +78510,8 @@ function expandedAtTemplateInit(tag) {
 
 // ../../analyzer/nodejs/src/validate-callable-data.ts
 var SOURCE38 = "telo-analyzer";
-var CODE = "CALLABLE_REFERENCE_NOT_DATA";
-var moduleOf6 = (manifest) => {
+var CODE2 = "CALLABLE_REFERENCE_NOT_DATA";
+var moduleOf7 = (manifest) => {
   const meta = manifest?.metadata;
   const module = meta?.declaringModule ?? meta?.module;
   return typeof module === "string" ? module : void 0;
@@ -78117,7 +78532,7 @@ function validateCallableData(input) {
   const needs = /* @__PURE__ */ new Set();
   for (const manifest of manifests) {
     if (isInjectedDeclaration(manifest) && injectedNeedOf(manifest)) {
-      needs.add(key2(moduleOf6(manifest), nameOf4(manifest)));
+      needs.add(key2(moduleOf7(manifest), nameOf4(manifest)));
     }
   }
   for (const library of input.moduleDocuments) {
@@ -78129,7 +78544,7 @@ function validateCallableData(input) {
   const inputs = /* @__PURE__ */ new Set();
   for (const manifest of manifests) {
     if (isInjectedDeclaration(manifest) && !injectedNeedOf(manifest)) {
-      inputs.add(key2(moduleOf6(manifest), nameOf4(manifest)));
+      inputs.add(key2(moduleOf7(manifest), nameOf4(manifest)));
     }
   }
   const isInput = (module, name2) => inputs.has(key2(module, name2)) || module !== void 0 && !!libraries?.isInput(module, name2);
@@ -78138,7 +78553,7 @@ function validateCallableData(input) {
     if (typeof manifest.kind !== "string" || isModuleKind(manifest.kind)) continue;
     if (manifest.kind === "Telo.Import" || isKindDocument(manifest)) continue;
     const name2 = manifest.metadata?.name;
-    if (typeof name2 === "string") declared.add(key2(moduleOf6(manifest), name2));
+    if (typeof name2 === "string") declared.add(key2(moduleOf7(manifest), name2));
   }
   const bodies = /* @__PURE__ */ new WeakMap();
   const placements = /* @__PURE__ */ new WeakMap();
@@ -78153,7 +78568,7 @@ function validateCallableData(input) {
   const bodyOf = (definition) => {
     const memo = bodies.get(definition);
     if (memo !== void 0) return memo ?? void 0;
-    const module = moduleOf6(definition);
+    const module = moduleOf7(definition);
     const raw = definition.resources;
     const written = Array.isArray(raw) ? raw : [];
     const entries = templateBodyEntries(definition).map(({ prefix, manifest, kind }) => {
@@ -78203,8 +78618,8 @@ function validateCallableData(input) {
       }
       return void 0;
     }
-    if (isPlainContainer2(value2) && isInlineResource(value2)) {
-      const module2 = moduleOf6(holder);
+    if (isPlainContainer2(value2) && isInlineDeclaration(value2)) {
+      const module2 = moduleOf7(holder);
       const inline = {
         ...value2,
         metadata: { ...value2.metadata ?? {}, ...module2 ? { module: module2 } : {} }
@@ -78213,7 +78628,7 @@ function validateCallableData(input) {
     }
     const ref = readProjectionRef(value2);
     if (!ref) return void 0;
-    const module = moduleOf6(holder);
+    const module = moduleOf7(holder);
     const local = !ref.alias || ref.alias === "Self";
     const placement = placements.get(holder);
     const scoped = !ref.alias || placement && local ? scopeNames.get(holder)?.get(ref.name) : void 0;
@@ -78318,7 +78733,7 @@ function validateCallableData(input) {
         }
         return void 0;
       }
-      if (path !== "" && isInlineResource(node)) return void 0;
+      if (path !== "" && isInlineDeclaration(node)) return void 0;
       for (const [field, child] of Object.entries(node)) {
         if (path === "" && (field === "kind" || field === "metadata")) continue;
         const found = expression(child, path === "" ? field : `${path}.${field}`);
@@ -78373,7 +78788,7 @@ function validateCallableData(input) {
       if (!found) continue;
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
-        code: CODE,
+        code: CODE2,
         source: SOURCE38,
         message: callableReferenceNotDataMessage(label2(manifest), site.path, found),
         data: {
@@ -78387,7 +78802,7 @@ function validateCallableData(input) {
   const visitScopes = (root, declaration, module, prefix, enclosing) => {
     for (const scope2 of declaredScopes(sitesOf2(declaration))) {
       const members = scope2.declarations.map(
-        (entry) => isScopeMember(entry) ? module !== void 0 && moduleOf6(entry) === void 0 ? { ...entry, metadata: { ...entry.metadata, module } } : entry : void 0
+        (entry) => isScopeMember(entry) ? module !== void 0 && moduleOf7(entry) === void 0 ? { ...entry, metadata: { ...entry.metadata, module } } : entry : void 0
       );
       const names = new Map(enclosing);
       for (const member of members) if (member) names.set(nameOf4(member), member);
@@ -78401,7 +78816,7 @@ function validateCallableData(input) {
     }
   };
   for (const manifest of manifests) {
-    const module = moduleOf6(manifest);
+    const module = moduleOf7(manifest);
     if (module !== void 0 && !rootModules.has(module)) continue;
     if (!isInstanceDocument(manifest) || isInjectedDeclaration(manifest)) continue;
     if (isForwardedDeclaration(manifest)) continue;
@@ -78410,7 +78825,7 @@ function validateCallableData(input) {
   }
   for (const definition of manifests) {
     if (definition.kind !== "Telo.Definition") continue;
-    const module = moduleOf6(definition);
+    const module = moduleOf7(definition);
     if (module !== void 0 && !rootModules.has(module)) continue;
     const body2 = bodyOf(definition);
     if (!body2) continue;
@@ -78420,7 +78835,7 @@ function validateCallableData(input) {
         if (!found) continue;
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
-          code: CODE,
+          code: CODE2,
           source: SOURCE38,
           message: `${label2(definition)}: ${callableReferenceNotDataMessage(holder, site.path, found)}`,
           data: {
@@ -78481,7 +78896,7 @@ function validateCallableData(input) {
             reported.add(identity);
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
-              code: CODE,
+              code: CODE2,
               source: SOURCE38,
               message: callableReferenceNotDataMessage(fn.label, site.path, {
                 chain: [...via, ...found.chain.slice(1)],
@@ -78500,7 +78915,7 @@ function validateCallableData(input) {
   }
   for (const entry of manifests) {
     if (entry.kind !== "Telo.Import") continue;
-    const owner = moduleOf6(entry);
+    const owner = moduleOf7(entry);
     if (owner !== void 0 && !rootModules.has(owner)) continue;
     const meta = entry.metadata;
     const target = meta.resolvedModuleName;
@@ -78517,7 +78932,7 @@ function validateCallableData(input) {
         if (!found?.viaInput) continue;
         diagnostics.push(
           importAnchoredDiagnostic(
-            CODE,
+            CODE2,
             target,
             anchor,
             callableReferenceNotDataMessage(label2(manifest), site.path, found)
@@ -78646,11 +79061,9 @@ function localName(source) {
   return source.slice(0, dot) === "Self" ? source.slice(dot + 1) : void 0;
 }
 function resolvedLocalName(value2) {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const ref = value2;
-  if (typeof ref.kind !== "string" || typeof ref.name !== "string") return void 0;
-  if (typeof ref.alias === "string" && ref.alias !== "Self") return void 0;
-  return ref.name;
+  if (!isResolvedReference(value2)) return void 0;
+  if (value2.alias !== void 0 && value2.alias !== "Self") return void 0;
+  return value2.name;
 }
 
 // ../../analyzer/nodejs/src/validate-library-browser-exports.ts
@@ -79290,7 +79703,7 @@ function moduleLangOf(moduleDoc2) {
 // ../../analyzer/nodejs/src/validate-texts.ts
 var SOURCE42 = "telo-analyzer";
 var isExpression2 = (value2) => isTaggedSentinel(value2);
-var isPlainObject11 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+var isPlainObject12 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 function valueAt5(container, path) {
   let at3 = container;
   for (const key3 of path) at3 = at3 && typeof at3 === "object" ? at3[key3] : void 0;
@@ -79380,7 +79793,7 @@ function validateTexts(options) {
       seen.add(definition);
       const { base, extends: parentKind } = definition;
       if (typeof parentKind !== "string") return void 0;
-      if (isPlainObject11(base)) {
+      if (isPlainObject12(base)) {
         const next = [];
         const source = value2;
         const materialize2 = (node, at3) => {
@@ -79389,12 +79802,12 @@ function validateTexts(options) {
             const link = links.find((l) => l.at.every((segment, i) => forwarded[i] === segment));
             if (link) next.push({ at: at3, from: [...link.from, ...forwarded.slice(link.at.length)] });
             let target = source;
-            for (const key3 of forwarded) target = isPlainObject11(target) ? target[key3] : void 0;
+            for (const key3 of forwarded) target = isPlainObject12(target) ? target[key3] : void 0;
             return target;
           }
           if (isExpression2(node)) return void 0;
           if (Array.isArray(node)) return node.map((item, index) => materialize2(item, [...at3, index]));
-          if (isPlainObject11(node)) {
+          if (isPlainObject12(node)) {
             const out = {};
             for (const [key3, child] of Object.entries(node)) {
               const materialized = materialize2(child, [...at3, key3]);
@@ -79435,7 +79848,7 @@ function validateTexts(options) {
     const definition = manifest;
     if (Array.isArray(definition.resources)) {
       definition.resources.forEach((entry, index) => {
-        if (!isPlainObject11(entry)) return;
+        if (!isPlainObject12(entry)) return;
         out.push({
           manifest,
           base: ["resources", index],
@@ -79445,7 +79858,7 @@ function validateTexts(options) {
         });
       });
     }
-    if (isPlainObject11(definition.base) && typeof definition.extends === "string") {
+    if (isPlainObject12(definition.base) && typeof definition.extends === "string") {
       out.push({
         manifest,
         base: ["base"],
@@ -79519,7 +79932,7 @@ function validateTexts(options) {
         diagnostics.push(problemDiagnostic(catalogComputedProblem(), manifest, at3, "the value"));
       }
       for (const pairing of writing.walk.values) {
-        if (!isPlainObject11(pairing.values) || isExpression2(pairing.values) || expressionsWithin(pairing.text, isExpression2).length > 0) {
+        if (!isPlainObject12(pairing.values) || isExpression2(pairing.values) || expressionsWithin(pairing.text, isExpression2).length > 0) {
           continue;
         }
         const read = readText(pairing.text);
@@ -79631,7 +80044,7 @@ function celSourcesOf(value2) {
     return typeof source === "string" ? celExpressionsOf(engine, source) : [];
   }
   if (Array.isArray(value2)) return value2.flatMap(celSourcesOf);
-  if (isPlainObject11(value2) && Object.getPrototypeOf(value2) === Object.prototype) {
+  if (isPlainObject12(value2) && Object.getPrototypeOf(value2) === Object.prototype) {
     return Object.values(value2).flatMap(celSourcesOf);
   }
   return [];
@@ -79710,7 +80123,7 @@ var ClosureTexts = class {
 // ../../analyzer/nodejs/src/text-catalog-set.ts
 var TEXT_CATALOG_SET_ANNOTATION = "x-telo-text-catalog-set";
 var isSchema7 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-var isPlainObject12 = (value2) => {
+var isPlainObject13 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
@@ -79841,7 +80254,7 @@ function textCatalogSetRegions(schema4, data, isExpression3, resolveRef2) {
       if (isSchema7(node.items)) value2.forEach((item, index) => walk7(node.items, root, item, [...path, index]));
       return;
     }
-    if (!isPlainObject12(value2)) return;
+    if (!isPlainObject13(value2)) return;
     const properties = isSchema7(node.properties) ? node.properties : {};
     const patterns = isSchema7(node.patternProperties) ? node.patternProperties : {};
     for (const [name2, child] of Object.entries(value2)) {
@@ -79873,10 +80286,10 @@ function comparePaths(root, a, b) {
     const right = b[index];
     if (left !== right) {
       if (typeof left === "number" && typeof right === "number") return left - right;
-      const keys = isPlainObject12(at3) ? Object.keys(at3) : [];
+      const keys = isPlainObject13(at3) ? Object.keys(at3) : [];
       return keys.indexOf(String(left)) - keys.indexOf(String(right));
     }
-    at3 = Array.isArray(at3) ? at3[left] : isPlainObject12(at3) ? at3[left] : void 0;
+    at3 = Array.isArray(at3) ? at3[left] : isPlainObject13(at3) ? at3[left] : void 0;
   }
   return a.length - b.length;
 }
@@ -79995,7 +80408,7 @@ function setAtSegments(root, at3, value2) {
   const holder = valueAtSegments(root, at3.slice(0, -1));
   if (holder && typeof holder === "object") holder[at3[at3.length - 1]] = value2;
 }
-var moduleOf7 = (manifest) => {
+var moduleOf8 = (manifest) => {
   const meta = manifest?.metadata;
   const module = meta?.declaringModule ?? meta?.module;
   return typeof module === "string" ? module : void 0;
@@ -80016,7 +80429,7 @@ function validateTextCatalogSets(input) {
   const kindDocuments = [...manifests, ...input.moduleDocuments.flatMap((library) => library.manifests)];
   for (const definition of kindDocuments) {
     if (definition.kind !== "Telo.Definition" && definition.kind !== "Telo.Abstract") continue;
-    const module = moduleOf7(definition);
+    const module = moduleOf8(definition);
     const kindName = nameOf5(definition);
     const id = `${module ?? ""}\0${kindName}`;
     if (judgedKinds.has(id)) continue;
@@ -80042,7 +80455,7 @@ function validateTextCatalogSets(input) {
   }
   const inputs = /* @__PURE__ */ new Set();
   for (const manifest of manifests) {
-    if (isInjectedDeclaration(manifest)) inputs.add(`${moduleOf7(manifest) ?? ""}\0${nameOf5(manifest)}`);
+    if (isInjectedDeclaration(manifest)) inputs.add(`${moduleOf8(manifest) ?? ""}\0${nameOf5(manifest)}`);
   }
   const isInput = (module, name2) => inputs.has(`${module ?? ""}\0${name2}`) || module !== void 0 && !!libraries?.isInput(module, name2);
   const identities = /* @__PURE__ */ new WeakMap();
@@ -80065,8 +80478,8 @@ function validateTextCatalogSets(input) {
     resolve: (held, value2) => {
       const origin = value2 && typeof value2 === "object" ? forwardedFrom.get(value2) : void 0;
       if (origin && origin !== held.manifest) return host.resolve({ manifest: origin, throughInput: held.throughInput }, value2);
-      if (value2 && typeof value2 === "object" && !Array.isArray(value2) && isInlineResource(value2)) {
-        const module = moduleOf7(held.manifest);
+      if (value2 && typeof value2 === "object" && !Array.isArray(value2) && isInlineDeclaration(value2)) {
+        const module = moduleOf8(held.manifest);
         const inline = {
           ...value2,
           metadata: { ...value2.metadata ?? {}, ...module ? { module } : {} }
@@ -80091,7 +80504,7 @@ function validateTextCatalogSets(input) {
         }
         if (target.kind !== "import") return void 0;
       }
-      const throughInput = held.throughInput || local && isInput(moduleOf7(held.manifest), ref.name);
+      const throughInput = held.throughInput || local && isInput(moduleOf8(held.manifest), ref.name);
       const lookup = scope.resolveManifest(value2, held.manifest, held.trail);
       if (!lookup || !("manifest" in lookup)) return void 0;
       const manifest = lookup.manifest;
@@ -80100,7 +80513,7 @@ function validateTextCatalogSets(input) {
     },
     identityOf: (held) => {
       if (placements.has(held.manifest) || scopeNames.has(held.manifest)) return held.manifest;
-      const module = moduleOf7(held.manifest);
+      const module = moduleOf8(held.manifest);
       const name2 = held.manifest.metadata?.name;
       return typeof name2 === "string" && module !== void 0 ? `${module}\0${name2}` : identities.get(held.manifest) ?? held.manifest;
     },
@@ -80152,13 +80565,13 @@ function validateTextCatalogSets(input) {
   for (const manifest of manifests) {
     if (!isInstanceDocument2(manifest)) continue;
     const name2 = manifest.metadata?.name;
-    if (typeof name2 === "string") declared.add(`${moduleOf7(manifest) ?? ""}\0${name2}`);
+    if (typeof name2 === "string") declared.add(`${moduleOf8(manifest) ?? ""}\0${name2}`);
   }
   const bodies = /* @__PURE__ */ new Map();
   const bodyOf = (definition) => {
     const memo = bodies.get(definition);
     if (memo !== void 0) return memo ?? void 0;
-    const module = moduleOf7(definition);
+    const module = moduleOf8(definition);
     const entries = templateBodyEntries(definition).map((entry) => ({
       kind: entry.kind,
       prefix: entry.prefix,
@@ -80235,7 +80648,7 @@ function validateTextCatalogSets(input) {
     }
   }
   for (const manifest of manifests) {
-    const module = moduleOf7(manifest);
+    const module = moduleOf8(manifest);
     if (module !== void 0 && !rootModules.has(module)) continue;
     if (!isInstanceDocument2(manifest) || isInjectedDeclaration(manifest) || isForwardedDeclaration(manifest)) continue;
     if (!views.has(manifest) || !mergedViews.has(manifest)) judgeHolder(manifest, manifest, "");
@@ -80243,7 +80656,7 @@ function validateTextCatalogSets(input) {
   }
   for (const definition of manifests) {
     if (definition.kind !== "Telo.Definition") continue;
-    const module = moduleOf7(definition);
+    const module = moduleOf8(definition);
     if (module !== void 0 && !rootModules.has(module)) continue;
     const built = bodyOf(definition);
     if (!built) continue;
@@ -80265,7 +80678,7 @@ function validateTextCatalogSets(input) {
   }
   for (const entry of manifests) {
     if (entry.kind !== "Telo.Import") continue;
-    const owner = moduleOf7(entry);
+    const owner = moduleOf8(entry);
     if (owner !== void 0 && !rootModules.has(owner)) continue;
     const meta = entry.metadata;
     const target = meta.resolvedModuleName;
@@ -81072,13 +81485,15 @@ var StaticAnalyzer = class {
     const peersTarget = analyzerPeersTarget(defs);
     const referrerDeclares = analyzerReferrerDeclares(defs);
     const kindSchemas = analyzerKindSchemas(defs);
+    const ruleShapes = (ref, module) => defs.namedShapeAt(ref, module, moduleAliasScope({ module }, aliases, aliasesByModule));
     for (const declarer of ownRuleDeclarers) {
       resourceRuleIssues.push(
         ...validateResourceRuleDeclarations(
           declarer,
           effectiveAuthorSchema(declarer, (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k)),
           moduleCallNamesOf(moduleCallNames2, declarer),
-          kindSchemas
+          kindSchemas,
+          ruleShapes
         )
       );
     }
@@ -81434,7 +81849,7 @@ var StaticAnalyzer = class {
       const declaration = owner === void 0 ? void 0 : declaredIn2(owner, target.name);
       if (!owner || !declaration || typeof declaration.kind !== "string") return void 0;
       const kind = declaration.kind.startsWith("Self.") ? `${owner}.${declaration.kind.slice("Self.".length)}` : aliasesByModule.get(owner)?.resolveKind(declaration.kind) ?? declaration.kind;
-      return { kind, name: target.name, ...local ? {} : { alias: target.alias } };
+      return resolvedReference(kind, target.name, local ? void 0 : target.alias);
     };
     const ruleViews = new RuleDeclarationViews((declaration, module) => {
       const bodyEntry = bodyEntryOf(declaration);
@@ -83266,7 +83681,10 @@ var StaticAnalyzer = class {
       })
     );
     const rooted = rewriteSyntheticOrigins(
-      suppressUnreadableModuleDiagnostics(diagnostics, unreadableFiles),
+      withoutRefusedFormConsequences(
+        suppressUnreadableModuleDiagnostics(diagnostics, unreadableFiles),
+        allManifests
+      ),
       allManifests
     );
     return forwardViews ? forwardViews.mapDiagnostics(rooted, (moved) => rewriteSyntheticOrigins(moved, allManifests)) : rooted;
@@ -83293,6 +83711,17 @@ var StaticAnalyzer = class {
     );
     resolveSchemaTypeRefs(normalized, ctx.aliases, ctx.aliasesByModule);
     return normalized;
+  }
+  /** The author-written `__ref` keys {@link validateReferenceForms} refuses in
+   *  `manifests` — a raw, unresolved manifest set — read in the registry's
+   *  scope. Only resolution writes the marker, so a library carrying one is
+   *  refused when an import loads it, whose own analysis is not the entry's; a
+   *  library's legacy `{ kind, name }` is read as the reference it means. */
+  referenceForms(manifests, registry) {
+    const ctx = registry._context();
+    return markerFormRefusals(
+      validateReferenceForms(manifests, ctx.definitions, ctx.aliases, ctx.aliasesByModule)
+    );
   }
   prepare(manifests, registry) {
     const ctx = registry._context();
@@ -83478,7 +83907,7 @@ function parentPaths(path) {
 }
 
 // ../../analyzer/nodejs/src/migrations/patch.ts
-function isPlainObject13(value2) {
+function isPlainObject14(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function containerOf2(root, path) {
@@ -83490,7 +83919,7 @@ function containerOf2(root, path) {
       if (!Array.isArray(current)) return void 0;
       current = current[segment];
     } else {
-      if (!isPlainObject13(current)) return void 0;
+      if (!isPlainObject14(current)) return void 0;
       current = current[segment];
     }
   }
@@ -83506,7 +83935,7 @@ function readAt(root, path) {
     }
     return { found: true, value: container[key3] };
   }
-  if (!isPlainObject13(container) || !Object.hasOwn(container, key3)) {
+  if (!isPlainObject14(container) || !Object.hasOwn(container, key3)) {
     return { found: false, value: void 0 };
   }
   return { found: true, value: container[key3] };
@@ -83529,7 +83958,7 @@ function planPatch(root, path, ops) {
       case "rename-key": {
         const located = containerOf2(root, currentPath);
         const key3 = located?.key;
-        if (!located || typeof key3 !== "string" || !isPlainObject13(located.container)) {
+        if (!located || typeof key3 !== "string" || !isPlainObject14(located.container)) {
           return { ok: false, refusal: "not-a-mapping-entry" };
         }
         if (op.to !== key3 && Object.hasOwn(located.container, op.to)) {
@@ -83611,7 +84040,7 @@ function applyEffectsToTree(root, effects) {
     switch (effect.kind) {
       case "rename-key": {
         const parent = effect.parent.length === 0 ? root : readAt(root, effect.parent).value;
-        if (!isPlainObject13(parent)) continue;
+        if (!isPlainObject14(parent)) continue;
         const entries = Object.entries(parent);
         for (const [key3] of entries) delete parent[key3];
         for (const [key3, value2] of entries) {
@@ -83638,7 +84067,7 @@ function applyEffectsToTree(root, effects) {
         if (!located) continue;
         if (typeof located.key === "number") {
           if (Array.isArray(located.container)) located.container.splice(located.key, 1);
-        } else if (isPlainObject13(located.container)) {
+        } else if (isPlainObject14(located.container)) {
           delete located.container[located.key];
         }
         break;
@@ -83651,7 +84080,7 @@ function writeAt(container, key3, value2) {
     if (Array.isArray(container)) container[key3] = value2;
     return;
   }
-  if (isPlainObject13(container)) container[key3] = value2;
+  if (isPlainObject14(container)) container[key3] = value2;
 }
 function formatMigrationPath(path) {
   let out = "";
@@ -83737,7 +84166,7 @@ var MigrationEntryError = class extends Error {
     this.name = "MigrationEntryError";
   }
 };
-function isPlainObject14(value2) {
+function isPlainObject15(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function requireString3(file, node, key3) {
@@ -83765,7 +84194,7 @@ function requireScalarValue(file, index, op, value2) {
   );
 }
 function readOperation(file, raw, index) {
-  if (!isPlainObject14(raw)) {
+  if (!isPlainObject15(raw)) {
     throw new MigrationEntryError(file, `patch[${index}] must be a mapping`);
   }
   const op = raw.op;
@@ -83829,7 +84258,7 @@ function readOperation(file, raw, index) {
   }
 }
 function readRule(file, raw, index, surface) {
-  if (!isPlainObject14(raw)) {
+  if (!isPlainObject15(raw)) {
     throw new MigrationEntryError(file, `rules[${index}] must be a mapping`);
   }
   if (!Array.isArray(raw.patch) || raw.patch.length === 0) {
@@ -83850,7 +84279,7 @@ function readRule(file, raw, index, surface) {
   return { match, patch };
 }
 function parseMigrationEntry(file, data, surface = "core") {
-  if (!isPlainObject14(data)) {
+  if (!isPlainObject15(data)) {
     throw new MigrationEntryError(file, "an entry must be a mapping");
   }
   for (const key3 of Object.keys(data)) {
@@ -89485,10 +89914,7 @@ function refTargetName2(value2) {
     const lastDot = value2.lastIndexOf(".");
     return lastDot > 0 ? value2.slice(lastDot + 1) : value2;
   }
-  if (value2 && typeof value2 === "object") {
-    const name2 = value2.name;
-    if (typeof name2 === "string") return name2;
-  }
+  if (isResolvedReference(value2)) return value2.name;
   return void 0;
 }
 
