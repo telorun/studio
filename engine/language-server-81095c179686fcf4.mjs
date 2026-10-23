@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.121.0+unreleased";
+var TELO_ENGINE_VERSION = "0.121.0";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -31706,7 +31706,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.121.0+unreleased";
+var ENGINE_VERSION = "0.121.0";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
