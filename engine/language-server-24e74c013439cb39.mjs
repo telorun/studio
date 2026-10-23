@@ -22716,7 +22716,22 @@ function unify(left, right) {
     return mapOf(unify(left.key, right.key), unify(left.value, right.value));
   }
   if (left.kind === "optional" && right.kind === "optional") return optionalOf(unify(left.value, right.value));
+  if (left.kind === "record" && (right.kind === "record" || right.kind === "map")) {
+    return unifyRecordAsMap(left, right);
+  }
+  if (right.kind === "record" && left.kind === "map") return unifyRecordAsMap(right, left);
   return DYN;
+}
+function unifyRecordAsMap(record, other) {
+  const key3 = other.kind === "map" ? unify(STRING, other.key) : STRING;
+  const values = [recordValueType(record), other.kind === "map" ? other.value : recordValueType(other)];
+  return mapOf(key3, values.reduce((joined, value2) => unify(joined, value2)));
+}
+function recordValueType(record) {
+  if (record.open) return DYN;
+  let joined = parameterOf("V");
+  for (const type of record.fields.values()) joined = unify(joined, type);
+  return joined;
 }
 
 // ../../cel/nodejs/src/check-diagnostic.ts
@@ -47397,10 +47412,120 @@ function substituteCelFields(data, schema4, rootSchema, options = {}) {
 
 // ../../analyzer/nodejs/src/step-result-inference.ts
 var INFERRED_RESULT = "x-telo-inferred-result-of";
+var LITERAL_RESULT = "x-telo-inferred-literal-result";
+var SAME_NAMED_RESULTS = "x-telo-inferred-results-of-name";
+var READING_ALTERNATIVE = "x-telo-inferred-reading-alternative";
 var RECORDED_TYPES = /* @__PURE__ */ new Set(["int", "uint", "double", "string", "bool", "bytes"]);
 function inferredResultSchema(value2) {
-  if (!isTaggedSentinel(value2) || value2.engine !== CEL_ENGINE) return void 0;
-  return { [INFERRED_RESULT]: value2.source };
+  if (isTaggedSentinel(value2)) {
+    return value2.engine === CEL_ENGINE ? { [INFERRED_RESULT]: value2.source } : void 0;
+  }
+  const shape = literalShape(value2);
+  return shape && { [LITERAL_RESULT]: shape };
+}
+function sameNamedResult(alternatives) {
+  const first = alternatives[0].result;
+  if (alternatives.length === 1) return first;
+  const settled = alternatives.every(
+    ({ result }) => !isExpressionResult(result) && (result === first || canonicalJson2(result) === canonicalJson2(first))
+  );
+  return settled ? first : { [SAME_NAMED_RESULTS]: alternatives };
+}
+function isForwardableResult(result) {
+  return !isExpressionResult(result) && alternativesOf(result) === void 0;
+}
+function stepContextOf(stepProperties) {
+  return {
+    type: "object",
+    properties: stepProperties,
+    ...hasInferredResult(stepProperties) ? { additionalProperties: true } : {}
+  };
+}
+function hasInferredResult(stepProperties) {
+  return Object.values(stepProperties).some((step) => {
+    const result = step?.properties?.result;
+    return isExpressionResult(result) || isLiteralResult(result) || alternativesOf(result) !== void 0;
+  });
+}
+function stepContextAt(steps, path) {
+  let sites = readingSites.get(steps);
+  if (!sites) readingSites.set(steps, sites = sameNamedSites(steps));
+  const site = sites.find(
+    ({ at: at3 }) => path === at3 || path.startsWith(`${at3}.`) || path.startsWith(`${at3}[`)
+  );
+  if (!site) return steps;
+  if (!site.view) {
+    const others = site.alternatives.filter((_2, index) => index !== site.index);
+    const settled = sameNamedResult(others);
+    site.view = stepContextOf({
+      ...steps.properties,
+      [site.name]: {
+        type: "object",
+        properties: {
+          result: alternativesOf(settled) === void 0 && !isExpressionResult(settled) ? settled : { [SAME_NAMED_RESULTS]: site.alternatives, [READING_ALTERNATIVE]: site.index }
+        }
+      }
+    });
+  }
+  return site.view;
+}
+var readingSites = /* @__PURE__ */ new WeakMap();
+function sameNamedSites(steps) {
+  const sites = [];
+  for (const [name2, step] of Object.entries(steps.properties ?? {})) {
+    const alternatives = alternativesOf(step?.properties?.result);
+    alternatives?.forEach(({ at: at3 }, index) => {
+      if (at3 !== void 0) sites.push({ at: at3, name: name2, index, alternatives });
+    });
+  }
+  return sites;
+}
+function isLiteralResult(schema4) {
+  return schema4?.[LITERAL_RESULT] !== void 0;
+}
+function isExpressionResult(schema4) {
+  return typeof schema4?.[INFERRED_RESULT] === "string";
+}
+function alternativesOf(schema4) {
+  const alternatives = schema4?.[SAME_NAMED_RESULTS];
+  return Array.isArray(alternatives) ? alternatives : void 0;
+}
+function literalShape(value2) {
+  if (value2 === null) return { type: "null" };
+  switch (typeof value2) {
+    case "string":
+      return { type: "string" };
+    case "boolean":
+      return { type: "boolean" };
+    case "number":
+      return { type: isLiteralInteger(value2) ? "integer" : "number" };
+    case "object":
+      break;
+    default:
+      return void 0;
+  }
+  if (isTaggedSentinel(value2)) return {};
+  if (Array.isArray(value2)) {
+    const items = value2.map((item) => literalShape(item) ?? {});
+    const first = items[0];
+    const agree = first !== void 0 && Object.keys(first).length > 0 && items.every((item) => canonicalJson2(item) === canonicalJson2(first));
+    return agree ? { type: "array", items: first } : { type: "array" };
+  }
+  const prototype = Object.getPrototypeOf(value2);
+  if (prototype !== Object.prototype && prototype !== null) return void 0;
+  const properties = {};
+  for (const [key3, member] of Object.entries(value2)) properties[key3] = literalShape(member) ?? {};
+  return {
+    type: "object",
+    properties,
+    required: Object.keys(properties),
+    additionalProperties: false
+  };
+}
+function isLiteralInteger(value2) {
+  if (!Number.isInteger(value2)) return false;
+  const integer3 = BigInt(value2);
+  return integer3 >= MIN_INT && integer3 <= MAX_INT;
 }
 var inferredByContext = /* @__PURE__ */ new WeakMap();
 function inferredStepsCelSchema(stepsSchema, env, scopeSignature) {
@@ -47409,32 +47534,84 @@ function inferredStepsCelSchema(stepsSchema, env, scopeSignature) {
   const cached = bySignature.get(scopeSignature);
   if (cached !== void 0) return cached ?? void 0;
   const properties = stepsSchema.properties ?? {};
-  const marked = Object.values(properties).some(
-    (step) => typeof step?.properties?.result?.[INFERRED_RESULT] === "string"
-  );
-  if (!marked) {
+  if (!hasInferredResult(properties)) {
     bySignature.set(scopeSignature, null);
     return void 0;
   }
+  const types = stepResultTypes(properties, env);
   const schema4 = {};
-  for (const [name2, step] of Object.entries(properties)) {
-    const source = step?.properties?.result?.[INFERRED_RESULT];
-    let type = "dyn";
-    if (typeof source === "string") {
-      const probe = env.clone();
-      registerTypedSteps(probe, { ...schema4 });
-      const checked = probe.check(source);
-      if (checked.valid && RECORDED_TYPES.has(checked.typeName)) type = checked.typeName;
-    }
-    schema4[name2] = { result: type };
+  for (const name2 of Object.keys(properties)) {
+    const reading = properties[name2]?.properties?.result?.[READING_ALTERNATIVE];
+    schema4[name2] = types.ofName(name2, typeof reading === "number" ? reading : void 0);
   }
   bySignature.set(scopeSignature, schema4);
   return schema4;
 }
+function stepResultTypes(properties, env) {
+  const names = Object.keys(properties);
+  const byName = /* @__PURE__ */ new Map();
+  const byAlternative = /* @__PURE__ */ new Map();
+  const resolving = /* @__PURE__ */ new Set();
+  const alternatives = (name2) => {
+    const result = properties[name2]?.properties?.result;
+    return alternativesOf(result) ?? (result ? [{ result }] : []);
+  };
+  const ofName = (name2, except) => {
+    const key3 = `${name2}\0${except ?? ""}`;
+    const known = byName.get(key3);
+    if (known) return known;
+    let agreed;
+    let differ = false;
+    alternatives(name2).forEach(({ result }, index) => {
+      if (index === except) return;
+      const type2 = ofAlternative(name2, index, result);
+      if (agreed === void 0) agreed = type2;
+      else if (!typesEqual(agreed, type2)) differ = true;
+    });
+    const type = agreed === void 0 || differ || isDyn(agreed) ? DYN : agreed;
+    byName.set(key3, type);
+    return type;
+  };
+  const ofAlternative = (name2, index, result) => {
+    if (isLiteralResult(result)) return schemaType({ node: result[LITERAL_RESULT] }).type;
+    const source = result[INFERRED_RESULT];
+    if (typeof source !== "string") return DYN;
+    const key3 = `${name2}\0${index}`;
+    const known = byAlternative.get(key3);
+    if (known) return known;
+    if (resolving.has(key3)) return DYN;
+    resolving.add(key3);
+    const steps = {};
+    for (const other of names) {
+      steps[other] = !mentions(source, other) ? DYN : other === name2 ? ofName(name2, index) : ofName(other);
+    }
+    const probe = env.clone();
+    registerTypedSteps(probe, steps);
+    const checked = probe.check(source);
+    const type = checked.valid && RECORDED_TYPES.has(checked.typeName) ? checked.type : DYN;
+    resolving.delete(key3);
+    byAlternative.set(key3, type);
+    return type;
+  };
+  return { ofName };
+}
+function mentions(source, name2) {
+  let from = source.indexOf(name2);
+  while (from !== -1) {
+    const before = source[from - 1];
+    const after = source[from + name2.length];
+    if (!isWordCharacter(before) && !isWordCharacter(after)) return true;
+    from = source.indexOf(name2, from + 1);
+  }
+  return false;
+}
+var isWordCharacter = (character) => character !== void 0 && /[A-Za-z0-9_]/.test(character);
 function registerTypedSteps(env, schema4) {
-  const fields = {};
-  for (const [name2, step] of Object.entries(schema4)) fields[name2] = { fields: step };
-  env.registerVariable("steps", { fields });
+  const fields = /* @__PURE__ */ new Map();
+  for (const [name2, result] of Object.entries(schema4)) {
+    fields.set(name2, { kind: "record", fields: /* @__PURE__ */ new Map([["result", result]]), open: false });
+  }
+  env.registerVariable("steps", { kind: "record", fields, open: false });
 }
 
 // ../../analyzer/nodejs/src/cel-environment.ts
@@ -53316,26 +53493,43 @@ function buildStepContextSchema(manifest, defSchema, allManifests, defs, aliases
       manifest.inputType,
       allManifests
     );
-    const stepProperties = {};
-    walkStepArray(steps, stepItemSchema, defSchema, fieldName2, (s) => {
+    const producers = /* @__PURE__ */ new Map();
+    const produce = (name2, producer) => {
+      const named = producers.get(name2);
+      if (named) named.push(producer);
+      else producers.set(name2, [producer]);
+    };
+    const stepNode = (name2, reader) => {
+      const alternatives = (producers.get(name2) ?? []).filter((producer) => producer !== reader).map(alternativeOf);
+      return alternatives.length > 0 ? { type: "object", properties: { result: sameNamedResult(alternatives) } } : void 0;
+    };
+    const alternativeOf = (producer) => ({
+      result: resultOf(producer),
+      ...producer.at === void 0 ? {} : { at: producer.at }
+    });
+    const resultOf = (producer) => {
+      if (producer.result) return producer.result;
+      const inferred = inferredResultSchema(producer.value) ?? PERMISSIVE_CONTRACT;
+      if (producer.resolving) return inferred;
+      producer.resolving = true;
+      const chain = bindingPathChain(producer.value);
+      const read = chain?.[0] === "steps" && chain[1] !== void 0 ? stepNode(chain[1], producer) : void 0;
+      const chained = schemaAtChain3(chain, {
+        properties: {
+          steps: { type: "object", properties: read ? { [chain[1]]: read } : {} },
+          ...ownInputs ? { inputs: ownInputs } : {}
+        }
+      });
+      producer.resolving = false;
+      return producer.result = chained && isForwardableResult(chained) ? chained : inferred;
+    };
+    walkStepArray(steps, stepItemSchema, defSchema, fieldName2, (s, stepPath2) => {
       const name2 = s.name;
       const invoke = s[invokeField];
       if (typeof name2 !== "string") return;
       if (!invoke || typeof invoke !== "object") {
         if (valueField && valueField in s) {
-          const scopeRoot = {
-            properties: {
-              steps: { type: "object", properties: { ...stepProperties } },
-              ...ownInputs ? { inputs: ownInputs } : {}
-            }
-          };
-          const chained = schemaAtChain3(bindingPathChain(s[valueField]), scopeRoot);
-          stepProperties[name2] = {
-            type: "object",
-            properties: {
-              result: chained ?? inferredResultSchema(s[valueField]) ?? PERMISSIVE_CONTRACT
-            }
-          };
+          produce(name2, { value: s[valueField], at: `${stepPath2}.${valueField}` });
         }
         return;
       }
@@ -53357,18 +53551,17 @@ function buildStepContextSchema(manifest, defSchema, allManifests, defs, aliases
         outputTypeField
       );
       const contract = outputSchema && declaredDocument(outputSchema);
-      stepProperties[name2] = {
-        type: "object",
-        properties: {
-          result: contract ?? derived ?? PERMISSIVE_CONTRACT
-        }
-      };
+      produce(name2, { result: contract ?? derived ?? PERMISSIVE_CONTRACT });
     });
-    if (Object.keys(stepProperties).length > 0) {
-      return {
-        type: "object",
-        properties: stepProperties
-      };
+    if (producers.size > 0) {
+      const stepProperties = {};
+      for (const [name2, named] of producers) {
+        stepProperties[name2] = {
+          type: "object",
+          properties: { result: sameNamedResult(named.map(alternativeOf)) }
+        };
+      }
+      return stepContextOf(stepProperties);
     }
   }
   return hasStepBody ? { type: "object", properties: {} } : void 0;
@@ -53738,7 +53931,7 @@ var CelScopeResolver = class _CelScopeResolver {
           ...argumentsBound ? { inputs: { type: "object", additionalProperties: true } } : {},
           ...base.properties ?? {},
           ...argumentsBound && declaredInputs ? { inputs: declaredInputs } : {},
-          steps: stepContext
+          steps: stepContextAt(stepContext, localPath2)
         }
       };
     }
@@ -56565,6 +56758,7 @@ function stepBodiesOf(declaration, schema4) {
     out.push({
       field,
       invokeField: slot.invoke,
+      ...slot.value !== void 0 ? { valueField: slot.value } : {},
       steps,
       itemSchema: resolveLocalRef2(fieldSchema.items, schema4)
     });
