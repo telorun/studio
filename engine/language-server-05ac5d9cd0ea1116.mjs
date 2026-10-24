@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.122.0";
+var TELO_ENGINE_VERSION = "0.122.1+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -31721,7 +31721,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.122.0";
+var ENGINE_VERSION = "0.122.1+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -39927,6 +39927,23 @@ function walkNullable(node, nonNull, boundVars, issues, schema4) {
   }
 }
 function validateChainAgainstSchema(chain, schema4) {
+  return chainFailureAgainstSchema(chain, schema4)?.message ?? null;
+}
+function chainsRefusedAt(node, ranges) {
+  const refused2 = /* @__PURE__ */ new Set();
+  if (ranges.length === 0) return refused2;
+  const at3 = new Set(ranges.map(([start, end]) => `${start}:${end}`));
+  const visit3 = (current) => {
+    if (current.kind === "select" && at3.has(`${current.fieldRange[0]}:${current.fieldRange[1]}`)) {
+      const chain = extractChain(current, /* @__PURE__ */ new Set());
+      if (chain) refused2.add(chain.join("."));
+    }
+    for (const child of childNodes(current)) visit3(child);
+  };
+  visit3(node);
+  return refused2;
+}
+function chainFailureAgainstSchema(chain, schema4) {
   let current = schema4;
   for (let i = 0; i < chain.length; i++) {
     const key3 = chain[i];
@@ -39944,7 +39961,10 @@ function validateChainAgainstSchema(chain, schema4) {
       const propSchema = props[key3];
       if (isLiveSlot(propSchema) && i < chain.length - 1) {
         const path2 = chain.slice(0, i + 1).join(".");
-        return `'${path2}' yields a stream \u2014 pipe it through an Encoder or iterate in a JS.Script step (no member access on stream-typed values)`;
+        return {
+          path: path2,
+          message: `'${path2}' yields a stream \u2014 pipe it through an Encoder or iterate in a JS.Script step (no member access on stream-typed values)`
+        };
       }
       current = propSchema;
       continue;
@@ -39952,7 +39972,7 @@ function validateChainAgainstSchema(chain, schema4) {
     if (!members && current.additionalProperties === true) return null;
     const path = chain.slice(0, i + 1).join(".");
     const available = Object.keys(props).join(", ");
-    return `'${path}' is not defined (available: ${available})`;
+    return { path, message: `'${path}' is not defined (available: ${available})` };
   }
   return null;
 }
@@ -40162,9 +40182,14 @@ function analyzeCelWithTree(source, env) {
   }
   if (env.contextSchema) {
     const contextSchema = env.contextSchema;
+    const refusedByChecker = chainsRefusedAt(
+      ast2,
+      checked.valid ? [] : checked.diagnostics.filter((d) => d.code === "CEL_UNKNOWN_FIELD").map((d) => d.range)
+    );
     for (const chain of extractAccessChains(ast2)) {
-      const err = validateChainAgainstSchema(chain, contextSchema);
-      if (err && !explained2.has(err)) out.push({ code: "CEL_UNKNOWN_FIELD", message: err });
+      const failure = chainFailureAgainstSchema(chain, contextSchema);
+      if (!failure || explained2.has(failure.message) || refusedByChecker.has(failure.path)) continue;
+      out.push({ code: "CEL_UNKNOWN_FIELD", message: failure.message });
     }
     for (const issue of findNullableAccessIssues(ast2, contextSchema)) {
       const access = issue.member === "[index]" ? issue.member : `.${issue.member}`;
@@ -52863,7 +52888,7 @@ var KERNEL_GLOBAL_NAMES = [
   "ports",
   "module"
 ];
-function buildKernelGlobalsIndex(manifests, resources, functions) {
+function buildKernelGlobalsIndex(manifests, resources, functions, analysisOnly) {
   const entryDoc = manifests.find((m) => m.kind === "Telo.Application") ?? manifests.find((m) => m.kind === "Telo.Library");
   const entrySchema = globalsSchema(
     entryDoc,
@@ -52871,7 +52896,8 @@ function buildKernelGlobalsIndex(manifests, resources, functions) {
       manifests,
       resources,
       entryDoc?.metadata?.name,
-      functions
+      functions,
+      analysisOnly
     )
   );
   const openResources = { type: "object", additionalProperties: true };
@@ -52907,12 +52933,16 @@ function buildModuleSchema(doc) {
     doc?.module ?? doc?.metadata
   ) ?? { type: "object", additionalProperties: true };
 }
-function buildResourcesSchema(manifests, resources, entryModule, functions) {
+function buildResourcesSchema(manifests, resources, entryModule, functions, analysisOnly) {
   const resourceProps = {};
   const withheld = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     const name2 = m.metadata?.name;
     if (!name2 || !m.kind) continue;
+    if (analysisOnly?.has(m)) {
+      withheld.add(name2);
+      continue;
+    }
     if (isForwardedDeclaration(m)) continue;
     const module = m.metadata?.module;
     if (m.kind === "Telo.Import" && entryModule !== void 0 && typeof module === "string" && module !== entryModule) {
@@ -52932,7 +52962,7 @@ function buildResourcesSchema(manifests, resources, entryModule, functions) {
     else if (entry.status) applyObservedStateNode(resourceProps, key3, entry.status);
   }
   for (const [key3, entry] of resources ?? []) {
-    if (!key3.includes(".") || entry.forwardedFrom !== void 0) continue;
+    if (!key3.includes(".") || entry.forwardedFrom !== void 0 || withheld.has(key3)) continue;
     if (entry.reading) applyReadingNode(resourceProps, key3, entry.reading);
     else if (entry.status) applyObservedStateNode(resourceProps, key3, entry.status);
   }
@@ -53643,6 +53673,11 @@ var CelScopeResolver = class _CelScopeResolver {
     this.referrerTypes = shared ?? { types: /* @__PURE__ */ new WeakMap(), inProgress: /* @__PURE__ */ new Set(), ids: /* @__PURE__ */ new WeakMap(), next: 0 };
   }
   typedEnvByManifest = /* @__PURE__ */ new Map();
+  /** The context standing in where no `x-telo-context` matched, one per
+   *  module's globals. It binds nothing the environment lacks, so a site read
+   *  against it shares the manifest's cached environment. */
+  fallbackContexts = /* @__PURE__ */ new WeakMap();
+  fallbackContextSet = /* @__PURE__ */ new WeakSet();
   /** Per-resource state, replaced at each `enterResource`. */
   stepContext;
   invocationContext;
@@ -53856,7 +53891,8 @@ var CelScopeResolver = class _CelScopeResolver {
     };
     const moduleNames = moduleCallNamesOf(this.inputs.moduleCallNames ?? NO_MODULE_CALL_NAMES, m);
     const importNeeds = m.kind === "Telo.Import" && site.path.startsWith("needs.");
-    const cached = contextSchema === null && !importNeeds ? this.typedEnvByManifest.get(m) : void 0;
+    const envFromManifest = (contextSchema === null || this.fallbackContextSet.has(contextSchema)) && !importNeeds;
+    const cached = envFromManifest ? this.typedEnvByManifest.get(m) : void 0;
     let env;
     if (cached) {
       env = cached;
@@ -53881,7 +53917,7 @@ var CelScopeResolver = class _CelScopeResolver {
           celType: entry.function.celType
         }))
       );
-      if (contextSchema === null && !importNeeds) this.typedEnvByManifest.set(m, env);
+      if (envFromManifest) this.typedEnvByManifest.set(m, env);
     }
     return {
       env,
@@ -53944,7 +53980,21 @@ var CelScopeResolver = class _CelScopeResolver {
       };
     }
     if (!matched) {
-      return this.inputs.observedStateContext;
+      if (isKindDocument(m)) return this.inputs.observedStateContext;
+      if (isModuleKind(m.kind) && path.startsWith("imports.")) {
+        return this.inputs.observedStateContext;
+      }
+      const globals = this.inputs.kernelGlobals.forResource(m);
+      let fallback = this.fallbackContexts.get(globals);
+      if (!fallback) {
+        fallback = mergeKernelGlobalsIntoContext(
+          { type: "object", additionalProperties: true, properties: {} },
+          globals
+        );
+        this.fallbackContexts.set(globals, fallback);
+        this.fallbackContextSet.add(fallback);
+      }
+      return fallback;
     }
     const { defs, aliases, scopes, allManifests, kernelGlobals } = this.inputs;
     const body2 = inBody;
@@ -75987,7 +76037,7 @@ function describe6(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.122.0";
+var TELO_SURFACE_VERSION = "0.122.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE22 = "telo-analyzer";
@@ -81750,6 +81800,15 @@ var StaticAnalyzer = class {
       }
     }
     const aliasesByModule = ctx?.aliasesByModule ?? /* @__PURE__ */ new Map();
+    const importersByModule = /* @__PURE__ */ new Map();
+    for (const m of manifests) {
+      if (m.kind !== "Telo.Import") continue;
+      const meta = m.metadata;
+      if (!meta.name || !meta.resolvedModuleName) continue;
+      const list5 = importersByModule.get(meta.resolvedModuleName) ?? [];
+      list5.push({ alias: meta.name, entryScoped: !meta.module || rootModules.has(meta.module) });
+      importersByModule.set(meta.resolvedModuleName, list5);
+    }
     const libraries = libraryDeclarations(options?.moduleDocuments ?? []);
     registry?._setLibraries(libraries, options?.moduleDocuments ?? []);
     const seenAliasByScope = /* @__PURE__ */ new Map();
@@ -82246,6 +82305,7 @@ var StaticAnalyzer = class {
     resolveRefSentinels(allManifests, aliases, aliasesByModule, [], defs);
     const forwardViews = options?.skipValidation ? void 0 : buildTemplateForwardViews(allManifests, defs, aliases, { aliasesByModule, rootModules });
     if (forwardViews) allManifests.push(...forwardViews.analyzed);
+    const analysisOnlyDocs = new Set(forwardViews?.analyzed ?? []);
     const textLanguages = new TextLanguageScope(
       allManifests,
       rootModules,
@@ -82620,7 +82680,12 @@ var StaticAnalyzer = class {
         moduleCallFlags: (caller, qualified) => callableFlags.ofCall(caller, qualified)
       })
     );
-    const kernelGlobals = buildKernelGlobalsIndex(allManifests, observedState, moduleFunctions);
+    const kernelGlobals = buildKernelGlobalsIndex(
+      allManifests,
+      observedState,
+      moduleFunctions,
+      analysisOnlyDocs
+    );
     diagnostics.push(
       ...validateImportHostPaths(
         allManifests,
@@ -82768,7 +82833,31 @@ var StaticAnalyzer = class {
         continue;
       }
       const resolvedKind = kindResult.status === "ok" ? kindResult.kind : void 0;
-      const definition = defs.resolve(m.kind) ?? (resolvedKind ? defs.resolve(resolvedKind) : void 0);
+      const analysisOnly = analysisOnlyDocs.has(m);
+      const entryScoped = !analysisOnly && (!ownModule || rootModules.has(ownModule));
+      if (entryScoped && kindResult.status === "unknown") {
+        const prefix = m.kind.slice(0, m.kind.indexOf("."));
+        const importers = importersByModule.get(prefix);
+        if (importers && defs.resolve(m.kind)) {
+          const ownAliases = importers.filter((i) => i.entryScoped).map((i) => i.alias);
+          const suffix = m.kind.slice(prefix.length + 1);
+          const repair = ownAliases.length > 0 ? `This module imports it as '${ownAliases[0]}' \u2014 write '${ownAliases[0]}.${suffix}'.` : `It is loaded through another module's imports, which does not make its kinds available here \u2014 add it to this module's 'imports:'.`;
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "UNDEFINED_KIND",
+            source: SOURCE44,
+            message: `Kind '${m.kind}': no module imported with alias '${prefix}' in this module. ${repair} Known aliases: ${aliases.knownAliases().join(", ") || "(none)"}.`,
+            data: {
+              resource,
+              filePath,
+              path: "kind",
+              ...ownAliases.length > 0 ? { suggestedKind: `${ownAliases[0]}.${suffix}`, fix: { replacement: `${ownAliases[0]}.${suffix}` } } : {}
+            }
+          });
+          continue;
+        }
+      }
+      const definition = analysisOnly ? defs.resolve(m.kind) ?? (resolvedKind ? defs.resolve(resolvedKind) : void 0) : resolvedKind ? defs.resolve(resolvedKind) : defs.resolve(m.kind);
       if (!definition && m.kind === BUILTIN_VOCABULARY_KIND) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
