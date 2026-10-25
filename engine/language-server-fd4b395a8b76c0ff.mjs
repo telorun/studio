@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.123.0";
+var TELO_ENGINE_VERSION = "0.123.1+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -31764,7 +31764,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.123.0";
+var ENGINE_VERSION = "0.123.1+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -77406,7 +77406,7 @@ function describe6(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.123.0";
+var TELO_SURFACE_VERSION = "0.123.1";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE25 = "telo-analyzer";
@@ -83178,8 +83178,9 @@ var StaticAnalyzer = class {
         const resolvedModuleName = m.metadata.resolvedModuleName;
         const resolvedNamespace = m.metadata.resolvedNamespace;
         const ownModule = m.metadata?.module;
+        const ownSource = m.metadata?.source;
         if (alias) {
-          const scopeKey = ownModule ?? "";
+          const scopeKey = ownModule ? `${ownModule}\0${ownSource ?? ""}` : "";
           let seen = seenAliasByScope.get(scopeKey);
           if (!seen) {
             seen = /* @__PURE__ */ new Set();
