@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.124.0";
+var TELO_ENGINE_VERSION = "0.125.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -31764,7 +31764,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.124.0";
+var ENGINE_VERSION = "0.125.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -76570,6 +76570,27 @@ function validateImportHostPaths(manifests, rootModules, kernelGlobals) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/sources/integrity.ts
+var INTEGRITY_FRAGMENT = /#(sha256-[A-Za-z0-9_+/=-]+)$/;
+var CANONICAL_INTEGRITY = /^sha256-[A-Za-z0-9_-]{43}$/;
+function splitIntegrity(ref) {
+  const match = ref.match(INTEGRITY_FRAGMENT);
+  if (!match) return { base: ref };
+  return { base: ref.slice(0, match.index), integrity: match[1] };
+}
+function foldIntegrity(source, integrity) {
+  return typeof integrity === "string" && !source.includes("#") ? `${source}#${integrity}` : source;
+}
+function isCanonicalIntegrity(value2) {
+  return typeof value2 === "string" && CANONICAL_INTEGRITY.test(value2);
+}
+
+// ../../analyzer/nodejs/src/sources/oci-ref.ts
+var OCI_SCHEME = "oci://";
+function isOciRef(ref) {
+  return splitIntegrity(ref).base.startsWith(OCI_SCHEME);
+}
+
 // ../../analyzer/nodejs/src/module-file-existence.ts
 async function collectLocalModuleFileDiagnostics(entry, modules, importEdges, sourceFor) {
   const out = [];
@@ -76582,7 +76603,7 @@ async function collectLocalModuleFileDiagnostics(entry, modules, importEdges, so
         if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
         seen.add(edge.targetSource);
         const target = modules.get(edge.targetSource);
-        if (target) queue.push(target);
+        if (target && !isOciRef(target.owner.requestedUrl)) queue.push(target);
       }
     }
   }
@@ -76842,27 +76863,6 @@ function isEmptyBlock(value2) {
 // ../../analyzer/nodejs/src/sources/local-path-ref.ts
 function isLocalPathSource(source) {
   return source.startsWith(".") || source.startsWith("/");
-}
-
-// ../../analyzer/nodejs/src/sources/integrity.ts
-var INTEGRITY_FRAGMENT = /#(sha256-[A-Za-z0-9_+/=-]+)$/;
-var CANONICAL_INTEGRITY = /^sha256-[A-Za-z0-9_-]{43}$/;
-function splitIntegrity(ref) {
-  const match = ref.match(INTEGRITY_FRAGMENT);
-  if (!match) return { base: ref };
-  return { base: ref.slice(0, match.index), integrity: match[1] };
-}
-function foldIntegrity(source, integrity) {
-  return typeof integrity === "string" && !source.includes("#") ? `${source}#${integrity}` : source;
-}
-function isCanonicalIntegrity(value2) {
-  return typeof value2 === "string" && CANONICAL_INTEGRITY.test(value2);
-}
-
-// ../../analyzer/nodejs/src/sources/oci-ref.ts
-var OCI_SCHEME = "oci://";
-function isOciRef(ref) {
-  return splitIntegrity(ref).base.startsWith(OCI_SCHEME);
 }
 
 // ../../analyzer/nodejs/src/import-resolution-diagnostics.ts
@@ -77406,7 +77406,7 @@ function describe6(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.124.0";
+var TELO_SURFACE_VERSION = "0.125.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE25 = "telo-analyzer";
@@ -87880,7 +87880,7 @@ async function loadImportTarget(request, port) {
   }
   let resolvedUrl;
   try {
-    resolvedUrl = port.resolve(fromSource, source);
+    resolvedUrl = await port.resolve(fromSource, source);
   } catch (err) {
     return failure(source, err instanceof Error ? err : new Error(String(err)), void 0, false);
   }
@@ -88247,7 +88247,7 @@ var Loader = class {
     });
     let url;
     try {
-      url = this.resolveImportUrl(fromSource, source);
+      url = await this.resolveImportUrl(fromSource, source);
     } catch (err) {
       return failure(source, err);
     }
@@ -88285,12 +88285,19 @@ var Loader = class {
    *  loader used when walking the entry graph — divergent resolution
    *  would silently break optimizations like `canonicalize()`-keyed
    *  cache hits whenever a non-trivial `ManifestSource.resolveRelative`
-   *  is in play. */
-  resolveImportUrl(fromSource, importSource) {
-    if (importSource.startsWith(".") || importSource.startsWith("/")) {
-      return this.pick(fromSource).resolveRelative(fromSource, importSource);
+   *  is in play.
+   *
+   *  A source that knows how imports inside `fromSource` resolve answers first
+   *  (`ManifestSource.resolveRelativeImport`): a module read out of an artifact
+   *  may import a module shipped inside that artifact, which no path rule over
+   *  the file's own location can name. */
+  async resolveImportUrl(fromSource, importSource) {
+    if (!isLocalPathSource(importSource)) return importSource;
+    for (const source of this.sources) {
+      const resolved = await source.resolveRelativeImport?.(fromSource, importSource);
+      if (resolved !== void 0) return resolved;
     }
-    return importSource;
+    return this.pick(fromSource).resolveRelative(fromSource, importSource);
   }
   assertSingleModuleDeclaration(file) {
     const moduleManifests = file.manifests.filter(
