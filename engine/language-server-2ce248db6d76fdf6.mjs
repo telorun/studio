@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.126.0";
+var TELO_ENGINE_VERSION = "0.127.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -28195,7 +28195,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.126.0";
+var ENGINE_VERSION = "0.127.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -87564,7 +87564,7 @@ function describe6(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.126.0";
+var TELO_SURFACE_VERSION = "0.127.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE33 = "telo-analyzer";
@@ -108632,6 +108632,129 @@ function decidingIndex(path, patterns, match) {
   return index >= 0 && patterns[index].startsWith("!") ? -1 : index;
 }
 
+// ../../analyzer/nodejs/src/manifest-format.ts
+var MAX_FLOW_MAP_ENTRIES = 3;
+function isPlainValue(node) {
+  if (!isScalar(node)) return false;
+  if (node.tag || node.comment || node.commentBefore) return false;
+  if (typeof node.value === "string" && node.value.includes("\n")) return false;
+  return node.type !== "BLOCK_LITERAL" && node.type !== "BLOCK_FOLDED";
+}
+function isQuiet(node) {
+  return !node.tag && !node.comment && !node.commentBefore;
+}
+function flowable(node) {
+  if (isSeq(node)) return seqFlowable(node);
+  if (isMap(node)) return mapFlowable(node);
+  return isPlainValue(node);
+}
+function seqFlowable(seq2) {
+  return isQuiet(seq2) && seq2.items.every(isPlainValue);
+}
+function mapFlowable(map3) {
+  if (!isQuiet(map3) || map3.items.length > MAX_FLOW_MAP_ENTRIES) return false;
+  return map3.items.every(
+    (pair) => isScalar(pair.key) && isPlainValue(pair.key) && !isAlias(pair.value) && pair.value != null && flowable(pair.value)
+  );
+}
+var MAX_FLOW_MAP_WIDTH = 80;
+function renderDocument(node, padding) {
+  const doc = new Document();
+  doc.contents = node;
+  return doc.toString({ lineWidth: 0, flowCollectionPadding: padding }).trimEnd();
+}
+function renderFlow(node, token) {
+  const copy = node.clone();
+  if (isSeq(copy)) {
+    copy.flow = true;
+    return renderDocument(copy, false);
+  }
+  const inner = /* @__PURE__ */ new Map();
+  copy.flow = true;
+  for (const pair of copy.items) {
+    const value2 = pair.value;
+    if (isSeq(value2) || isMap(value2)) {
+      const key3 = `${token}${inner.size}__`;
+      inner.set(key3, renderFlow(value2, token));
+      pair.value = new Scalar(key3);
+    }
+  }
+  let text3 = renderDocument(copy, true);
+  for (const [key3, value2] of inner) text3 = text3.replace(key3, () => value2);
+  return text3;
+}
+function flowText(node, token) {
+  if (isSeq(node)) {
+    return node.flow || !seqFlowable(node) ? null : renderFlow(node, token);
+  }
+  if (isMap(node)) {
+    if (node.flow || !mapFlowable(node)) return null;
+    const text3 = renderFlow(node, token);
+    return text3.length <= MAX_FLOW_MAP_WIDTH ? text3 : null;
+  }
+  return null;
+}
+function sourceEnd(text3, range) {
+  return range[0] + text3.slice(range[0], range[1]).trimEnd().length;
+}
+function collectEdits(node, text3, token, edits) {
+  if (isSeq(node)) {
+    for (const item of node.items) {
+      const flow = flowText(item, token);
+      const range = item.range;
+      if (flow !== null && range) {
+        edits.push({ start: range[0], end: sourceEnd(text3, range), text: flow });
+      } else collectEdits(item, text3, token, edits);
+    }
+  } else if (isMap(node)) {
+    for (const pair of node.items) {
+      const keyRange2 = pair.key?.range;
+      const value2 = pair.value;
+      const flow = flowText(value2, token);
+      if (flow !== null && keyRange2 && value2?.range) {
+        const between = text3.slice(keyRange2[1], value2.range[0]);
+        if (/^\s*:\s*$/.test(between)) {
+          edits.push({ start: keyRange2[1], end: sourceEnd(text3, value2.range), text: `: ${flow}` });
+          continue;
+        }
+      }
+      collectEdits(value2, text3, token, edits);
+    }
+  }
+}
+function isManifestText(text3) {
+  const [first] = parseAllDocuments(text3, { customTags: defaultCustomTags() });
+  if (!first) return false;
+  const kind = first.get("kind");
+  return typeof kind === "string" && /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$/.test(kind);
+}
+function formatManifestText(text3) {
+  const documents = parseAllDocuments(text3, { customTags: defaultCustomTags() });
+  for (const doc of documents) {
+    const error = doc.errors[0];
+    if (error) {
+      const pos = error.linePos?.[0];
+      return {
+        ok: false,
+        error: {
+          message: error.message.split("\n")[0].replace(/ at line \d+, column \d+:?$/, ""),
+          line: pos?.line ?? 1,
+          column: pos?.col ?? 1
+        }
+      };
+    }
+  }
+  let token = "TELOFLOW";
+  while (text3.includes(token)) token += "X";
+  const edits = [];
+  for (const doc of documents) collectEdits(doc.contents, text3, `__${token}_`, edits);
+  let formatted = text3;
+  for (const edit of edits.sort((a, b) => b.start - a.start)) {
+    formatted = formatted.slice(0, edit.start) + edit.text + formatted.slice(edit.end);
+  }
+  return { ok: true, text: formatted, changed: formatted !== text3 };
+}
+
 // ../ide-support/src/types.ts
 var SEMANTIC_TOKEN_LEGEND = [
   "type",
@@ -111365,6 +111488,24 @@ function declarationKeySpans(doc, block, name2) {
   return out;
 }
 
+// ../ide-support/src/formatting/build-formatting.ts
+function buildFormatting(text3) {
+  if (!isManifestText(text3)) return [];
+  const result = formatManifestText(text3);
+  if (!result.ok || !result.changed) return [];
+  const formatted = result.text;
+  let start = 0;
+  const shortest = Math.min(text3.length, formatted.length);
+  while (start < shortest && text3[start] === formatted[start]) start++;
+  let end = text3.length;
+  let formattedEnd = formatted.length;
+  while (end > start && formattedEnd > start && text3[end - 1] === formatted[formattedEnd - 1]) {
+    end--;
+    formattedEnd--;
+  }
+  return [{ start, end, newText: formatted.slice(start, formattedEnd) }];
+}
+
 // ../ide-support/src/signature-help/build-signature-help.ts
 var CALLEE = /(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*$/;
 function openFrame(source) {
@@ -112662,6 +112803,18 @@ function registerImportUpgrades({
   });
 }
 
+// src/features/formatting.ts
+function registerFormatting({ connection, documents }) {
+  connection.onDocumentFormatting((params) => {
+    const document = documents.get(params.textDocument.uri);
+    if (!document) return null;
+    return buildFormatting(document.getText()).map((edit) => ({
+      range: { start: document.positionAt(edit.start), end: document.positionAt(edit.end) },
+      newText: edit.newText
+    }));
+  });
+}
+
 // src/features/rename.ts
 var import_browser5 = __toESM(require_main3(), 1);
 function registerRename({ connection, documents, session }) {
@@ -113360,6 +113513,7 @@ function serve(port) {
         hoverProvider: true,
         definitionProvider: true,
         renameProvider: { prepareProvider: true },
+        documentFormattingProvider: true,
         signatureHelpProvider: { triggerCharacters: SIGNATURE_HELP_TRIGGERS },
         semanticTokensProvider: { legend: SEMANTIC_TOKENS_LEGEND, full: true },
         codeActionProvider: { codeActionKinds: [import_browser9.CodeActionKind.QuickFix] },
@@ -113389,6 +113543,7 @@ function serve(port) {
   registerHover(context);
   registerDefinition(context);
   registerRename(context);
+  registerFormatting(context);
   registerSignatureHelp(context);
   registerSemanticTokens(context);
   registerCodeActions(context);
