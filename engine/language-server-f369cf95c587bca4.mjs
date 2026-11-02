@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.127.0";
+var TELO_ENGINE_VERSION = "0.128.0+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -28195,7 +28195,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.127.0";
+var ENGINE_VERSION = "0.128.0+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -44872,6 +44872,109 @@ var BUILTIN_DOCUMENT_FILES = [
     "extends": "Telo.Executable",
     "declarable": true,
     "throwsAllowed": true
+  }],
+  ["Sequence.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Sequence",
+      "description": "An ordered list of steps behind a typed contract: call other resources, branch on conditions and switches, loop, catch and raise errors, and shape values, then return declared outputs. Runs at startup or is called as a handler, and can stand up resources that live only while it runs."
+    },
+    "capability": "Telo.Runnable",
+    "topology": "Sequence",
+    "throws": {
+      "inherit": true
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "with": {
+          "title": "With",
+          "description": "Resources that exist only while the sequence runs; created on entry and torn down when it ends.",
+          "x-telo-scope": [
+            "/steps",
+            "/targets"
+          ]
+        },
+        "targets": {
+          "title": "Targets",
+          "type": "array",
+          "description": "Resources of `with:` started before the steps, each written as a `!ref <name>`.",
+          "items": {
+            "title": "Target",
+            "description": "A resource of `with:` to start before the steps, written as a `!ref`.",
+            "x-telo-ref": {
+              "kind": [
+                "Telo.Runnable",
+                "Telo.Service"
+              ],
+              "use": "call"
+            },
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              }
+            ]
+          }
+        },
+        "inputType": {
+          "title": "Input Type",
+          "description": "The input contract, a named type or an inline one. The steps read the values as `inputs.<name>`; declared defaults are filled and every call is validated against it.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "outputType": {
+          "title": "Output Type",
+          "description": "The result contract, a named type or an inline one. It types the result for callers, checks `outputs:` statically, and validates the produced value at every call.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "outputs": {
+          "title": "Outputs",
+          "type": "object",
+          "description": "The result: a map of values over `steps.*` and `inputs.*`, evaluated after the steps run. Omitted, the result is the map of step results.",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "properties": {
+              "inputs": {}
+            }
+          },
+          "x-telo-value-schema-from": "outputType"
+        },
+        "steps": {
+          "title": "Steps",
+          "description": "The steps to run, in order.",
+          "x-telo-topology-role": "steps",
+          "type": "array",
+          "items": {
+            "$ref": "telo://manifest#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "steps"
+      ]
+    }
   }],
   ["Service.json", {
     "kind": "Telo.Abstract",
@@ -69825,7 +69928,7 @@ function ownBodyFindings(runner, registry, aliases, aliasesByModule) {
 }
 function isConsumer(m, rootModules) {
   if (typeof m.kind !== "string" || typeof m.metadata?.name !== "string") return false;
-  if (isModuleKind(m.kind) || m.kind.startsWith("Telo.")) return false;
+  if (isModuleKind(m.kind) || isKindDocumentOrImport(m)) return false;
   if (isForwardedDeclaration(m) || isInjectedDeclaration(m)) return false;
   const module = m.metadata.module;
   return typeof module !== "string" || rootModules.has(module);
@@ -70211,35 +70314,39 @@ function throughBase(base, self, holder, input) {
   const forwarded = selfForwardPath(node);
   if (forwarded) return fromSelf(holder, forwarded, input);
   const links = [];
-  const materialize2 = (value3, at3) => {
-    const path = selfForwardPath(value3);
-    if (path) {
+  const value2 = readBaseMapping(node, {
+    forward: (path, at3) => {
       const reached = reachedPlainly(holder, path, union2);
       const forwardedNode = forwardNode(reached, union2.space);
       if (!forwardedNode) return void 0;
       links.push({ at: at3, from: path });
       return forwardedNode;
-    }
-    if (isOpaque(value3)) return void 0;
-    if (Array.isArray(value3)) {
-      const items = value3.map((item, i) => materialize2(item, [...at3, i]) ?? {});
-      union2.hold(items);
-      return items;
-    }
-    if (isPlainObject10(value3)) {
-      const out = {};
-      for (const [key3, child] of Object.entries(value3)) {
-        const materialized = materialize2(child, [...at3, key3]);
-        if (materialized !== void 0) out[key3] = materialized;
-      }
-      union2.hold(out);
-      return out;
-    }
-    return value3;
-  };
-  const value2 = materialize2(node, []);
+    },
+    opaque: () => void 0,
+    hold: (container) => union2.hold(container)
+  });
   if (links.length === 0) return void 0;
   return { node: heldNode(value2, EVERYWHERE, [], false), links };
+}
+function readBaseMapping(node, reading, at3 = []) {
+  const path = selfForwardPath(node);
+  if (path) return reading.forward(path, at3);
+  if (isOpaque(node)) return reading.opaque(node, at3);
+  if (Array.isArray(node)) {
+    const items = node.map((item, i) => readBaseMapping(item, reading, [...at3, i]) ?? {});
+    reading.hold?.(items);
+    return items;
+  }
+  if (isPlainObject10(node)) {
+    const out = {};
+    for (const [key3, child] of Object.entries(node)) {
+      const read = readBaseMapping(child, reading, [...at3, key3]);
+      if (read !== void 0) out[key3] = read;
+    }
+    reading.hold?.(out);
+    return out;
+  }
+  return node;
 }
 function reachedPlainly(holder, path, union2) {
   const out = [];
@@ -72191,6 +72298,13 @@ function dispatchesThrows(def, resolveDef) {
   if (capability === void 0 || !isCapabilityRole(capability)) return true;
   return throwsAllowedCapabilities().includes(capability);
 }
+function effectiveThrows(def, resolveDef) {
+  for (const d of [def, ...ancestorChain(def, resolveDef)]) {
+    const block = throwsOf(d);
+    if (block !== void 0) return block;
+  }
+  return void 0;
+}
 function throwsCeiling(def, resolveDef) {
   const declarer = ancestorChain(def, resolveDef).find(declaresLiteral);
   if (!declarer) return void 0;
@@ -72216,6 +72330,88 @@ function throwsNotSubstitutableMessage(def, violation) {
 }
 function kindThrowsDeclarer(def, resolveDef) {
   return [def, ...ancestorChain(def, resolveDef)].find(declaresLiteral);
+}
+
+// ../../analyzer/nodejs/src/controller-configuration.ts
+var COMPUTED = Symbol("telo.mapping.computed");
+function controllerConfiguration(manifest, definition, resolveDef, authorSchemaOf2) {
+  const writers = /* @__PURE__ */ new WeakMap();
+  let def = definition;
+  let data = manifest;
+  const seen = /* @__PURE__ */ new Set();
+  let mapped = false;
+  for (let mapper = mapperOf(def, resolveDef); mapper && !seen.has(mapper); mapper = mapperOf(def, resolveDef)) {
+    seen.add(mapper);
+    mapped = true;
+    const parent = resolveParent(mapper, resolveDef);
+    if (!parent) break;
+    const writer = mapper.metadata?.module;
+    const from = data;
+    data = readBaseMapping(mapper.base, {
+      forward: (path) => valueAt4(from, path),
+      opaque: (value2) => {
+        if (!isRefSentinel(value2)) return COMPUTED;
+        if (writer && value2 && typeof value2 === "object") writers.set(value2, writer);
+        return value2;
+      },
+      hold: (container) => {
+        if (writer) writers.set(container, writer);
+      }
+    });
+    def = parent;
+  }
+  const schema4 = authorSchemaOf2(def);
+  return {
+    schema: schema4,
+    data,
+    computedAboveSlot: mapped && schema4 !== void 0 && computedPlaces(data).some((at3) => drivesBelow(schema4, at3)),
+    writerOf: (value2) => value2 && typeof value2 === "object" ? writers.get(value2) : void 0
+  };
+}
+function mapperOf(def, resolveDef) {
+  const controlling = controllerBearingAncestor(def, resolveDef);
+  if (!controlling || def.extends === void 0) return void 0;
+  for (const d of [def, ...ancestorChain(def, resolveDef)]) {
+    if (d === controlling) return void 0;
+    if (d.base != null) return d;
+  }
+  return void 0;
+}
+function valueAt4(root, path) {
+  let cur = root;
+  for (const key3 of path) {
+    if (!cur || typeof cur !== "object") return void 0;
+    cur = cur[key3];
+  }
+  return cur;
+}
+function computedPlaces(data) {
+  const out = [];
+  const walk7 = (value2, at3) => {
+    if (value2 === COMPUTED) out.push(at3);
+    else if (Array.isArray(value2)) value2.forEach((item, i) => walk7(item, [...at3, i]));
+    else if (value2 && typeof value2 === "object" && !isRefSentinel(value2)) {
+      for (const [key3, child] of Object.entries(value2)) walk7(child, [...at3, key3]);
+    }
+  };
+  walk7(data, []);
+  return out;
+}
+function drivesBelow(schema4, at3) {
+  for (const place2 of reachOfSchema(schema4).paths.values()) {
+    if (place2.steps.length === 0 && place2.refs.length === 0) continue;
+    if (startsWith3(place2.pattern, at3)) return true;
+  }
+  return false;
+}
+function startsWith3(pattern2, at3) {
+  if (at3.length > pattern2.length) return false;
+  return at3.every((key3, i) => {
+    const segment = pattern2[i];
+    if (segment === ITEMS) return typeof key3 === "number";
+    if (segment === MAP_VALUES) return typeof key3 === "string";
+    return segment === key3;
+  });
 }
 
 // ../../analyzer/nodejs/src/resolve-throws-union.ts
@@ -72301,7 +72497,7 @@ function defResolverFor(ctx) {
 function codesFromDefinition(definition, ctx) {
   const out = /* @__PURE__ */ new Map();
   if (!dispatchesThrows(definition, defResolverFor(ctx))) return out;
-  const raw = definition.throws?.codes ?? {};
+  const raw = effectiveThrows(definition, defResolverFor(ctx))?.codes ?? {};
   for (const [code, meta] of Object.entries(raw)) {
     out.set(code, { data: meta.data });
   }
@@ -72334,7 +72530,7 @@ function resolveThrowsUnion(manifest, ctx) {
     if (name2) ctx.memo.set(name2, u);
     return u;
   }
-  const throws2 = definition.throws;
+  const throws2 = effectiveThrows(definition, defResolverFor(ctx));
   if (!throws2) {
     const u = emptyUnion();
     if (name2) ctx.memo.set(name2, u);
@@ -72367,15 +72563,17 @@ function throwsUses(slot, uses = possibleUses(slot)) {
 }
 function resolveInherited(manifest, definition, ctx) {
   const result = { codes: /* @__PURE__ */ new Map(), unbounded: false };
-  const schema4 = definition.schema;
-  forEachDrivenSlot(schema4, manifest, (driven) => {
-    const origin = refOrigin(manifest, driven.path);
+  const configured = receivedConfiguration(manifest, definition, ctx);
+  if (configured.computedAboveSlot) result.unbounded = true;
+  const received = configured.data;
+  forEachDrivenSlot(configured.schema, received, (driven) => {
+    const origin = drivenOrigin(manifest, configured, driven.data, driven.path);
     if (driven.kind === "step") {
       unionInto(result, stepSiteThrows(driven.data, driven.slots, ctx, origin));
       return;
     }
     const handsBack = driven.slots.some(
-      ({ slot, ref }) => throwsUses(slot, resolveSlotUseAt(slot, manifest, ref, driven.path).use).some(
+      ({ slot, ref }) => throwsUses(slot, resolveSlotUseAt(slot, received, ref, driven.path).use).some(
         handsFailureBack
       )
     );
@@ -72387,8 +72585,10 @@ function resolveScopeUnion(manifest, definition, ctx, seen = /* @__PURE__ */ new
   const result = { codes: /* @__PURE__ */ new Map(), unbounded: false };
   if (seen.has(manifest)) return result;
   seen.add(manifest);
-  forEachDrivenSlot(definition.schema, manifest, (driven) => {
-    const origin = refOrigin(manifest, driven.path);
+  const configured = receivedConfiguration(manifest, definition, ctx);
+  if (configured.computedAboveSlot) result.unbounded = true;
+  forEachDrivenSlot(configured.schema, configured.data, (driven) => {
+    const origin = drivenOrigin(manifest, configured, driven.data, driven.path);
     if (driven.kind === "step") {
       unionInto(result, stepSiteThrows(driven.data, driven.slots, ctx, origin));
       return;
@@ -72409,6 +72609,21 @@ function resolveScopeUnion(manifest, definition, ctx, seen = /* @__PURE__ */ new
     }
   });
   return result;
+}
+function throwsBlockOf(definition, ctx) {
+  return effectiveThrows(definition, defResolverFor(ctx));
+}
+function receivedConfiguration(manifest, definition, ctx) {
+  return controllerConfiguration(
+    manifest,
+    definition,
+    defResolverFor(ctx),
+    (def) => ctx.defs.effectiveSchemaOf(def)
+  );
+}
+function drivenOrigin(manifest, configured, data, path) {
+  const writer = configured.writerOf(data);
+  return writer !== void 0 ? { module: writer } : refOrigin(manifest, path);
 }
 function stepSiteThrows(steps, slots, ctx, origin) {
   const result = emptyUnion();
@@ -72525,13 +72740,14 @@ function resolveRefTargetThrows(refValue, ctx, origin, onPassthrough) {
   const scopeResolver = scopeResolverFor(ctx, origin.module);
   const definition = definitionFor(invokedKind, ctx.defs, ctx.aliases, scopeResolver);
   if (!definition) return { codes: /* @__PURE__ */ new Map(), unbounded: true };
-  if (definition.throws?.passthrough) {
+  const block = effectiveThrows(definition, defResolverFor(ctx));
+  if (block?.passthrough) {
     return onPassthrough ? onPassthrough() : { codes: /* @__PURE__ */ new Map(), unbounded: true };
   }
   const target = resolveRefManifest(ref, ctx, origin);
   if (target) return resolveThrowsUnion(target, ctx);
   const codes = codesFromDefinition(definition, ctx);
-  const unbounded = definition.throws?.inherit === true || definition.throws?.passthrough === true;
+  const unbounded = block?.inherit === true || block?.passthrough === true;
   return { codes, unbounded };
 }
 function resolveRefManifest(refValue, ctx, origin) {
@@ -72718,13 +72934,16 @@ function buildEnclosers(manifests, definitionOf, moduleOf12, ctx) {
   const enclosers = /* @__PURE__ */ new Map();
   for (const manifest of manifests) {
     const definition = definitionOf(manifest);
-    if (!definition?.schema) continue;
-    forEachDrivenSlot(definition.schema, manifest, (driven) => {
+    if (!definition) continue;
+    const configured = receivedConfiguration(manifest, definition, ctx);
+    forEachDrivenSlot(configured.schema, configured.data, (driven) => {
       if (driven.kind !== "ref" || !driven.slots.some(({ slot }) => slot.throwsThrough)) return;
-      const target = resolveRefManifest(driven.data, ctx, {
-        module: moduleOf12(manifest),
-        within: scopeReadAt(manifest, driven.path)
-      });
+      const writer = configured.writerOf(driven.data);
+      const target = resolveRefManifest(
+        driven.data,
+        ctx,
+        writer !== void 0 ? { module: writer } : { module: moduleOf12(manifest), within: scopeReadAt(manifest, driven.path) }
+      );
       if (!target || target === manifest) return;
       const list5 = enclosers.get(target);
       if (list5) list5.push(manifest);
@@ -72771,7 +72990,7 @@ var CatchLadder = class {
       if (!manifest.kind || !manifest.metadata?.name) continue;
       if (isKindDocument(manifest)) continue;
       const definition = this.definitionOf(manifest);
-      if (!definition?.schema) continue;
+      if (!definition) continue;
       const enclosing = this.scopedBy.get(manifest);
       const anchor = enclosing?.owner ?? manifest;
       const pathPrefix = enclosing ? `${enclosing.path}.` : "";
@@ -72780,7 +72999,7 @@ var CatchLadder = class {
       const filePath = anchor.metadata?.source;
       collectOutcomeLists(
         manifest,
-        definition.schema,
+        this.defs.effectiveSchemaOf(definition),
         () => {
         },
         (entries, arrayPath, siblingData, parentPath2, catchesFor, listSchema) => {
@@ -72974,12 +73193,13 @@ var CatchLadder = class {
     }
     const resolved = scopeResolver?.resolveKind(handlerRef.kind) ?? ctx.aliases.resolveKind(handlerRef.kind);
     const def = ctx.defs.resolve(handlerRef.kind) ?? (resolved ? ctx.defs.resolve(resolved) : void 0);
-    if (!def?.throws) return { codes: /* @__PURE__ */ new Map(), unbounded: false };
+    const block = def ? throwsBlockOf(def, ctx) : void 0;
+    if (!block) return { codes: /* @__PURE__ */ new Map(), unbounded: false };
     const codes = /* @__PURE__ */ new Map();
-    for (const [c, meta] of Object.entries(def.throws.codes ?? {})) {
+    for (const [c, meta] of Object.entries(block.codes ?? {})) {
       codes.set(c, { data: meta.data });
     }
-    const unbounded = def.throws.passthrough === true || def.throws.inherit === true;
+    const unbounded = block.passthrough === true || block.inherit === true;
     return { codes, unbounded };
   }
   /** A manifest's definition — a scoped declaration's kind is written in the
@@ -75456,11 +75676,11 @@ function outlineResource(node, manifest, sources, valueOf, matchOf2) {
 function predicateOf(row, manifest, valueOf) {
   if (row.predicateField === void 0) return void 0;
   const path = `${row.path}.${row.predicateField}`;
-  return valueOf(manifest, path, valueAt4(manifest, path));
+  return valueOf(manifest, path, valueAt5(manifest, path));
 }
 function outlineEdge(edge, row, manifest, valueOf, match) {
   const inputsPath = row?.inputs ?? (edge.inputs !== void 0 && !row ? edge.inputs.replace(/^\//, "").replace(/\//g, ".") : void 0);
-  const inputs = inputsPath !== void 0 ? valueOf(manifest, inputsPath, valueAt4(manifest, inputsPath)) : void 0;
+  const inputs = inputsPath !== void 0 ? valueOf(manifest, inputsPath, valueAt5(manifest, inputsPath)) : void 0;
   return {
     id: edge.id,
     use: [...edge.use],
@@ -75687,7 +75907,7 @@ function readsOf(sources, manifestOf, rootId) {
   }
   return out;
 }
-function valueAt4(manifest, path) {
+function valueAt5(manifest, path) {
   let current = manifest;
   for (const segment of path.match(/[^.[\]]+|\[\d+\]/g) ?? []) {
     if (current === null || typeof current !== "object") return void 0;
@@ -77687,7 +77907,7 @@ function* celLeaves(value2, path) {
     yield* celLeaves(child, path === "" ? key3 : `${path}.${key3}`);
   }
 }
-var valueAt5 = (root, pointer) => {
+var valueAt6 = (root, pointer) => {
   if (pointer === "") return root;
   let node = root;
   for (const segment of pointer.slice(1).split("/")) {
@@ -77736,7 +77956,7 @@ function contextFillCycles(owner, host) {
         const fills = list5.map((item, i) => {
           const declaration = targetOf(owner, `${listPath}[${i}]`) ?? item;
           for (const pointer of pointers) {
-            const filled = valueAt5(pointer === "" ? item : declaration, pointer);
+            const filled = valueAt6(pointer === "" ? item : declaration, pointer);
             if (typeof filled === "string") return filled;
           }
           return void 0;
@@ -87564,7 +87784,7 @@ function describe6(value2) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.127.0";
+var TELO_SURFACE_VERSION = "0.128.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE33 = "telo-analyzer";
@@ -90173,7 +90393,7 @@ function validateThrowsCoverage(manifests, defs, aliases, env, aliasesByModule =
     if (!manifest.kind || !manifest.metadata?.name) continue;
     if (isKindDocument(manifest)) continue;
     const definition = ladder.definitionOf(manifest);
-    if (!definition?.schema) continue;
+    if (!definition) continue;
     const enclosing = ladder.scopedBy.get(manifest);
     const anchor = enclosing?.owner ?? manifest;
     const pathPrefix = enclosing ? `${enclosing.path}.` : "";
@@ -90182,7 +90402,7 @@ function validateThrowsCoverage(manifests, defs, aliases, env, aliasesByModule =
     const filePath = anchor.metadata?.source;
     collectOutcomeLists(
       manifest,
-      definition.schema,
+      defs.effectiveSchemaOf(definition),
       (entries, arrayPath) => {
         if (bodyWroteWhole?.(manifest, arrayPath)) return;
         diagnostics.push(
@@ -92741,7 +92961,7 @@ function readTemplateDefinitions(inputs) {
           return;
         }
         for (const [, branchKeys2] of branchesOf({ sentinel: item, tag })) {
-          judgeFamilyEmit(valueAt6(item, branchKeys2), [...where, ...branchKeys2]);
+          judgeFamilyEmit(valueAt7(item, branchKeys2), [...where, ...branchKeys2]);
         }
         return;
       }
@@ -92795,7 +93015,7 @@ function readTemplateDefinitions(inputs) {
         const violation = checkName(loop.name, "value", "family name");
         if (violation) report(violation.code, at3, violation.message, violation.severity);
         const listKeys = at3.slice(0, -2);
-        const list5 = valueAt6(definition, listKeys.slice(0, -1));
+        const list5 = valueAt7(definition, listKeys.slice(0, -1));
         if (!Array.isArray(list5)) continue;
         const own2 = listKeys[listKeys.length - 1];
         list5.forEach((entry2, i) => {
@@ -92909,7 +93129,7 @@ function readTemplateDefinitions(inputs) {
       if (declarationPosition) {
         let first;
         for (const [branch, branchKeys2] of branchesOf({ sentinel, tag })) {
-          const value2 = valueAt6(sentinel, branchKeys2);
+          const value2 = valueAt7(sentinel, branchKeys2);
           const arity = declarationArity(value2);
           if (arity !== void 0) {
             if (!first) first = { arity, branch };
@@ -92934,7 +93154,7 @@ function readTemplateDefinitions(inputs) {
           );
         }
       }
-      const structural2 = site.position === "template-resource" || site.position === "scope-member" || keys[0] === "targets" || branchesOf({ sentinel, tag }).some(([, branchKeys2]) => holdsReferences(valueAt6(sentinel, branchKeys2)));
+      const structural2 = site.position === "template-resource" || site.position === "scope-member" || keys[0] === "targets" || branchesOf({ sentinel, tag }).some(([, branchKeys2]) => holdsReferences(valueAt7(sentinel, branchKeys2)));
       const written = sentinel[tag];
       const standIn2 = () => {
         refuse3(keys);
@@ -93238,7 +93458,7 @@ function declarationArity(value2) {
     return inner === void 0 ? void 0 : inner + 1;
   }
   if (tag === "if" || tag === "switch") {
-    const arities = branchesOf({ sentinel: value2, tag }).map(([, keys]) => declarationArity(valueAt6(value2, keys)));
+    const arities = branchesOf({ sentinel: value2, tag }).map(([, keys]) => declarationArity(valueAt7(value2, keys)));
     const first = arities[0];
     return arities.every((a) => a === first) ? first : void 0;
   }
@@ -93316,7 +93536,7 @@ function describeValue2(value2) {
   if (typeof value2 === "object") return "a literal map";
   return `the literal ${JSON.stringify(value2)}`;
 }
-function valueAt6(root, keys) {
+function valueAt7(root, keys) {
   let at3 = root;
   for (const key3 of keys) at3 = at3?.[key3];
   return at3;
@@ -94161,7 +94381,7 @@ function readTemplateConsumers(inputs) {
 }
 function isConsumer2(m, consumerModules) {
   if (typeof m.kind !== "string" || typeof m.metadata?.name !== "string") return false;
-  if (isModuleKind(m.kind) || m.kind.startsWith("Telo.")) return false;
+  if (isModuleKind(m.kind) || isKindDocumentOrImport(m)) return false;
   if (isForwardedDeclaration(m) || isInjectedDeclaration(m)) return false;
   const module = m.metadata.module;
   return typeof module !== "string" || consumerModules.has(module);
@@ -94837,7 +95057,7 @@ function textCatalogSetRegions(schema4, data, isExpression3, resolveRef2) {
   return regions;
 }
 var isWithin = (rendered, outer) => outer === "" || rendered === outer || rendered.startsWith(`${outer}.`) || rendered.startsWith(`${outer}[`);
-var startsWith3 = (path, prefix) => prefix.length <= path.length && prefix.every((segment, index) => path[index] === segment);
+var startsWith4 = (path, prefix) => prefix.length <= path.length && prefix.every((segment, index) => path[index] === segment);
 function comparePaths(root, a, b) {
   let at3 = root;
   for (let index = 0; index < Math.min(a.length, b.length); index++) {
@@ -94857,7 +95077,7 @@ function itemsOf(declaration, host, everywhere) {
   if (!kind) return [];
   const configuration = host.configurationOf(declaration);
   const regions = textCatalogSetRegions(kind.schema, configuration, host.isExpression, kind.resolveRef);
-  const inRegion = (path) => regions.some((region) => startsWith3(path, region));
+  const inRegion = (path) => regions.some((region) => startsWith4(path, region));
   const items = [];
   if (everywhere || regions.length > 0) {
     const walk7 = textSites(kind.schema, configuration, { isExpression: host.isExpression, resolveRef: kind.resolveRef });
@@ -96147,7 +96367,7 @@ function solveCelSites(input) {
     return out;
   };
   const stepRecordAt = (declaration, projected, root, wit) => {
-    const holder = valueAt7(projected, root);
+    const holder = valueAt8(projected, root);
     const schema4 = holder && typeof holder === "object" ? input.schemaOf(holder, declaration.manifest) : void 0;
     const names = schema4 ? stepRecordNames(holder, schema4) : void 0;
     const body3 = schema4 ? stepRecordBodies(holder, schema4).find((each) => each.entries.some((e) => e.form !== "none")) : void 0;
@@ -96659,7 +96879,7 @@ function solveCelSites(input) {
       }
       if (depth >= keys.length) return;
       const key3 = keys[depth];
-      const value2 = valueAt7(data, keys.slice(0, depth + 1));
+      const value2 = valueAt8(data, keys.slice(0, depth + 1));
       if (depth + 1 < keys.length && value2 && typeof value2 === "object" && !Array.isArray(value2) && typeof value2.kind === "string" && value2.kind !== "Telo.Definition") {
         const nested = input.schemaOf(value2, within4);
         if (nested) {
@@ -96697,7 +96917,7 @@ function solveCelSites(input) {
     return out;
   };
   const definitionAt = (data, root, within4) => {
-    const value2 = valueAt7(data, root);
+    const value2 = valueAt8(data, root);
     return value2 && typeof value2 === "object" && !Array.isArray(value2) ? input.definitionOf(value2, within4) : void 0;
   };
   const annotationPlaces = (along, keys, data, within4) => {
@@ -96883,7 +97103,7 @@ function solveCelSites(input) {
           takeNames();
         }
       } else if (head === "inputs") {
-        const holder = valueAt7(projected, root) ?? {};
+        const holder = valueAt8(projected, root) ?? {};
         const kindContract = input.kindContractOf(holder, site.declaration.manifest, "inputType");
         for (const place2 of contractReads("inputType", holder, kindContract, input.definitionOf(holder, site.declaration.manifest))) {
           if (place2.kind !== "referrers") reads.push([...root, ...place2.keys]);
@@ -97313,9 +97533,9 @@ function solveCelSites(input) {
       for (const branch of ["allOf", "anyOf", "oneOf"]) {
         if (Array.isArray(schema4[branch])) for (const member of schema4[branch]) visit4(member, at3, root, document, guard);
       }
-      const value2 = valueAt7(data, at3);
+      const value2 = valueAt8(data, at3);
       if (value2 === null || typeof value2 !== "object" || isTaggedSentinel(value2)) return;
-      const children = at3.length < keys.length ? [[keys[at3.length], valueAt7(value2, [keys[at3.length]])]] : Array.isArray(value2) ? value2.map((item, i) => [i, item]) : Object.entries(value2);
+      const children = at3.length < keys.length ? [[keys[at3.length], valueAt8(value2, [keys[at3.length]])]] : Array.isArray(value2) ? value2.map((item, i) => [i, item]) : Object.entries(value2);
       for (const [key3, child] of children) {
         const next = [...at3, key3];
         if (at3.length > 0 && child && typeof child === "object" && !Array.isArray(child) && typeof child.kind === "string" && child.kind !== "Telo.Definition") {
@@ -97368,7 +97588,7 @@ function solveCelSites(input) {
         }
       }
       const items = [deepest];
-      const value2 = valueAt7(data, at3);
+      const value2 = valueAt8(data, at3);
       if (Array.isArray(value2)) value2.forEach((_2, i) => items.push([...local, i]));
       for (const item of items) {
         const annotated = (target) => {
@@ -97474,7 +97694,7 @@ function solveCelSites(input) {
     const keys = place2.at;
     const carvedAt = [...site.carved].map((text3) => placeByUnionKeys(union2, declaration, JSON.parse(text3), wit)).filter((at3) => at3.present).map((at3) => at3.at);
     const readKeys = [];
-    if (valueAt7(projected, keys) !== void 0) {
+    if (valueAt8(projected, keys) !== void 0) {
       const nodes = nodesUnder(projected, keys, declaration.manifest, shapes, wit, carvedAt);
       for (const { node } of nodes) {
         for (const [keyword, value2] of Object.entries(node)) if (keyword.startsWith("x-telo-")) namesIn(value2, shapes, false);
@@ -98296,7 +98516,7 @@ function resolvePointer3(root, pointer) {
   }
   return node;
 }
-function valueAt7(root, keys) {
+function valueAt8(root, keys) {
   let node = root;
   for (const key3 of keys) {
     if (node === null || typeof node !== "object") return void 0;
@@ -98316,7 +98536,7 @@ function moduleLangOf(moduleDoc2) {
 var SOURCE51 = "telo-analyzer";
 var isExpression2 = (value2) => isTaggedSentinel(value2);
 var isPlainObject18 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-function valueAt8(container, path) {
+function valueAt9(container, path) {
   let at3 = container;
   for (const key3 of path) at3 = at3 && typeof at3 === "object" ? at3[key3] : void 0;
   return at3;
@@ -98569,7 +98789,7 @@ function validateTexts(options) {
         for (const expression of writing.walk.expressions) {
           if (!isTextOrRecordUnion(expression.schema, expression.root, walkOptions.resolveRef)) continue;
           const at3 = [...writing.base, ...expression.path];
-          if (writing.forwards && selfForwardPath(valueAt8(manifest, at3))) continue;
+          if (writing.forwards && selfForwardPath(valueAt9(manifest, at3))) continue;
           const produced2 = options.producedSchemaAt?.(manifest, renderValuePath(at3));
           if (produced2 && producesTextRecord(produced2, produced2, walkOptions.resolveRef)) continue;
           diagnostics.push(
@@ -98584,7 +98804,7 @@ function validateTexts(options) {
       if (!judged) continue;
       for (const path of catalogsComputedAbove(writing.walk, walkOptions)) {
         const at3 = [...writing.base, ...path];
-        if (writing.forwards && selfForwardPath(valueAt8(manifest, at3))) continue;
+        if (writing.forwards && selfForwardPath(valueAt9(manifest, at3))) continue;
         diagnostics.push(problemDiagnostic(catalogComputedProblem(), manifest, at3, "the value"));
       }
       for (const pairing of writing.walk.values) {
@@ -99708,7 +99928,7 @@ var RELATION_READERS = {
   contracts: {
     instances: (region, scope) => {
       const { identity } = region;
-      if (typeof identity.kind !== "string" || identity.kind.startsWith("Telo.") || !isEntryIdentity(identity, scope.rootModules)) {
+      if (typeof identity.kind !== "string" || isModuleKind(identity.kind) || isKindDocumentOrImport({ kind: identity.kind }) || !isEntryIdentity(identity, scope.rootModules)) {
         return [];
       }
       if (!contractDefinitionOf(identity, scope)) return [];
@@ -104938,7 +105158,7 @@ var StaticAnalyzer = class {
     }
     for (const m of allManifests) {
       const kind = m.kind;
-      if (typeof kind !== "string" || kind.startsWith("Telo.") || !isEntryDeclaration(m, rootModules)) continue;
+      if (typeof kind !== "string" || isModuleKind(kind) || isKindDocumentOrImport(m) || !isEntryDeclaration(m, rootModules)) continue;
       relationGroupFindings("contracts", m);
     }
     const topLevel2 = allManifests.filter(
