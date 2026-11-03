@@ -13146,7 +13146,7 @@ var require_core = __commonJS({
         uriResolver
       };
     }
-    var Ajv2 = class {
+    var Ajv3 = class {
       constructor(opts = {}) {
         this.schemas = {};
         this.refs = {};
@@ -13516,9 +13516,9 @@ var require_core = __commonJS({
         }
       }
     };
-    Ajv2.ValidationError = validation_error_1.default;
-    Ajv2.MissingRefError = ref_error_1.default;
-    exports.default = Ajv2;
+    Ajv3.ValidationError = validation_error_1.default;
+    Ajv3.MissingRefError = ref_error_1.default;
+    exports.default = Ajv3;
     function checkOptions(checkOpts, options, msg, log = "error") {
       for (const key3 in checkOpts) {
         const opt = key3;
@@ -15620,7 +15620,7 @@ var require_ajv = __commonJS({
     var draft7MetaSchema = require_json_schema_draft_07();
     var META_SUPPORT_DATA = ["/properties"];
     var META_SCHEMA_ID = "http://json-schema.org/draft-07/schema";
-    var Ajv2 = class extends core_1.default {
+    var Ajv3 = class extends core_1.default {
       _addVocabularies() {
         super._addVocabularies();
         draft7_1.default.forEach((v) => this.addVocabulary(v));
@@ -15639,11 +15639,11 @@ var require_ajv = __commonJS({
         return this.opts.defaultMeta = super.defaultMeta() || (this.getSchema(META_SCHEMA_ID) ? META_SCHEMA_ID : void 0);
       }
     };
-    exports.Ajv = Ajv2;
-    module.exports = exports = Ajv2;
-    module.exports.Ajv = Ajv2;
+    exports.Ajv = Ajv3;
+    module.exports = exports = Ajv3;
+    module.exports.Ajv = Ajv3;
     Object.defineProperty(exports, "__esModule", { value: true });
-    exports.default = Ajv2;
+    exports.default = Ajv3;
     var validate_1 = require_validate();
     Object.defineProperty(exports, "KeywordCxt", { enumerable: true, get: function() {
       return validate_1.KeywordCxt;
@@ -15965,12 +15965,12 @@ var require_dist = __commonJS({
     var fastName = new codegen_1.Name("fastFormats");
     var formatsPlugin = (ajv3, opts = { keywords: true }) => {
       if (Array.isArray(opts)) {
-        addFormats2(ajv3, opts, formats_1.fullFormats, fullName);
+        addFormats3(ajv3, opts, formats_1.fullFormats, fullName);
         return ajv3;
       }
       const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
       const list5 = opts.formats || formats_1.formatNames;
-      addFormats2(ajv3, list5, formats, exportName);
+      addFormats3(ajv3, list5, formats, exportName);
       if (opts.keywords)
         (0, limit_1.default)(ajv3);
       return ajv3;
@@ -15982,7 +15982,7 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name2}"`);
       return f2;
     };
-    function addFormats2(ajv3, list5, fs, exportName) {
+    function addFormats3(ajv3, list5, fs, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv3.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
@@ -33760,6 +33760,29 @@ var CLDR_PARENT_LOCALES = { "cldrVersion": "48.2.0", "main": { "az-Arab": "root"
 function asciiLowercase(text3) {
   return text3.replace(/[A-Z]/g, (letter) => String.fromCharCode(letter.charCodeAt(0) + 32));
 }
+function truncationChain(tag) {
+  if (tag === "") return [];
+  const chain = [tag];
+  const subtags = tag.split("-");
+  while (subtags.length > 1) {
+    subtags.pop();
+    while (subtags.length > 1 && subtags[subtags.length - 1].length === 1) subtags.pop();
+    chain.push(subtags.join("-"));
+  }
+  return chain;
+}
+function lookupLanguage(requested, available) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const tag of available) {
+    const key3 = asciiLowercase(tag);
+    if (!byKey.has(key3)) byKey.set(key3, tag);
+  }
+  for (const tag of truncationChain(requested)) {
+    const found = byKey.get(asciiLowercase(tag));
+    if (found !== void 0) return found;
+  }
+  return null;
+}
 
 // ../../message-format/nodejs/src/plural-rule.ts
 var OPERANDS = /* @__PURE__ */ new Set(["n", "i", "v", "w", "f", "t", "c", "e"]);
@@ -35685,6 +35708,5567 @@ function zoneAttributeNames() {
   return [...ZONE_ATTRIBUTES.keys()];
 }
 
+// ../../analyzer/nodejs/src/builtin-entries/index.ts
+var BUILTIN_DOCUMENT_FILES = [
+  ["Abstract.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Abstract",
+      "description": "Declares a contract with no implementation: a kind that cannot be instantiated and that other kinds specialize. It may state a role, a configuration schema, observed state, a call signature, input and output contracts and a ceiling on the error codes its implementations may throw."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Telo.Abstract"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/KindMetadata"
+        },
+        "capability": {
+          "title": "Capability",
+          "description": "The lifecycle role this kind implements.",
+          "enum": [
+            "Telo.Callable",
+            "Telo.Invocable",
+            "Telo.Mount",
+            "Telo.Provider",
+            "Telo.Runnable",
+            "Telo.Service",
+            "Telo.Sink",
+            "Telo.Type"
+          ]
+        },
+        "schema": {
+          "title": "Schema",
+          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        },
+        "status": {
+          "title": "Observed state",
+          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
+        },
+        "throws": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "codes": {
+              "$ref": "telo://manifest#/$defs/ThrowCodes"
+            }
+          }
+        },
+        "controllers": false
+      },
+      "required": [
+        "kind",
+        "metadata"
+      ],
+      "additionalProperties": true
+    }
+  }],
+  ["Application.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Application",
+      "description": "A runnable entry point: the module a runtime starts. Declares its imports, the variables, secrets, ports and needs it reads from its host and command line, its boot sequence, logging and tracing destinations, the translations of its texts, and the runtime range it is verified against."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/ModuleMetadata"
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "shared",
+            "isolated"
+          ],
+          "default": "shared"
+        },
+        "targets": {
+          "x-telo-step-context": {
+            "invoke": "invoke",
+            "outputType": "outputType"
+          },
+          "type": "array",
+          "items": {
+            "x-telo-ref": {
+              "kind": [
+                "Telo.Runnable",
+                "Telo.Service"
+              ],
+              "use": "call"
+            },
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              {
+                "type": "object",
+                "required": [
+                  "ref"
+                ],
+                "properties": {
+                  "ref": {
+                    "x-telo-ref": {
+                      "kind": [
+                        "Telo.Runnable",
+                        "Telo.Service"
+                      ],
+                      "use": "call"
+                    },
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "kind",
+                          "name"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    ]
+                  },
+                  "when": {
+                    "title": "When",
+                    "description": "CEL guard \u2014 the target runs only when it evaluates true.",
+                    "x-telo-topology-role": "predicate",
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              {
+                "$ref": "telo://manifest#/$defs/InvokeStep"
+              }
+            ]
+          }
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "native": {
+          "$ref": "telo://manifest#/$defs/NativeEntries"
+        },
+        "sources": {
+          "$ref": "telo://manifest#/$defs/ModuleSources"
+        },
+        "layers": {
+          "$ref": "telo://manifest#/$defs/LayerIndex"
+        },
+        "filesIntegrity": {
+          "type": "string"
+        },
+        "imports": {
+          "$ref": "telo://manifest#/$defs/ModuleImports"
+        },
+        "variables": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "type"
+            ],
+            "anyOf": [
+              {
+                "required": [
+                  "env"
+                ]
+              },
+              {
+                "required": [
+                  "arg"
+                ]
+              }
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "arg": {
+                "$ref": "telo://manifest#/$defs/ArgBinding"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array"
+                ]
+              },
+              "default": {}
+            }
+          }
+        },
+        "secrets": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "env",
+              "type"
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "string",
+                  "integer",
+                  "number",
+                  "boolean",
+                  "object",
+                  "array"
+                ]
+              },
+              "default": {}
+            }
+          }
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/NeedRequest",
+            "properties": {
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        },
+        "ports": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "env"
+            ],
+            "properties": {
+              "env": {
+                "type": "string",
+                "minLength": 1
+              },
+              "arg": {
+                "$ref": "telo://manifest#/$defs/ArgBinding"
+              },
+              "protocol": {
+                "type": "string",
+                "enum": [
+                  "tcp",
+                  "udp"
+                ],
+                "default": "tcp"
+              },
+              "default": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "logging": {
+          "$ref": "telo://manifest#/$defs/LoggingScope",
+          "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+          "properties": {
+            "sinks": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "kind"
+                    ],
+                    "x-telo-ref": {
+                      "kind": "Telo.LogSink",
+                      "use": "dependency"
+                    },
+                    "x-telo-inline": true
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "sink"
+                    ],
+                    "properties": {
+                      "sink": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "x-telo-ref": {
+                          "kind": "Telo.LogSink",
+                          "use": "dependency"
+                        },
+                        "x-telo-inline": true
+                      },
+                      "when": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "tracing": {
+          "type": "object",
+          "x-telo-eval": "compile",
+          "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
+          "properties": {
+            "sinks": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "required": [
+                      "kind"
+                    ],
+                    "x-telo-ref": {
+                      "kind": "Telo.TraceSink",
+                      "use": "dependency"
+                    },
+                    "x-telo-inline": true
+                  },
+                  {
+                    "type": "object",
+                    "required": [
+                      "sink"
+                    ],
+                    "properties": {
+                      "sink": {
+                        "type": "object",
+                        "required": [
+                          "kind"
+                        ],
+                        "x-telo-ref": {
+                          "kind": "Telo.TraceSink",
+                          "use": "dependency"
+                        },
+                        "x-telo-inline": true
+                      },
+                      "when": {
+                        "type": "boolean",
+                        "default": true
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "translations": {
+          "title": "Translations",
+          "description": "The translations of every text the application and its libraries show, listed once. Per language, a later catalog's translation of a text replaces an earlier one's.",
+          "type": "object",
+          "required": [
+            "catalogs"
+          ],
+          "properties": {
+            "catalogs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "x-telo-ref": {
+                  "kind": "Telo.Translations",
+                  "use": "dependency"
+                },
+                "x-telo-inline": true
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "requires": {
+          "$ref": "telo://manifest#/$defs/Requires"
+        },
+        "lang": {
+          "title": "Language",
+          "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
+          "type": "string",
+          "format": "language-tag"
+        }
+      },
+      "required": [
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Callable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Callable",
+      "description": "A function reached from an expression through a module name: synchronous call(args) against a declared parameter list and result. Evaluated inside an expression with no caller frame, so a failure fails the evaluation rather than being declared as a thrown error."
+    },
+    "capability": "Telo.Callable",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["ConsoleSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "ConsoleSink",
+      "description": "Writes structured log records to standard error or standard output, as pretty text for a terminal or as JSON lines for a collector, with optional colour. The zero-configuration destination every runtime provides."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.LogSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": "string",
+          "enum": [
+            "stderr",
+            "stdout"
+          ]
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "pretty",
+            "json"
+          ]
+        },
+        "color": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "always",
+            "never"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["Definition.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Definition",
+      "description": "Declares a resource kind: the lifecycle role it implements, its configuration schema, observed state, input and output contracts, the errors it throws, and how it runs \u2014 a controller, a body of resources it dispatches to, or a parent kind it specializes."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Telo.Definition"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/KindMetadata"
+        },
+        "capability": {
+          "title": "Capability",
+          "description": "The lifecycle role this kind implements.",
+          "enum": [
+            "Telo.Callable",
+            "Telo.Invocable",
+            "Telo.Mount",
+            "Telo.Provider",
+            "Telo.Runnable",
+            "Telo.Service",
+            "Telo.Sink",
+            "Telo.Type"
+          ]
+        },
+        "extends": {
+          "title": "Extends",
+          "description": "The kind this one specializes, as `<Alias>.<Kind>` \u2014 an abstract it implements or a concrete kind whose controller it inherits.",
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z0-9_]*\\.[A-Z][A-Za-z0-9_]*$"
+        },
+        "controllers": {
+          "title": "Controllers",
+          "description": "Package URLs of the controller implementations, in preference order.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema": {
+          "title": "Schema",
+          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        },
+        "status": {
+          "title": "Observed state",
+          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "inputType": {
+          "title": "Input type",
+          "description": "The schema of the inputs a call passes \u2014 a `!ref` to a named shape, or inline JSON Schema."
+        },
+        "outputType": {
+          "title": "Output type",
+          "description": "The schema of what a call returns \u2014 a `!ref` to a named shape, or inline JSON Schema."
+        },
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
+        },
+        "throws": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "codes": {
+              "$ref": "telo://manifest#/$defs/ThrowCodes"
+            },
+            "inherit": {
+              "type": "boolean"
+            },
+            "passthrough": {
+              "type": "boolean"
+            }
+          }
+        },
+        "topology": {
+          "title": "Topology",
+          "description": "How a visual editor draws resources of this kind.",
+          "type": "string"
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "x-telo-context": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "self": {
+                  "x-telo-context-from-root": "schema"
+                }
+              }
+            }
+          }
+        },
+        "invoke": {
+          "title": "Invoke target",
+          "description": "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "provide": {
+          "title": "Provide target",
+          "description": "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "run": {
+          "title": "Run target",
+          "description": "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "targets": {
+          "title": "Targets",
+          "description": "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
+        },
+        "mount": {
+          "title": "Mount target",
+          "description": "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`.",
+          "$ref": "telo://manifest#/$defs/DispatchTarget"
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              },
+              "inputs": {
+                "x-telo-context-from-root": "inputType"
+              }
+            }
+          }
+        },
+        "result": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              },
+              "result": {
+                "x-telo-context-from-ref-kind": [
+                  "provide#outputType",
+                  "invoke#outputType"
+                ]
+              }
+            }
+          }
+        },
+        "base": {
+          "type": "object",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "self": {
+                "x-telo-context-from-root": "schema"
+              }
+            }
+          }
+        }
+      },
+      "patternProperties": {
+        "^x-telo-schema-projection(-from)?$": {}
+      },
+      "required": [
+        "kind",
+        "metadata"
+      ],
+      "if": {
+        "required": [
+          "throws",
+          "capability"
+        ],
+        "properties": {
+          "capability": {
+            "not": {
+              "enum": [
+                "Telo.Invocable",
+                "Telo.Runnable"
+              ]
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "throws": {
+            "properties": {
+              "inherit": false,
+              "passthrough": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["DurableDirectory.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "DurableDirectory",
+      "description": "Persistent storage on disk: a writable directory whose files survive restarts, reloads, redeployments and new versions of the application, for as long as whoever runs it keeps the storage. Asks for a minimum size and for single-writer or shared access; the directory is empty the first time and is no backup."
+    },
+    "fields": {
+      "path": {
+        "description": "The directory, an absolute path the application can write to. It exists and is writable before any resource initializes; a full directory is reported by the operating system's own error (`ENOSPC`).",
+        "x-telo-type": {
+          "name": "Telo.HostPath",
+          "entry": "directory"
+        }
+      }
+    },
+    "required": [
+      "path"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "size": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$",
+          "default": "1Gi",
+          "description": "The least space the application needs: a whole number followed by `Mi`, `Gi` or `Ti` (`512Mi`, `5Gi`, `1Ti`). A host may give more, and may refuse a size it cannot give; nothing measures it."
+        },
+        "access": {
+          "enum": [
+            "single-writer",
+            "shared"
+          ],
+          "default": "single-writer",
+          "description": "`single-writer`: at most one running instance of the application has the directory at any moment, a rollout or a restart included, and the application may rely on that. `shared`: every instance has it at once, on different machines; file locking across them is not reliable, so the application coordinates its own writes, and SQLite is not safe there."
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["Executable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Executable",
+      "description": "Anything control can be transferred to with call arguments \u2014 a resource that is invoked or run. A reference slot accepting either says so once with this constraint. It names no lifecycle of its own, so no kind declares it as its role: a kind declares the role it implements."
+    },
+    "declarable": false
+  }],
+  ["FileSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "FileSink",
+      "description": "Appends structured log records to a file on the host, as JSON lines or pretty text. The destination path is required; level filtering, buffering and flushing follow the log destination settings."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.LogSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "type": "string"
+        },
+        "encoding": {
+          "type": "string",
+          "enum": [
+            "json",
+            "pretty"
+          ]
+        }
+      },
+      "required": [
+        "destination"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Function.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Function",
+      "description": "A function written as one expression over its parameters, called from other expressions through the declaring module's name. Declares an ordered parameter list and a result type the body must produce; whether it is deterministic is derived from what the body calls."
+    },
+    "capability": "Telo.Callable",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "$ref": "telo://manifest#/$defs/CallableParams"
+        },
+        "returns": {
+          "$ref": "telo://manifest#/$defs/CallableReturns"
+        },
+        "body": {
+          "title": "Body",
+          "description": "The expression this function evaluates, over its parameters.",
+          "x-telo-returns-from": "returns",
+          "x-telo-context": {
+            "type": "object",
+            "additionalProperties": false,
+            "x-telo-context-parameters-from": "params"
+          }
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Import.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Import",
+      "description": "Brings a library into a module under an alias: where it comes from, its integrity pin, the variables, secrets, resources and needs supplied to it, the runtimes it may run on and a logging override for its subtree."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": true
+        },
+        "source": {
+          "type": "string"
+        },
+        "integrity": {
+          "type": "string"
+        },
+        "variables": {
+          "type": "object"
+        },
+        "secrets": {
+          "type": "object"
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {}
+        },
+        "runtime": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "logging": {
+          "$ref": "telo://manifest#/$defs/LoggingScope"
+        }
+      },
+      "required": [
+        "metadata",
+        "source"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Invocable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Invocable",
+      "description": "A request handler called with inputs and answering with outputs: an endpoint, a query, a computation. Its invoke() is dispatched through the runtime, which checks the declared input and output contracts and lets a caller catch the errors it declares."
+    },
+    "capability": "Telo.Invocable",
+    "extends": "Telo.Executable",
+    "declarable": true,
+    "throwsAllowed": true
+  }],
+  ["JsonSchema.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "JsonSchema",
+      "description": "A named data shape written as JSON Schema, usable as an input, output or field type anywhere without an import. It may extend other shapes and carry business rules \u2014 expressions over the value that must hold, each failing validation with its own code."
+    },
+    "capability": "Telo.Type",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "schema": {
+          "title": "Schema",
+          "description": "JSON Schema definition for the declared data type.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "extends": {
+          "title": "Extends",
+          "description": "Parent type name or list of parent type names to inherit from.",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "rules": {
+          "title": "Rules",
+          "description": "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "condition": {
+                "type": "string",
+                "description": "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
+                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
+              },
+              "code": {
+                "type": "string",
+                "description": "Machine-readable error code surfaced on validation failure."
+              },
+              "message": {
+                "type": "string",
+                "description": "Optional human-readable hint for the validation failure."
+              }
+            },
+            "required": [
+              "condition",
+              "code"
+            ]
+          }
+        }
+      },
+      "required": [
+        "schema"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["KeyedTranslations.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "KeyedTranslations",
+      "description": "Declares a library's own texts by stable key \u2014 a button label, a pager range, a validation message \u2014 each with its source wording, the values it is formatted with and a hint for the translator. It registers a kind whose resources translate those keys into one language, checked per key."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": true
+        },
+        "keys": {
+          "title": "Keys",
+          "description": "Each key's source wording in the module's `lang:`: a message, or `{ message, values?, description? }`. The declared kind's `messages:` translates exactly these keys.",
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "telo://manifest#/$defs/Message"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "$ref": "telo://manifest#/$defs/Message"
+                  },
+                  "values": {
+                    "title": "Values",
+                    "description": "The values whoever shows the text formats it with, by name, each a JSON Schema typed `string`, `integer` or `number`. Without it the text is formatted with no values.",
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "telo://manifest#/$defs/JsonSchema7"
+                    }
+                  },
+                  "description": {
+                    "title": "Description",
+                    "description": "A hint for the translator: where the text is shown and what it means.",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "metadata",
+        "keys"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Library.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Library",
+      "description": "An importable module: a unit of kinds, need types and ready-made instances other modules import under an alias. Declares the variables, secrets, resources and needs it requires from its importer, whether it is instantiated once or per import, and what it exports."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "$ref": "telo://manifest#/$defs/ModuleMetadata"
+        },
+        "variables": {
+          "type": "object"
+        },
+        "secrets": {
+          "type": "object"
+        },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "shared",
+            "isolated"
+          ],
+          "default": "isolated"
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "kind"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "optional": {
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "needs": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/NeedRequest",
+            "properties": {
+              "env": {}
+            }
+          }
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "native": {
+          "$ref": "telo://manifest#/$defs/NativeEntries"
+        },
+        "sources": {
+          "$ref": "telo://manifest#/$defs/ModuleSources"
+        },
+        "layers": {
+          "$ref": "telo://manifest#/$defs/LayerIndex"
+        },
+        "filesIntegrity": {
+          "type": "string"
+        },
+        "imports": {
+          "$ref": "telo://manifest#/$defs/ModuleImports"
+        },
+        "exports": {
+          "type": "object",
+          "properties": {
+            "kinds": {
+              "type": "array",
+              "title": "Exported kinds",
+              "items": {
+                "type": "string"
+              }
+            },
+            "resources": {
+              "type": "array",
+              "title": "Exported resources",
+              "items": {
+                "type": "string",
+                "not": {
+                  "enum": [
+                    "variables",
+                    "secrets"
+                  ]
+                }
+              }
+            },
+            "code": {
+              "type": "array",
+              "items": {
+                "$ref": "telo://manifest#/$defs/PlatformAxes",
+                "type": "object",
+                "required": [
+                  "specifier",
+                  "format",
+                  "path"
+                ],
+                "properties": {
+                  "specifier": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string"
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "source": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "requires": {
+          "$ref": "telo://manifest#/$defs/Requires"
+        },
+        "lang": {
+          "title": "Language",
+          "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
+          "type": "string",
+          "format": "language-tag"
+        }
+      },
+      "required": [
+        "metadata"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["LogSink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "LogSink",
+      "description": "Where structured log records go: a destination that filters by level and buffers records, configured with a minimum level, a buffer size, what to do when the buffer is full and how often to flush. Every log destination specializes it."
+    },
+    "capability": "Telo.Sink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "telo://manifest#/$defs/LogLevel"
+        },
+        "buffer": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "on_full": {
+          "type": "string",
+          "enum": [
+            "block",
+            "drop_new",
+            "drop_old"
+          ]
+        },
+        "flush_interval": {
+          "$ref": "telo://manifest#/$defs/LogDuration"
+        }
+      },
+      "additionalProperties": true
+    }
+  }],
+  ["LogTraceSink.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "LogTraceSink",
+      "description": "Tracing with no collector: writes each finished span as one structured log record through the logging pipeline, carrying its trace and span identifiers, at a configurable level \u2014 read wherever the logs already go."
+    },
+    "capability": "Telo.Sink",
+    "extends": "Telo.TraceSink",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "$ref": "telo://manifest#/$defs/LogLevel",
+          "default": "info",
+          "x-telo-eval": "compile"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["Mount.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Mount",
+      "description": "A part a long-lived resource mounts into itself: an HTTP API, a middleware, a route table. The holder registers it while it starts; a mount is never called directly, so it declares no thrown errors."
+    },
+    "capability": "Telo.Mount",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["NeedType.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "NeedType",
+      "description": "Declares a type of dependency a module can ask whoever runs it for \u2014 a database, a credential, a public address \u2014 as the fields a fulfilment hands over, which are required, the parameters a request may state, and whether fulfilments are versioned, carry features or must come from the root."
+    },
+    "capability": "Telo.Template",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": true
+        },
+        "fields": {
+          "title": "Fields",
+          "description": "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        },
+        "required": {
+          "title": "Required fields",
+          "description": "The fields every fulfilment must yield.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "parameters": {
+          "title": "Parameters",
+          "description": "JSON Schema of the literal parameters a need of this type may state.",
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        },
+        "version": {
+          "title": "Version",
+          "description": "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
+          "enum": [
+            "semver"
+          ]
+        },
+        "features": {
+          "title": "Features",
+          "description": "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "supply": {
+          "title": "Supply",
+          "description": "`root` when a need of this type is fulfilled only through a root need, forwarded whole: a self-supplied fulfilment, a field-by-field supply at an import and a library need reaching the root unforwarded are refused.",
+          "enum": [
+            "root"
+          ]
+        }
+      },
+      "required": [
+        "metadata",
+        "fields"
+      ],
+      "additionalProperties": false
+    }
+  }],
+  ["Provider.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Provider",
+      "description": "A source of configuration, secrets or values, resolved when it is created: init() acquires what it needs and an optional provide() hands over the value. Every field is evaluated once at load, and it reports observed state as soon as it is built."
+    },
+    "capability": "Telo.Provider",
+    "declarable": true,
+    "throwsAllowed": false,
+    "schema": {
+      "x-telo-eval": "compile"
+    }
+  }],
+  ["PublicHostPattern.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "PublicHostPattern",
+      "description": "A family of public hosts an application is reached at \u2014 tenant subdomains \u2014 as a pattern origin the host routes every matching host of to a port."
+    },
+    "fields": {
+      "pattern": {
+        "type": "string",
+        "pattern": "^https?://\\*[A-Za-z0-9-]*\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(?::[0-9]{1,5})?$",
+        "description": "The hosts as a pattern origin: `https://*.tenants.example` (one or more whole labels) or `https://*-tenants.example` (a prefix of the first label)."
+      }
+    },
+    "required": [
+      "pattern"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key of the root's `ports:` these hosts are served on, a `tcp` port."
+        }
+      },
+      "additionalProperties": false
+    },
+    "supply": "root"
+  }],
+  ["PublicUrl.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "PublicUrl",
+      "description": "One public address an application is reached at: an http or https origin the host routes to a port, with the request's host and path unchanged."
+    },
+    "fields": {
+      "url": {
+        "description": "The address: an http or https origin \u2014 a host and an optional port, with no path, query or credentials.",
+        "x-telo-type": {
+          "name": "Telo.Url",
+          "scheme": {
+            "enum": [
+              "http",
+              "https"
+            ]
+          },
+          "path": {
+            "enum": [
+              "/"
+            ]
+          },
+          "query": {
+            "not": {}
+          },
+          "user": {
+            "not": {}
+          },
+          "password": {
+            "not": {}
+          }
+        }
+      }
+    },
+    "required": [
+      "url"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "port": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key of the root's `ports:` this address is served on, a `tcp` port."
+        },
+        "primary": {
+          "type": "boolean",
+          "description": "Marks the application's main address. At most one per application."
+        },
+        "customDomains": {
+          "type": "boolean",
+          "description": "Lets the host route further domains to this need's port, ones the application is never told about. At most one per port."
+        }
+      },
+      "additionalProperties": false
+    },
+    "supply": "root"
+  }],
+  ["Runnable.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Runnable",
+      "description": "A one-shot task the runtime starts and waits for: a pipeline, a migration, a boot step. Its run() does the work and returns what undoes it; a failure it throws is a structured error the step or target that started it can catch."
+    },
+    "capability": "Telo.Runnable",
+    "extends": "Telo.Executable",
+    "declarable": true,
+    "throwsAllowed": true
+  }],
+  ["Sequence.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Sequence",
+      "description": "An ordered list of steps behind a typed contract: call other resources, branch on conditions and switches, loop, catch and raise errors, and shape values, then return declared outputs. Runs at startup or is called as a handler, and can stand up resources that live only while it runs."
+    },
+    "capability": "Telo.Runnable",
+    "topology": "Sequence",
+    "throws": {
+      "inherit": true
+    },
+    "schema": {
+      "type": "object",
+      "properties": {
+        "with": {
+          "title": "With",
+          "description": "Resources that exist only while the sequence runs; created on entry and torn down when it ends.",
+          "x-telo-scope": [
+            "/steps",
+            "/targets"
+          ]
+        },
+        "targets": {
+          "title": "Targets",
+          "type": "array",
+          "description": "Resources of `with:` started before the steps, each written as a `!ref <name>`.",
+          "items": {
+            "title": "Target",
+            "description": "A resource of `with:` to start before the steps, written as a `!ref`.",
+            "x-telo-ref": {
+              "kind": [
+                "Telo.Runnable",
+                "Telo.Service"
+              ],
+              "use": "call"
+            },
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "kind",
+                  "name"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              }
+            ]
+          }
+        },
+        "inputType": {
+          "title": "Input Type",
+          "description": "The input contract, a named type or an inline one. The steps read the values as `inputs.<name>`; declared defaults are filled and every call is validated against it.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "outputType": {
+          "title": "Output Type",
+          "description": "The result contract, a named type or an inline one. It types the result for callers, checks `outputs:` statically, and validates the produced value at every call.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "outputs": {
+          "title": "Outputs",
+          "type": "object",
+          "description": "The result: a map of values over `steps.*` and `inputs.*`, evaluated after the steps run. Omitted, the result is the map of step results.",
+          "additionalProperties": true,
+          "x-telo-context": {
+            "type": "object",
+            "properties": {
+              "inputs": {}
+            }
+          },
+          "x-telo-value-schema-from": "outputType"
+        },
+        "steps": {
+          "title": "Steps",
+          "description": "The steps to run, in order.",
+          "x-telo-topology-role": "steps",
+          "type": "array",
+          "items": {
+            "$ref": "telo://manifest#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "steps"
+      ]
+    }
+  }],
+  ["Service.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Service",
+      "description": "A long-lived resource \u2014 a server, a pool, a listener \u2014 built by init() and started by run(), each returning what undoes it. Started rather than called, so it declares no thrown errors; inbound work it accepts roots its own trace."
+    },
+    "capability": "Telo.Service",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["Sink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Sink",
+      "description": "A record-stream destination the runtime writes to directly, never through dispatch: write(record) plus flush, synchronous flush and close. Payload-opaque, carrying log records or finished trace spans to wherever they are kept."
+    },
+    "capability": "Telo.Sink",
+    "declarable": true,
+    "throwsAllowed": false
+  }],
+  ["Template.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Template",
+      "description": "The lifecycle of a document that declares rather than runs: an application, a library, an import, a kind or a need type. Read by the kernel while it loads a module, never instantiated, and reserved for the built-in vocabulary \u2014 a kind declared in a module never takes this role."
+    },
+    "capability": "Telo.Template",
+    "declarable": false,
+    "throwsAllowed": false
+  }],
+  ["TextTranslations.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "TextTranslations",
+      "description": "Translations of texts into one language, matched by source text: each entry names a source text, with an optional context telling the same words apart, and the message translating it, plural cases included. Every value is written literally and checked against its source's placeholders and the language's plural categories; one text translated twice in one list is refused."
+    },
+    "capability": "Telo.Provider",
+    "extends": "Telo.Translations",
+    "schema": {
+      "$ref": "telo://manifest#/$defs/TextCatalog"
+    }
+  }],
+  ["TraceSink.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "TraceSink",
+      "description": "Where finished trace spans go: a destination for distributed tracing that receives each span once it ends \u2014 identity, timing, outcome and attributes. Attaching one turns tracing on; every trace exporter specializes it."
+    },
+    "capability": "Telo.Sink",
+    "schema": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  }],
+  ["Translations.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Translations",
+      "description": "Translations of an application's texts into one language, listed once in the application's translations block and used for every text the application and its libraries show. Each source of translations specializes it and states the language it translates into."
+    },
+    "capability": "Telo.Provider",
+    "schema": {
+      "type": "object",
+      "required": [
+        "lang"
+      ],
+      "properties": {
+        "lang": {
+          "title": "Language",
+          "description": "The language the translations are written in, as an RFC 5646 language tag.",
+          "type": "string",
+          "format": "language-tag"
+        }
+      },
+      "additionalProperties": true
+    }
+  }],
+  ["Type.json", {
+    "kind": "Telo.Abstract",
+    "metadata": {
+      "name": "Type",
+      "description": "A pure data shape with no runtime instance: a named JSON Schema other declarations reference to type their inputs, outputs and fields."
+    },
+    "capability": "Telo.Type",
+    "declarable": true,
+    "throwsAllowed": false
+  }]
+];
+var BUILTIN_FRAGMENT_FILES = [
+  ["ArgBinding", {
+    "anyOf": [
+      {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+      },
+      {
+        "type": "object",
+        "required": [
+          "flag"
+        ],
+        "properties": {
+          "flag": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
+          },
+          "short": {
+            "type": "string",
+            "pattern": "^[A-Za-z]$"
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "position"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }],
+  ["CallableParams", {
+    "title": "Parameters",
+    "description": "Ordered parameters this callable accepts. Optional parameters come last.",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "name",
+        "schema"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "schema": {
+          "$ref": "telo://manifest#/$defs/CallableType"
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "optional": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["CallableReturns", {
+    "title": "Result",
+    "description": "What a call to this callable evaluates to.",
+    "type": "object",
+    "required": [
+      "schema"
+    ],
+    "properties": {
+      "description": {
+        "type": "string"
+      },
+      "schema": {
+        "$ref": "telo://manifest#/$defs/CallableType"
+      },
+      "nullable": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["CallableType", {
+    "title": "Type",
+    "description": "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
+    "anyOf": [
+      {
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      {
+        "type": "string"
+      }
+    ]
+  }],
+  ["DispatchTarget", {
+    "anyOf": [
+      {
+        "type": "object",
+        "required": [
+          "__tagged",
+          "engine",
+          "source"
+        ],
+        "properties": {
+          "__tagged": {
+            "const": true
+          },
+          "engine": {
+            "const": "ref"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parsed": {
+            "type": "object",
+            "description": "The `!ref` engine's reading of `source`, attached by the loader."
+          },
+          "refusal": {
+            "type": "object",
+            "description": "Set instead of `parsed` when `source` is outside the `!ref` grammar."
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "string",
+        "x-telo-context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "self": {
+              "x-telo-context-from-root": "schema"
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "x-telo-context": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "self": {
+                  "x-telo-context-from-root": "schema"
+                }
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  }],
+  ["EmittedStep", {
+    "title": "Emitted step identity",
+    "description": "The identity a template's `!for-each` gives a step it emits, in place of `name`: `{ repeat, key }` for a named repeat (its result is filed under `steps.<repeat>`, keyed by `key`), `{ site, keys }` for an unnamed one. Written only by the template expansion; an author never writes it.",
+    "anyOf": [
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "repeat",
+          "key"
+        ],
+        "properties": {
+          "repeat": {
+            "type": "string"
+          },
+          "key": {
+            "type": [
+              "string",
+              "integer"
+            ]
+          }
+        }
+      },
+      {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "site",
+          "keys"
+        ],
+        "properties": {
+          "site": {
+            "type": "string"
+          },
+          "keys": {
+            "type": "array",
+            "items": {
+              "type": [
+                "string",
+                "integer"
+              ]
+            }
+          }
+        }
+      }
+    ]
+  }],
+  ["ForEachDeclaration", {
+    "title": "`!for-each` at a declaration position",
+    "description": "Inside a template body, a family: one named member per element, under the one name in `metadata`.",
+    "type": "object",
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "in": {
+        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
+      },
+      "as": {
+        "type": "string",
+        "description": "The binding's name; `each` when omitted."
+      },
+      "emit": {
+        "description": "What each element contributes."
+      }
+    },
+    "required": [
+      "metadata",
+      "in",
+      "emit"
+    ],
+    "additionalProperties": false
+  }],
+  ["ForEachEntry", {
+    "title": "`!for-each` at a splice",
+    "description": "Inside a template body, the value of a `...` key: one mapping entry per element, keyed by `key`.",
+    "type": "object",
+    "properties": {
+      "key": {
+        "description": "The entry's key, a `!cel` string over the bindings."
+      },
+      "in": {
+        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
+      },
+      "as": {
+        "type": "string",
+        "description": "The binding's name; `each` when omitted."
+      },
+      "emit": {
+        "description": "What each element contributes."
+      }
+    },
+    "required": [
+      "in",
+      "key",
+      "emit"
+    ],
+    "additionalProperties": false
+  }],
+  ["ForEachStepRepeat", {
+    "title": "`!for-each` in a step list, named",
+    "description": "Inside a template body, one step per element whose results are read as `steps.<name>[<binding>.key].result`.",
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "The step name the repeat's results are read under."
+      },
+      "in": {
+        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
+      },
+      "as": {
+        "type": "string",
+        "description": "The binding's name; `each` when omitted."
+      },
+      "emit": {
+        "description": "What each element contributes."
+      }
+    },
+    "required": [
+      "name",
+      "in",
+      "emit"
+    ],
+    "additionalProperties": false
+  }],
+  ["ForEachValue", {
+    "title": "`!for-each` at a list position",
+    "description": "Inside a template body, items of a list emitted per element of a consumer's collection.",
+    "type": "object",
+    "properties": {
+      "in": {
+        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
+      },
+      "as": {
+        "type": "string",
+        "description": "The binding's name; `each` when omitted."
+      },
+      "emit": {
+        "description": "What each element contributes."
+      }
+    },
+    "required": [
+      "in",
+      "emit"
+    ],
+    "additionalProperties": false
+  }],
+  ["IfDeclaration", {
+    "title": "`!if` at a declaration position",
+    "description": "A resource declaration chosen before boot: the tag carries its `metadata`, each branch is one unnamed declaration.",
+    "type": "object",
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "if": {
+        "description": "A boolean decided before boot: a `!cel` condition or a literal."
+      },
+      "then": {
+        "description": "What the tag stands for when `if` holds."
+      },
+      "else": {
+        "description": "What it stands for otherwise; without it the tag contributes nothing."
+      }
+    },
+    "required": [
+      "metadata",
+      "if",
+      "then"
+    ],
+    "additionalProperties": false
+  }],
+  ["IfValue", {
+    "title": "`!if` at a value position",
+    "description": "An item of a list or the value of a field, chosen before boot.",
+    "type": "object",
+    "properties": {
+      "if": {
+        "description": "A boolean decided before boot: a `!cel` condition or a literal."
+      },
+      "then": {
+        "description": "What the tag stands for when `if` holds."
+      },
+      "else": {
+        "description": "What it stands for otherwise; without it the tag contributes nothing."
+      }
+    },
+    "required": [
+      "if",
+      "then"
+    ],
+    "additionalProperties": false
+  }],
+  ["InvokeStep", {
+    "title": "Invoke step",
+    "description": "Transfers control to a resource: what to call, what to pass it, whether to call it, and how to re-attempt it.",
+    "type": "object",
+    "required": [
+      "invoke"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "name": {
+        "title": "Name",
+        "description": "Publishes this dispatch's result as `steps.<name>.result`.",
+        "type": "string"
+      },
+      "__emitted": {
+        "$ref": "telo://manifest#/$defs/EmittedStep"
+      },
+      "invoke": {
+        "title": "Invoke",
+        "description": "Resource to invoke.",
+        "x-telo-topology-role": "invoke",
+        "type": "object",
+        "x-telo-ref": {
+          "kind": "Telo.Executable",
+          "use": "call",
+          "inputs": "/inputs"
+        }
+      },
+      "inputs": {
+        "title": "Inputs",
+        "description": "Values passed to the invoked resource.",
+        "x-telo-topology-role": "inputs",
+        "type": "object",
+        "additionalProperties": true
+      },
+      "when": {
+        "title": "When",
+        "description": "CEL guard \u2014 the dispatch is skipped when it evaluates false.",
+        "x-telo-topology-role": "predicate",
+        "type": "boolean"
+      },
+      "retry": {
+        "title": "Retry",
+        "$ref": "telo://manifest#/$defs/RetryPolicy",
+        "properties": {
+          "nonRetryable": {
+            "title": "Non-retryable codes",
+            "description": "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": []
+          }
+        }
+      },
+      "timeout": {
+        "title": "Timeout",
+        "description": "How long ONE attempt may take, in milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  }],
+  ["JsonSchema7", {
+    "title": "JSON Schema",
+    "description": "The shape of a value, as JSON Schema (draft-07).",
+    "type": [
+      "object",
+      "boolean"
+    ],
+    "properties": {
+      "type": {
+        "title": "Type",
+        "description": "The JSON type this value must have, or a list of accepted types.",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ]
+      },
+      "properties": {
+        "title": "Properties",
+        "description": "Schema per named property of an object.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "required": {
+        "title": "Required",
+        "description": "Property names that must be present.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "title": "Additional properties",
+        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        ]
+      },
+      "patternProperties": {
+        "title": "Pattern properties",
+        "description": "Schema per regular expression matching a property name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "propertyNames": {
+        "title": "Property names",
+        "description": "Schema every property NAME must satisfy.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "items": {
+        "title": "Items",
+        "description": "Schema for each element of an array.",
+        "anyOf": [
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/JsonSchema7"
+            }
+          }
+        ]
+      },
+      "additionalItems": {
+        "title": "Additional items",
+        "description": "Schema for elements past a positional `items` list.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/JsonSchema7"
+          }
+        ]
+      },
+      "contains": {
+        "title": "Contains",
+        "description": "At least one element must satisfy this schema.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "allOf": {
+        "title": "All of",
+        "description": "Every branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "anyOf": {
+        "title": "Any of",
+        "description": "At least one branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "oneOf": {
+        "title": "One of",
+        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "not": {
+        "title": "Not",
+        "description": "The value must NOT match this schema.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "if": {
+        "title": "If",
+        "description": "Condition selecting `then` / `else`.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "then": {
+        "title": "Then",
+        "description": "Applied when `if` matches.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "else": {
+        "title": "Else",
+        "description": "Applied when `if` does not match.",
+        "$ref": "telo://manifest#/$defs/JsonSchema7"
+      },
+      "enum": {
+        "title": "Enum",
+        "description": "The complete set of accepted values.",
+        "type": "array"
+      },
+      "const": {
+        "title": "Const",
+        "description": "The single accepted value."
+      },
+      "default": {
+        "title": "Default",
+        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
+      },
+      "examples": {
+        "title": "Examples",
+        "description": "Sample values, for documentation.",
+        "type": "array"
+      },
+      "minimum": {
+        "title": "Minimum",
+        "type": "number"
+      },
+      "maximum": {
+        "title": "Maximum",
+        "type": "number"
+      },
+      "exclusiveMinimum": {
+        "title": "Exclusive minimum",
+        "type": "number"
+      },
+      "exclusiveMaximum": {
+        "title": "Exclusive maximum",
+        "type": "number"
+      },
+      "multipleOf": {
+        "title": "Multiple of",
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minLength": {
+        "title": "Min length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxLength": {
+        "title": "Max length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "pattern": {
+        "title": "Pattern",
+        "description": "Regular expression the string must match.",
+        "type": "string"
+      },
+      "format": {
+        "title": "Format",
+        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
+        "type": "string"
+      },
+      "contentMediaType": {
+        "title": "Content media type",
+        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
+        "type": "string"
+      },
+      "contentEncoding": {
+        "title": "Content encoding",
+        "type": "string"
+      },
+      "minItems": {
+        "title": "Min items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": {
+        "title": "Max items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "uniqueItems": {
+        "title": "Unique items",
+        "type": "boolean"
+      },
+      "minProperties": {
+        "title": "Min properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": {
+        "title": "Max properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "dependencies": {
+        "title": "Dependencies",
+        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "telo://manifest#/$defs/JsonSchema7"
+            }
+          ]
+        }
+      },
+      "title": {
+        "title": "Title",
+        "description": "Human-readable label for this value.",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "description": "What this value is, for the author reading the manifest.",
+        "type": "string"
+      },
+      "deprecated": {
+        "title": "Deprecated",
+        "type": "boolean"
+      },
+      "readOnly": {
+        "title": "Read only",
+        "type": "boolean"
+      },
+      "writeOnly": {
+        "title": "Write only",
+        "type": "boolean"
+      },
+      "$ref": {
+        "title": "Reference",
+        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
+        "type": "string"
+      },
+      "$defs": {
+        "title": "Definitions",
+        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "definitions": {
+        "title": "Definitions (draft-07)",
+        "description": "Older spelling of `$defs`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/JsonSchema7"
+        }
+      },
+      "$comment": {
+        "title": "Comment",
+        "type": "string"
+      },
+      "$id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "$schema": {
+        "title": "Schema dialect",
+        "type": "string"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["KindMetadata", {
+    "type": "object",
+    "required": [
+      "name"
+    ],
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "module": {
+        "type": "string"
+      },
+      "categories": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["KindSchema", {
+    "title": "Kind schema",
+    "description": "The configuration a resource of this kind accepts, as JSON Schema plus the `x-telo-*` annotations that say how each field behaves.",
+    "type": [
+      "object",
+      "boolean"
+    ],
+    "properties": {
+      "type": {
+        "title": "Type",
+        "description": "The JSON type this value must have, or a list of accepted types.",
+        "anyOf": [
+          {
+            "type": "string",
+            "enum": [
+              "object",
+              "array",
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "object",
+                "array",
+                "string",
+                "number",
+                "integer",
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        ]
+      },
+      "properties": {
+        "title": "Properties",
+        "description": "Schema per named property of an object.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "required": {
+        "title": "Required",
+        "description": "Property names that must be present.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "title": "Additional properties",
+        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          }
+        ]
+      },
+      "patternProperties": {
+        "title": "Pattern properties",
+        "description": "Schema per regular expression matching a property name.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "propertyNames": {
+        "title": "Property names",
+        "description": "Schema every property NAME must satisfy.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "items": {
+        "title": "Items",
+        "description": "Schema for each element of an array.",
+        "anyOf": [
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          },
+          {
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/KindSchema"
+            }
+          }
+        ]
+      },
+      "additionalItems": {
+        "title": "Additional items",
+        "description": "Schema for elements past a positional `items` list.",
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "$ref": "telo://manifest#/$defs/KindSchema"
+          }
+        ]
+      },
+      "contains": {
+        "title": "Contains",
+        "description": "At least one element must satisfy this schema.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "allOf": {
+        "title": "All of",
+        "description": "Every branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "anyOf": {
+        "title": "Any of",
+        "description": "At least one branch must match.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "oneOf": {
+        "title": "One of",
+        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
+        "type": "array",
+        "items": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "not": {
+        "title": "Not",
+        "description": "The value must NOT match this schema.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "if": {
+        "title": "If",
+        "description": "Condition selecting `then` / `else`.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "then": {
+        "title": "Then",
+        "description": "Applied when `if` matches.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "else": {
+        "title": "Else",
+        "description": "Applied when `if` does not match.",
+        "$ref": "telo://manifest#/$defs/KindSchema"
+      },
+      "enum": {
+        "title": "Enum",
+        "description": "The complete set of accepted values.",
+        "type": "array"
+      },
+      "const": {
+        "title": "Const",
+        "description": "The single accepted value."
+      },
+      "default": {
+        "title": "Default",
+        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
+      },
+      "examples": {
+        "title": "Examples",
+        "description": "Sample values, for documentation.",
+        "type": "array"
+      },
+      "minimum": {
+        "title": "Minimum",
+        "type": "number"
+      },
+      "maximum": {
+        "title": "Maximum",
+        "type": "number"
+      },
+      "exclusiveMinimum": {
+        "title": "Exclusive minimum",
+        "type": "number"
+      },
+      "exclusiveMaximum": {
+        "title": "Exclusive maximum",
+        "type": "number"
+      },
+      "multipleOf": {
+        "title": "Multiple of",
+        "type": "number",
+        "exclusiveMinimum": 0
+      },
+      "minLength": {
+        "title": "Min length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxLength": {
+        "title": "Max length",
+        "type": "integer",
+        "minimum": 0
+      },
+      "pattern": {
+        "title": "Pattern",
+        "description": "Regular expression the string must match.",
+        "type": "string"
+      },
+      "format": {
+        "title": "Format",
+        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
+        "type": "string"
+      },
+      "contentMediaType": {
+        "title": "Content media type",
+        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
+        "type": "string"
+      },
+      "contentEncoding": {
+        "title": "Content encoding",
+        "type": "string"
+      },
+      "minItems": {
+        "title": "Min items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxItems": {
+        "title": "Max items",
+        "type": "integer",
+        "minimum": 0
+      },
+      "uniqueItems": {
+        "title": "Unique items",
+        "type": "boolean"
+      },
+      "minProperties": {
+        "title": "Min properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": {
+        "title": "Max properties",
+        "type": "integer",
+        "minimum": 0
+      },
+      "dependencies": {
+        "title": "Dependencies",
+        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
+        "type": "object",
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "$ref": "telo://manifest#/$defs/KindSchema"
+            }
+          ]
+        }
+      },
+      "title": {
+        "title": "Title",
+        "description": "Human-readable label for this value.",
+        "type": "string"
+      },
+      "description": {
+        "title": "Description",
+        "description": "What this value is, for the author reading the manifest.",
+        "type": "string"
+      },
+      "deprecated": {
+        "title": "Deprecated",
+        "type": "boolean"
+      },
+      "readOnly": {
+        "title": "Read only",
+        "type": "boolean"
+      },
+      "writeOnly": {
+        "title": "Write only",
+        "type": "boolean"
+      },
+      "$ref": {
+        "title": "Reference",
+        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
+        "type": "string"
+      },
+      "$defs": {
+        "title": "Definitions",
+        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "definitions": {
+        "title": "Definitions (draft-07)",
+        "description": "Older spelling of `$defs`.",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "telo://manifest#/$defs/KindSchema"
+        }
+      },
+      "$comment": {
+        "title": "Comment",
+        "type": "string"
+      },
+      "$id": {
+        "title": "Id",
+        "type": "string"
+      },
+      "$schema": {
+        "title": "Schema dialect",
+        "type": "string"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["LayerIndex", {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "role",
+        "blob",
+        "integrity"
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "selector": {},
+        "blob": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "integrity": {
+          "type": "string",
+          "pattern": "^sha256-[A-Za-z0-9_-]{43}$"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["LogDuration", {
+    "type": "string",
+    "pattern": "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$"
+  }],
+  ["LogLevel", {
+    "type": "string",
+    "enum": [
+      "trace",
+      "debug",
+      "info",
+      "warn",
+      "error",
+      "fatal"
+    ]
+  }],
+  ["LoggingScope", {
+    "type": "object",
+    "x-telo-eval": "compile",
+    "properties": {
+      "level": {
+        "$ref": "telo://manifest#/$defs/LogLevel"
+      },
+      "attributes": {
+        "type": "object"
+      },
+      "redact": {
+        "type": "object",
+        "properties": {
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "censor": {
+            "type": "string"
+          },
+          "remove": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "sampling": {
+        "type": "object",
+        "properties": {
+          "first": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "thereafter": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tick": {
+            "$ref": "telo://manifest#/$defs/LogDuration"
+          },
+          "sampleErrors": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["Message", {
+    "title": "Message",
+    "description": "Text shown to a person: a pattern with `{$name}` placeholders and the escapes `\\{`, `\\}`, `\\\\`, or a plural selection `{ plural: <name>, cases: { <category> | =<integer>: Message } }` whose `other` case is required.",
+    "anyOf": [
+      {
+        "type": "string"
+      },
+      {
+        "type": "object",
+        "required": [
+          "plural",
+          "cases"
+        ],
+        "properties": {
+          "plural": {
+            "description": "The name of the number the selection reads, bound like a placeholder.",
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+            "not": {
+              "enum": [
+                "as",
+                "break",
+                "const",
+                "continue",
+                "else",
+                "false",
+                "for",
+                "function",
+                "if",
+                "import",
+                "in",
+                "let",
+                "loop",
+                "namespace",
+                "null",
+                "package",
+                "return",
+                "true",
+                "var",
+                "void",
+                "while"
+              ]
+            }
+          },
+          "cases": {
+            "description": "A Message per CLDR plural category (`zero`, `one`, `two`, `few`, `many`, `other`) or exact value (`=0`); `=N` cases are matched first.",
+            "type": "object",
+            "required": [
+              "other"
+            ],
+            "propertyNames": {
+              "pattern": "^(zero|one|two|few|many|other|=(0|-?[1-9][0-9]*))$"
+            },
+            "additionalProperties": {
+              "$ref": "telo://manifest#/$defs/Message"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }],
+  ["ModuleImports", {
+    "type": "object",
+    "additionalProperties": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string"
+            },
+            "integrity": {
+              "type": "string"
+            },
+            "variables": {
+              "type": "object"
+            },
+            "secrets": {
+              "type": "object"
+            },
+            "resources": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "needs": {
+              "type": "object",
+              "additionalProperties": {}
+            },
+            "runtime": {
+              "oneOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              ]
+            },
+            "logging": {
+              "$ref": "telo://manifest#/$defs/LoggingScope"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }],
+  ["ModuleMetadata", {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string"
+      },
+      "version": {
+        "type": "string"
+      },
+      "source": {
+        "type": "string"
+      },
+      "module": {
+        "type": "string"
+      },
+      "description": {
+        "type": "string"
+      },
+      "repository": {
+        "type": "string"
+      },
+      "license": {
+        "type": "string"
+      },
+      "documentation": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "name"
+    ],
+    "additionalProperties": true
+  }],
+  ["ModuleSources", {
+    "type": "object",
+    "additionalProperties": {
+      "type": "object",
+      "required": [
+        "version",
+        "url",
+        "archive",
+        "notices",
+        "entries"
+      ],
+      "properties": {
+        "version": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "archive": {
+          "enum": [
+            "tar.gz"
+          ]
+        },
+        "notices": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "build": {
+          "type": "object",
+          "required": [
+            "cargo"
+          ],
+          "properties": {
+            "cargo": {
+              "type": "string"
+            },
+            "inputs": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "entries": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "anyOf": [
+              {
+                "required": [
+                  "upstream",
+                  "member"
+                ]
+              },
+              {
+                "required": [
+                  "target"
+                ]
+              }
+            ],
+            "properties": {
+              "upstream": {
+                "type": "string"
+              },
+              "member": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "executable": {
+                "type": "boolean"
+              },
+              "target": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["NativeEntries", {
+    "type": "array",
+    "items": {
+      "$ref": "telo://manifest#/$defs/PlatformAxes",
+      "type": "object",
+      "required": [
+        "name",
+        "format",
+        "os",
+        "arch",
+        "path"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "format": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }],
+  ["NeedRequest", {
+    "type": "object",
+    "required": [
+      "kind"
+    ],
+    "properties": {
+      "kind": {
+        "type": "string"
+      },
+      "parameters": {
+        "type": "object"
+      },
+      "version": {
+        "type": "string",
+        "description": "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
+      },
+      "features": {
+        "type": "array",
+        "description": "The features the fulfilment must carry \u2014 names the need type lists.",
+        "items": {
+          "type": "string"
+        },
+        "uniqueItems": true
+      },
+      "optional": {
+        "type": "boolean"
+      },
+      "description": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["PlatformAxes", {
+    "type": "object",
+    "properties": {
+      "os": {
+        "type": "string"
+      },
+      "arch": {
+        "type": "string"
+      },
+      "libc": {
+        "type": "string"
+      },
+      "abi": {
+        "type": "string"
+      }
+    }
+  }],
+  ["Requires", {
+    "type": "object",
+    "properties": {
+      "host": {
+        "type": "object"
+      }
+    },
+    "additionalProperties": true
+  }],
+  ["ResourceRef", {
+    "title": "Resource reference",
+    "anyOf": [
+      {
+        "type": "object",
+        "required": [
+          "__tagged",
+          "engine",
+          "source"
+        ],
+        "properties": {
+          "__tagged": {
+            "const": true
+          },
+          "engine": {
+            "const": "ref"
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "parsed": {
+            "type": "object",
+            "description": "The `!ref` engine's reading of `source`, attached by the loader."
+          },
+          "refusal": {
+            "type": "object",
+            "description": "Set instead of `parsed` when `source` is outside the `!ref` grammar."
+          }
+        },
+        "additionalProperties": false
+      },
+      {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    ]
+  }],
+  ["RetryAttempts", {
+    "title": "Retry attempts",
+    "description": "Re-attempts after the first try. 0 disables retrying.",
+    "type": "integer",
+    "minimum": 0,
+    "default": 0
+  }],
+  ["RetryPolicy", {
+    "title": "Retry policy",
+    "description": "Re-attempts a failed dispatch with exponential backoff. A domain failure is retried; a cancellation and a contract violation are not \u2014 the latter is a property of the manifest and would fail identically every time.",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "attempts": {
+        "title": "Attempts",
+        "description": "Re-attempts after the first try. 0 disables retrying.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 0
+      },
+      "initialDelay": {
+        "title": "Initial delay",
+        "description": "Milliseconds to wait before the first re-attempt.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 250
+      },
+      "factor": {
+        "title": "Factor",
+        "description": "Multiplier applied to the delay after each re-attempt.",
+        "type": "number",
+        "minimum": 1,
+        "default": 2
+      },
+      "maxDelay": {
+        "title": "Max delay",
+        "description": "Ceiling on the delay between re-attempts, in milliseconds.",
+        "type": "integer",
+        "minimum": 0,
+        "default": 32e3
+      },
+      "jitter": {
+        "title": "Jitter",
+        "description": "`full` picks each delay uniformly from [0, delay], which is what stops work that failed together from re-attempting together.",
+        "type": "string",
+        "enum": [
+          "none",
+          "full"
+        ],
+        "default": "full"
+      },
+      "delay": {
+        "title": "Delay",
+        "description": "DEPRECATED duration string (`250ms`, `1s`) \u2014 read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
+        "type": "string",
+        "pattern": "^[0-9]+(\\.[0-9]+)?\\s*(ms|s|m|h)$"
+      }
+    }
+  }],
+  ["Step", {
+    "title": "Step",
+    "description": "Single executable step or control-flow block.",
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "description": "Unique step name.",
+        "type": "string"
+      },
+      "__emitted": {
+        "$ref": "telo://manifest#/$defs/EmittedStep"
+      }
+    },
+    "oneOf": [
+      {
+        "title": "invoke",
+        "description": "Invokes an invocable or runnable resource.",
+        "$ref": "telo://manifest#/$defs/InvokeStep"
+      },
+      {
+        "title": "if/then/else",
+        "description": "Conditional branch; executes then or else based on a boolean expression.",
+        "properties": {
+          "if": {
+            "title": "If",
+            "description": "CEL boolean expression; true executes then, false executes else.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "elseif": {
+            "title": "Else If",
+            "description": "Additional condition-branch pairs evaluated when if is false.",
+            "x-telo-topology-role": "branch-list",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "if": {
+                  "title": "If",
+                  "description": "CEL boolean expression for this else-if branch.",
+                  "x-telo-topology-role": "predicate",
+                  "type": "boolean"
+                },
+                "then": {
+                  "title": "Then",
+                  "description": "Steps executed when this else-if condition is true.",
+                  "x-telo-topology-role": "branch",
+                  "type": "array",
+                  "items": {
+                    "$ref": "telo://manifest#/$defs/Step"
+                  }
+                }
+              },
+              "required": [
+                "if",
+                "then"
+              ]
+            }
+          },
+          "then": {
+            "title": "Then",
+            "description": "Steps executed when if evaluates true.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          },
+          "else": {
+            "title": "Else",
+            "description": "Steps executed when if (and all elseif conditions) evaluate false.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "if",
+          "then"
+        ]
+      },
+      {
+        "title": "while/do",
+        "description": "Loop; executes do steps repeatedly while condition is true.",
+        "properties": {
+          "while": {
+            "title": "While",
+            "description": "CEL boolean expression; evaluated before each iteration.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "do": {
+            "title": "Do",
+            "description": "Steps executed on each iteration.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "while",
+          "do"
+        ]
+      },
+      {
+        "title": "switch/cases/default",
+        "description": "Multi-branch dispatch; matches a value expression against case keys.",
+        "properties": {
+          "switch": {
+            "title": "Switch",
+            "description": "CEL expression; result matched against case keys.",
+            "x-telo-topology-role": "discriminator",
+            "type": "string"
+          },
+          "cases": {
+            "title": "Cases",
+            "description": "Map of value to step list; executed when switch matches the key.",
+            "x-telo-topology-role": "case-map",
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "$ref": "telo://manifest#/$defs/Step"
+              }
+            }
+          },
+          "default": {
+            "title": "Default",
+            "description": "Steps executed when no case matches.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          }
+        },
+        "required": [
+          "switch",
+          "cases"
+        ]
+      },
+      {
+        "title": "try/catch/finally",
+        "description": "Error boundary; executes try steps and handles failure via catch and finally.",
+        "properties": {
+          "when": {
+            "title": "When",
+            "description": "CEL boolean guard \u2014 the whole try/catch/finally is skipped when it evaluates false.",
+            "x-telo-topology-role": "predicate",
+            "type": "boolean"
+          },
+          "try": {
+            "title": "Try",
+            "description": "Steps executed; halts on first failure and jumps to catch.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            }
+          },
+          "catch": {
+            "title": "Catch",
+            "description": "Steps executed when try fails; receives error context.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            },
+            "x-telo-error-context": {
+              "type": "object",
+              "description": "The caught failure (always present inside catch).",
+              "properties": {
+                "code": {
+                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "The developer's error message.",
+                  "type": "string"
+                },
+                "step": {
+                  "description": "Name of the step that threw.",
+                  "type": "string"
+                },
+                "data": {
+                  "description": "Structured payload from an InvokeError, else undefined."
+                },
+                "displayMessage": {
+                  "description": 'The text a person is shown for the failure, as its record; null when the failure carries none. Carry it into a new throw with `displayMessage: !cel "error.displayMessage"`.',
+                  "anyOf": [
+                    {
+                      "$ref": "telo://manifest#/$defs/TextRecord"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "finally": {
+            "title": "Finally",
+            "description": "Steps always executed after try/catch regardless of outcome.",
+            "x-telo-topology-role": "branch",
+            "type": "array",
+            "items": {
+              "$ref": "telo://manifest#/$defs/Step"
+            },
+            "x-telo-error-context": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "description": "The caught failure, or null when try (and catch) succeeded.",
+              "properties": {
+                "code": {
+                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "The developer's error message.",
+                  "type": "string"
+                },
+                "step": {
+                  "description": "Name of the step that threw.",
+                  "type": "string"
+                },
+                "data": {
+                  "description": "Structured payload from an InvokeError, else undefined."
+                },
+                "displayMessage": {
+                  "description": 'The text a person is shown for the failure, as its record; null when the failure carries none. Carry it into a new throw with `displayMessage: !cel "error.displayMessage"`.',
+                  "anyOf": [
+                    {
+                      "$ref": "telo://manifest#/$defs/TextRecord"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "try"
+        ]
+      },
+      {
+        "title": "throw",
+        "description": "Throws an InvokeError unconditionally. Inside a catch branch the caught failure becomes the new error's cause.",
+        "properties": {
+          "throw": {
+            "title": "Throw",
+            "description": "InvokeError descriptor; code is required, message/displayMessage/data optional.",
+            "type": "object",
+            "properties": {
+              "code": {
+                "title": "Code",
+                "description": "Structured error code; uppercase SNAKE_CASE by convention.",
+                "type": "string"
+              },
+              "message": {
+                "title": "Message",
+                "description": "The developer's message, for logs and traces; never shown to a person. Omitted, it is the display message formatted with `data`, else `code`.",
+                "type": "string"
+              },
+              "displayMessage": {
+                "title": "Display message",
+                "description": 'The text a person is shown for this failure: a literal text whose placeholders name members of `data`, or the display message a caught error carries (`!cel "error.displayMessage"`). Null or omitted, the error carries none.',
+                "anyOf": [
+                  {
+                    "$ref": "telo://manifest#/$defs/Text"
+                  },
+                  {
+                    "$ref": "telo://manifest#/$defs/TextRecord"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "data": {
+                "title": "Data",
+                "description": "Optional structured payload attached to the error; its members are the values the display message is formatted with.",
+                "x-telo-text-values-for": "/displayMessage"
+              }
+            },
+            "required": [
+              "code"
+            ]
+          }
+        },
+        "required": [
+          "throw"
+        ]
+      },
+      {
+        "title": "rethrow",
+        "description": "Re-raises the failure the enclosing catch branch caught, unchanged: its code, messages, data, cause and stack. Legal only inside a catch branch.",
+        "properties": {
+          "rethrow": {
+            "title": "Rethrow",
+            "description": "Always an empty object.",
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "rethrow"
+        ]
+      },
+      {
+        "title": "value",
+        "description": "Computes a value and publishes it as `steps.<name>.result`, with no dispatch \u2014 no resource, no span, no topology node. For an intermediate derived from an earlier step: reshape a response, total some rows, build the next call's inputs.",
+        "properties": {
+          "value": {
+            "title": "Value",
+            "description": "A CEL expression \u2014 or a structure (map / array) with `!cel` leaves \u2014 evaluated in the step scope: `inputs`, the results of the steps before it, and whatever the enclosing kind binds (`item` / `index` / `items`, `iteration` / `previous`)."
+          }
+        },
+        "required": [
+          "value"
+        ]
+      }
+    ],
+    "if": {
+      "required": [
+        "__emitted"
+      ]
+    },
+    "then": {
+      "not": {
+        "required": [
+          "name"
+        ]
+      }
+    },
+    "else": {
+      "required": [
+        "name"
+      ]
+    }
+  }],
+  ["SwitchDeclaration", {
+    "title": "`!switch` at a declaration position",
+    "description": "A resource declaration chosen by value before boot: the tag carries its `metadata`, each case is one unnamed declaration.",
+    "type": "object",
+    "properties": {
+      "metadata": {
+        "type": "object",
+        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "switch": {
+        "description": "A string, integer or boolean decided before boot: a `!cel` selector or a literal."
+      },
+      "cases": {
+        "type": "object",
+        "description": "Each case key read as a value of the selector's type, mapped to what the tag stands for."
+      },
+      "default": {
+        "description": "What the tag stands for when no case matches."
+      }
+    },
+    "required": [
+      "metadata",
+      "switch",
+      "cases"
+    ],
+    "additionalProperties": false
+  }],
+  ["SwitchValue", {
+    "title": "`!switch` at a value position",
+    "description": "An item of a list or the value of a field, chosen by value before boot.",
+    "type": "object",
+    "properties": {
+      "switch": {
+        "description": "A string, integer or boolean decided before boot: a `!cel` selector or a literal."
+      },
+      "cases": {
+        "type": "object",
+        "description": "Each case key read as a value of the selector's type, mapped to what the tag stands for."
+      },
+      "default": {
+        "description": "What the tag stands for when no case matches."
+      }
+    },
+    "required": [
+      "switch",
+      "cases"
+    ],
+    "additionalProperties": false
+  }],
+  ["Text", {
+    "title": "Text",
+    "description": "Text shown to a person: a Message, or `{ text: Message, context }` where `context` tells the same words used elsewhere apart.",
+    "anyOf": [
+      {
+        "$ref": "telo://manifest#/$defs/Message"
+      },
+      {
+        "type": "object",
+        "required": [
+          "text",
+          "context"
+        ],
+        "properties": {
+          "text": {
+            "$ref": "telo://manifest#/$defs/Message"
+          },
+          "context": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    ]
+  }],
+  ["TextCatalog", {
+    "title": "Text catalog",
+    "description": "Translations of a module's texts into one language: each entry names a source text (and its context) and the Message that translates it.",
+    "type": "object",
+    "required": [
+      "lang",
+      "texts"
+    ],
+    "properties": {
+      "lang": {
+        "description": "The language the translations are written in.",
+        "type": "string",
+        "format": "language-tag"
+      },
+      "texts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "text",
+            "translation"
+          ],
+          "properties": {
+            "text": {
+              "$ref": "telo://manifest#/$defs/Message"
+            },
+            "context": {
+              "type": "string",
+              "minLength": 1
+            },
+            "translation": {
+              "$ref": "telo://manifest#/$defs/Message"
+            }
+          },
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["TextRecord", {
+    "title": "Text record",
+    "description": "A text as a controller receives it and forwards it: the Message as written, its context (null when none is written), the language it is written in, and whether an expression produced it. Opaque to the text vocabulary: a record is never judged or looked up where it is held.",
+    "type": "object",
+    "required": [
+      "text",
+      "context",
+      "lang",
+      "computed"
+    ],
+    "properties": {
+      "text": {
+        "$ref": "telo://manifest#/$defs/Message"
+      },
+      "context": {
+        "anyOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "lang": {
+        "type": "string",
+        "format": "language-tag"
+      },
+      "computed": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  }],
+  ["ThrowCodes", {
+    "type": "object",
+    "propertyNames": {
+      "pattern": "^[A-Z][A-Z0-9_]*$"
+    },
+    "additionalProperties": {
+      "type": "object",
+      "required": [
+        "description"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "displayMessage": {
+          "description": "The text a person is shown for this failure, written in the module's `lang:`. Its placeholders may name only the required string or number properties of `data`.",
+          "$ref": "telo://manifest#/$defs/Text",
+          "x-telo-text-values-from": "0/data"
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      }
+    }
+  }]
+];
+var BUILTIN_TRANSLATION_FILES = [
+  ["de", {
+    "lang": "de",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "Der Dienst ist falsch konfiguriert."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "Der Dienst konnte keinen Wert berechnen."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "Die Anfrage ist ung\xFCltig."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "Der Dienst hat ein Ergebnis erzeugt, das er nicht ausliefern konnte."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "Der Dienst konnte nicht entscheiden, wie es weitergehen soll."
+      }
+    ]
+  }],
+  ["es", {
+    "lang": "es",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "El servicio est\xE1 mal configurado."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "El servicio no pudo calcular un valor."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "La solicitud no es v\xE1lida."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "El servicio produjo un resultado que no pudo entregar."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "El servicio no pudo decidir c\xF3mo continuar."
+      }
+    ]
+  }],
+  ["fr", {
+    "lang": "fr",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "Le service est mal configur\xE9."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "Le service n'a pas pu calculer une valeur."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "La requ\xEAte n'est pas valide."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "Le service a produit un r\xE9sultat qu'il n'a pas pu transmettre."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "Le service n'a pas pu d\xE9cider comment poursuivre."
+      }
+    ]
+  }],
+  ["hi", {
+    "lang": "hi",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\u0938\u0947\u0935\u093E \u0917\u0932\u0924 \u0924\u0930\u0940\u0915\u0947 \u0938\u0947 \u0915\u0949\u0928\u094D\u092B\u093C\u093F\u0917\u0930 \u0915\u0940 \u0917\u0908 \u0939\u0948\u0964"
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\u0938\u0947\u0935\u093E \u090F\u0915 \u092E\u093E\u0928 \u0915\u0940 \u0917\u0923\u0928\u093E \u0928\u0939\u0940\u0902 \u0915\u0930 \u0938\u0915\u0940\u0964"
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u0905\u0928\u0941\u0930\u094B\u0927 \u092E\u093E\u0928\u094D\u092F \u0928\u0939\u0940\u0902 \u0939\u0948\u0964"
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\u0938\u0947\u0935\u093E \u0928\u0947 \u090F\u0915 \u0910\u0938\u093E \u092A\u0930\u093F\u0923\u093E\u092E \u092C\u0928\u093E\u092F\u093E \u091C\u093F\u0938\u0947 \u0935\u0939 \u092A\u0939\u0941\u0901\u091A\u093E \u0928\u0939\u0940\u0902 \u0938\u0915\u0940\u0964"
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\u0938\u0947\u0935\u093E \u092F\u0939 \u0924\u092F \u0928\u0939\u0940\u0902 \u0915\u0930 \u0938\u0915\u0940 \u0915\u093F \u0906\u0917\u0947 \u0915\u0948\u0938\u0947 \u092C\u0922\u093C\u0928\u093E \u0939\u0948\u0964"
+      }
+    ]
+  }],
+  ["it", {
+    "lang": "it",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "Il servizio non \xE8 configurato correttamente."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "Il servizio non \xE8 riuscito a calcolare un valore."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "La richiesta non \xE8 valida."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "Il servizio ha prodotto un risultato che non \xE8 riuscito a consegnare."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "Il servizio non \xE8 riuscito a decidere come proseguire."
+      }
+    ]
+  }],
+  ["ja", {
+    "lang": "ja",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\u30B5\u30FC\u30D3\u30B9\u306E\u8A2D\u5B9A\u306B\u8AA4\u308A\u304C\u3042\u308A\u307E\u3059\u3002"
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\u30B5\u30FC\u30D3\u30B9\u306F\u5024\u3092\u8A08\u7B97\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002"
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u30EA\u30AF\u30A8\u30B9\u30C8\u304C\u7121\u52B9\u3067\u3059\u3002"
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\u30B5\u30FC\u30D3\u30B9\u306F\u7D50\u679C\u3092\u751F\u6210\u3057\u307E\u3057\u305F\u304C\u3001\u305D\u308C\u3092\u8FD4\u3059\u3053\u3068\u304C\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002"
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\u30B5\u30FC\u30D3\u30B9\u306F\u51E6\u7406\u3092\u7D9A\u884C\u3059\u308B\u65B9\u6CD5\u3092\u5224\u65AD\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002"
+      }
+    ]
+  }],
+  ["ko", {
+    "lang": "ko",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\uC11C\uBE44\uC2A4 \uAD6C\uC131\uC774 \uC798\uBABB\uB418\uC5C8\uC2B5\uB2C8\uB2E4."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\uC11C\uBE44\uC2A4\uAC00 \uAC12\uC744 \uACC4\uC0B0\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\uC694\uCCAD\uC774 \uC720\uD6A8\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\uC11C\uBE44\uC2A4\uAC00 \uACB0\uACFC\uB97C \uC0DD\uC131\uD588\uC9C0\uB9CC \uC804\uB2EC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\uC11C\uBE44\uC2A4\uAC00 \uC5B4\uB5BB\uAC8C \uC9C4\uD589\uD560\uC9C0 \uACB0\uC815\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4."
+      }
+    ]
+  }],
+  ["nl", {
+    "lang": "nl",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "De service is onjuist geconfigureerd."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "De service kon geen waarde berekenen."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "Het verzoek is ongeldig."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "De service heeft een resultaat opgeleverd dat niet kon worden afgeleverd."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "De service kon niet bepalen hoe verder te gaan."
+      }
+    ]
+  }],
+  ["pl", {
+    "lang": "pl",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "Us\u0142uga jest nieprawid\u0142owo skonfigurowana."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "Us\u0142udze nie uda\u0142o si\u0119 obliczy\u0107 warto\u015Bci."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u017B\u0105danie jest nieprawid\u0142owe."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "Us\u0142uga wygenerowa\u0142a wynik, kt\xF3rego nie mog\u0142a dostarczy\u0107."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "Us\u0142udze nie uda\u0142o si\u0119 zdecydowa\u0107, jak kontynuowa\u0107."
+      }
+    ]
+  }],
+  ["pt", {
+    "lang": "pt",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "O servi\xE7o est\xE1 configurado incorretamente."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "O servi\xE7o n\xE3o conseguiu calcular um valor."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "A solicita\xE7\xE3o n\xE3o \xE9 v\xE1lida."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "O servi\xE7o produziu um resultado que n\xE3o conseguiu entregar."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "O servi\xE7o n\xE3o conseguiu decidir como continuar."
+      }
+    ]
+  }],
+  ["ru", {
+    "lang": "ru",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0430 \u043D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0435 \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u0447\u0438\u0441\u043B\u0438\u0442\u044C \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0435\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0442\u0435\u043B\u0435\u043D."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0430 \u043F\u043E\u043B\u0443\u0447\u0438\u043B\u0430 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043D\u0435 \u0441\u043C\u043E\u0433\u043B\u0430 \u043F\u0435\u0440\u0435\u0434\u0430\u0442\u044C."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0435 \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0440\u0435\u0448\u0438\u0442\u044C, \u043A\u0430\u043A \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C."
+      }
+    ]
+  }],
+  ["tr", {
+    "lang": "tr",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "Hizmet yanl\u0131\u015F yap\u0131land\u0131r\u0131lm\u0131\u015F."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "Hizmet bir de\u011Fer hesaplayamad\u0131."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u0130stek ge\xE7erli de\u011Fil."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "Hizmet, iletemedi\u011Fi bir sonu\xE7 \xFCretti."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "Hizmet nas\u0131l devam edece\u011Fine karar veremedi."
+      }
+    ]
+  }],
+  ["uk", {
+    "lang": "uk",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0443 \u043D\u0430\u043B\u0430\u0448\u0442\u043E\u0432\u0430\u043D\u043E \u043D\u0435\u043F\u0440\u0430\u0432\u0438\u043B\u044C\u043D\u043E."
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0456 \u043D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u043E\u0431\u0447\u0438\u0441\u043B\u0438\u0442\u0438 \u0437\u043D\u0430\u0447\u0435\u043D\u043D\u044F."
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u0417\u0430\u043F\u0438\u0442 \u043D\u0435\u0434\u0456\u0439\u0441\u043D\u0438\u0439."
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0430 \u043E\u0442\u0440\u0438\u043C\u0430\u043B\u0430 \u0440\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442, \u044F\u043A\u0438\u0439 \u043D\u0435 \u0437\u043C\u043E\u0433\u043B\u0430 \u043F\u0435\u0440\u0435\u0434\u0430\u0442\u0438."
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\u0421\u043B\u0443\u0436\u0431\u0456 \u043D\u0435 \u0432\u0434\u0430\u043B\u043E\u0441\u044F \u0432\u0438\u0440\u0456\u0448\u0438\u0442\u0438, \u044F\u043A \u043F\u0440\u043E\u0434\u043E\u0432\u0436\u0438\u0442\u0438."
+      }
+    ]
+  }],
+  ["zh", {
+    "lang": "zh",
+    "texts": [
+      {
+        "text": "The service is misconfigured.",
+        "translation": "\u670D\u52A1\u914D\u7F6E\u6709\u8BEF\u3002"
+      },
+      {
+        "text": "The service failed to compute a value.",
+        "translation": "\u670D\u52A1\u672A\u80FD\u8BA1\u7B97\u51FA\u503C\u3002"
+      },
+      {
+        "text": "The request is not valid.",
+        "translation": "\u8BF7\u6C42\u65E0\u6548\u3002"
+      },
+      {
+        "text": "The service produced a result it could not deliver.",
+        "translation": "\u670D\u52A1\u751F\u6210\u4E86\u7ED3\u679C\uFF0C\u4F46\u65E0\u6CD5\u5C06\u5176\u9001\u8FBE\u3002"
+      },
+      {
+        "text": "The service failed to decide how to continue.",
+        "translation": "\u670D\u52A1\u65E0\u6CD5\u51B3\u5B9A\u5982\u4F55\u7EE7\u7EED\u3002"
+      }
+    ]
+  }]
+];
+
+// ../../analyzer/nodejs/src/builtin-entry-markers.ts
+var ROSTER_MARKER = "$roster";
+function refuseRosterMarkers(node, where, path = "") {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    node.forEach((item, i) => refuseRosterMarkers(item, where, `${path}[${i}]`));
+    return;
+  }
+  for (const [key3, value2] of Object.entries(node)) {
+    if (key3 === ROSTER_MARKER) {
+      throw new Error(
+        `${where}: '${ROSTER_MARKER}' marker left underived at '${path || "/"}'. The built-in entries are derived by scripts/render-builtin-vocabulary.mjs \u2014 run it (the root and the analyzer's \`prepare\` do).`
+      );
+    }
+    refuseRosterMarkers(value2, where, path ? `${path}.${key3}` : key3);
+  }
+}
+
+// ../../analyzer/nodejs/src/schema-region.ts
+var SCHEMA_REGION_KEYS = [
+  "schema",
+  "status",
+  "inputType",
+  "outputType",
+  "itemType"
+];
+function isInSchemaRegion(path) {
+  for (let i = 0; i < path.length - 1; i++) {
+    const segment = path[i];
+    if (typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)) return true;
+  }
+  return false;
+}
+
+// ../../analyzer/nodejs/src/manifest-schemas.ts
+var MANIFEST_SCHEMA_URI = "telo://manifest";
+function manifestFragmentRef(name2) {
+  return `${MANIFEST_SCHEMA_URI}#/$defs/${name2}`;
+}
+var FRAGMENT_PREFIX = `${MANIFEST_SCHEMA_URI}#/$defs/`;
+var SCHEMA_FRAGMENTS = /* @__PURE__ */ new Set(["JsonSchema7", "KindSchema"]);
+function isSchemaFragment(name2) {
+  return name2 !== void 0 && SCHEMA_FRAGMENTS.has(name2);
+}
+function hoistedDefKey(name2) {
+  return `telo:${name2}`;
+}
+function isHoistedFragmentDefKey(key3) {
+  return key3.startsWith(hoistedDefKey(""));
+}
+var LIFT_SINGLE = [
+  "items",
+  "additionalItems",
+  "additionalProperties",
+  "contains",
+  "propertyNames",
+  "not",
+  "if",
+  "then",
+  "else"
+];
+var LIFT_LISTS = ["anyOf", "oneOf", "allOf", "items"];
+var LIFT_MAPS = ["properties", "patternProperties", "dependencies"];
+function liftFragmentDefs(composed) {
+  const lifted = {};
+  const visit4 = (node, isRoot) => {
+    if (!isPlainObject3(node)) return node;
+    let out = node;
+    const own2 = node.$defs;
+    if (!isRoot && isPlainObject3(own2) && Object.keys(own2).some(isHoistedFragmentDefKey)) {
+      const kept = {};
+      for (const [key3, body2] of Object.entries(own2)) {
+        if (isHoistedFragmentDefKey(key3)) lifted[key3] ??= body2;
+        else kept[key3] = body2;
+      }
+      out = { ...node };
+      if (Object.keys(kept).length > 0) out.$defs = kept;
+      else delete out.$defs;
+    }
+    const replace = (key3, value2) => {
+      if (value2 === out[key3]) return;
+      if (out === node) out = { ...node };
+      out[key3] = value2;
+    };
+    for (const key3 of LIFT_SINGLE) {
+      if (isPlainObject3(out[key3])) replace(key3, visit4(out[key3], false));
+    }
+    for (const key3 of LIFT_LISTS) {
+      const list5 = out[key3];
+      if (!Array.isArray(list5)) continue;
+      const next = list5.map((child) => visit4(child, false));
+      if (next.some((child, index) => child !== list5[index])) replace(key3, next);
+    }
+    for (const key3 of LIFT_MAPS) {
+      const map3 = out[key3];
+      if (!isPlainObject3(map3)) continue;
+      let changed = false;
+      const next = {};
+      for (const [name2, child] of Object.entries(map3)) {
+        next[name2] = visit4(child, false);
+        if (next[name2] !== child) changed = true;
+      }
+      if (changed) replace(key3, next);
+    }
+    return out;
+  };
+  const result = visit4(composed, true);
+  if (Object.keys(lifted).length === 0) return composed;
+  const rootDefs = isPlainObject3(result.$defs) ? result.$defs : {};
+  return { ...result, $defs: { ...lifted, ...rootDefs } };
+}
+function deepFreeze(value2) {
+  if (value2 && typeof value2 === "object" && !Object.isFrozen(value2)) {
+    Object.freeze(value2);
+    for (const child of Object.values(value2)) deepFreeze(child);
+  }
+  return value2;
+}
+function readFragments() {
+  const defs = {};
+  for (const [name2, data] of BUILTIN_FRAGMENT_FILES) {
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      throw new Error(`sdk/builtins/fragments/${name2}.json: a fragment is a JSON Schema object.`);
+    }
+    refuseRosterMarkers(data, `sdk/builtins/fragments/${name2}.json`);
+    defs[name2] = structuredClone(data);
+  }
+  return defs;
+}
+var ManifestRootSchema = {
+  $id: MANIFEST_SCHEMA_URI,
+  $defs: readFragments()
+};
+deepFreeze(ManifestRootSchema);
+function fragmentBody(name2) {
+  const body2 = ManifestRootSchema.$defs[name2];
+  return body2 && typeof body2 === "object" ? body2 : void 0;
+}
+function requireFragment(name2) {
+  const body2 = fragmentBody(name2);
+  if (!body2) throw new Error(`Unknown manifest fragment '${name2}'`);
+  return body2;
+}
+var ResourceRefSchema = requireFragment("ResourceRef");
+var RetryPolicySchema = requireFragment("RetryPolicy");
+var RetryAttemptsSchema = requireFragment("RetryAttempts");
+var InvokeStepSchema = requireFragment("InvokeStep");
+var StepSchema = requireFragment("Step");
+var JsonSchema7Schema = requireFragment("JsonSchema7");
+var KindSchemaSchema = requireFragment("KindSchema");
+function referencedFragments(node, out = /* @__PURE__ */ new Set()) {
+  if (!node || typeof node !== "object") return out;
+  if (Array.isArray(node)) {
+    for (const item of node) referencedFragments(item, out);
+    return out;
+  }
+  for (const [key3, value2] of Object.entries(node)) {
+    if (key3 === "$ref" && typeof value2 === "string" && value2.startsWith(FRAGMENT_PREFIX)) {
+      out.add(value2.slice(FRAGMENT_PREFIX.length));
+    } else {
+      referencedFragments(value2, out);
+    }
+  }
+  return out;
+}
+var RECURSIVE_FRAGMENTS = (() => {
+  const edges = /* @__PURE__ */ new Map();
+  for (const name2 of Object.keys(ManifestRootSchema.$defs)) {
+    edges.set(name2, referencedFragments(fragmentBody(name2)));
+  }
+  const recursive = /* @__PURE__ */ new Set();
+  for (const start of edges.keys()) {
+    const seen = /* @__PURE__ */ new Set();
+    const queue = [...edges.get(start) ?? []];
+    while (queue.length > 0) {
+      const next = queue.shift();
+      if (next === start) {
+        recursive.add(start);
+        break;
+      }
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push(...edges.get(next) ?? []);
+    }
+  }
+  return recursive;
+})();
+var expandedFragments = /* @__PURE__ */ new Map();
+function expandedFragment(name2) {
+  let template = expandedFragments.get(name2);
+  if (!template) {
+    const body2 = structuredClone(requireFragment(name2));
+    const hoists = /* @__PURE__ */ new Set();
+    walkFragments(body2, /* @__PURE__ */ new Set(), { hoist: (fragment) => hoists.add(fragment) });
+    template = { body: body2, hoists: [...hoists] };
+    expandedFragments.set(name2, template);
+  }
+  return { body: structuredClone(template.body), hoists: template.hoists };
+}
+function manifestFragment(name2) {
+  requireFragment(name2);
+  const embeddable = !RECURSIVE_FRAGMENTS.has(name2) && expandedFragment(name2).hoists.length === 0;
+  if (!embeddable) {
+    throw new Error(
+      `Manifest fragment '${name2}' is recursive, or references one, and cannot be embedded \u2014 point a slot at it with $ref: "${manifestFragmentRef(name2)}" and pass the enclosing schema through withSchemaFragments().`
+    );
+  }
+  const copy = expandedFragment(name2).body;
+  copy[X_TELO_FRAGMENT] = name2;
+  return copy;
+}
+function expandManifestFragments(node, seen = /* @__PURE__ */ new Set()) {
+  if (!node || typeof node !== "object") return;
+  const target = node;
+  const kind = Array.isArray(node) ? void 0 : target.kind;
+  walkFragments(node, seen, {
+    hoist: (name2) => hoistFragmentDef(target, name2),
+    path: [],
+    roots: rootPatternsOf(typeof kind === "string" ? kind : void 0)
+  });
+}
+var DOCUMENT_ROOTS = (() => {
+  const out = /* @__PURE__ */ new Map();
+  for (const [, data] of BUILTIN_DOCUMENT_FILES) {
+    if (!isPlainObject3(data) || data.kind !== "Telo.Definition" || !isPlainObject3(data.schema)) continue;
+    const name2 = isPlainObject3(data.metadata) ? data.metadata.name : void 0;
+    if (typeof name2 !== "string") continue;
+    const patterns = [];
+    collectSchemaPositions(data.schema, [], /* @__PURE__ */ new Set(), patterns);
+    if (patterns.length > 0) out.set(`Telo.${name2}`, patterns);
+  }
+  return out;
+})();
+function fragmentNameOf(node) {
+  if (!isPlainObject3(node) || typeof node.$ref !== "string") return void 0;
+  return node.$ref.startsWith(FRAGMENT_PREFIX) ? node.$ref.slice(FRAGMENT_PREFIX.length) : void 0;
+}
+function declaresSchemaFragment(node) {
+  if (isSchemaFragment(fragmentNameOf(node))) return true;
+  if (!isPlainObject3(node)) return false;
+  return ["anyOf", "oneOf"].some(
+    (key3) => Array.isArray(node[key3]) && node[key3].some((branch) => declaresSchemaFragment(branch))
+  );
+}
+function collectSchemaPositions(node, path, entered, out) {
+  if (!isPlainObject3(node)) return;
+  if (path.length > 0 && declaresSchemaFragment(node)) {
+    out.push([...path]);
+    return;
+  }
+  const fragment = fragmentNameOf(node);
+  if (fragment && !entered.has(fragment)) {
+    const body2 = fragmentBody(fragment);
+    if (body2) collectSchemaPositions(body2, path, /* @__PURE__ */ new Set([...entered, fragment]), out);
+  }
+  for (const key3 of ["anyOf", "oneOf", "allOf"]) {
+    if (Array.isArray(node[key3])) {
+      for (const branch of node[key3]) collectSchemaPositions(branch, path, entered, out);
+    }
+  }
+  if (isPlainObject3(node.properties)) {
+    for (const [key3, child] of Object.entries(node.properties)) {
+      collectSchemaPositions(child, [...path, key3], entered, out);
+    }
+  }
+  if (isPlainObject3(node.items)) collectSchemaPositions(node.items, [...path, "[*]"], entered, out);
+  if (isPlainObject3(node.additionalProperties)) {
+    collectSchemaPositions(node.additionalProperties, [...path, "*"], entered, out);
+  }
+}
+function rootPatternsOf(kind) {
+  const derived = kind ? DOCUMENT_ROOTS.get(kind) ?? [] : [];
+  return [...SCHEMA_REGION_KEYS.map((key3) => [key3]), ...derived];
+}
+function isRootPosition(ctx, key3) {
+  if (!ctx.path || !ctx.roots) return false;
+  const position = [...ctx.path, key3];
+  return ctx.roots.some(
+    (pattern2) => pattern2.length === position.length && pattern2.every((segment, index) => {
+      const at3 = position[index];
+      if (segment === "[*]") return typeof at3 === "number";
+      if (segment === "*") return typeof at3 === "string";
+      return segment === at3;
+    })
+  );
+}
+function childContext(ctx, key3) {
+  return { hoist: ctx.hoist, ...ctx.path ? { path: [...ctx.path, key3], roots: ctx.roots } : {} };
+}
+function expandRoot(value2, seen) {
+  const rootCtx = (target) => ({
+    hoist: (name3) => hoistFragmentDef(target, name3)
+  });
+  const name2 = fragmentNameOf(value2);
+  if (name2 && RECURSIVE_FRAGMENTS.has(name2)) {
+    const localized = { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
+    hoistFragmentDef(localized, name2);
+    return localized;
+  }
+  const expanded = name2 && fragmentBody(name2) ? fragmentFor(value2, { hoist: () => {
+  } }, true) : void 0;
+  if (expanded) {
+    for (const hoisted of expanded.hoists) hoistFragmentDef(expanded.body, hoisted);
+    return expanded.body;
+  }
+  walkFragments(value2, seen, rootCtx(value2));
+  return value2;
+}
+function walkFragments(node, seen, ctx) {
+  if (!node || typeof node !== "object") return;
+  if (seen.has(node)) return;
+  seen.add(node);
+  const container = node;
+  const keys = Array.isArray(node) ? node.map((_2, index) => index) : Object.keys(node);
+  for (const key3 of keys) {
+    const value2 = container[key3];
+    if (isPlainObject3(value2) && isRootPosition(ctx, key3)) {
+      if (typeof value2.kind === "string") expandManifestFragments(value2, seen);
+      else container[key3] = expandRoot(value2, seen);
+      continue;
+    }
+    const localized = localizeRecursiveFragment(value2, ctx);
+    if (localized) {
+      container[key3] = localized;
+      continue;
+    }
+    const fragment = fragmentFor(value2, ctx);
+    if (fragment) container[key3] = fragment;
+    else walkFragments(value2, seen, childContext(ctx, key3));
+  }
+}
+function localizeRecursiveFragment(value2, ctx) {
+  if (!isPlainObject3(value2)) return void 0;
+  const ref = value2.$ref;
+  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
+  const name2 = ref.slice(FRAGMENT_PREFIX.length);
+  if (!RECURSIVE_FRAGMENTS.has(name2)) return void 0;
+  ctx.hoist(name2);
+  return { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
+}
+function hoistFragmentDef(target, name2) {
+  const defs = target.$defs ??= {};
+  const pending = [name2];
+  while (pending.length > 0) {
+    const next = pending.pop();
+    const key3 = hoistedDefKey(next);
+    if (defs[key3]) continue;
+    const { body: body2, hoists } = expandedFragment(next);
+    defs[key3] = { ...body2, [X_TELO_FRAGMENT]: next };
+    pending.push(...hoists);
+  }
+}
+function fragmentFor(value2, ctx, detached) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  const node = value2;
+  const ref = node.$ref;
+  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
+  const name2 = ref.slice(FRAGMENT_PREFIX.length);
+  if (!fragmentBody(name2)) return void 0;
+  const { body: expanded, hoists } = expandedFragment(name2);
+  if (!detached) for (const hoisted of hoists) ctx.hoist(hoisted);
+  for (const [key3, own2] of Object.entries(node)) {
+    if (key3 === "$ref") continue;
+    if (key3 === "properties" && isPlainObject3(own2) && isPlainObject3(expanded.properties)) {
+      expanded.properties = { ...expanded.properties, ...own2 };
+      continue;
+    }
+    if (key3 === "required" && Array.isArray(own2) && Array.isArray(expanded.required)) {
+      expanded.required = [.../* @__PURE__ */ new Set([...expanded.required, ...own2])];
+      continue;
+    }
+    expanded[key3] = own2;
+  }
+  expanded[X_TELO_FRAGMENT] = name2;
+  return detached ? { body: expanded, hoists } : expanded;
+}
+function isPlainObject3(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+var X_TELO_FRAGMENT = "x-telo-fragment";
+function manifestFragmentOf(schema4) {
+  if (!schema4 || typeof schema4 !== "object") return void 0;
+  const name2 = schema4[X_TELO_FRAGMENT];
+  return typeof name2 === "string" ? name2 : void 0;
+}
+
+// ../../analyzer/nodejs/src/text-judgement.ts
+function coreProblem(problem, prefix) {
+  const where = problem.range === null ? "" : ` (at offset ${problem.range.start} of the pattern)`;
+  return { code: problem.code, message: `${problem.message}${where}`, path: [...prefix, ...problem.path] };
+}
+function selectsPlural(message) {
+  return !isPattern(message);
+}
+var SOURCE_LANGUAGE_MISSING_MESSAGE = "this text selects a plural case, but the module that writes it declares no lang:, so nothing says which language's plural rules select it \u2014 add lang: <language tag> to the module document, naming the language its texts are written in";
+function judgeText(value2, lang) {
+  const read = readText(value2);
+  if (!read.ok) return { problems: read.problems.map((problem) => coreProblem(problem, [])) };
+  return { text: read.text, problems: languageProblems(read.text.message, lang, isTextObject(value2) ? ["text"] : []) };
+}
+function isTextObject(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2) && Object.hasOwn(value2, "text");
+}
+function languageProblems(message, lang, prefix) {
+  if (!selectsPlural(message)) return [];
+  if (lang === null) {
+    return [{ code: "MESSAGE_SOURCE_LANGUAGE_MISSING", message: SOURCE_LANGUAGE_MISSING_MESSAGE, path: prefix }];
+  }
+  return invalidPluralCategories(message, lang).map((problem) => coreProblem(problem, prefix));
+}
+function judgeMessage(value2) {
+  const read = readMessage(value2);
+  return read.ok ? { message: read.message, problems: [] } : { problems: read.problems.map((problem) => coreProblem(problem, [])) };
+}
+function textKey(source, context) {
+  return JSON.stringify([source, context]);
+}
+function keyOfText(text3) {
+  return textKey(messageIdentity(text3.message), text3.context);
+}
+function describeTextKey(key3) {
+  const [source, context] = JSON.parse(key3);
+  return context === null ? JSON.stringify(source) : `${JSON.stringify(source)} (context ${JSON.stringify(context)})`;
+}
+var ENTRY_COMPUTED_MESSAGE = "a text catalog holds literals only \u2014 this value is computed, so it cannot be checked against its source or looked up; write the translation itself";
+function catalogComputedProblem() {
+  return {
+    code: "MESSAGE_ENTRY_COMPUTED",
+    message: "a text catalog holds literals only \u2014 this value is computed, so the catalogs it produces cannot be checked against their sources or looked up; write each catalog itself",
+    path: []
+  };
+}
+function judgeCatalog(catalog, isExpression3) {
+  const problems = [];
+  const entries = [];
+  const computed = expressionPaths(catalog, isExpression3, []);
+  for (const path of computed) problems.push({ code: "MESSAGE_ENTRY_COMPUTED", message: ENTRY_COMPUTED_MESSAGE, path });
+  if (computed.length > 0) return { entries, problems };
+  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) return { entries, problems };
+  const { lang, texts } = catalog;
+  if (!Array.isArray(texts)) return { entries, problems };
+  const seen = /* @__PURE__ */ new Map();
+  texts.forEach((entry2, index) => {
+    if (!entry2 || typeof entry2 !== "object" || Array.isArray(entry2)) return;
+    const { text: text3, translation, context } = entry2;
+    const source = judgeMessage(text3);
+    const target = judgeMessage(translation);
+    problems.push(
+      ...source.problems.map((p) => ({ ...p, path: ["texts", index, "text", ...p.path] })),
+      ...target.problems.map((p) => ({ ...p, path: ["texts", index, "translation", ...p.path] }))
+    );
+    if (!source.message || !target.message) return;
+    const at3 = ["texts", index, "translation"];
+    for (const problem of unknownVariables(target.message, source.message)) problems.push(coreProblem(problem, at3));
+    if (typeof lang === "string") {
+      for (const problem of invalidPluralCategories(target.message, lang)) problems.push(coreProblem(problem, at3));
+    }
+    const key3 = textKey(messageIdentity(source.message), typeof context === "string" ? context : null);
+    const first = seen.get(key3);
+    if (first !== void 0) {
+      problems.push({
+        code: "MESSAGE_ENTRY_DUPLICATE",
+        message: `this entry translates the same text and context as texts[${first}], so only one of them could ever be used`,
+        path: ["texts", index]
+      });
+      return;
+    }
+    seen.set(key3, index);
+    entries.push({ index, key: key3, source: source.message, translation: target.message });
+  });
+  return { entries, problems };
+}
+function expressionPaths(value2, isExpression3, path) {
+  if (isExpression3(value2)) return [path];
+  if (Array.isArray(value2)) return value2.flatMap((item, index) => expressionPaths(item, isExpression3, [...path, index]));
+  if (value2 && typeof value2 === "object" && Object.getPrototypeOf(value2) === Object.prototype) {
+    return Object.entries(value2).flatMap(([key3, child]) => expressionPaths(child, isExpression3, [...path, key3]));
+  }
+  return [];
+}
+function judgeValues(message, values) {
+  const problems = [];
+  const selectors = selectorNames(message);
+  for (const name2 of messageVariables(message)) {
+    const value2 = values.get(name2);
+    if (!value2) {
+      problems.push({
+        code: "MESSAGE_PLACEHOLDER_UNBOUND",
+        message: `no value is given for ${name2}, which the message reads${selectors.has(name2) ? " to select a plural case" : ""}`,
+        path: []
+      });
+      continue;
+    }
+    if (value2.kind === "refused" || value2.kind === "string" && selectors.has(name2)) {
+      problems.push({
+        code: "MESSAGE_PLACEHOLDER_VALUE_UNSUPPORTED",
+        message: selectors.has(name2) ? `the value given for ${name2} is ${value2.describe}, and ${name2} selects a plural case, which needs a number` : `the value given for ${name2} is ${value2.describe}, and a placeholder takes a string or a number`,
+        path: [name2]
+      });
+    }
+  }
+  return problems;
+}
+function selectorNames(message) {
+  const out = /* @__PURE__ */ new Set();
+  const pending = [message];
+  while (pending.length > 0) {
+    const at3 = pending.pop();
+    if (isPattern(at3)) continue;
+    out.add(at3.plural);
+    pending.push(...Object.values(at3.cases));
+  }
+  return out;
+}
+function runtimeValueKind(value2) {
+  if (typeof value2 === "string") return { kind: "string", describe: "a string" };
+  if (typeof value2 === "number" || typeof value2 === "bigint" || isCelUint(value2)) {
+    return { kind: "number", describe: "a number" };
+  }
+  if (value2 === null) return { kind: "refused", describe: "null" };
+  if (typeof value2 === "boolean") return { kind: "refused", describe: "a boolean" };
+  if (Array.isArray(value2)) return { kind: "refused", describe: "a list" };
+  return { kind: "refused", describe: "neither a string nor a number" };
+}
+function celTypeValueKind(type) {
+  if (type === void 0 || type === "dyn") return { kind: "unknown", describe: "a value of unknown type" };
+  if (type === "string") return { kind: "string", describe: "a string" };
+  if (type === "int" || type === "uint" || type === "double") return { kind: "number", describe: `a ${type}` };
+  return { kind: "refused", describe: `a ${type}` };
+}
+function schemaValueKind(schema4) {
+  const type = schema4 && typeof schema4 === "object" ? schema4.type : void 0;
+  if (type === "string") return { kind: "string", describe: "a string" };
+  if (type === "integer" || type === "number") return { kind: "number", describe: `a value declared ${type}` };
+  if (type === "boolean" || type === "null" || type === "array" || type === "object") {
+    return { kind: "refused", describe: `a value declared ${type}` };
+  }
+  return { kind: "unknown", describe: "a value of unknown type" };
+}
+
+// ../../analyzer/nodejs/src/manifest-navigation.ts
+function enclosingOf(root, concretePath2) {
+  const lastDot = concretePath2.lastIndexOf(".");
+  const lastSegment2 = concretePath2.slice(lastDot + 1);
+  if (lastSegment2.includes("[")) return void 0;
+  if (lastDot < 0) return root;
+  return navigateConcrete(root, concretePath2.slice(0, lastDot));
+}
+function navigateConcrete(root, path) {
+  let current = root;
+  for (const rawSegment of path.split(".")) {
+    if (current == null || typeof current !== "object") return void 0;
+    let segment = rawSegment;
+    const indices = [];
+    const bracket = segment.indexOf("[");
+    if (bracket >= 0) {
+      for (const m of segment.slice(bracket).matchAll(/\[(\d+)\]/g)) {
+        indices.push(Number(m[1]));
+      }
+      segment = segment.slice(0, bracket);
+    }
+    if (segment) current = current[segment];
+    for (const index of indices) {
+      if (!Array.isArray(current)) return void 0;
+      current = current[index];
+    }
+  }
+  return current;
+}
+function resolveSchemaPointer(root, ref) {
+  if (!ref.startsWith("#")) return void 0;
+  let node = root;
+  for (const segment of ref.slice(1).split("/")) {
+    if (segment === "") continue;
+    if (!node || typeof node !== "object") return void 0;
+    node = node[segment.replace(/~1/g, "/").replace(/~0/g, "~")];
+  }
+  return node;
+}
+function resolveLocalRef(schema4, root) {
+  if (!schema4) return void 0;
+  const ref = schema4.$ref;
+  if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
+    const resolved = root.$defs?.[ref.slice("#/$defs/".length)];
+    if (resolved && typeof resolved === "object") return resolved;
+  }
+  return schema4;
+}
+function propertySchemas(schema4) {
+  const out = [];
+  if (schema4.properties && typeof schema4.properties === "object") {
+    for (const [k, v] of Object.entries(schema4.properties)) out.push([k, v]);
+  }
+  for (const key3 of ["oneOf", "anyOf", "allOf"]) {
+    const variants = schema4[key3];
+    if (!Array.isArray(variants)) continue;
+    for (const variant of variants) {
+      if (variant?.properties && typeof variant.properties === "object") {
+        for (const [k, v] of Object.entries(variant.properties)) {
+          out.push([k, v]);
+        }
+      }
+    }
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/text-slot.ts
+var MESSAGE_FRAGMENT = "Message";
+var TEXT_FRAGMENT = "Text";
+var TEXT_CATALOG_FRAGMENT = "TextCatalog";
+var TEXT_CONTEXT_ANNOTATION = "x-telo-text-context";
+var TEXT_VALUES_FOR_ANNOTATION = "x-telo-text-values-for";
+var TEXT_VALUES_ANNOTATION = "x-telo-text-values";
+var TEXT_VALUES_FROM_ANNOTATION = "x-telo-text-values-from";
+var TEXT_RECORD_FRAGMENT = "TextRecord";
+var UNDETERMINED_LANGUAGE = "und";
+var TEXT_ANNOTATION_VALUE_SCHEMAS = {
+  [TEXT_CONTEXT_ANNOTATION]: { type: "string", minLength: 1 },
+  [TEXT_VALUES_FOR_ANNOTATION]: { type: "string", pattern: "^/" },
+  [TEXT_VALUES_FROM_ANNOTATION]: { type: "string", pattern: "^(0|[1-9][0-9]*)(/.*)?$" }
+};
+function textFragmentOf(schema4) {
+  const name2 = manifestFragmentOf(schema4);
+  return name2 === MESSAGE_FRAGMENT || name2 === TEXT_FRAGMENT || name2 === TEXT_CATALOG_FRAGMENT ? name2 : void 0;
+}
+function isTextRecordSchema(schema4) {
+  return manifestFragmentOf(schema4) === TEXT_RECORD_FRAGMENT;
+}
+function isTextSchema(schema4) {
+  return textFragmentOf(schema4) === TEXT_FRAGMENT;
+}
+function isTextOrRecordUnion(schema4, root, resolveRef2) {
+  if (!isPlainObject4(schema4)) return false;
+  const branches = [...Array.isArray(schema4.anyOf) ? schema4.anyOf : [], ...Array.isArray(schema4.oneOf) ? schema4.oneOf : []];
+  let text3 = false;
+  let record = false;
+  for (const branch of branches) {
+    let node = branch;
+    if (isPlainObject4(node) && typeof node.$ref === "string" && textFragmentOf(node) === void 0 && !isTextRecordSchema(node)) {
+      node = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref)?.schema;
+    }
+    if (textFragmentOf(node) === TEXT_FRAGMENT) text3 = true;
+    if (isTextRecordSchema(node)) record = true;
+  }
+  return text3 && record;
+}
+function producesTextRecord(schema4, root = isPlainObject4(schema4) ? schema4 : {}, resolveRef2) {
+  const resolved = (node2) => isPlainObject4(node2) && typeof node2.$ref === "string" && !isTextRecordSchema(node2) ? node2.$ref.startsWith("#") ? resolveSchemaPointer(root, node2.$ref) : resolveRef2?.(node2.$ref)?.schema : node2;
+  const node = resolved(schema4);
+  if (isTextRecordSchema(node)) return true;
+  if (!isPlainObject4(node)) return false;
+  const branches = [...Array.isArray(node.anyOf) ? node.anyOf : [], ...Array.isArray(node.oneOf) ? node.oneOf : []];
+  if (branches.length === 0) return false;
+  let record = false;
+  for (const branch of branches) {
+    const at3 = resolved(branch);
+    if (isTextRecordSchema(at3)) record = true;
+    else if (!(isPlainObject4(at3) && at3.type === "null")) return false;
+  }
+  return record;
+}
+function renderValuePath(path) {
+  let out = "";
+  for (const segment of path) {
+    if (typeof segment === "number") out += `[${segment}]`;
+    else out += out === "" ? segment : `.${segment}`;
+  }
+  return out;
+}
+var isPlainObject4 = (value2) => {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+};
+var declaring = /* @__PURE__ */ new WeakMap();
+function declaresText(schema4, root = schema4) {
+  let byNode = declaring.get(root);
+  if (!byNode) declaring.set(root, byNode = /* @__PURE__ */ new WeakMap());
+  let known = byNode.get(schema4);
+  if (known === void 0) {
+    const seen = /* @__PURE__ */ new Set();
+    const scan = (node) => {
+      if (!node || typeof node !== "object" || seen.has(node)) return false;
+      seen.add(node);
+      if (Array.isArray(node)) return node.some(scan);
+      if (isTextRecordSchema(node)) return false;
+      if (textFragmentOf(node) !== void 0 || TEXT_VALUES_FOR_ANNOTATION in node) return true;
+      const ref = node.$ref;
+      if (typeof ref === "string") {
+        if (!ref.startsWith("#")) return true;
+        if (scan(resolveSchemaPointer(root, ref))) return true;
+      }
+      return Object.values(node).some(scan);
+    };
+    byNode.set(schema4, known = scan(schema4));
+  }
+  return known;
+}
+function pointerSegments(pointer) {
+  if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
+  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
+}
+function declaredTextValuesOf(schema4) {
+  if (!isPlainObject4(schema4)) return void 0;
+  const declared = schema4[TEXT_VALUES_ANNOTATION];
+  return isPlainObject4(declared) ? declared : void 0;
+}
+function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
+  if (typeof value2 !== "string" && !isPlainObject4(value2)) return false;
+  const keys = isPlainObject4(value2) ? Object.keys(value2) : [];
+  const seen = /* @__PURE__ */ new Set();
+  const admits = (node, at3) => {
+    if (!isPlainObject4(node) || seen.has(node)) return false;
+    seen.add(node);
+    if (typeof node.$ref === "string") {
+      if (node.$ref.startsWith("#")) {
+        if (admits(resolveSchemaPointer(at3, node.$ref), at3)) return true;
+      } else {
+        const named = resolveRef2?.(node.$ref);
+        if (named && admits(named.schema, named.root)) return true;
+      }
+    }
+    for (const union2 of ["anyOf", "oneOf"]) {
+      if (Array.isArray(node[union2]) && node[union2].some((branch) => admits(branch, at3))) return true;
+    }
+    const types = node.type === void 0 ? [] : [node.type].flat();
+    if (typeof value2 === "string") return types.includes("string");
+    if (!types.includes("object")) return false;
+    const properties = isPlainObject4(node.properties) ? node.properties : {};
+    const required = Array.isArray(node.required) ? node.required : [];
+    if (!required.every((name2) => typeof name2 === "string" && keys.includes(name2))) return false;
+    return node.additionalProperties !== false || keys.every((key3) => key3 in properties);
+  };
+  return admits(fragmentNode, root);
+}
+var RESOURCE_ENVELOPE = /* @__PURE__ */ new Set(["kind", "metadata"]);
+function branchExcludes(branch, root, value2, path, resolveRef2) {
+  if (!isPlainObject4(value2)) return false;
+  const keys = Object.keys(value2).filter((key3) => path.length > 0 || !RESOURCE_ENVELOPE.has(key3));
+  const ancestry = /* @__PURE__ */ new Set();
+  const excludes = (node, at3) => {
+    if (!isPlainObject4(node) || ancestry.has(node)) return false;
+    ancestry.add(node);
+    try {
+      if (typeof node.$ref === "string") {
+        const target = node.$ref.startsWith("#") ? { schema: resolveSchemaPointer(at3, node.$ref), root: at3 } : resolveRef2?.(node.$ref);
+        if (target && excludes(target.schema, target.root)) return true;
+      }
+      const required = Array.isArray(node.required) ? node.required : [];
+      if (required.some((name2) => typeof name2 === "string" && !Object.hasOwn(value2, name2))) return true;
+      if (node.additionalProperties === false) {
+        const properties = isPlainObject4(node.properties) ? node.properties : {};
+        const patterns = isPlainObject4(node.patternProperties) ? Object.keys(node.patternProperties) : [];
+        const extra = keys.some(
+          (key3) => !Object.hasOwn(properties, key3) && !patterns.some((pattern2) => safeRegExp(pattern2)?.test(key3))
+        );
+        if (extra) return true;
+      }
+      if (Array.isArray(node.allOf) && node.allOf.some((member) => excludes(member, at3))) return true;
+      for (const union2 of ["anyOf", "oneOf"]) {
+        const alternatives = node[union2];
+        if (Array.isArray(alternatives) && alternatives.length > 0) {
+          if (alternatives.every((alternative) => excludes(alternative, at3))) return true;
+        }
+      }
+      return false;
+    } finally {
+      ancestry.delete(node);
+    }
+  };
+  return excludes(branch, root);
+}
+function relativePointerOf(pointer) {
+  if (typeof pointer !== "string") return void 0;
+  const match = /^(0|[1-9][0-9]*)(\/.*)?$/.exec(pointer);
+  if (!match) return void 0;
+  return { up: Number(match[1]), segments: match[2] ? pointerSegments(match[2]) : [] };
+}
+function valuesFromAt(pointer, holder) {
+  const relative = relativePointerOf(pointer);
+  if (!relative) return void 0;
+  let at3 = holder;
+  for (let level = 0; level < relative.up && at3; level++) at3 = at3.outer;
+  if (!at3) return void 0;
+  let schema4 = at3.value;
+  for (const segment of relative.segments) schema4 = isPlainObject4(schema4) ? schema4[segment] : void 0;
+  return { path: [...at3.path, ...relative.segments], schema: schema4 };
+}
+function textSites(schema4, data, options, root = schema4) {
+  const texts = /* @__PURE__ */ new Map();
+  const values = /* @__PURE__ */ new Map();
+  const expressions = [];
+  if (!declaresText(schema4, root)) return { texts: [], values: [], expressions };
+  const entered = /* @__PURE__ */ new Set();
+  const ids = /* @__PURE__ */ new WeakMap();
+  let nextId = 0;
+  const nodeId = (node) => {
+    let id = ids.get(node);
+    if (id === void 0) ids.set(node, id = nextId++);
+    return id;
+  };
+  const walk7 = (node, root2, value2, path, holder, inheritedValues, inheritedFrom) => {
+    if (!node || typeof node !== "object" || Array.isArray(node) || value2 === void 0) return;
+    const declared = node;
+    const key3 = `${nodeId(declared)}\0${renderValuePath(path)}`;
+    if (entered.has(key3)) return;
+    entered.add(key3);
+    if (isTextRecordSchema(declared)) return;
+    const fragment = textFragmentOf(declared);
+    if (fragment !== void 0) {
+      const at3 = renderValuePath(path);
+      const admitted = options.isExpression(value2) || fragmentAdmits(declared, path.length === 0 ? siteValueOf({ path, value: value2 }) : value2, root2, options.resolveRef);
+      if (admitted && !texts.has(at3)) {
+        const declaredValues = declaredTextValuesOf(declared) ?? inheritedValues;
+        const valuesFrom2 = valuesFromAt(declared[TEXT_VALUES_FROM_ANNOTATION] ?? inheritedFrom, holder);
+        texts.set(at3, {
+          fragment,
+          path,
+          value: value2,
+          ...declaredValues ? { declaredValues } : {},
+          ...valuesFrom2 ? { valuesFrom: valuesFrom2 } : {}
+        });
+      }
+      return;
+    }
+    const pairing = pointerSegments(declared[TEXT_VALUES_FOR_ANNOTATION]);
+    if (pairing && holder && !values.has(renderValuePath(path))) {
+      let text3 = holder.value;
+      for (const segment of pairing) text3 = isPlainObject4(text3) ? text3[segment] : void 0;
+      values.set(renderValuePath(path), {
+        path,
+        values: value2,
+        textPath: [...holder.path, ...pairing],
+        text: text3
+      });
+    }
+    if (options.isExpression(value2)) {
+      if (declaresText(declared, root2)) expressions.push({ path, schema: declared, root: root2 });
+      return;
+    }
+    if (typeof declared.$ref === "string") {
+      const carried = declaredTextValuesOf(declared) ?? inheritedValues;
+      const carriedFrom = declared[TEXT_VALUES_FROM_ANNOTATION] ?? inheritedFrom;
+      if (declared.$ref.startsWith("#")) {
+        walk7(resolveSchemaPointer(root2, declared.$ref), root2, value2, path, holder, carried, carriedFrom);
+      } else {
+        const named = options.resolveRef?.(declared.$ref);
+        if (named) walk7(named.schema, named.root, value2, path, holder, carried, carriedFrom);
+      }
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(declared[union2])) {
+        for (const branch of declared[union2]) {
+          if (union2 !== "allOf" && branchExcludes(branch, root2, value2, path, options.resolveRef)) continue;
+          walk7(branch, root2, value2, path, holder);
+        }
+      }
+    }
+    if (Array.isArray(value2)) {
+      if (declared.items && typeof declared.items === "object" && !Array.isArray(declared.items)) {
+        value2.forEach((item, index) => walk7(declared.items, root2, item, [...path, index], holder));
+      }
+      return;
+    }
+    if (!isPlainObject4(value2)) return;
+    const properties = isPlainObject4(declared.properties) ? declared.properties : {};
+    const patterns = isPlainObject4(declared.patternProperties) ? declared.patternProperties : {};
+    const here = { value: value2, path, outer: holder };
+    for (const [name2, child] of Object.entries(value2)) {
+      const childPath = [...path, name2];
+      if (name2 in properties) {
+        walk7(properties[name2], root2, child, childPath, here);
+        continue;
+      }
+      let matched = false;
+      for (const [pattern2, patternSchema] of Object.entries(patterns)) {
+        if (safeRegExp(pattern2)?.test(name2)) {
+          matched = true;
+          walk7(patternSchema, root2, child, childPath, here);
+        }
+      }
+      if (!matched && declared.additionalProperties && typeof declared.additionalProperties === "object") {
+        walk7(declared.additionalProperties, root2, child, childPath, here);
+      }
+    }
+  };
+  walk7(schema4, root, data, [], void 0);
+  return { texts: [...texts.values()], values: [...values.values()], expressions };
+}
+function siteValueOf(site) {
+  if (site.path.length > 0 || !isPlainObject4(site.value)) return site.value;
+  const { kind, metadata, ...fields } = site.value;
+  return fields;
+}
+var reachingCatalog = /* @__PURE__ */ new WeakMap();
+function reachesTextCatalog(schema4, root, resolveRef2) {
+  let byNode = reachingCatalog.get(root);
+  if (!byNode) reachingCatalog.set(root, byNode = /* @__PURE__ */ new WeakMap());
+  let known = byNode.get(schema4);
+  if (known === void 0) {
+    const seen = /* @__PURE__ */ new Set();
+    const scan = (node, at3) => {
+      if (!node || typeof node !== "object" || seen.has(node)) return false;
+      seen.add(node);
+      if (Array.isArray(node)) return node.some((item) => scan(item, at3));
+      if (textFragmentOf(node) === TEXT_CATALOG_FRAGMENT) return true;
+      const ref = node.$ref;
+      if (typeof ref === "string") {
+        if (ref.startsWith("#")) {
+          if (scan(resolveSchemaPointer(at3, ref), at3)) return true;
+        } else {
+          const named = resolveRef2?.(ref);
+          if (named && scan(named.schema, named.root)) return true;
+        }
+      }
+      return Object.values(node).some((child) => scan(child, at3));
+    };
+    byNode.set(schema4, known = scan(schema4, root));
+  }
+  return known;
+}
+function catalogsComputedAbove(walk7, options) {
+  const out = /* @__PURE__ */ new Map();
+  for (const expression of walk7.expressions) {
+    const at3 = renderValuePath(expression.path);
+    if (!out.has(at3) && reachesTextCatalog(expression.schema, expression.root, options.resolveRef)) {
+      out.set(at3, expression.path);
+    }
+  }
+  return [...out.values()];
+}
+var patternCache = /* @__PURE__ */ new Map();
+function safeRegExp(pattern2) {
+  let compiled2 = patternCache.get(pattern2);
+  if (compiled2 === void 0) {
+    try {
+      compiled2 = new RegExp(pattern2, "u");
+    } catch {
+      compiled2 = null;
+    }
+    patternCache.set(pattern2, compiled2);
+  }
+  return compiled2;
+}
+function expressionsWithin(value2, isExpression3, path = []) {
+  if (isExpression3(value2)) return [{ path, value: value2 }];
+  if (Array.isArray(value2)) return value2.flatMap((item, index) => expressionsWithin(item, isExpression3, [...path, index]));
+  if (isPlainObject4(value2)) {
+    return Object.entries(value2).flatMap(([key3, child]) => expressionsWithin(child, isExpression3, [...path, key3]));
+  }
+  return [];
+}
+
+// ../../analyzer/nodejs/src/read-place.ts
+function enclosingKeys(at3) {
+  if (at3.length === 0) return at3;
+  return at3.slice(0, typeof at3[at3.length - 1] === "number" ? at3.length - 2 : at3.length - 1);
+}
+function placeAt(base, pointer) {
+  let keys = [...base];
+  let rest = pointer;
+  const relative = /^(\d+)(#|\/|$)/.exec(pointer);
+  if (relative) {
+    const up = Number(relative[1]);
+    keys = keys.slice(0, Math.max(0, keys.length - up));
+    if (relative[2] === "#") return keys;
+    rest = pointer.slice(relative[1].length);
+  } else if (!pointer.startsWith("/")) {
+    rest = `/${pointer}`;
+  }
+  for (const raw of rest.split("/").slice(1)) {
+    if (raw === "") continue;
+    const segment = raw.replace(/~1/g, "/").replace(/~0/g, "~");
+    if (segment === "*" || segment === "-") break;
+    keys.push(/^\d+$/.test(segment) ? Number(segment) : segment);
+  }
+  return keys;
+}
+function fieldPlace(base, field) {
+  if (typeof field !== "string" || field.length === 0) return void 0;
+  return placeAt(base, field.startsWith("/") || /^\d/.test(field) ? field : `/${field}`);
+}
+var READS_WHOLE = () => [{ kind: "value", keys: [] }];
+var READS_IDENTITY = () => [];
+var READS_SLOT_SCOPES = (referrer) => referrer.slots.map((keys) => ({ kind: "scope", keys }));
+var isSchema = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function localTarget(root, ref) {
+  let node = root;
+  for (const raw of ref.slice(1).split("/").slice(1)) {
+    if (!isSchema(node)) return void 0;
+    node = node[raw.replace(/~1/g, "/").replace(/~0/g, "~")];
+  }
+  return node;
+}
+function kindPlaces(referent, holds) {
+  const out = [];
+  const add = (keys) => {
+    if (out.some((held) => held.length <= keys.length && held.every((key3, i) => key3 === keys[i]))) return;
+    for (let i = out.length - 1; i >= 0; i--) {
+      const held = out[i];
+      if (held.length > keys.length && keys.every((key3, j) => key3 === held[j])) out.splice(i, 1);
+    }
+    out.push(keys);
+  };
+  const resolved = (node, document) => {
+    if (typeof node.$ref !== "string") return void 0;
+    if (node.$ref.startsWith("#")) return { node: localTarget(document, node.$ref), document };
+    const shape = referent.shapeOf(node.$ref);
+    return shape ? { node: shape, document: shape } : void 0;
+  };
+  const reaching = /* @__PURE__ */ new Map();
+  const reaches = (node, document, seen) => {
+    if (!isSchema(node) || seen.has(node)) return false;
+    const known = reaching.get(node);
+    if (known !== void 0) return known;
+    seen.add(node);
+    let found = holds(node);
+    const target = found ? void 0 : resolved(node, document);
+    if (target) found = reaches(target.node, target.document, seen);
+    const children = [];
+    for (const branch of ["allOf", "anyOf", "oneOf", "prefixItems"]) if (Array.isArray(node[branch])) children.push(...node[branch]);
+    for (const map3 of ["properties", "patternProperties"]) if (isSchema(node[map3])) children.push(...Object.values(node[map3]));
+    children.push(node.items, node.additionalProperties);
+    for (const child of children) if (!found && reaches(child, document, seen)) found = true;
+    seen.delete(node);
+    if (seen.size === 0) reaching.set(node, found);
+    return found;
+  };
+  const walk7 = (node, document, keys, seen) => {
+    if (!isSchema(node) || seen.has(node)) return;
+    const guard = new Set(seen).add(node);
+    if (holds(node)) {
+      add(keys);
+      return;
+    }
+    const target = resolved(node, document);
+    if (target) walk7(target.node, target.document, keys, guard);
+    for (const branch of ["allOf", "anyOf", "oneOf"]) {
+      if (Array.isArray(node[branch])) for (const member of node[branch]) walk7(member, document, keys, guard);
+    }
+    if (isSchema(node.properties)) {
+      for (const [name2, child] of Object.entries(node.properties)) walk7(child, document, [...keys, name2], guard);
+    }
+    const open = [node.items, node.additionalProperties];
+    if (Array.isArray(node.prefixItems)) open.push(...node.prefixItems);
+    if (isSchema(node.patternProperties)) open.push(...Object.values(node.patternProperties));
+    if (open.some((child) => reaches(child, document, /* @__PURE__ */ new Set()))) add(keys);
+  };
+  if (referent.schema) walk7(referent.schema, referent.schema, [], /* @__PURE__ */ new Set());
+  return out;
+}
+function pointerReads(pointers) {
+  const read = pointerPlaces(pointers).map((keys) => ({ kind: "value", keys }));
+  return () => read;
+}
+function crossingPlace(pointer) {
+  return placeAt([], `/${pointer.split("/")[1] ?? ""}`);
+}
+function pointerPlaces(pointers) {
+  const places = /* @__PURE__ */ new Map();
+  for (const pointer of pointers) {
+    const segments = pointer.split("/").slice(1);
+    for (let i = 1; i < segments.length; i++) {
+      if (segments[i] === "*" || segments[i] === "-") continue;
+      const keys = placeAt([], `/${segments.slice(i).join("/")}`);
+      places.set(JSON.stringify(keys), keys);
+    }
+  }
+  return [...places.values()];
+}
+
+// ../../analyzer/nodejs/src/text-values.ts
+var isSchema2 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function declaredValueKinds(declared) {
+  return new Map(Object.entries(declared).map(([name2, schema4]) => [name2, schemaValueKind(schema4)]));
+}
+function declaredValueRefusal(name2, schema4) {
+  const type = isSchema2(schema4) ? schema4.type : void 0;
+  if (type === "string" || type === "integer" || type === "number") return void 0;
+  return `'${name2}' typed as neither a string nor a number: a message formats only those. Declare it 'type: string', 'integer' or 'number'.`;
+}
+function fragmentAt(node, root, resolveRef2) {
+  const own2 = textFragmentOf(node);
+  if (own2 !== void 0) return own2;
+  if (typeof node.$ref !== "string") return void 0;
+  const target = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref);
+  return isSchema2(target) ? textFragmentOf(target) : void 0;
+}
+function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
+  if (!isSchema2(schema4)) return [];
+  const problems = [];
+  const visited = /* @__PURE__ */ new Set();
+  const report = (path, shape, inner, reason, annotation = TEXT_VALUES_ANNOTATION) => {
+    const where = renderValuePath(shape ? path : [...path, annotation]);
+    const place2 = shape ? `'${where}', which reaches '${renderValuePath([...inner, annotation])}' in the named shape '${shape}' it names,` : `'${where}'`;
+    problems.push({ path: where, message: `'${kind}' declares ${place2} ${reason}` });
+  };
+  const visit4 = (node, root, path, shape, inner) => {
+    if (!isSchema2(node) || visited.has(node)) return;
+    visited.add(node);
+    const step = (key3) => shape ? [path, [...inner, ...key3]] : [[...path, ...key3], inner];
+    if (TEXT_VALUES_ANNOTATION in node) {
+      const declared = node[TEXT_VALUES_ANNOTATION];
+      const fragment = fragmentAt(node, root, resolveRef2);
+      if (fragment !== "Text" && fragment !== "Message") {
+        report(path, shape, inner, "on a node that is no text: it declares the values a Text or a Message is formatted with, so write it beside the text's `$ref: telo://manifest#/$defs/Text`.");
+      } else if (!isSchema2(declared)) {
+        report(path, shape, inner, "as something other than a map of value names to their schemas. Write `{}` for a text formatted with no values.");
+      } else {
+        for (const [name2, value2] of Object.entries(declared)) {
+          const refusal = declaredValueRefusal(name2, value2);
+          if (refusal) report(path, shape, inner, `with ${refusal}`);
+        }
+      }
+    }
+    if (TEXT_VALUES_FROM_ANNOTATION in node) {
+      const fragment = fragmentAt(node, root, resolveRef2);
+      const from = (why) => report(path, shape, inner, why, TEXT_VALUES_FROM_ANNOTATION);
+      if (fragment !== "Text" && fragment !== "Message") {
+        from("on a node that is no text: it names the schema whose required properties a Text or a Message is formatted with, so write it beside the text's `$ref: telo://manifest#/$defs/Text`.");
+      } else if (!relativePointerOf(node[TEXT_VALUES_FROM_ANNOTATION])) {
+        from("as something other than a relative JSON pointer (`0/data` names the sibling `data`).");
+      } else if (TEXT_VALUES_ANNOTATION in node) {
+        from(`beside ${TEXT_VALUES_ANNOTATION}: a text's values are declared one way. Remove one of the two.`);
+      }
+    }
+    if (isSchema2(node.properties)) {
+      for (const [key3, child] of Object.entries(node.properties)) {
+        const relative = relativePointerOf(isSchema2(child) ? child[TEXT_VALUES_FROM_ANNOTATION] : void 0);
+        if (!relative || relative.up !== 0 || relative.segments.length === 0) continue;
+        if (!Object.hasOwn(node.properties, relative.segments[0])) {
+          const [p, i] = step(["properties", key3]);
+          report(p, shape, i, `naming '${relative.segments[0]}', which the object holding the text does not declare.`, TEXT_VALUES_FROM_ANNOTATION);
+        }
+      }
+      for (const [key3, child] of Object.entries(node.properties)) {
+        const segments = pointerSegments(isSchema2(child) ? child[TEXT_VALUES_FOR_ANNOTATION] : void 0);
+        if (!segments) continue;
+        let target = node;
+        for (const segment of segments) target = isSchema2(target) && isSchema2(target.properties) ? target.properties[segment] : void 0;
+        if (isSchema2(target) && TEXT_VALUES_ANNOTATION in target) {
+          const [p, i] = step(["properties", ...segments.flatMap((segment, n) => n === 0 ? [segment] : ["properties", segment])]);
+          report(p, shape, i, `on a text '${key3}' already pairs with values through x-telo-text-values-for: the text is formatted with those. Remove one of the two.`);
+        }
+      }
+      for (const [key3, child] of Object.entries(node.properties)) {
+        const [p, i] = step(["properties", key3]);
+        visit4(child, root, p, shape, i);
+      }
+    }
+    for (const mapKey of ["patternProperties", "$defs", "definitions"]) {
+      if (!isSchema2(node[mapKey])) continue;
+      for (const [key3, child] of Object.entries(node[mapKey])) {
+        const [p, i] = step([mapKey, key3]);
+        visit4(child, root, p, shape, i);
+      }
+    }
+    for (const single of ["additionalProperties", "items", "then", "else"]) {
+      if (isSchema2(node[single])) {
+        const [p, i] = step([single]);
+        visit4(node[single], root, p, shape, i);
+      }
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(node[union2])) {
+        node[union2].forEach((branch, index) => {
+          const [p, i] = step([union2, index]);
+          visit4(branch, root, p, shape, i);
+        });
+      }
+    }
+    if (typeof node.$ref === "string" && !node.$ref.startsWith("#")) {
+      const named = resolveRef2?.(node.$ref);
+      const name2 = parseCanonicalTypeSchemaId(node.$ref)?.typeName ?? node.$ref;
+      if (named) visit4(named, named, path, shape ?? name2, shape ? inner : []);
+    }
+  };
+  visit4(schema4, schema4, at3, void 0, []);
+  return problems;
+}
+function dataValueKind(schema4) {
+  const type = isSchema2(schema4) ? schema4.type : void 0;
+  const types = Array.isArray(type) ? type : type === void 0 ? [] : [type];
+  if (types.length === 0) return { kind: "refused", describe: "a value of no declared type" };
+  if (types.every((t) => t === "string")) return { kind: "string", describe: "a string" };
+  if (types.every((t) => t === "integer" || t === "number")) return { kind: "number", describe: "a number" };
+  if (types.every((t) => t === "string" || t === "integer" || t === "number")) {
+    return { kind: "string", describe: "a string or a number" };
+  }
+  return { kind: "refused", describe: `a value declared ${types.join(" or ")}` };
+}
+function dataTextValues(schema4) {
+  if (!isSchema2(schema4)) return /* @__PURE__ */ new Map();
+  const properties = isSchema2(schema4.properties) ? schema4.properties : {};
+  const required = Array.isArray(schema4.required) ? schema4.required.filter((n) => typeof n === "string") : [];
+  return new Map(required.map((name2) => [name2, dataValueKind(properties[name2])]));
+}
+function judgeDataValues(message, schema4, dataPath) {
+  const known = dataTextValues(schema4);
+  const names = [...known.keys()];
+  const advice = `this text is formatted with the required properties of '${renderValuePath(dataPath)}'` + (names.length === 0 ? ", which declares none" : `: ${names.map((name2) => `{$${name2}}`).join(", ")}`) + " \u2014 name only those, or declare the property and list it under required";
+  return judgeValues(message, known).map(
+    (problem) => problem.code === "MESSAGE_PLACEHOLDER_UNBOUND" ? { ...problem, message: `${problem.message}, but ${advice}` } : problem
+  );
+}
+function judgeDeclaredValues(message, declared) {
+  const names = Object.keys(declared);
+  const advice = names.length === 0 ? "whoever shows this text formats it with no values \u2014 write it without placeholders" : `whoever shows this text formats it with ${names.map((name2) => `{$${name2}}`).join(", ")} \u2014 write only those placeholders`;
+  return judgeValues(message, declaredValueKinds(declared)).map(
+    (problem) => problem.code === "MESSAGE_PLACEHOLDER_UNBOUND" ? { ...problem, message: `${problem.message}, but ${advice}` } : problem
+  );
+}
+var textValuesForReads = ({ value: value2, at: at3 }) => typeof value2 === "string" ? [{ kind: "value", keys: placeAt(enclosingKeys(at3), value2) }] : [];
+
+// ../../analyzer/nodejs/src/keyed-translations.ts
+var KEYED_TRANSLATIONS_KIND = "Telo.KeyedTranslations";
+var KEYED_TRANSLATIONS_CONTROLLER_ENTRY = "Telo.KeyedTranslations";
+var TRANSLATIONS_ABSTRACT = "Telo.Translations";
+var KEYED_TRANSLATIONS_MARKER = "keyedTranslations";
+var isPlainObject5 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+function isKeyedTranslationsDoc(manifest) {
+  return manifest?.kind === KEYED_TRANSLATIONS_KIND;
+}
+function readKeyEntry(entry2) {
+  if (isPlainObject5(entry2) && Object.hasOwn(entry2, "message") && !Object.hasOwn(entry2, "plural")) {
+    return { message: entry2.message, at: ["message"], values: entry2.values, description: entry2.description };
+  }
+  return { message: entry2, at: [] };
+}
+function readKeyedTranslations(doc) {
+  const raw = isPlainObject5(doc) ? doc.keys : void 0;
+  const keys = {};
+  if (isPlainObject5(raw)) {
+    for (const [key3, entry2] of Object.entries(raw)) {
+      const read = readKeyEntry(entry2);
+      const values = isPlainObject5(read.values) ? read.values : {};
+      keys[key3] = {
+        message: read.message,
+        values,
+        ...typeof read.description === "string" ? { description: read.description } : {}
+      };
+    }
+  }
+  return { keys };
+}
+function keyedTranslationsDefinition(doc) {
+  const shape = readKeyedTranslations(doc);
+  const properties = {};
+  for (const [key3, entry2] of Object.entries(shape.keys)) {
+    properties[key3] = {
+      $ref: manifestFragmentRef("Message"),
+      ...entry2.description ? { description: entry2.description } : {},
+      [TEXT_VALUES_ANNOTATION]: structuredClone(entry2.values)
+    };
+  }
+  const definition = {
+    kind: "Telo.Definition",
+    metadata: { ...doc.metadata ?? {} },
+    capability: "Telo.Provider",
+    extends: TRANSLATIONS_ABSTRACT,
+    controllers: [{ runtime: "kernel", entry: KEYED_TRANSLATIONS_CONTROLLER_ENTRY }],
+    schema: {
+      type: "object",
+      properties: {
+        messages: {
+          title: "Messages",
+          description: "The translation of each key into this resource's language. A key left out shows its source wording.",
+          type: "object",
+          properties,
+          additionalProperties: false
+        }
+      },
+      additionalProperties: false
+    },
+    [KEYED_TRANSLATIONS_MARKER]: shape
+  };
+  expandManifestFragments(definition);
+  definition.schema = liftFragmentDefs(definition.schema);
+  return definition;
+}
+function keyedTranslationsOf(definition) {
+  const marked = definition?.[KEYED_TRANSLATIONS_MARKER];
+  return isPlainObject5(marked) ? marked : void 0;
+}
+function keyedSetOf(definition, resolve2) {
+  const seen = /* @__PURE__ */ new Set();
+  let at3 = definition;
+  while (at3 && !seen.has(at3)) {
+    if (keyedTranslationsOf(at3)) return at3;
+    seen.add(at3);
+    const parent = at3.extends;
+    at3 = typeof parent === "string" ? resolve2(parent, at3) : void 0;
+  }
+  return void 0;
+}
+function keyedSetKind(definition) {
+  return `${definition.metadata?.module}.${definition.metadata?.name}`;
+}
+var KEYED_SOURCE_LANGUAGE_MISSING_MESSAGE = "this module declares texts by key, but declares no lang:, so nothing says which language their source wording is written in \u2014 add lang: <language tag> to the module document, naming the language its texts are written in";
+var entryComputed = (path) => ({
+  ...catalogComputedProblem(),
+  message: "a keyed text holds literals only \u2014 this value is computed, so it cannot be checked against the values its key is formatted with; write the message itself",
+  path
+});
+var below = (base) => (problem) => ({
+  ...problem,
+  path: [...base, ...problem.path]
+});
+function judgeKeyedDeclaration(doc, lang, isExpression3) {
+  const keys = isPlainObject5(doc) ? doc.keys : void 0;
+  if (!isPlainObject5(keys)) return [];
+  const problems = [];
+  if (lang === null) {
+    problems.push({ code: "MESSAGE_SOURCE_LANGUAGE_MISSING", message: KEYED_SOURCE_LANGUAGE_MISSING_MESSAGE, path: ["keys"] });
+  }
+  for (const [key3, entry2] of Object.entries(keys)) {
+    const at3 = ["keys", key3];
+    const computed = expressionsWithin(entry2, isExpression3);
+    if (computed.length > 0) {
+      problems.push(...computed.map(({ path }) => entryComputed([...at3, ...path])));
+      continue;
+    }
+    const read = readKeyEntry(entry2);
+    let valuesReadable = read.values === void 0 || isPlainObject5(read.values);
+    if (isPlainObject5(read.values)) {
+      for (const [name2, schema4] of Object.entries(read.values)) {
+        if (!isPlainObject5(schema4) && typeof schema4 !== "boolean") {
+          valuesReadable = false;
+          continue;
+        }
+        const refusal = declaredValueRefusal(name2, schema4);
+        if (!refusal) continue;
+        valuesReadable = false;
+        problems.push({
+          code: "TEXT_VALUES_INVALID",
+          message: `the key '${key3}' declares ${refusal}`,
+          path: [...at3, "values", name2]
+        });
+      }
+    }
+    const message = readMessage(read.message);
+    if (!message.ok) continue;
+    const messageAt = [...at3, ...read.at];
+    if (lang !== null) problems.push(...languageProblems(message.message, lang, []).map(below(messageAt)));
+    if (valuesReadable) {
+      const values = isPlainObject5(read.values) ? read.values : {};
+      problems.push(...judgeDeclaredValues(message.message, values).map(below(messageAt)));
+    }
+  }
+  return problems;
+}
+function judgeKeyedCatalog(catalog, isExpression3) {
+  const computed = expressionsWithin(catalog, isExpression3);
+  if (computed.length > 0) return computed.map(({ path }) => entryComputed(path));
+  if (!isPlainObject5(catalog) || typeof catalog.lang !== "string" || !isPlainObject5(catalog.messages)) return [];
+  const problems = [];
+  for (const [key3, value2] of Object.entries(catalog.messages)) {
+    const message = readMessage(value2);
+    if (message.ok) problems.push(...languageProblems(message.message, catalog.lang, ["messages", key3]));
+  }
+  return problems;
+}
+
 // ../../templating/nodejs/src/cel/value-types.ts
 function registerValueTypes(environment2) {
   for (const [brand, base] of Object.entries(valueBrandBases())) {
@@ -36581,13 +42165,13 @@ function walkCelExpressions(value2, path, cb) {
     value2.forEach((v, i) => walkCelExpressions(v, `${path}[${i}]`, cb));
     return;
   }
-  if (value2 !== null && typeof value2 === "object" && !value2.__compiled && isPlainObject3(value2)) {
+  if (value2 !== null && typeof value2 === "object" && !value2.__compiled && isPlainObject6(value2)) {
     for (const k in value2) {
       walkCelExpressions(value2[k], path ? `${path}.${k}` : k, cb);
     }
   }
 }
-function isPlainObject3(value2) {
+function isPlainObject6(value2) {
   const proto = Object.getPrototypeOf(value2);
   return proto === Object.prototype || proto === null;
 }
@@ -43496,4164 +49080,6 @@ function buildTagForEngine(engineName) {
   };
 }
 
-// ../../analyzer/nodejs/src/builtin-entries/index.ts
-var BUILTIN_DOCUMENT_FILES = [
-  ["Abstract.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Abstract",
-      "description": "Declares a contract with no implementation: a kind that cannot be instantiated and that other kinds specialize. It may state a role, a configuration schema, observed state, a call signature, input and output contracts and a ceiling on the error codes its implementations may throw."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "const": "Telo.Abstract"
-        },
-        "metadata": {
-          "$ref": "telo://manifest#/$defs/KindMetadata"
-        },
-        "capability": {
-          "title": "Capability",
-          "description": "The lifecycle role this kind implements.",
-          "enum": [
-            "Telo.Callable",
-            "Telo.Invocable",
-            "Telo.Mount",
-            "Telo.Provider",
-            "Telo.Runnable",
-            "Telo.Service",
-            "Telo.Sink",
-            "Telo.Type"
-          ]
-        },
-        "schema": {
-          "title": "Schema",
-          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        },
-        "status": {
-          "title": "Observed state",
-          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        },
-        "params": {
-          "$ref": "telo://manifest#/$defs/CallableParams"
-        },
-        "returns": {
-          "$ref": "telo://manifest#/$defs/CallableReturns"
-        },
-        "deterministic": {
-          "title": "Deterministic",
-          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
-        },
-        "throws": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "codes": {
-              "$ref": "telo://manifest#/$defs/ThrowCodes"
-            }
-          }
-        },
-        "controllers": false
-      },
-      "required": [
-        "kind",
-        "metadata"
-      ],
-      "additionalProperties": true
-    }
-  }],
-  ["Application.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Application",
-      "description": "A runnable entry point: the module a runtime starts. Declares its imports, the variables, secrets, ports and needs it reads from its host and command line, its boot sequence, logging and tracing destinations, the translations of its texts, and the runtime range it is verified against."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "telo://manifest#/$defs/ModuleMetadata"
-        },
-        "lifecycle": {
-          "type": "string",
-          "enum": [
-            "shared",
-            "isolated"
-          ],
-          "default": "shared"
-        },
-        "targets": {
-          "x-telo-step-context": {
-            "invoke": "invoke",
-            "outputType": "outputType"
-          },
-          "type": "array",
-          "items": {
-            "x-telo-ref": {
-              "kind": [
-                "Telo.Runnable",
-                "Telo.Service"
-              ],
-              "use": "call"
-            },
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "name"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": true
-              },
-              {
-                "type": "object",
-                "required": [
-                  "ref"
-                ],
-                "properties": {
-                  "ref": {
-                    "x-telo-ref": {
-                      "kind": [
-                        "Telo.Runnable",
-                        "Telo.Service"
-                      ],
-                      "use": "call"
-                    },
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "object",
-                        "required": [
-                          "kind",
-                          "name"
-                        ],
-                        "properties": {
-                          "kind": {
-                            "type": "string"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "additionalProperties": true
-                      }
-                    ]
-                  },
-                  "when": {
-                    "title": "When",
-                    "description": "CEL guard \u2014 the target runs only when it evaluates true.",
-                    "x-telo-topology-role": "predicate",
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false
-              },
-              {
-                "$ref": "telo://manifest#/$defs/InvokeStep"
-              }
-            ]
-          }
-        },
-        "include": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "files": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "assets": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "native": {
-          "$ref": "telo://manifest#/$defs/NativeEntries"
-        },
-        "sources": {
-          "$ref": "telo://manifest#/$defs/ModuleSources"
-        },
-        "layers": {
-          "$ref": "telo://manifest#/$defs/LayerIndex"
-        },
-        "filesIntegrity": {
-          "type": "string"
-        },
-        "imports": {
-          "$ref": "telo://manifest#/$defs/ModuleImports"
-        },
-        "variables": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": [
-              "type"
-            ],
-            "anyOf": [
-              {
-                "required": [
-                  "env"
-                ]
-              },
-              {
-                "required": [
-                  "arg"
-                ]
-              }
-            ],
-            "properties": {
-              "env": {
-                "type": "string",
-                "minLength": 1
-              },
-              "arg": {
-                "$ref": "telo://manifest#/$defs/ArgBinding"
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "string",
-                  "integer",
-                  "number",
-                  "boolean",
-                  "object",
-                  "array"
-                ]
-              },
-              "default": {}
-            }
-          }
-        },
-        "secrets": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": [
-              "env",
-              "type"
-            ],
-            "properties": {
-              "env": {
-                "type": "string",
-                "minLength": 1
-              },
-              "type": {
-                "type": "string",
-                "enum": [
-                  "string",
-                  "integer",
-                  "number",
-                  "boolean",
-                  "object",
-                  "array"
-                ]
-              },
-              "default": {}
-            }
-          }
-        },
-        "needs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "telo://manifest#/$defs/NeedRequest",
-            "properties": {
-              "env": {
-                "type": "object",
-                "additionalProperties": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              }
-            }
-          }
-        },
-        "ports": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": [
-              "env"
-            ],
-            "properties": {
-              "env": {
-                "type": "string",
-                "minLength": 1
-              },
-              "arg": {
-                "$ref": "telo://manifest#/$defs/ArgBinding"
-              },
-              "protocol": {
-                "type": "string",
-                "enum": [
-                  "tcp",
-                  "udp"
-                ],
-                "default": "tcp"
-              },
-              "default": {
-                "type": "integer",
-                "minimum": 1,
-                "maximum": 65535
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "logging": {
-          "$ref": "telo://manifest#/$defs/LoggingScope",
-          "x-telo-unbound-calls": "the Application's logging: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-          "properties": {
-            "sinks": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "kind"
-                    ],
-                    "x-telo-ref": {
-                      "kind": "Telo.LogSink",
-                      "use": "dependency"
-                    },
-                    "x-telo-inline": true
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "sink"
-                    ],
-                    "properties": {
-                      "sink": {
-                        "type": "object",
-                        "required": [
-                          "kind"
-                        ],
-                        "x-telo-ref": {
-                          "kind": "Telo.LogSink",
-                          "use": "dependency"
-                        },
-                        "x-telo-inline": true
-                      },
-                      "when": {
-                        "type": "boolean",
-                        "default": true
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          }
-        },
-        "tracing": {
-          "type": "object",
-          "x-telo-eval": "compile",
-          "x-telo-unbound-calls": "the Application's tracing: block is resolved when the application is loaded, before any resource \u2014 any function among them \u2014 has been created",
-          "properties": {
-            "sinks": {
-              "type": "array",
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "required": [
-                      "kind"
-                    ],
-                    "x-telo-ref": {
-                      "kind": "Telo.TraceSink",
-                      "use": "dependency"
-                    },
-                    "x-telo-inline": true
-                  },
-                  {
-                    "type": "object",
-                    "required": [
-                      "sink"
-                    ],
-                    "properties": {
-                      "sink": {
-                        "type": "object",
-                        "required": [
-                          "kind"
-                        ],
-                        "x-telo-ref": {
-                          "kind": "Telo.TraceSink",
-                          "use": "dependency"
-                        },
-                        "x-telo-inline": true
-                      },
-                      "when": {
-                        "type": "boolean",
-                        "default": true
-                      }
-                    },
-                    "additionalProperties": false
-                  }
-                ]
-              }
-            }
-          },
-          "additionalProperties": false
-        },
-        "translations": {
-          "title": "Translations",
-          "description": "The translations of every text the application and its libraries show, listed once. Per language, a later catalog's translation of a text replaces an earlier one's.",
-          "type": "object",
-          "required": [
-            "catalogs"
-          ],
-          "properties": {
-            "catalogs": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "required": [
-                  "kind"
-                ],
-                "x-telo-ref": {
-                  "kind": "Telo.Translations",
-                  "use": "dependency"
-                },
-                "x-telo-inline": true
-              }
-            }
-          },
-          "additionalProperties": false
-        },
-        "requires": {
-          "$ref": "telo://manifest#/$defs/Requires"
-        },
-        "lang": {
-          "title": "Language",
-          "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
-          "type": "string",
-          "format": "language-tag"
-        }
-      },
-      "required": [
-        "metadata"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Callable.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Callable",
-      "description": "A function reached from an expression through a module name: synchronous call(args) against a declared parameter list and result. Evaluated inside an expression with no caller frame, so a failure fails the evaluation rather than being declared as a thrown error."
-    },
-    "capability": "Telo.Callable",
-    "declarable": true,
-    "throwsAllowed": false
-  }],
-  ["ConsoleSink.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "ConsoleSink",
-      "description": "Writes structured log records to standard error or standard output, as pretty text for a terminal or as JSON lines for a collector, with optional colour. The zero-configuration destination every runtime provides."
-    },
-    "capability": "Telo.Sink",
-    "extends": "Telo.LogSink",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "destination": {
-          "type": "string",
-          "enum": [
-            "stderr",
-            "stdout"
-          ]
-        },
-        "encoding": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "pretty",
-            "json"
-          ]
-        },
-        "color": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "always",
-            "never"
-          ]
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["Definition.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Definition",
-      "description": "Declares a resource kind: the lifecycle role it implements, its configuration schema, observed state, input and output contracts, the errors it throws, and how it runs \u2014 a controller, a body of resources it dispatches to, or a parent kind it specializes."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "const": "Telo.Definition"
-        },
-        "metadata": {
-          "$ref": "telo://manifest#/$defs/KindMetadata"
-        },
-        "capability": {
-          "title": "Capability",
-          "description": "The lifecycle role this kind implements.",
-          "enum": [
-            "Telo.Callable",
-            "Telo.Invocable",
-            "Telo.Mount",
-            "Telo.Provider",
-            "Telo.Runnable",
-            "Telo.Service",
-            "Telo.Sink",
-            "Telo.Type"
-          ]
-        },
-        "extends": {
-          "title": "Extends",
-          "description": "The kind this one specializes, as `<Alias>.<Kind>` \u2014 an abstract it implements or a concrete kind whose controller it inherits.",
-          "type": "string",
-          "pattern": "^[A-Z][A-Za-z0-9_]*\\.[A-Z][A-Za-z0-9_]*$"
-        },
-        "controllers": {
-          "title": "Controllers",
-          "description": "Package URLs of the controller implementations, in preference order.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "schema": {
-          "title": "Schema",
-          "description": "Configuration this kind accepts, as JSON Schema plus `x-telo-*` annotations.",
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        },
-        "status": {
-          "title": "Observed state",
-          "description": "What a resource of this kind reports while running, published at `resources.<name>.status.<field>`.",
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        },
-        "inputType": {
-          "title": "Input type",
-          "description": "The schema of the inputs a call passes \u2014 a `!ref` to a named shape, or inline JSON Schema."
-        },
-        "outputType": {
-          "title": "Output type",
-          "description": "The schema of what a call returns \u2014 a `!ref` to a named shape, or inline JSON Schema."
-        },
-        "params": {
-          "$ref": "telo://manifest#/$defs/CallableParams"
-        },
-        "returns": {
-          "$ref": "telo://manifest#/$defs/CallableReturns"
-        },
-        "deterministic": {
-          "title": "Deterministic",
-          "description": "`true` when the result depends only on the arguments and this instance's configuration. Legal on a callable kind that declares its own `controllers:` (a claim) or on a callable abstract (a requirement every implementation must meet)."
-        },
-        "throws": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "codes": {
-              "$ref": "telo://manifest#/$defs/ThrowCodes"
-            },
-            "inherit": {
-              "type": "boolean"
-            },
-            "passthrough": {
-              "type": "boolean"
-            }
-          }
-        },
-        "topology": {
-          "title": "Topology",
-          "description": "How a visual editor draws resources of this kind.",
-          "type": "string"
-        },
-        "resources": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": true,
-            "x-telo-context": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "self": {
-                  "x-telo-context-from-root": "schema"
-                }
-              }
-            }
-          }
-        },
-        "invoke": {
-          "title": "Invoke target",
-          "description": "The `resources:` entry whose `invoke()` this kind dispatches to, as `!ref <entry>`.",
-          "$ref": "telo://manifest#/$defs/DispatchTarget"
-        },
-        "provide": {
-          "title": "Provide target",
-          "description": "The `resources:` entry whose `invoke()` produces this provider's value, as `!ref <entry>`.",
-          "$ref": "telo://manifest#/$defs/DispatchTarget"
-        },
-        "run": {
-          "title": "Run target",
-          "description": "The `resources:` entry whose `run()` this kind dispatches to, as `!ref <entry>`.",
-          "$ref": "telo://manifest#/$defs/DispatchTarget"
-        },
-        "targets": {
-          "title": "Targets",
-          "description": "The `resources:` entries this kind starts, in order, when an instance runs \u2014 each as `!ref <entry>`, each a Telo.Service or Telo.Runnable. Replaces `run:` when the kind has more than one thing to start, such as a server and the poller beside it."
-        },
-        "mount": {
-          "title": "Mount target",
-          "description": "The `resources:` entry (a Telo.Mount, e.g. an Http.Api) whose `register()` this kind delegates to, as `!ref <entry>`.",
-          "$ref": "telo://manifest#/$defs/DispatchTarget"
-        },
-        "inputs": {
-          "type": "object",
-          "additionalProperties": true,
-          "x-telo-context": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "self": {
-                "x-telo-context-from-root": "schema"
-              },
-              "inputs": {
-                "x-telo-context-from-root": "inputType"
-              }
-            }
-          }
-        },
-        "result": {
-          "type": "object",
-          "additionalProperties": true,
-          "x-telo-context": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "self": {
-                "x-telo-context-from-root": "schema"
-              },
-              "result": {
-                "x-telo-context-from-ref-kind": [
-                  "provide#outputType",
-                  "invoke#outputType"
-                ]
-              }
-            }
-          }
-        },
-        "base": {
-          "type": "object",
-          "additionalProperties": true,
-          "x-telo-context": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "self": {
-                "x-telo-context-from-root": "schema"
-              }
-            }
-          }
-        }
-      },
-      "patternProperties": {
-        "^x-telo-schema-projection(-from)?$": {}
-      },
-      "required": [
-        "kind",
-        "metadata"
-      ],
-      "if": {
-        "required": [
-          "throws",
-          "capability"
-        ],
-        "properties": {
-          "capability": {
-            "not": {
-              "enum": [
-                "Telo.Invocable",
-                "Telo.Runnable"
-              ]
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "throws": {
-            "properties": {
-              "inherit": false,
-              "passthrough": false
-            }
-          }
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["DurableDirectory.json", {
-    "kind": "Telo.NeedType",
-    "metadata": {
-      "name": "DurableDirectory",
-      "description": "Persistent storage on disk: a writable directory whose files survive restarts, reloads, redeployments and new versions of the application, for as long as whoever runs it keeps the storage. Asks for a minimum size and for single-writer or shared access; the directory is empty the first time and is no backup."
-    },
-    "fields": {
-      "path": {
-        "description": "The directory, an absolute path the application can write to. It exists and is writable before any resource initializes; a full directory is reported by the operating system's own error (`ENOSPC`).",
-        "x-telo-type": {
-          "name": "Telo.HostPath",
-          "entry": "directory"
-        }
-      }
-    },
-    "required": [
-      "path"
-    ],
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "size": {
-          "type": "string",
-          "pattern": "^[1-9][0-9]*(Mi|Gi|Ti)$",
-          "default": "1Gi",
-          "description": "The least space the application needs: a whole number followed by `Mi`, `Gi` or `Ti` (`512Mi`, `5Gi`, `1Ti`). A host may give more, and may refuse a size it cannot give; nothing measures it."
-        },
-        "access": {
-          "enum": [
-            "single-writer",
-            "shared"
-          ],
-          "default": "single-writer",
-          "description": "`single-writer`: at most one running instance of the application has the directory at any moment, a rollout or a restart included, and the application may rely on that. `shared`: every instance has it at once, on different machines; file locking across them is not reliable, so the application coordinates its own writes, and SQLite is not safe there."
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["Executable.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Executable",
-      "description": "Anything control can be transferred to with call arguments \u2014 a resource that is invoked or run. A reference slot accepting either says so once with this constraint. It names no lifecycle of its own, so no kind declares it as its role: a kind declares the role it implements."
-    },
-    "declarable": false
-  }],
-  ["FileSink.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "FileSink",
-      "description": "Appends structured log records to a file on the host, as JSON lines or pretty text. The destination path is required; level filtering, buffering and flushing follow the log destination settings."
-    },
-    "capability": "Telo.Sink",
-    "extends": "Telo.LogSink",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "destination": {
-          "type": "string"
-        },
-        "encoding": {
-          "type": "string",
-          "enum": [
-            "json",
-            "pretty"
-          ]
-        }
-      },
-      "required": [
-        "destination"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Function.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Function",
-      "description": "A function written as one expression over its parameters, called from other expressions through the declaring module's name. Declares an ordered parameter list and a result type the body must produce; whether it is deterministic is derived from what the body calls."
-    },
-    "capability": "Telo.Callable",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "params": {
-          "$ref": "telo://manifest#/$defs/CallableParams"
-        },
-        "returns": {
-          "$ref": "telo://manifest#/$defs/CallableReturns"
-        },
-        "body": {
-          "title": "Body",
-          "description": "The expression this function evaluates, over its parameters.",
-          "x-telo-returns-from": "returns",
-          "x-telo-context": {
-            "type": "object",
-            "additionalProperties": false,
-            "x-telo-context-parameters-from": "params"
-          }
-        }
-      },
-      "required": [
-        "body"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Import.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Import",
-      "description": "Brings a library into a module under an alias: where it comes from, its integrity pin, the variables, secrets, resources and needs supplied to it, the runtimes it may run on and a logging override for its subtree."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "type": "string"
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name"
-          ],
-          "additionalProperties": true
-        },
-        "source": {
-          "type": "string"
-        },
-        "integrity": {
-          "type": "string"
-        },
-        "variables": {
-          "type": "object"
-        },
-        "secrets": {
-          "type": "object"
-        },
-        "resources": {
-          "type": "object",
-          "additionalProperties": {}
-        },
-        "needs": {
-          "type": "object",
-          "additionalProperties": {}
-        },
-        "runtime": {
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          ]
-        },
-        "logging": {
-          "$ref": "telo://manifest#/$defs/LoggingScope"
-        }
-      },
-      "required": [
-        "metadata",
-        "source"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Invocable.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Invocable",
-      "description": "A request handler called with inputs and answering with outputs: an endpoint, a query, a computation. Its invoke() is dispatched through the runtime, which checks the declared input and output contracts and lets a caller catch the errors it declares."
-    },
-    "capability": "Telo.Invocable",
-    "extends": "Telo.Executable",
-    "declarable": true,
-    "throwsAllowed": true
-  }],
-  ["JsonSchema.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "JsonSchema",
-      "description": "A named data shape written as JSON Schema, usable as an input, output or field type anywhere without an import. It may extend other shapes and carry business rules \u2014 expressions over the value that must hold, each failing validation with its own code."
-    },
-    "capability": "Telo.Type",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "schema": {
-          "title": "Schema",
-          "description": "JSON Schema definition for the declared data type.",
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        },
-        "extends": {
-          "title": "Extends",
-          "description": "Parent type name or list of parent type names to inherit from.",
-          "oneOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          ]
-        },
-        "rules": {
-          "title": "Rules",
-          "description": "CEL-based business invariant rules. Each rule's condition must return true for valid data.",
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "condition": {
-                "type": "string",
-                "description": "CEL expression evaluated with 'this' bound to the data. Must return true for valid data.",
-                "x-telo-unbound-calls": "a type rule's condition is evaluated against the value alone, wherever the shape is checked, where no module's functions are bound"
-              },
-              "code": {
-                "type": "string",
-                "description": "Machine-readable error code surfaced on validation failure."
-              },
-              "message": {
-                "type": "string",
-                "description": "Optional human-readable hint for the validation failure."
-              }
-            },
-            "required": [
-              "condition",
-              "code"
-            ]
-          }
-        }
-      },
-      "required": [
-        "schema"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Library.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Library",
-      "description": "An importable module: a unit of kinds, need types and ready-made instances other modules import under an alias. Declares the variables, secrets, resources and needs it requires from its importer, whether it is instantiated once or per import, and what it exports."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "type": "string"
-        },
-        "metadata": {
-          "$ref": "telo://manifest#/$defs/ModuleMetadata"
-        },
-        "variables": {
-          "type": "object"
-        },
-        "secrets": {
-          "type": "object"
-        },
-        "lifecycle": {
-          "type": "string",
-          "enum": [
-            "shared",
-            "isolated"
-          ],
-          "default": "isolated"
-        },
-        "resources": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string"
-              },
-              "description": {
-                "type": "string"
-              },
-              "optional": {
-                "type": "boolean"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "needs": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "telo://manifest#/$defs/NeedRequest",
-            "properties": {
-              "env": {}
-            }
-          }
-        },
-        "include": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "files": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "assets": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "native": {
-          "$ref": "telo://manifest#/$defs/NativeEntries"
-        },
-        "sources": {
-          "$ref": "telo://manifest#/$defs/ModuleSources"
-        },
-        "layers": {
-          "$ref": "telo://manifest#/$defs/LayerIndex"
-        },
-        "filesIntegrity": {
-          "type": "string"
-        },
-        "imports": {
-          "$ref": "telo://manifest#/$defs/ModuleImports"
-        },
-        "exports": {
-          "type": "object",
-          "properties": {
-            "kinds": {
-              "type": "array",
-              "title": "Exported kinds",
-              "items": {
-                "type": "string"
-              }
-            },
-            "resources": {
-              "type": "array",
-              "title": "Exported resources",
-              "items": {
-                "type": "string",
-                "not": {
-                  "enum": [
-                    "variables",
-                    "secrets"
-                  ]
-                }
-              }
-            },
-            "code": {
-              "type": "array",
-              "items": {
-                "$ref": "telo://manifest#/$defs/PlatformAxes",
-                "type": "object",
-                "required": [
-                  "specifier",
-                  "format",
-                  "path"
-                ],
-                "properties": {
-                  "specifier": {
-                    "type": "string"
-                  },
-                  "format": {
-                    "type": "string"
-                  },
-                  "path": {
-                    "type": "string"
-                  },
-                  "source": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          },
-          "additionalProperties": true
-        },
-        "requires": {
-          "$ref": "telo://manifest#/$defs/Requires"
-        },
-        "lang": {
-          "title": "Language",
-          "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
-          "type": "string",
-          "format": "language-tag"
-        }
-      },
-      "required": [
-        "metadata"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["LogSink.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "LogSink",
-      "description": "Where structured log records go: a destination that filters by level and buffers records, configured with a minimum level, a buffer size, what to do when the buffer is full and how often to flush. Every log destination specializes it."
-    },
-    "capability": "Telo.Sink",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "level": {
-          "$ref": "telo://manifest#/$defs/LogLevel"
-        },
-        "buffer": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "on_full": {
-          "type": "string",
-          "enum": [
-            "block",
-            "drop_new",
-            "drop_old"
-          ]
-        },
-        "flush_interval": {
-          "$ref": "telo://manifest#/$defs/LogDuration"
-        }
-      },
-      "additionalProperties": true
-    }
-  }],
-  ["LogTraceSink.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "LogTraceSink",
-      "description": "Tracing with no collector: writes each finished span as one structured log record through the logging pipeline, carrying its trace and span identifiers, at a configurable level \u2014 read wherever the logs already go."
-    },
-    "capability": "Telo.Sink",
-    "extends": "Telo.TraceSink",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "level": {
-          "$ref": "telo://manifest#/$defs/LogLevel",
-          "default": "info",
-          "x-telo-eval": "compile"
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["Mount.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Mount",
-      "description": "A part a long-lived resource mounts into itself: an HTTP API, a middleware, a route table. The holder registers it while it starts; a mount is never called directly, so it declares no thrown errors."
-    },
-    "capability": "Telo.Mount",
-    "declarable": true,
-    "throwsAllowed": false
-  }],
-  ["NeedType.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "NeedType",
-      "description": "Declares a type of dependency a module can ask whoever runs it for \u2014 a database, a credential, a public address \u2014 as the fields a fulfilment hands over, which are required, the parameters a request may state, and whether fulfilments are versioned, carry features or must come from the root."
-    },
-    "capability": "Telo.Template",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "kind": {
-          "type": "string"
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "name": {
-              "type": "string"
-            },
-            "description": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "name"
-          ],
-          "additionalProperties": true
-        },
-        "fields": {
-          "title": "Fields",
-          "description": "What a fulfilment hands over, as a JSON Schema property map. A field may be `x-telo-sensitive: true`, which a string field must be to hold a credential.",
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "telo://manifest#/$defs/JsonSchema7"
-          }
-        },
-        "required": {
-          "title": "Required fields",
-          "description": "The fields every fulfilment must yield.",
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "uniqueItems": true
-        },
-        "parameters": {
-          "title": "Parameters",
-          "description": "JSON Schema of the literal parameters a need of this type may state.",
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        },
-        "version": {
-          "title": "Version",
-          "description": "`semver` when fulfilments are versioned: a need may then state a version range, which a consumer observing `version` verifies.",
-          "enum": [
-            "semver"
-          ]
-        },
-        "features": {
-          "title": "Features",
-          "description": "The closed list of feature names a fulfilment may carry; a need may ask for a subset, which a consumer observing `features` verifies.",
-          "type": "array",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          },
-          "uniqueItems": true
-        },
-        "supply": {
-          "title": "Supply",
-          "description": "`root` when a need of this type is fulfilled only through a root need, forwarded whole: a self-supplied fulfilment, a field-by-field supply at an import and a library need reaching the root unforwarded are refused.",
-          "enum": [
-            "root"
-          ]
-        }
-      },
-      "required": [
-        "metadata",
-        "fields"
-      ],
-      "additionalProperties": false
-    }
-  }],
-  ["Provider.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Provider",
-      "description": "A source of configuration, secrets or values, resolved when it is created: init() acquires what it needs and an optional provide() hands over the value. Every field is evaluated once at load, and it reports observed state as soon as it is built."
-    },
-    "capability": "Telo.Provider",
-    "declarable": true,
-    "throwsAllowed": false,
-    "schema": {
-      "x-telo-eval": "compile"
-    }
-  }],
-  ["PublicHostPattern.json", {
-    "kind": "Telo.NeedType",
-    "metadata": {
-      "name": "PublicHostPattern",
-      "description": "A family of public hosts an application is reached at \u2014 tenant subdomains \u2014 as a pattern origin the host routes every matching host of to a port."
-    },
-    "fields": {
-      "pattern": {
-        "type": "string",
-        "pattern": "^https?://\\*[A-Za-z0-9-]*\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*(?::[0-9]{1,5})?$",
-        "description": "The hosts as a pattern origin: `https://*.tenants.example` (one or more whole labels) or `https://*-tenants.example` (a prefix of the first label)."
-      }
-    },
-    "required": [
-      "pattern"
-    ],
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "port": {
-          "type": "string",
-          "minLength": 1,
-          "description": "The key of the root's `ports:` these hosts are served on, a `tcp` port."
-        }
-      },
-      "additionalProperties": false
-    },
-    "supply": "root"
-  }],
-  ["PublicUrl.json", {
-    "kind": "Telo.NeedType",
-    "metadata": {
-      "name": "PublicUrl",
-      "description": "One public address an application is reached at: an http or https origin the host routes to a port, with the request's host and path unchanged."
-    },
-    "fields": {
-      "url": {
-        "description": "The address: an http or https origin \u2014 a host and an optional port, with no path, query or credentials.",
-        "x-telo-type": {
-          "name": "Telo.Url",
-          "scheme": {
-            "enum": [
-              "http",
-              "https"
-            ]
-          },
-          "path": {
-            "enum": [
-              "/"
-            ]
-          },
-          "query": {
-            "not": {}
-          },
-          "user": {
-            "not": {}
-          },
-          "password": {
-            "not": {}
-          }
-        }
-      }
-    },
-    "required": [
-      "url"
-    ],
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "port": {
-          "type": "string",
-          "minLength": 1,
-          "description": "The key of the root's `ports:` this address is served on, a `tcp` port."
-        },
-        "primary": {
-          "type": "boolean",
-          "description": "Marks the application's main address. At most one per application."
-        },
-        "customDomains": {
-          "type": "boolean",
-          "description": "Lets the host route further domains to this need's port, ones the application is never told about. At most one per port."
-        }
-      },
-      "additionalProperties": false
-    },
-    "supply": "root"
-  }],
-  ["Runnable.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Runnable",
-      "description": "A one-shot task the runtime starts and waits for: a pipeline, a migration, a boot step. Its run() does the work and returns what undoes it; a failure it throws is a structured error the step or target that started it can catch."
-    },
-    "capability": "Telo.Runnable",
-    "extends": "Telo.Executable",
-    "declarable": true,
-    "throwsAllowed": true
-  }],
-  ["Sequence.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "Sequence",
-      "description": "An ordered list of steps behind a typed contract: call other resources, branch on conditions and switches, loop, catch and raise errors, and shape values, then return declared outputs. Runs at startup or is called as a handler, and can stand up resources that live only while it runs."
-    },
-    "capability": "Telo.Runnable",
-    "topology": "Sequence",
-    "throws": {
-      "inherit": true
-    },
-    "schema": {
-      "type": "object",
-      "properties": {
-        "with": {
-          "title": "With",
-          "description": "Resources that exist only while the sequence runs; created on entry and torn down when it ends.",
-          "x-telo-scope": [
-            "/steps",
-            "/targets"
-          ]
-        },
-        "targets": {
-          "title": "Targets",
-          "type": "array",
-          "description": "Resources of `with:` started before the steps, each written as a `!ref <name>`.",
-          "items": {
-            "title": "Target",
-            "description": "A resource of `with:` to start before the steps, written as a `!ref`.",
-            "x-telo-ref": {
-              "kind": [
-                "Telo.Runnable",
-                "Telo.Service"
-              ],
-              "use": "call"
-            },
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "object",
-                "required": [
-                  "kind",
-                  "name"
-                ],
-                "properties": {
-                  "kind": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "additionalProperties": true
-              }
-            ]
-          }
-        },
-        "inputType": {
-          "title": "Input Type",
-          "description": "The input contract, a named type or an inline one. The steps read the values as `inputs.<name>`; declared defaults are filled and every call is validated against it.",
-          "x-telo-ref": {
-            "kind": "Telo.Type",
-            "use": "schema"
-          }
-        },
-        "outputType": {
-          "title": "Output Type",
-          "description": "The result contract, a named type or an inline one. It types the result for callers, checks `outputs:` statically, and validates the produced value at every call.",
-          "x-telo-ref": {
-            "kind": "Telo.Type",
-            "use": "schema"
-          }
-        },
-        "outputs": {
-          "title": "Outputs",
-          "type": "object",
-          "description": "The result: a map of values over `steps.*` and `inputs.*`, evaluated after the steps run. Omitted, the result is the map of step results.",
-          "additionalProperties": true,
-          "x-telo-context": {
-            "type": "object",
-            "properties": {
-              "inputs": {}
-            }
-          },
-          "x-telo-value-schema-from": "outputType"
-        },
-        "steps": {
-          "title": "Steps",
-          "description": "The steps to run, in order.",
-          "x-telo-topology-role": "steps",
-          "type": "array",
-          "items": {
-            "$ref": "telo://manifest#/$defs/Step"
-          }
-        }
-      },
-      "required": [
-        "steps"
-      ]
-    }
-  }],
-  ["Service.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Service",
-      "description": "A long-lived resource \u2014 a server, a pool, a listener \u2014 built by init() and started by run(), each returning what undoes it. Started rather than called, so it declares no thrown errors; inbound work it accepts roots its own trace."
-    },
-    "capability": "Telo.Service",
-    "declarable": true,
-    "throwsAllowed": false
-  }],
-  ["Sink.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Sink",
-      "description": "A record-stream destination the runtime writes to directly, never through dispatch: write(record) plus flush, synchronous flush and close. Payload-opaque, carrying log records or finished trace spans to wherever they are kept."
-    },
-    "capability": "Telo.Sink",
-    "declarable": true,
-    "throwsAllowed": false
-  }],
-  ["Template.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Template",
-      "description": "The lifecycle of a document that declares rather than runs: an application, a library, an import, a kind or a need type. Read by the kernel while it loads a module, never instantiated, and reserved for the built-in vocabulary \u2014 a kind declared in a module never takes this role."
-    },
-    "capability": "Telo.Template",
-    "declarable": false,
-    "throwsAllowed": false
-  }],
-  ["TextTranslations.json", {
-    "kind": "Telo.Definition",
-    "metadata": {
-      "name": "TextTranslations",
-      "description": "Translations of texts into one language, matched by source text: each entry names a source text, with an optional context telling the same words apart, and the message translating it, plural cases included. Every value is written literally and checked against its source's placeholders and the language's plural categories; one text translated twice in one list is refused."
-    },
-    "capability": "Telo.Provider",
-    "extends": "Telo.Translations",
-    "schema": {
-      "$ref": "telo://manifest#/$defs/TextCatalog"
-    }
-  }],
-  ["TraceSink.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "TraceSink",
-      "description": "Where finished trace spans go: a destination for distributed tracing that receives each span once it ends \u2014 identity, timing, outcome and attributes. Attaching one turns tracing on; every trace exporter specializes it."
-    },
-    "capability": "Telo.Sink",
-    "schema": {
-      "type": "object",
-      "additionalProperties": true
-    }
-  }],
-  ["Translations.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Translations",
-      "description": "Translations of an application's texts into one language, listed once in the application's translations block and used for every text the application and its libraries show. Each source of translations specializes it and states the language it translates into."
-    },
-    "capability": "Telo.Provider",
-    "schema": {
-      "type": "object",
-      "required": [
-        "lang"
-      ],
-      "properties": {
-        "lang": {
-          "title": "Language",
-          "description": "The language the translations are written in, as an RFC 5646 language tag.",
-          "type": "string",
-          "format": "language-tag"
-        }
-      },
-      "additionalProperties": true
-    }
-  }],
-  ["Type.json", {
-    "kind": "Telo.Abstract",
-    "metadata": {
-      "name": "Type",
-      "description": "A pure data shape with no runtime instance: a named JSON Schema other declarations reference to type their inputs, outputs and fields."
-    },
-    "capability": "Telo.Type",
-    "declarable": true,
-    "throwsAllowed": false
-  }]
-];
-var BUILTIN_FRAGMENT_FILES = [
-  ["ArgBinding", {
-    "anyOf": [
-      {
-        "type": "string",
-        "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
-      },
-      {
-        "type": "object",
-        "required": [
-          "flag"
-        ],
-        "properties": {
-          "flag": {
-            "type": "string",
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9-]*$"
-          },
-          "short": {
-            "type": "string",
-            "pattern": "^[A-Za-z]$"
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
-          "position"
-        ],
-        "properties": {
-          "position": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        "additionalProperties": false
-      }
-    ]
-  }],
-  ["CallableParams", {
-    "title": "Parameters",
-    "description": "Ordered parameters this callable accepts. Optional parameters come last.",
-    "type": "array",
-    "items": {
-      "type": "object",
-      "required": [
-        "name",
-        "schema"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "schema": {
-          "$ref": "telo://manifest#/$defs/CallableType"
-        },
-        "nullable": {
-          "type": "boolean"
-        },
-        "optional": {
-          "type": "boolean"
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["CallableReturns", {
-    "title": "Result",
-    "description": "What a call to this callable evaluates to.",
-    "type": "object",
-    "required": [
-      "schema"
-    ],
-    "properties": {
-      "description": {
-        "type": "string"
-      },
-      "schema": {
-        "$ref": "telo://manifest#/$defs/CallableType"
-      },
-      "nullable": {
-        "type": "boolean"
-      }
-    },
-    "additionalProperties": false
-  }],
-  ["CallableType", {
-    "title": "Type",
-    "description": "The value's shape, as JSON Schema. `!ref <Shape>` names a `Telo.JsonSchema`, at the root or nested.",
-    "anyOf": [
-      {
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      {
-        "type": "string"
-      }
-    ]
-  }],
-  ["DispatchTarget", {
-    "anyOf": [
-      {
-        "type": "object",
-        "required": [
-          "__tagged",
-          "engine",
-          "source"
-        ],
-        "properties": {
-          "__tagged": {
-            "const": true
-          },
-          "engine": {
-            "const": "ref"
-          },
-          "source": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parsed": {
-            "type": "object",
-            "description": "The `!ref` engine's reading of `source`, attached by the loader."
-          },
-          "refusal": {
-            "type": "object",
-            "description": "Set instead of `parsed` when `source` is outside the `!ref` grammar."
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "string",
-        "x-telo-context": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "self": {
-              "x-telo-context-from-root": "schema"
-            }
-          }
-        }
-      },
-      {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "kind": {
-            "type": "string"
-          },
-          "name": {
-            "type": "string",
-            "x-telo-context": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "self": {
-                  "x-telo-context-from-root": "schema"
-                }
-              }
-            }
-          }
-        },
-        "additionalProperties": true
-      }
-    ]
-  }],
-  ["EmittedStep", {
-    "title": "Emitted step identity",
-    "description": "The identity a template's `!for-each` gives a step it emits, in place of `name`: `{ repeat, key }` for a named repeat (its result is filed under `steps.<repeat>`, keyed by `key`), `{ site, keys }` for an unnamed one. Written only by the template expansion; an author never writes it.",
-    "anyOf": [
-      {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "repeat",
-          "key"
-        ],
-        "properties": {
-          "repeat": {
-            "type": "string"
-          },
-          "key": {
-            "type": [
-              "string",
-              "integer"
-            ]
-          }
-        }
-      },
-      {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "site",
-          "keys"
-        ],
-        "properties": {
-          "site": {
-            "type": "string"
-          },
-          "keys": {
-            "type": "array",
-            "items": {
-              "type": [
-                "string",
-                "integer"
-              ]
-            }
-          }
-        }
-      }
-    ]
-  }],
-  ["ForEachDeclaration", {
-    "title": "`!for-each` at a declaration position",
-    "description": "Inside a template body, a family: one named member per element, under the one name in `metadata`.",
-    "type": "object",
-    "properties": {
-      "metadata": {
-        "type": "object",
-        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "in": {
-        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
-      },
-      "as": {
-        "type": "string",
-        "description": "The binding's name; `each` when omitted."
-      },
-      "emit": {
-        "description": "What each element contributes."
-      }
-    },
-    "required": [
-      "metadata",
-      "in",
-      "emit"
-    ],
-    "additionalProperties": false
-  }],
-  ["ForEachEntry", {
-    "title": "`!for-each` at a splice",
-    "description": "Inside a template body, the value of a `...` key: one mapping entry per element, keyed by `key`.",
-    "type": "object",
-    "properties": {
-      "key": {
-        "description": "The entry's key, a `!cel` string over the bindings."
-      },
-      "in": {
-        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
-      },
-      "as": {
-        "type": "string",
-        "description": "The binding's name; `each` when omitted."
-      },
-      "emit": {
-        "description": "What each element contributes."
-      }
-    },
-    "required": [
-      "in",
-      "key",
-      "emit"
-    ],
-    "additionalProperties": false
-  }],
-  ["ForEachStepRepeat", {
-    "title": "`!for-each` in a step list, named",
-    "description": "Inside a template body, one step per element whose results are read as `steps.<name>[<binding>.key].result`.",
-    "type": "object",
-    "properties": {
-      "name": {
-        "type": "string",
-        "description": "The step name the repeat's results are read under."
-      },
-      "in": {
-        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
-      },
-      "as": {
-        "type": "string",
-        "description": "The binding's name; `each` when omitted."
-      },
-      "emit": {
-        "description": "What each element contributes."
-      }
-    },
-    "required": [
-      "name",
-      "in",
-      "emit"
-    ],
-    "additionalProperties": false
-  }],
-  ["ForEachValue", {
-    "title": "`!for-each` at a list position",
-    "description": "Inside a template body, items of a list emitted per element of a consumer's collection.",
-    "type": "object",
-    "properties": {
-      "in": {
-        "description": 'The collection repeated over: a bare `!cel "self.<path>"` or `<binding>.value.<path>`.'
-      },
-      "as": {
-        "type": "string",
-        "description": "The binding's name; `each` when omitted."
-      },
-      "emit": {
-        "description": "What each element contributes."
-      }
-    },
-    "required": [
-      "in",
-      "emit"
-    ],
-    "additionalProperties": false
-  }],
-  ["IfDeclaration", {
-    "title": "`!if` at a declaration position",
-    "description": "A resource declaration chosen before boot: the tag carries its `metadata`, each branch is one unnamed declaration.",
-    "type": "object",
-    "properties": {
-      "metadata": {
-        "type": "object",
-        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "if": {
-        "description": "A boolean decided before boot: a `!cel` condition or a literal."
-      },
-      "then": {
-        "description": "What the tag stands for when `if` holds."
-      },
-      "else": {
-        "description": "What it stands for otherwise; without it the tag contributes nothing."
-      }
-    },
-    "required": [
-      "metadata",
-      "if",
-      "then"
-    ],
-    "additionalProperties": false
-  }],
-  ["IfValue", {
-    "title": "`!if` at a value position",
-    "description": "An item of a list or the value of a field, chosen before boot.",
-    "type": "object",
-    "properties": {
-      "if": {
-        "description": "A boolean decided before boot: a `!cel` condition or a literal."
-      },
-      "then": {
-        "description": "What the tag stands for when `if` holds."
-      },
-      "else": {
-        "description": "What it stands for otherwise; without it the tag contributes nothing."
-      }
-    },
-    "required": [
-      "if",
-      "then"
-    ],
-    "additionalProperties": false
-  }],
-  ["InvokeStep", {
-    "title": "Invoke step",
-    "description": "Transfers control to a resource: what to call, what to pass it, whether to call it, and how to re-attempt it.",
-    "type": "object",
-    "required": [
-      "invoke"
-    ],
-    "additionalProperties": false,
-    "properties": {
-      "name": {
-        "title": "Name",
-        "description": "Publishes this dispatch's result as `steps.<name>.result`.",
-        "type": "string"
-      },
-      "__emitted": {
-        "$ref": "telo://manifest#/$defs/EmittedStep"
-      },
-      "invoke": {
-        "title": "Invoke",
-        "description": "Resource to invoke.",
-        "x-telo-topology-role": "invoke",
-        "type": "object",
-        "x-telo-ref": {
-          "kind": "Telo.Executable",
-          "use": "call",
-          "inputs": "/inputs"
-        }
-      },
-      "inputs": {
-        "title": "Inputs",
-        "description": "Values passed to the invoked resource.",
-        "x-telo-topology-role": "inputs",
-        "type": "object",
-        "additionalProperties": true
-      },
-      "when": {
-        "title": "When",
-        "description": "CEL guard \u2014 the dispatch is skipped when it evaluates false.",
-        "x-telo-topology-role": "predicate",
-        "type": "boolean"
-      },
-      "retry": {
-        "title": "Retry",
-        "$ref": "telo://manifest#/$defs/RetryPolicy",
-        "properties": {
-          "nonRetryable": {
-            "title": "Non-retryable codes",
-            "description": "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "default": []
-          }
-        }
-      },
-      "timeout": {
-        "title": "Timeout",
-        "description": "How long ONE attempt may take, in milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
-        "type": "integer",
-        "minimum": 1
-      }
-    }
-  }],
-  ["JsonSchema7", {
-    "title": "JSON Schema",
-    "description": "The shape of a value, as JSON Schema (draft-07).",
-    "type": [
-      "object",
-      "boolean"
-    ],
-    "properties": {
-      "type": {
-        "title": "Type",
-        "description": "The JSON type this value must have, or a list of accepted types.",
-        "anyOf": [
-          {
-            "type": "string",
-            "enum": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "integer",
-              "boolean",
-              "null"
-            ]
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "object",
-                "array",
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "null"
-              ]
-            }
-          }
-        ]
-      },
-      "properties": {
-        "title": "Properties",
-        "description": "Schema per named property of an object.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "required": {
-        "title": "Required",
-        "description": "Property names that must be present.",
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {
-        "title": "Additional properties",
-        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
-        "anyOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "telo://manifest#/$defs/JsonSchema7"
-          }
-        ]
-      },
-      "patternProperties": {
-        "title": "Pattern properties",
-        "description": "Schema per regular expression matching a property name.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "propertyNames": {
-        "title": "Property names",
-        "description": "Schema every property NAME must satisfy.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "items": {
-        "title": "Items",
-        "description": "Schema for each element of an array.",
-        "anyOf": [
-          {
-            "$ref": "telo://manifest#/$defs/JsonSchema7"
-          },
-          {
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/JsonSchema7"
-            }
-          }
-        ]
-      },
-      "additionalItems": {
-        "title": "Additional items",
-        "description": "Schema for elements past a positional `items` list.",
-        "anyOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "telo://manifest#/$defs/JsonSchema7"
-          }
-        ]
-      },
-      "contains": {
-        "title": "Contains",
-        "description": "At least one element must satisfy this schema.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "allOf": {
-        "title": "All of",
-        "description": "Every branch must match.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "anyOf": {
-        "title": "Any of",
-        "description": "At least one branch must match.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "oneOf": {
-        "title": "One of",
-        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "not": {
-        "title": "Not",
-        "description": "The value must NOT match this schema.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "if": {
-        "title": "If",
-        "description": "Condition selecting `then` / `else`.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "then": {
-        "title": "Then",
-        "description": "Applied when `if` matches.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "else": {
-        "title": "Else",
-        "description": "Applied when `if` does not match.",
-        "$ref": "telo://manifest#/$defs/JsonSchema7"
-      },
-      "enum": {
-        "title": "Enum",
-        "description": "The complete set of accepted values.",
-        "type": "array"
-      },
-      "const": {
-        "title": "Const",
-        "description": "The single accepted value."
-      },
-      "default": {
-        "title": "Default",
-        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
-      },
-      "examples": {
-        "title": "Examples",
-        "description": "Sample values, for documentation.",
-        "type": "array"
-      },
-      "minimum": {
-        "title": "Minimum",
-        "type": "number"
-      },
-      "maximum": {
-        "title": "Maximum",
-        "type": "number"
-      },
-      "exclusiveMinimum": {
-        "title": "Exclusive minimum",
-        "type": "number"
-      },
-      "exclusiveMaximum": {
-        "title": "Exclusive maximum",
-        "type": "number"
-      },
-      "multipleOf": {
-        "title": "Multiple of",
-        "type": "number",
-        "exclusiveMinimum": 0
-      },
-      "minLength": {
-        "title": "Min length",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxLength": {
-        "title": "Max length",
-        "type": "integer",
-        "minimum": 0
-      },
-      "pattern": {
-        "title": "Pattern",
-        "description": "Regular expression the string must match.",
-        "type": "string"
-      },
-      "format": {
-        "title": "Format",
-        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
-        "type": "string"
-      },
-      "contentMediaType": {
-        "title": "Content media type",
-        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
-        "type": "string"
-      },
-      "contentEncoding": {
-        "title": "Content encoding",
-        "type": "string"
-      },
-      "minItems": {
-        "title": "Min items",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxItems": {
-        "title": "Max items",
-        "type": "integer",
-        "minimum": 0
-      },
-      "uniqueItems": {
-        "title": "Unique items",
-        "type": "boolean"
-      },
-      "minProperties": {
-        "title": "Min properties",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxProperties": {
-        "title": "Max properties",
-        "type": "integer",
-        "minimum": 0
-      },
-      "dependencies": {
-        "title": "Dependencies",
-        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
-        "type": "object",
-        "additionalProperties": {
-          "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            {
-              "$ref": "telo://manifest#/$defs/JsonSchema7"
-            }
-          ]
-        }
-      },
-      "title": {
-        "title": "Title",
-        "description": "Human-readable label for this value.",
-        "type": "string"
-      },
-      "description": {
-        "title": "Description",
-        "description": "What this value is, for the author reading the manifest.",
-        "type": "string"
-      },
-      "deprecated": {
-        "title": "Deprecated",
-        "type": "boolean"
-      },
-      "readOnly": {
-        "title": "Read only",
-        "type": "boolean"
-      },
-      "writeOnly": {
-        "title": "Write only",
-        "type": "boolean"
-      },
-      "$ref": {
-        "title": "Reference",
-        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
-        "type": "string"
-      },
-      "$defs": {
-        "title": "Definitions",
-        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "definitions": {
-        "title": "Definitions (draft-07)",
-        "description": "Older spelling of `$defs`.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/JsonSchema7"
-        }
-      },
-      "$comment": {
-        "title": "Comment",
-        "type": "string"
-      },
-      "$id": {
-        "title": "Id",
-        "type": "string"
-      },
-      "$schema": {
-        "title": "Schema dialect",
-        "type": "string"
-      }
-    },
-    "additionalProperties": true
-  }],
-  ["KindMetadata", {
-    "type": "object",
-    "required": [
-      "name"
-    ],
-    "properties": {
-      "name": {
-        "type": "string"
-      },
-      "module": {
-        "type": "string"
-      },
-      "categories": {
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      }
-    },
-    "additionalProperties": true
-  }],
-  ["KindSchema", {
-    "title": "Kind schema",
-    "description": "The configuration a resource of this kind accepts, as JSON Schema plus the `x-telo-*` annotations that say how each field behaves.",
-    "type": [
-      "object",
-      "boolean"
-    ],
-    "properties": {
-      "type": {
-        "title": "Type",
-        "description": "The JSON type this value must have, or a list of accepted types.",
-        "anyOf": [
-          {
-            "type": "string",
-            "enum": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "integer",
-              "boolean",
-              "null"
-            ]
-          },
-          {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "enum": [
-                "object",
-                "array",
-                "string",
-                "number",
-                "integer",
-                "boolean",
-                "null"
-              ]
-            }
-          }
-        ]
-      },
-      "properties": {
-        "title": "Properties",
-        "description": "Schema per named property of an object.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "required": {
-        "title": "Required",
-        "description": "Property names that must be present.",
-        "type": "array",
-        "items": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": {
-        "title": "Additional properties",
-        "description": "`false` rejects any property not named above \u2014 which is what makes a typo an error rather than an ignored field.",
-        "anyOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "telo://manifest#/$defs/KindSchema"
-          }
-        ]
-      },
-      "patternProperties": {
-        "title": "Pattern properties",
-        "description": "Schema per regular expression matching a property name.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "propertyNames": {
-        "title": "Property names",
-        "description": "Schema every property NAME must satisfy.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "items": {
-        "title": "Items",
-        "description": "Schema for each element of an array.",
-        "anyOf": [
-          {
-            "$ref": "telo://manifest#/$defs/KindSchema"
-          },
-          {
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/KindSchema"
-            }
-          }
-        ]
-      },
-      "additionalItems": {
-        "title": "Additional items",
-        "description": "Schema for elements past a positional `items` list.",
-        "anyOf": [
-          {
-            "type": "boolean"
-          },
-          {
-            "$ref": "telo://manifest#/$defs/KindSchema"
-          }
-        ]
-      },
-      "contains": {
-        "title": "Contains",
-        "description": "At least one element must satisfy this schema.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "allOf": {
-        "title": "All of",
-        "description": "Every branch must match.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "anyOf": {
-        "title": "Any of",
-        "description": "At least one branch must match.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "oneOf": {
-        "title": "One of",
-        "description": "Exactly one branch must match. Prefer `anyOf` when a branch declares a value type \u2014 a consumer that does not know the keyword reads the branch as matching everything, and only `anyOf` degrades gracefully.",
-        "type": "array",
-        "items": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "not": {
-        "title": "Not",
-        "description": "The value must NOT match this schema.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "if": {
-        "title": "If",
-        "description": "Condition selecting `then` / `else`.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "then": {
-        "title": "Then",
-        "description": "Applied when `if` matches.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "else": {
-        "title": "Else",
-        "description": "Applied when `if` does not match.",
-        "$ref": "telo://manifest#/$defs/KindSchema"
-      },
-      "enum": {
-        "title": "Enum",
-        "description": "The complete set of accepted values.",
-        "type": "array"
-      },
-      "const": {
-        "title": "Const",
-        "description": "The single accepted value."
-      },
-      "default": {
-        "title": "Default",
-        "description": "Filled in when the value is absent. On an invocation contract this is applied at dispatch, so a caller may omit the field."
-      },
-      "examples": {
-        "title": "Examples",
-        "description": "Sample values, for documentation.",
-        "type": "array"
-      },
-      "minimum": {
-        "title": "Minimum",
-        "type": "number"
-      },
-      "maximum": {
-        "title": "Maximum",
-        "type": "number"
-      },
-      "exclusiveMinimum": {
-        "title": "Exclusive minimum",
-        "type": "number"
-      },
-      "exclusiveMaximum": {
-        "title": "Exclusive maximum",
-        "type": "number"
-      },
-      "multipleOf": {
-        "title": "Multiple of",
-        "type": "number",
-        "exclusiveMinimum": 0
-      },
-      "minLength": {
-        "title": "Min length",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxLength": {
-        "title": "Max length",
-        "type": "integer",
-        "minimum": 0
-      },
-      "pattern": {
-        "title": "Pattern",
-        "description": "Regular expression the string must match.",
-        "type": "string"
-      },
-      "format": {
-        "title": "Format",
-        "description": "Named string format (`date-time`, `uri`, `email`, \u2026).",
-        "type": "string"
-      },
-      "contentMediaType": {
-        "title": "Content media type",
-        "description": "Media type of the string's content (`application/javascript`). Drives the editor's code-widget language.",
-        "type": "string"
-      },
-      "contentEncoding": {
-        "title": "Content encoding",
-        "type": "string"
-      },
-      "minItems": {
-        "title": "Min items",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxItems": {
-        "title": "Max items",
-        "type": "integer",
-        "minimum": 0
-      },
-      "uniqueItems": {
-        "title": "Unique items",
-        "type": "boolean"
-      },
-      "minProperties": {
-        "title": "Min properties",
-        "type": "integer",
-        "minimum": 0
-      },
-      "maxProperties": {
-        "title": "Max properties",
-        "type": "integer",
-        "minimum": 0
-      },
-      "dependencies": {
-        "title": "Dependencies",
-        "description": "Per property, the other properties it requires \u2014 or a schema to apply.",
-        "type": "object",
-        "additionalProperties": {
-          "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            },
-            {
-              "$ref": "telo://manifest#/$defs/KindSchema"
-            }
-          ]
-        }
-      },
-      "title": {
-        "title": "Title",
-        "description": "Human-readable label for this value.",
-        "type": "string"
-      },
-      "description": {
-        "title": "Description",
-        "description": "What this value is, for the author reading the manifest.",
-        "type": "string"
-      },
-      "deprecated": {
-        "title": "Deprecated",
-        "type": "boolean"
-      },
-      "readOnly": {
-        "title": "Read only",
-        "type": "boolean"
-      },
-      "writeOnly": {
-        "title": "Write only",
-        "type": "boolean"
-      },
-      "$ref": {
-        "title": "Reference",
-        "description": "Pointer to another schema: `#/$defs/<Name>` for one declared below, `telo:<module>/<Type>` for a named type a module declared.",
-        "type": "string"
-      },
-      "$defs": {
-        "title": "Definitions",
-        "description": "Named sub-schemas, private to this schema, referenced with `#/$defs/<Name>`.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "definitions": {
-        "title": "Definitions (draft-07)",
-        "description": "Older spelling of `$defs`.",
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "telo://manifest#/$defs/KindSchema"
-        }
-      },
-      "$comment": {
-        "title": "Comment",
-        "type": "string"
-      },
-      "$id": {
-        "title": "Id",
-        "type": "string"
-      },
-      "$schema": {
-        "title": "Schema dialect",
-        "type": "string"
-      }
-    },
-    "additionalProperties": true
-  }],
-  ["LayerIndex", {
-    "type": "array",
-    "items": {
-      "type": "object",
-      "required": [
-        "role",
-        "blob",
-        "integrity"
-      ],
-      "properties": {
-        "role": {
-          "type": "string",
-          "minLength": 1
-        },
-        "selector": {},
-        "blob": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "integrity": {
-          "type": "string",
-          "pattern": "^sha256-[A-Za-z0-9_-]{43}$"
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["LogDuration", {
-    "type": "string",
-    "pattern": "^\\s*\\d+(\\.\\d+)?\\s*(ms|s|m|h)\\s*$"
-  }],
-  ["LogLevel", {
-    "type": "string",
-    "enum": [
-      "trace",
-      "debug",
-      "info",
-      "warn",
-      "error",
-      "fatal"
-    ]
-  }],
-  ["LoggingScope", {
-    "type": "object",
-    "x-telo-eval": "compile",
-    "properties": {
-      "level": {
-        "$ref": "telo://manifest#/$defs/LogLevel"
-      },
-      "attributes": {
-        "type": "object"
-      },
-      "redact": {
-        "type": "object",
-        "properties": {
-          "paths": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "censor": {
-            "type": "string"
-          },
-          "remove": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "sampling": {
-        "type": "object",
-        "properties": {
-          "first": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "thereafter": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "tick": {
-            "$ref": "telo://manifest#/$defs/LogDuration"
-          },
-          "sampleErrors": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      }
-    },
-    "additionalProperties": false
-  }],
-  ["Message", {
-    "title": "Message",
-    "description": "Text shown to a person: a pattern with `{$name}` placeholders and the escapes `\\{`, `\\}`, `\\\\`, or a plural selection `{ plural: <name>, cases: { <category> | =<integer>: Message } }` whose `other` case is required.",
-    "anyOf": [
-      {
-        "type": "string"
-      },
-      {
-        "type": "object",
-        "required": [
-          "plural",
-          "cases"
-        ],
-        "properties": {
-          "plural": {
-            "description": "The name of the number the selection reads, bound like a placeholder.",
-            "type": "string",
-            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
-            "not": {
-              "enum": [
-                "as",
-                "break",
-                "const",
-                "continue",
-                "else",
-                "false",
-                "for",
-                "function",
-                "if",
-                "import",
-                "in",
-                "let",
-                "loop",
-                "namespace",
-                "null",
-                "package",
-                "return",
-                "true",
-                "var",
-                "void",
-                "while"
-              ]
-            }
-          },
-          "cases": {
-            "description": "A Message per CLDR plural category (`zero`, `one`, `two`, `few`, `many`, `other`) or exact value (`=0`); `=N` cases are matched first.",
-            "type": "object",
-            "required": [
-              "other"
-            ],
-            "propertyNames": {
-              "pattern": "^(zero|one|two|few|many|other|=(0|-?[1-9][0-9]*))$"
-            },
-            "additionalProperties": {
-              "$ref": "telo://manifest#/$defs/Message"
-            }
-          }
-        },
-        "additionalProperties": false
-      }
-    ]
-  }],
-  ["ModuleImports", {
-    "type": "object",
-    "additionalProperties": {
-      "oneOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "object",
-          "required": [
-            "source"
-          ],
-          "properties": {
-            "source": {
-              "type": "string"
-            },
-            "integrity": {
-              "type": "string"
-            },
-            "variables": {
-              "type": "object"
-            },
-            "secrets": {
-              "type": "object"
-            },
-            "resources": {
-              "type": "object",
-              "additionalProperties": {}
-            },
-            "needs": {
-              "type": "object",
-              "additionalProperties": {}
-            },
-            "runtime": {
-              "oneOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ]
-            },
-            "logging": {
-              "$ref": "telo://manifest#/$defs/LoggingScope"
-            }
-          },
-          "additionalProperties": false
-        }
-      ]
-    }
-  }],
-  ["ModuleMetadata", {
-    "type": "object",
-    "properties": {
-      "name": {
-        "type": "string"
-      },
-      "version": {
-        "type": "string"
-      },
-      "source": {
-        "type": "string"
-      },
-      "module": {
-        "type": "string"
-      },
-      "description": {
-        "type": "string"
-      },
-      "repository": {
-        "type": "string"
-      },
-      "license": {
-        "type": "string"
-      },
-      "documentation": {
-        "type": "string"
-      }
-    },
-    "required": [
-      "name"
-    ],
-    "additionalProperties": true
-  }],
-  ["ModuleSources", {
-    "type": "object",
-    "additionalProperties": {
-      "type": "object",
-      "required": [
-        "version",
-        "url",
-        "archive",
-        "notices",
-        "entries"
-      ],
-      "properties": {
-        "version": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string"
-        },
-        "archive": {
-          "enum": [
-            "tar.gz"
-          ]
-        },
-        "notices": {
-          "type": "array",
-          "minItems": 1,
-          "items": {
-            "type": "string"
-          }
-        },
-        "build": {
-          "type": "object",
-          "required": [
-            "cargo"
-          ],
-          "properties": {
-            "cargo": {
-              "type": "string"
-            },
-            "inputs": {
-              "type": "string"
-            }
-          },
-          "additionalProperties": false
-        },
-        "entries": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object",
-            "anyOf": [
-              {
-                "required": [
-                  "upstream",
-                  "member"
-                ]
-              },
-              {
-                "required": [
-                  "target"
-                ]
-              }
-            ],
-            "properties": {
-              "upstream": {
-                "type": "string"
-              },
-              "member": {
-                "type": "string"
-              },
-              "sha256": {
-                "type": "string"
-              },
-              "executable": {
-                "type": "boolean"
-              },
-              "target": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          }
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["NativeEntries", {
-    "type": "array",
-    "items": {
-      "$ref": "telo://manifest#/$defs/PlatformAxes",
-      "type": "object",
-      "required": [
-        "name",
-        "format",
-        "os",
-        "arch",
-        "path"
-      ],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "format": {
-          "type": "string"
-        },
-        "path": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    }
-  }],
-  ["NeedRequest", {
-    "type": "object",
-    "required": [
-      "kind"
-    ],
-    "properties": {
-      "kind": {
-        "type": "string"
-      },
-      "parameters": {
-        "type": "object"
-      },
-      "version": {
-        "type": "string",
-        "description": "The version range the fulfilment must be within, as explicit comparators (`>=15.0.0`). Legal only when the need type is versioned."
-      },
-      "features": {
-        "type": "array",
-        "description": "The features the fulfilment must carry \u2014 names the need type lists.",
-        "items": {
-          "type": "string"
-        },
-        "uniqueItems": true
-      },
-      "optional": {
-        "type": "boolean"
-      },
-      "description": {
-        "type": "string"
-      }
-    },
-    "additionalProperties": false
-  }],
-  ["PlatformAxes", {
-    "type": "object",
-    "properties": {
-      "os": {
-        "type": "string"
-      },
-      "arch": {
-        "type": "string"
-      },
-      "libc": {
-        "type": "string"
-      },
-      "abi": {
-        "type": "string"
-      }
-    }
-  }],
-  ["Requires", {
-    "type": "object",
-    "properties": {
-      "host": {
-        "type": "object"
-      }
-    },
-    "additionalProperties": true
-  }],
-  ["ResourceRef", {
-    "title": "Resource reference",
-    "anyOf": [
-      {
-        "type": "object",
-        "required": [
-          "__tagged",
-          "engine",
-          "source"
-        ],
-        "properties": {
-          "__tagged": {
-            "const": true
-          },
-          "engine": {
-            "const": "ref"
-          },
-          "source": {
-            "type": "string",
-            "minLength": 1
-          },
-          "parsed": {
-            "type": "object",
-            "description": "The `!ref` engine's reading of `source`, attached by the loader."
-          },
-          "refusal": {
-            "type": "object",
-            "description": "Set instead of `parsed` when `source` is outside the `!ref` grammar."
-          }
-        },
-        "additionalProperties": false
-      },
-      {
-        "type": "object",
-        "required": [
-          "kind"
-        ],
-        "properties": {
-          "kind": {
-            "type": "string"
-          }
-        },
-        "additionalProperties": true
-      }
-    ]
-  }],
-  ["RetryAttempts", {
-    "title": "Retry attempts",
-    "description": "Re-attempts after the first try. 0 disables retrying.",
-    "type": "integer",
-    "minimum": 0,
-    "default": 0
-  }],
-  ["RetryPolicy", {
-    "title": "Retry policy",
-    "description": "Re-attempts a failed dispatch with exponential backoff. A domain failure is retried; a cancellation and a contract violation are not \u2014 the latter is a property of the manifest and would fail identically every time.",
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-      "attempts": {
-        "title": "Attempts",
-        "description": "Re-attempts after the first try. 0 disables retrying.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 0
-      },
-      "initialDelay": {
-        "title": "Initial delay",
-        "description": "Milliseconds to wait before the first re-attempt.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 250
-      },
-      "factor": {
-        "title": "Factor",
-        "description": "Multiplier applied to the delay after each re-attempt.",
-        "type": "number",
-        "minimum": 1,
-        "default": 2
-      },
-      "maxDelay": {
-        "title": "Max delay",
-        "description": "Ceiling on the delay between re-attempts, in milliseconds.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 32e3
-      },
-      "jitter": {
-        "title": "Jitter",
-        "description": "`full` picks each delay uniformly from [0, delay], which is what stops work that failed together from re-attempting together.",
-        "type": "string",
-        "enum": [
-          "none",
-          "full"
-        ],
-        "default": "full"
-      },
-      "delay": {
-        "title": "Delay",
-        "description": "DEPRECATED duration string (`250ms`, `1s`) \u2014 read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
-        "type": "string",
-        "pattern": "^[0-9]+(\\.[0-9]+)?\\s*(ms|s|m|h)$"
-      }
-    }
-  }],
-  ["Step", {
-    "title": "Step",
-    "description": "Single executable step or control-flow block.",
-    "type": "object",
-    "properties": {
-      "name": {
-        "title": "Name",
-        "description": "Unique step name.",
-        "type": "string"
-      },
-      "__emitted": {
-        "$ref": "telo://manifest#/$defs/EmittedStep"
-      }
-    },
-    "oneOf": [
-      {
-        "title": "invoke",
-        "description": "Invokes an invocable or runnable resource.",
-        "$ref": "telo://manifest#/$defs/InvokeStep"
-      },
-      {
-        "title": "if/then/else",
-        "description": "Conditional branch; executes then or else based on a boolean expression.",
-        "properties": {
-          "if": {
-            "title": "If",
-            "description": "CEL boolean expression; true executes then, false executes else.",
-            "x-telo-topology-role": "predicate",
-            "type": "boolean"
-          },
-          "elseif": {
-            "title": "Else If",
-            "description": "Additional condition-branch pairs evaluated when if is false.",
-            "x-telo-topology-role": "branch-list",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "if": {
-                  "title": "If",
-                  "description": "CEL boolean expression for this else-if branch.",
-                  "x-telo-topology-role": "predicate",
-                  "type": "boolean"
-                },
-                "then": {
-                  "title": "Then",
-                  "description": "Steps executed when this else-if condition is true.",
-                  "x-telo-topology-role": "branch",
-                  "type": "array",
-                  "items": {
-                    "$ref": "telo://manifest#/$defs/Step"
-                  }
-                }
-              },
-              "required": [
-                "if",
-                "then"
-              ]
-            }
-          },
-          "then": {
-            "title": "Then",
-            "description": "Steps executed when if evaluates true.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            }
-          },
-          "else": {
-            "title": "Else",
-            "description": "Steps executed when if (and all elseif conditions) evaluate false.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            }
-          }
-        },
-        "required": [
-          "if",
-          "then"
-        ]
-      },
-      {
-        "title": "while/do",
-        "description": "Loop; executes do steps repeatedly while condition is true.",
-        "properties": {
-          "while": {
-            "title": "While",
-            "description": "CEL boolean expression; evaluated before each iteration.",
-            "x-telo-topology-role": "predicate",
-            "type": "boolean"
-          },
-          "do": {
-            "title": "Do",
-            "description": "Steps executed on each iteration.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            }
-          }
-        },
-        "required": [
-          "while",
-          "do"
-        ]
-      },
-      {
-        "title": "switch/cases/default",
-        "description": "Multi-branch dispatch; matches a value expression against case keys.",
-        "properties": {
-          "switch": {
-            "title": "Switch",
-            "description": "CEL expression; result matched against case keys.",
-            "x-telo-topology-role": "discriminator",
-            "type": "string"
-          },
-          "cases": {
-            "title": "Cases",
-            "description": "Map of value to step list; executed when switch matches the key.",
-            "x-telo-topology-role": "case-map",
-            "type": "object",
-            "additionalProperties": {
-              "type": "array",
-              "items": {
-                "$ref": "telo://manifest#/$defs/Step"
-              }
-            }
-          },
-          "default": {
-            "title": "Default",
-            "description": "Steps executed when no case matches.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            }
-          }
-        },
-        "required": [
-          "switch",
-          "cases"
-        ]
-      },
-      {
-        "title": "try/catch/finally",
-        "description": "Error boundary; executes try steps and handles failure via catch and finally.",
-        "properties": {
-          "when": {
-            "title": "When",
-            "description": "CEL boolean guard \u2014 the whole try/catch/finally is skipped when it evaluates false.",
-            "x-telo-topology-role": "predicate",
-            "type": "boolean"
-          },
-          "try": {
-            "title": "Try",
-            "description": "Steps executed; halts on first failure and jumps to catch.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            }
-          },
-          "catch": {
-            "title": "Catch",
-            "description": "Steps executed when try fails; receives error context.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            },
-            "x-telo-error-context": {
-              "type": "object",
-              "description": "The caught failure (always present inside catch).",
-              "properties": {
-                "code": {
-                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
-                  "type": "string"
-                },
-                "message": {
-                  "description": "The developer's error message.",
-                  "type": "string"
-                },
-                "step": {
-                  "description": "Name of the step that threw.",
-                  "type": "string"
-                },
-                "data": {
-                  "description": "Structured payload from an InvokeError, else undefined."
-                },
-                "displayMessage": {
-                  "description": 'The text a person is shown for the failure, as its record; null when the failure carries none. Carry it into a new throw with `displayMessage: !cel "error.displayMessage"`.',
-                  "anyOf": [
-                    {
-                      "$ref": "telo://manifest#/$defs/TextRecord"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "finally": {
-            "title": "Finally",
-            "description": "Steps always executed after try/catch regardless of outcome.",
-            "x-telo-topology-role": "branch",
-            "type": "array",
-            "items": {
-              "$ref": "telo://manifest#/$defs/Step"
-            },
-            "x-telo-error-context": {
-              "type": [
-                "object",
-                "null"
-              ],
-              "description": "The caught failure, or null when try (and catch) succeeded.",
-              "properties": {
-                "code": {
-                  "description": "Structured error code; INTERNAL_ERROR for plain errors.",
-                  "type": "string"
-                },
-                "message": {
-                  "description": "The developer's error message.",
-                  "type": "string"
-                },
-                "step": {
-                  "description": "Name of the step that threw.",
-                  "type": "string"
-                },
-                "data": {
-                  "description": "Structured payload from an InvokeError, else undefined."
-                },
-                "displayMessage": {
-                  "description": 'The text a person is shown for the failure, as its record; null when the failure carries none. Carry it into a new throw with `displayMessage: !cel "error.displayMessage"`.',
-                  "anyOf": [
-                    {
-                      "$ref": "telo://manifest#/$defs/TextRecord"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "try"
-        ]
-      },
-      {
-        "title": "throw",
-        "description": "Throws an InvokeError unconditionally. Inside a catch branch the caught failure becomes the new error's cause.",
-        "properties": {
-          "throw": {
-            "title": "Throw",
-            "description": "InvokeError descriptor; code is required, message/displayMessage/data optional.",
-            "type": "object",
-            "properties": {
-              "code": {
-                "title": "Code",
-                "description": "Structured error code; uppercase SNAKE_CASE by convention.",
-                "type": "string"
-              },
-              "message": {
-                "title": "Message",
-                "description": "The developer's message, for logs and traces; never shown to a person. Omitted, it is the display message formatted with `data`, else `code`.",
-                "type": "string"
-              },
-              "displayMessage": {
-                "title": "Display message",
-                "description": 'The text a person is shown for this failure: a literal text whose placeholders name members of `data`, or the display message a caught error carries (`!cel "error.displayMessage"`). Null or omitted, the error carries none.',
-                "anyOf": [
-                  {
-                    "$ref": "telo://manifest#/$defs/Text"
-                  },
-                  {
-                    "$ref": "telo://manifest#/$defs/TextRecord"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "data": {
-                "title": "Data",
-                "description": "Optional structured payload attached to the error; its members are the values the display message is formatted with.",
-                "x-telo-text-values-for": "/displayMessage"
-              }
-            },
-            "required": [
-              "code"
-            ]
-          }
-        },
-        "required": [
-          "throw"
-        ]
-      },
-      {
-        "title": "rethrow",
-        "description": "Re-raises the failure the enclosing catch branch caught, unchanged: its code, messages, data, cause and stack. Legal only inside a catch branch.",
-        "properties": {
-          "rethrow": {
-            "title": "Rethrow",
-            "description": "Always an empty object.",
-            "type": "object",
-            "properties": {},
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "rethrow"
-        ]
-      },
-      {
-        "title": "value",
-        "description": "Computes a value and publishes it as `steps.<name>.result`, with no dispatch \u2014 no resource, no span, no topology node. For an intermediate derived from an earlier step: reshape a response, total some rows, build the next call's inputs.",
-        "properties": {
-          "value": {
-            "title": "Value",
-            "description": "A CEL expression \u2014 or a structure (map / array) with `!cel` leaves \u2014 evaluated in the step scope: `inputs`, the results of the steps before it, and whatever the enclosing kind binds (`item` / `index` / `items`, `iteration` / `previous`)."
-          }
-        },
-        "required": [
-          "value"
-        ]
-      }
-    ],
-    "if": {
-      "required": [
-        "__emitted"
-      ]
-    },
-    "then": {
-      "not": {
-        "required": [
-          "name"
-        ]
-      }
-    },
-    "else": {
-      "required": [
-        "name"
-      ]
-    }
-  }],
-  ["SwitchDeclaration", {
-    "title": "`!switch` at a declaration position",
-    "description": "A resource declaration chosen by value before boot: the tag carries its `metadata`, each case is one unnamed declaration.",
-    "type": "object",
-    "properties": {
-      "metadata": {
-        "type": "object",
-        "description": "The declaration's metadata; its `name` is the one name every configuration declares.",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          }
-        }
-      },
-      "switch": {
-        "description": "A string, integer or boolean decided before boot: a `!cel` selector or a literal."
-      },
-      "cases": {
-        "type": "object",
-        "description": "Each case key read as a value of the selector's type, mapped to what the tag stands for."
-      },
-      "default": {
-        "description": "What the tag stands for when no case matches."
-      }
-    },
-    "required": [
-      "metadata",
-      "switch",
-      "cases"
-    ],
-    "additionalProperties": false
-  }],
-  ["SwitchValue", {
-    "title": "`!switch` at a value position",
-    "description": "An item of a list or the value of a field, chosen by value before boot.",
-    "type": "object",
-    "properties": {
-      "switch": {
-        "description": "A string, integer or boolean decided before boot: a `!cel` selector or a literal."
-      },
-      "cases": {
-        "type": "object",
-        "description": "Each case key read as a value of the selector's type, mapped to what the tag stands for."
-      },
-      "default": {
-        "description": "What the tag stands for when no case matches."
-      }
-    },
-    "required": [
-      "switch",
-      "cases"
-    ],
-    "additionalProperties": false
-  }],
-  ["Text", {
-    "title": "Text",
-    "description": "Text shown to a person: a Message, or `{ text: Message, context }` where `context` tells the same words used elsewhere apart.",
-    "anyOf": [
-      {
-        "$ref": "telo://manifest#/$defs/Message"
-      },
-      {
-        "type": "object",
-        "required": [
-          "text",
-          "context"
-        ],
-        "properties": {
-          "text": {
-            "$ref": "telo://manifest#/$defs/Message"
-          },
-          "context": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "additionalProperties": false
-      }
-    ]
-  }],
-  ["TextCatalog", {
-    "title": "Text catalog",
-    "description": "Translations of a module's texts into one language: each entry names a source text (and its context) and the Message that translates it.",
-    "type": "object",
-    "required": [
-      "lang",
-      "texts"
-    ],
-    "properties": {
-      "lang": {
-        "description": "The language the translations are written in.",
-        "type": "string",
-        "format": "language-tag"
-      },
-      "texts": {
-        "type": "array",
-        "items": {
-          "type": "object",
-          "required": [
-            "text",
-            "translation"
-          ],
-          "properties": {
-            "text": {
-              "$ref": "telo://manifest#/$defs/Message"
-            },
-            "context": {
-              "type": "string",
-              "minLength": 1
-            },
-            "translation": {
-              "$ref": "telo://manifest#/$defs/Message"
-            }
-          },
-          "additionalProperties": false
-        }
-      }
-    },
-    "additionalProperties": false
-  }],
-  ["TextRecord", {
-    "title": "Text record",
-    "description": "A text as a controller receives it and forwards it: the Message as written, its context (null when none is written), the language it is written in, and whether an expression produced it. Opaque to the text vocabulary: a record is never judged or looked up where it is held.",
-    "type": "object",
-    "required": [
-      "text",
-      "context",
-      "lang",
-      "computed"
-    ],
-    "properties": {
-      "text": {
-        "$ref": "telo://manifest#/$defs/Message"
-      },
-      "context": {
-        "anyOf": [
-          {
-            "type": "string",
-            "minLength": 1
-          },
-          {
-            "type": "null"
-          }
-        ]
-      },
-      "lang": {
-        "type": "string",
-        "format": "language-tag"
-      },
-      "computed": {
-        "type": "boolean"
-      }
-    },
-    "additionalProperties": false
-  }],
-  ["ThrowCodes", {
-    "type": "object",
-    "propertyNames": {
-      "pattern": "^[A-Z][A-Z0-9_]*$"
-    },
-    "additionalProperties": {
-      "type": "object",
-      "required": [
-        "description"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "description": {
-          "type": "string"
-        },
-        "displayMessage": {
-          "description": "The text a person is shown for this failure, written in the module's `lang:`. Its placeholders may name only the required string or number properties of `data`.",
-          "$ref": "telo://manifest#/$defs/Text",
-          "x-telo-text-values-from": "0/data"
-        },
-        "data": {
-          "type": "object",
-          "additionalProperties": true
-        }
-      }
-    }
-  }]
-];
-
-// ../../analyzer/nodejs/src/builtin-entry-markers.ts
-var ROSTER_MARKER = "$roster";
-function refuseRosterMarkers(node, where, path = "") {
-  if (!node || typeof node !== "object") return;
-  if (Array.isArray(node)) {
-    node.forEach((item, i) => refuseRosterMarkers(item, where, `${path}[${i}]`));
-    return;
-  }
-  for (const [key3, value2] of Object.entries(node)) {
-    if (key3 === ROSTER_MARKER) {
-      throw new Error(
-        `${where}: '${ROSTER_MARKER}' marker left underived at '${path || "/"}'. The built-in entries are derived by scripts/render-builtin-vocabulary.mjs \u2014 run it (the root and the analyzer's \`prepare\` do).`
-      );
-    }
-    refuseRosterMarkers(value2, where, path ? `${path}.${key3}` : key3);
-  }
-}
-
-// ../../analyzer/nodejs/src/schema-region.ts
-var SCHEMA_REGION_KEYS = [
-  "schema",
-  "status",
-  "inputType",
-  "outputType",
-  "itemType"
-];
-function isInSchemaRegion(path) {
-  for (let i = 0; i < path.length - 1; i++) {
-    const segment = path[i];
-    if (typeof segment === "string" && SCHEMA_REGION_KEYS.includes(segment)) return true;
-  }
-  return false;
-}
-
-// ../../analyzer/nodejs/src/manifest-schemas.ts
-var MANIFEST_SCHEMA_URI = "telo://manifest";
-function manifestFragmentRef(name2) {
-  return `${MANIFEST_SCHEMA_URI}#/$defs/${name2}`;
-}
-var FRAGMENT_PREFIX = `${MANIFEST_SCHEMA_URI}#/$defs/`;
-var SCHEMA_FRAGMENTS = /* @__PURE__ */ new Set(["JsonSchema7", "KindSchema"]);
-function isSchemaFragment(name2) {
-  return name2 !== void 0 && SCHEMA_FRAGMENTS.has(name2);
-}
-function hoistedDefKey(name2) {
-  return `telo:${name2}`;
-}
-function isHoistedFragmentDefKey(key3) {
-  return key3.startsWith(hoistedDefKey(""));
-}
-var LIFT_SINGLE = [
-  "items",
-  "additionalItems",
-  "additionalProperties",
-  "contains",
-  "propertyNames",
-  "not",
-  "if",
-  "then",
-  "else"
-];
-var LIFT_LISTS = ["anyOf", "oneOf", "allOf", "items"];
-var LIFT_MAPS = ["properties", "patternProperties", "dependencies"];
-function liftFragmentDefs(composed) {
-  const lifted = {};
-  const visit4 = (node, isRoot) => {
-    if (!isPlainObject4(node)) return node;
-    let out = node;
-    const own2 = node.$defs;
-    if (!isRoot && isPlainObject4(own2) && Object.keys(own2).some(isHoistedFragmentDefKey)) {
-      const kept = {};
-      for (const [key3, body2] of Object.entries(own2)) {
-        if (isHoistedFragmentDefKey(key3)) lifted[key3] ??= body2;
-        else kept[key3] = body2;
-      }
-      out = { ...node };
-      if (Object.keys(kept).length > 0) out.$defs = kept;
-      else delete out.$defs;
-    }
-    const replace = (key3, value2) => {
-      if (value2 === out[key3]) return;
-      if (out === node) out = { ...node };
-      out[key3] = value2;
-    };
-    for (const key3 of LIFT_SINGLE) {
-      if (isPlainObject4(out[key3])) replace(key3, visit4(out[key3], false));
-    }
-    for (const key3 of LIFT_LISTS) {
-      const list5 = out[key3];
-      if (!Array.isArray(list5)) continue;
-      const next = list5.map((child) => visit4(child, false));
-      if (next.some((child, index) => child !== list5[index])) replace(key3, next);
-    }
-    for (const key3 of LIFT_MAPS) {
-      const map3 = out[key3];
-      if (!isPlainObject4(map3)) continue;
-      let changed = false;
-      const next = {};
-      for (const [name2, child] of Object.entries(map3)) {
-        next[name2] = visit4(child, false);
-        if (next[name2] !== child) changed = true;
-      }
-      if (changed) replace(key3, next);
-    }
-    return out;
-  };
-  const result = visit4(composed, true);
-  if (Object.keys(lifted).length === 0) return composed;
-  const rootDefs = isPlainObject4(result.$defs) ? result.$defs : {};
-  return { ...result, $defs: { ...lifted, ...rootDefs } };
-}
-function deepFreeze(value2) {
-  if (value2 && typeof value2 === "object" && !Object.isFrozen(value2)) {
-    Object.freeze(value2);
-    for (const child of Object.values(value2)) deepFreeze(child);
-  }
-  return value2;
-}
-function readFragments() {
-  const defs = {};
-  for (const [name2, data] of BUILTIN_FRAGMENT_FILES) {
-    if (!data || typeof data !== "object" || Array.isArray(data)) {
-      throw new Error(`sdk/builtins/fragments/${name2}.json: a fragment is a JSON Schema object.`);
-    }
-    refuseRosterMarkers(data, `sdk/builtins/fragments/${name2}.json`);
-    defs[name2] = structuredClone(data);
-  }
-  return defs;
-}
-var ManifestRootSchema = {
-  $id: MANIFEST_SCHEMA_URI,
-  $defs: readFragments()
-};
-deepFreeze(ManifestRootSchema);
-function fragmentBody(name2) {
-  const body2 = ManifestRootSchema.$defs[name2];
-  return body2 && typeof body2 === "object" ? body2 : void 0;
-}
-function requireFragment(name2) {
-  const body2 = fragmentBody(name2);
-  if (!body2) throw new Error(`Unknown manifest fragment '${name2}'`);
-  return body2;
-}
-var ResourceRefSchema = requireFragment("ResourceRef");
-var RetryPolicySchema = requireFragment("RetryPolicy");
-var RetryAttemptsSchema = requireFragment("RetryAttempts");
-var InvokeStepSchema = requireFragment("InvokeStep");
-var StepSchema = requireFragment("Step");
-var JsonSchema7Schema = requireFragment("JsonSchema7");
-var KindSchemaSchema = requireFragment("KindSchema");
-function referencedFragments(node, out = /* @__PURE__ */ new Set()) {
-  if (!node || typeof node !== "object") return out;
-  if (Array.isArray(node)) {
-    for (const item of node) referencedFragments(item, out);
-    return out;
-  }
-  for (const [key3, value2] of Object.entries(node)) {
-    if (key3 === "$ref" && typeof value2 === "string" && value2.startsWith(FRAGMENT_PREFIX)) {
-      out.add(value2.slice(FRAGMENT_PREFIX.length));
-    } else {
-      referencedFragments(value2, out);
-    }
-  }
-  return out;
-}
-var RECURSIVE_FRAGMENTS = (() => {
-  const edges = /* @__PURE__ */ new Map();
-  for (const name2 of Object.keys(ManifestRootSchema.$defs)) {
-    edges.set(name2, referencedFragments(fragmentBody(name2)));
-  }
-  const recursive = /* @__PURE__ */ new Set();
-  for (const start of edges.keys()) {
-    const seen = /* @__PURE__ */ new Set();
-    const queue = [...edges.get(start) ?? []];
-    while (queue.length > 0) {
-      const next = queue.shift();
-      if (next === start) {
-        recursive.add(start);
-        break;
-      }
-      if (seen.has(next)) continue;
-      seen.add(next);
-      queue.push(...edges.get(next) ?? []);
-    }
-  }
-  return recursive;
-})();
-var expandedFragments = /* @__PURE__ */ new Map();
-function expandedFragment(name2) {
-  let template = expandedFragments.get(name2);
-  if (!template) {
-    const body2 = structuredClone(requireFragment(name2));
-    const hoists = /* @__PURE__ */ new Set();
-    walkFragments(body2, /* @__PURE__ */ new Set(), { hoist: (fragment) => hoists.add(fragment) });
-    template = { body: body2, hoists: [...hoists] };
-    expandedFragments.set(name2, template);
-  }
-  return { body: structuredClone(template.body), hoists: template.hoists };
-}
-function manifestFragment(name2) {
-  requireFragment(name2);
-  const embeddable = !RECURSIVE_FRAGMENTS.has(name2) && expandedFragment(name2).hoists.length === 0;
-  if (!embeddable) {
-    throw new Error(
-      `Manifest fragment '${name2}' is recursive, or references one, and cannot be embedded \u2014 point a slot at it with $ref: "${manifestFragmentRef(name2)}" and pass the enclosing schema through withSchemaFragments().`
-    );
-  }
-  const copy = expandedFragment(name2).body;
-  copy[X_TELO_FRAGMENT] = name2;
-  return copy;
-}
-function expandManifestFragments(node, seen = /* @__PURE__ */ new Set()) {
-  if (!node || typeof node !== "object") return;
-  const target = node;
-  const kind = Array.isArray(node) ? void 0 : target.kind;
-  walkFragments(node, seen, {
-    hoist: (name2) => hoistFragmentDef(target, name2),
-    path: [],
-    roots: rootPatternsOf(typeof kind === "string" ? kind : void 0)
-  });
-}
-var DOCUMENT_ROOTS = (() => {
-  const out = /* @__PURE__ */ new Map();
-  for (const [, data] of BUILTIN_DOCUMENT_FILES) {
-    if (!isPlainObject4(data) || data.kind !== "Telo.Definition" || !isPlainObject4(data.schema)) continue;
-    const name2 = isPlainObject4(data.metadata) ? data.metadata.name : void 0;
-    if (typeof name2 !== "string") continue;
-    const patterns = [];
-    collectSchemaPositions(data.schema, [], /* @__PURE__ */ new Set(), patterns);
-    if (patterns.length > 0) out.set(`Telo.${name2}`, patterns);
-  }
-  return out;
-})();
-function fragmentNameOf(node) {
-  if (!isPlainObject4(node) || typeof node.$ref !== "string") return void 0;
-  return node.$ref.startsWith(FRAGMENT_PREFIX) ? node.$ref.slice(FRAGMENT_PREFIX.length) : void 0;
-}
-function declaresSchemaFragment(node) {
-  if (isSchemaFragment(fragmentNameOf(node))) return true;
-  if (!isPlainObject4(node)) return false;
-  return ["anyOf", "oneOf"].some(
-    (key3) => Array.isArray(node[key3]) && node[key3].some((branch) => declaresSchemaFragment(branch))
-  );
-}
-function collectSchemaPositions(node, path, entered, out) {
-  if (!isPlainObject4(node)) return;
-  if (path.length > 0 && declaresSchemaFragment(node)) {
-    out.push([...path]);
-    return;
-  }
-  const fragment = fragmentNameOf(node);
-  if (fragment && !entered.has(fragment)) {
-    const body2 = fragmentBody(fragment);
-    if (body2) collectSchemaPositions(body2, path, /* @__PURE__ */ new Set([...entered, fragment]), out);
-  }
-  for (const key3 of ["anyOf", "oneOf", "allOf"]) {
-    if (Array.isArray(node[key3])) {
-      for (const branch of node[key3]) collectSchemaPositions(branch, path, entered, out);
-    }
-  }
-  if (isPlainObject4(node.properties)) {
-    for (const [key3, child] of Object.entries(node.properties)) {
-      collectSchemaPositions(child, [...path, key3], entered, out);
-    }
-  }
-  if (isPlainObject4(node.items)) collectSchemaPositions(node.items, [...path, "[*]"], entered, out);
-  if (isPlainObject4(node.additionalProperties)) {
-    collectSchemaPositions(node.additionalProperties, [...path, "*"], entered, out);
-  }
-}
-function rootPatternsOf(kind) {
-  const derived = kind ? DOCUMENT_ROOTS.get(kind) ?? [] : [];
-  return [...SCHEMA_REGION_KEYS.map((key3) => [key3]), ...derived];
-}
-function isRootPosition(ctx, key3) {
-  if (!ctx.path || !ctx.roots) return false;
-  const position = [...ctx.path, key3];
-  return ctx.roots.some(
-    (pattern2) => pattern2.length === position.length && pattern2.every((segment, index) => {
-      const at3 = position[index];
-      if (segment === "[*]") return typeof at3 === "number";
-      if (segment === "*") return typeof at3 === "string";
-      return segment === at3;
-    })
-  );
-}
-function childContext(ctx, key3) {
-  return { hoist: ctx.hoist, ...ctx.path ? { path: [...ctx.path, key3], roots: ctx.roots } : {} };
-}
-function expandRoot(value2, seen) {
-  const rootCtx = (target) => ({
-    hoist: (name3) => hoistFragmentDef(target, name3)
-  });
-  const name2 = fragmentNameOf(value2);
-  if (name2 && RECURSIVE_FRAGMENTS.has(name2)) {
-    const localized = { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
-    hoistFragmentDef(localized, name2);
-    return localized;
-  }
-  const expanded = name2 && fragmentBody(name2) ? fragmentFor(value2, { hoist: () => {
-  } }, true) : void 0;
-  if (expanded) {
-    for (const hoisted of expanded.hoists) hoistFragmentDef(expanded.body, hoisted);
-    return expanded.body;
-  }
-  walkFragments(value2, seen, rootCtx(value2));
-  return value2;
-}
-function walkFragments(node, seen, ctx) {
-  if (!node || typeof node !== "object") return;
-  if (seen.has(node)) return;
-  seen.add(node);
-  const container = node;
-  const keys = Array.isArray(node) ? node.map((_2, index) => index) : Object.keys(node);
-  for (const key3 of keys) {
-    const value2 = container[key3];
-    if (isPlainObject4(value2) && isRootPosition(ctx, key3)) {
-      if (typeof value2.kind === "string") expandManifestFragments(value2, seen);
-      else container[key3] = expandRoot(value2, seen);
-      continue;
-    }
-    const localized = localizeRecursiveFragment(value2, ctx);
-    if (localized) {
-      container[key3] = localized;
-      continue;
-    }
-    const fragment = fragmentFor(value2, ctx);
-    if (fragment) container[key3] = fragment;
-    else walkFragments(value2, seen, childContext(ctx, key3));
-  }
-}
-function localizeRecursiveFragment(value2, ctx) {
-  if (!isPlainObject4(value2)) return void 0;
-  const ref = value2.$ref;
-  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
-  const name2 = ref.slice(FRAGMENT_PREFIX.length);
-  if (!RECURSIVE_FRAGMENTS.has(name2)) return void 0;
-  ctx.hoist(name2);
-  return { ...value2, $ref: `#/$defs/${hoistedDefKey(name2)}`, [X_TELO_FRAGMENT]: name2 };
-}
-function hoistFragmentDef(target, name2) {
-  const defs = target.$defs ??= {};
-  const pending = [name2];
-  while (pending.length > 0) {
-    const next = pending.pop();
-    const key3 = hoistedDefKey(next);
-    if (defs[key3]) continue;
-    const { body: body2, hoists } = expandedFragment(next);
-    defs[key3] = { ...body2, [X_TELO_FRAGMENT]: next };
-    pending.push(...hoists);
-  }
-}
-function fragmentFor(value2, ctx, detached) {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
-  const node = value2;
-  const ref = node.$ref;
-  if (typeof ref !== "string" || !ref.startsWith(FRAGMENT_PREFIX)) return void 0;
-  const name2 = ref.slice(FRAGMENT_PREFIX.length);
-  if (!fragmentBody(name2)) return void 0;
-  const { body: expanded, hoists } = expandedFragment(name2);
-  if (!detached) for (const hoisted of hoists) ctx.hoist(hoisted);
-  for (const [key3, own2] of Object.entries(node)) {
-    if (key3 === "$ref") continue;
-    if (key3 === "properties" && isPlainObject4(own2) && isPlainObject4(expanded.properties)) {
-      expanded.properties = { ...expanded.properties, ...own2 };
-      continue;
-    }
-    if (key3 === "required" && Array.isArray(own2) && Array.isArray(expanded.required)) {
-      expanded.required = [.../* @__PURE__ */ new Set([...expanded.required, ...own2])];
-      continue;
-    }
-    expanded[key3] = own2;
-  }
-  expanded[X_TELO_FRAGMENT] = name2;
-  return detached ? { body: expanded, hoists } : expanded;
-}
-function isPlainObject4(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
-}
-var X_TELO_FRAGMENT = "x-telo-fragment";
-function manifestFragmentOf(schema4) {
-  if (!schema4 || typeof schema4 !== "object") return void 0;
-  const name2 = schema4[X_TELO_FRAGMENT];
-  return typeof name2 === "string" ? name2 : void 0;
-}
-
 // ../../analyzer/nodejs/src/members-value-slot.ts
 function membersSlotOf(schema4) {
   const slot = readValueTypeSlot(schema4);
@@ -48019,10 +49445,11 @@ function kindDeclarationOf(doc) {
   if (doc.kind === "Telo.Definition" || doc.kind === "Telo.Abstract") {
     return doc;
   }
-  if (!isNeedTypeDoc(doc)) return void 0;
+  const synthesize = isNeedTypeDoc(doc) ? needTypeDefinition : isKeyedTranslationsDoc(doc) ? keyedTranslationsDefinition : void 0;
+  if (!synthesize) return void 0;
   let definition = synthesized.get(doc);
   if (!definition) {
-    definition = needTypeDefinition(doc);
+    definition = synthesize(doc);
     synthesized.set(doc, definition);
   }
   return definition;
@@ -48079,6 +49506,98 @@ function joinInheritedRules(annotation, inherited, own2) {
   return out;
 }
 
+// ../../analyzer/nodejs/src/text-keys.ts
+var TEXT_KEYS_ANNOTATION = "x-telo-text-keys";
+var isPlainObject7 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+function textKeysOf(schema4) {
+  const declared = isPlainObject7(schema4) ? schema4[TEXT_KEYS_ANNOTATION] : void 0;
+  return Array.isArray(declared) ? declared.filter((kind) => typeof kind === "string") : [];
+}
+function rewriteTextKeysKinds(node, rewrite) {
+  const declared = node[TEXT_KEYS_ANNOTATION];
+  if (!Array.isArray(declared)) return;
+  node[TEXT_KEYS_ANNOTATION] = declared.map((kind) => typeof kind === "string" ? rewrite(kind) ?? kind : kind);
+}
+function hasTextKeys(node) {
+  return Object.hasOwn(node, TEXT_KEYS_ANNOTATION);
+}
+function textKeysProblems(kind, schema4, resolve2, at3 = ["schema"]) {
+  if (!isPlainObject7(schema4)) return [];
+  const problems = [];
+  const report = (path, reason) => problems.push({ path: renderValuePath(path), message: `'${kind}' declares '${renderValuePath(path)}' ${reason}` });
+  if (hasTextKeys(schema4)) {
+    const declared = schema4[TEXT_KEYS_ANNOTATION];
+    const path = [...at3, TEXT_KEYS_ANNOTATION];
+    if (!Array.isArray(declared) || declared.some((entry2) => typeof entry2 !== "string")) {
+      report(path, "as something other than a list of alias-qualified kinds (`[<Alias>.Translations]`).");
+    } else {
+      declared.forEach((entry2, index) => {
+        const definition = resolve2(entry2);
+        if (!definition) {
+          report([...path, index], `naming '${entry2}', which names no kind. Write '<Alias>.<Kind>' for a kind a 'Telo.KeyedTranslations' document declares, the alias one of this file's imports or 'Self'.`);
+        } else if (!keyedTranslationsOf(definition)) {
+          report([...path, index], `naming '${entry2}', which translates no keyed set: name a kind a 'Telo.KeyedTranslations' document declares.`);
+        }
+      });
+    }
+  }
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (node, path, root) => {
+    if (!node || typeof node !== "object" || seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => visit4(item, [...path, index], false));
+      return;
+    }
+    const record = node;
+    if (!root && hasTextKeys(record)) {
+      report([...path, TEXT_KEYS_ANNOTATION], "below the schema's root: the keyed sets a kind's resources show are named once, on the root of its schema.");
+    }
+    for (const [key3, child] of Object.entries(record)) {
+      if (root && key3 === TEXT_KEYS_ANNOTATION) continue;
+      visit4(child, [...path, key3], false);
+    }
+  };
+  visit4(schema4, at3, true);
+  return problems;
+}
+var KIND_DOCUMENTS = /* @__PURE__ */ new Set(["Telo.Definition", "Telo.Abstract"]);
+var isKindDocument2 = (value2) => typeof value2.kind === "string" && KIND_DOCUMENTS.has(value2.kind);
+var isPlainContainer = (value2) => {
+  if (!value2 || typeof value2 !== "object") return false;
+  if (Array.isArray(value2)) return true;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+};
+function misplacedTextKeys(document) {
+  const name2 = String(document.metadata?.name);
+  const problems = [];
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (node, path) => {
+    if (!isPlainContainer(node) || seen.has(node)) return;
+    seen.add(node);
+    if (Array.isArray(node)) {
+      node.forEach((item, index) => visit4(item, [...path, index]));
+      return;
+    }
+    const record = node;
+    if (path.length > 0 && isKindDocument2(record)) return;
+    if (path.length > 0 && hasTextKeys(record)) {
+      const at3 = renderValuePath([...path, TEXT_KEYS_ANNOTATION]);
+      problems.push({
+        path: at3,
+        message: `'${name2}' declares '${at3}' where nothing reads it: the keyed sets a kind's resources show are named once, on the root of the kind's schema.`
+      });
+    }
+    for (const [key3, child] of Object.entries(record)) {
+      if (path.length === 0 && key3 === "schema" && isKindDocument2(record)) continue;
+      visit4(child, [...path, key3]);
+    }
+  };
+  visit4(document, []);
+  return problems;
+}
+
 // ../../analyzer/nodejs/src/extends-resolution.ts
 var body = (def) => def ?? {};
 function resolveParent(def, resolve2) {
@@ -48130,7 +49649,17 @@ function effectiveAuthorSchema(def, resolve2) {
     const joined = joinInheritedRules(annotation, parentSchema[annotation], own2[annotation]);
     if (joined !== void 0) merged2[annotation] = joined;
   }
+  if (hasTextKeys(own2)) merged2[TEXT_KEYS_ANNOTATION] = own2[TEXT_KEYS_ANNOTATION];
+  else delete merged2[TEXT_KEYS_ANNOTATION];
   return merged2;
+}
+function textKeysDeclarer(def, resolve2) {
+  const names = (candidate) => {
+    const schema4 = body(candidate).schema;
+    return !!schema4 && typeof schema4 === "object" && hasTextKeys(schema4);
+  };
+  if (def && names(def)) return def;
+  return ancestorChain(def, resolve2).find(names);
 }
 function authorSchemaChain(def, resolve2) {
   if (!def) return [];
@@ -48192,73 +49721,6 @@ function effectiveStatusSchema(def, resolve2) {
   if (!parentStatus) return own2;
   if (!own2) return parentStatus;
   return mergeTypeSchemas([parentStatus, own2]);
-}
-
-// ../../analyzer/nodejs/src/manifest-navigation.ts
-function enclosingOf(root, concretePath2) {
-  const lastDot = concretePath2.lastIndexOf(".");
-  const lastSegment2 = concretePath2.slice(lastDot + 1);
-  if (lastSegment2.includes("[")) return void 0;
-  if (lastDot < 0) return root;
-  return navigateConcrete(root, concretePath2.slice(0, lastDot));
-}
-function navigateConcrete(root, path) {
-  let current = root;
-  for (const rawSegment of path.split(".")) {
-    if (current == null || typeof current !== "object") return void 0;
-    let segment = rawSegment;
-    const indices = [];
-    const bracket = segment.indexOf("[");
-    if (bracket >= 0) {
-      for (const m of segment.slice(bracket).matchAll(/\[(\d+)\]/g)) {
-        indices.push(Number(m[1]));
-      }
-      segment = segment.slice(0, bracket);
-    }
-    if (segment) current = current[segment];
-    for (const index of indices) {
-      if (!Array.isArray(current)) return void 0;
-      current = current[index];
-    }
-  }
-  return current;
-}
-function resolveSchemaPointer(root, ref) {
-  if (!ref.startsWith("#")) return void 0;
-  let node = root;
-  for (const segment of ref.slice(1).split("/")) {
-    if (segment === "") continue;
-    if (!node || typeof node !== "object") return void 0;
-    node = node[segment.replace(/~1/g, "/").replace(/~0/g, "~")];
-  }
-  return node;
-}
-function resolveLocalRef(schema4, root) {
-  if (!schema4) return void 0;
-  const ref = schema4.$ref;
-  if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
-    const resolved = root.$defs?.[ref.slice("#/$defs/".length)];
-    if (resolved && typeof resolved === "object") return resolved;
-  }
-  return schema4;
-}
-function propertySchemas(schema4) {
-  const out = [];
-  if (schema4.properties && typeof schema4.properties === "object") {
-    for (const [k, v] of Object.entries(schema4.properties)) out.push([k, v]);
-  }
-  for (const key3 of ["oneOf", "anyOf", "allOf"]) {
-    const variants = schema4[key3];
-    if (!Array.isArray(variants)) continue;
-    for (const variant of variants) {
-      if (variant?.properties && typeof variant.properties === "object") {
-        for (const [k, v] of Object.entries(variant.properties)) {
-          out.push([k, v]);
-        }
-      }
-    }
-  }
-  return out;
 }
 
 // ../../analyzer/nodejs/src/step-slot.ts
@@ -48686,124 +50148,6 @@ function accessorFieldAt(sites, path) {
 function topLevelKey(path) {
   const end = path.search(/[.[]/);
   return end === -1 ? path : path.slice(0, end);
-}
-
-// ../../analyzer/nodejs/src/read-place.ts
-function enclosingKeys(at3) {
-  if (at3.length === 0) return at3;
-  return at3.slice(0, typeof at3[at3.length - 1] === "number" ? at3.length - 2 : at3.length - 1);
-}
-function placeAt(base, pointer) {
-  let keys = [...base];
-  let rest = pointer;
-  const relative = /^(\d+)(#|\/|$)/.exec(pointer);
-  if (relative) {
-    const up = Number(relative[1]);
-    keys = keys.slice(0, Math.max(0, keys.length - up));
-    if (relative[2] === "#") return keys;
-    rest = pointer.slice(relative[1].length);
-  } else if (!pointer.startsWith("/")) {
-    rest = `/${pointer}`;
-  }
-  for (const raw of rest.split("/").slice(1)) {
-    if (raw === "") continue;
-    const segment = raw.replace(/~1/g, "/").replace(/~0/g, "~");
-    if (segment === "*" || segment === "-") break;
-    keys.push(/^\d+$/.test(segment) ? Number(segment) : segment);
-  }
-  return keys;
-}
-function fieldPlace(base, field) {
-  if (typeof field !== "string" || field.length === 0) return void 0;
-  return placeAt(base, field.startsWith("/") || /^\d/.test(field) ? field : `/${field}`);
-}
-var READS_WHOLE = () => [{ kind: "value", keys: [] }];
-var READS_IDENTITY = () => [];
-var READS_SLOT_SCOPES = (referrer) => referrer.slots.map((keys) => ({ kind: "scope", keys }));
-var isSchema = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-function localTarget(root, ref) {
-  let node = root;
-  for (const raw of ref.slice(1).split("/").slice(1)) {
-    if (!isSchema(node)) return void 0;
-    node = node[raw.replace(/~1/g, "/").replace(/~0/g, "~")];
-  }
-  return node;
-}
-function kindPlaces(referent, holds) {
-  const out = [];
-  const add = (keys) => {
-    if (out.some((held) => held.length <= keys.length && held.every((key3, i) => key3 === keys[i]))) return;
-    for (let i = out.length - 1; i >= 0; i--) {
-      const held = out[i];
-      if (held.length > keys.length && keys.every((key3, j) => key3 === held[j])) out.splice(i, 1);
-    }
-    out.push(keys);
-  };
-  const resolved = (node, document) => {
-    if (typeof node.$ref !== "string") return void 0;
-    if (node.$ref.startsWith("#")) return { node: localTarget(document, node.$ref), document };
-    const shape = referent.shapeOf(node.$ref);
-    return shape ? { node: shape, document: shape } : void 0;
-  };
-  const reaching = /* @__PURE__ */ new Map();
-  const reaches = (node, document, seen) => {
-    if (!isSchema(node) || seen.has(node)) return false;
-    const known = reaching.get(node);
-    if (known !== void 0) return known;
-    seen.add(node);
-    let found = holds(node);
-    const target = found ? void 0 : resolved(node, document);
-    if (target) found = reaches(target.node, target.document, seen);
-    const children = [];
-    for (const branch of ["allOf", "anyOf", "oneOf", "prefixItems"]) if (Array.isArray(node[branch])) children.push(...node[branch]);
-    for (const map3 of ["properties", "patternProperties"]) if (isSchema(node[map3])) children.push(...Object.values(node[map3]));
-    children.push(node.items, node.additionalProperties);
-    for (const child of children) if (!found && reaches(child, document, seen)) found = true;
-    seen.delete(node);
-    if (seen.size === 0) reaching.set(node, found);
-    return found;
-  };
-  const walk7 = (node, document, keys, seen) => {
-    if (!isSchema(node) || seen.has(node)) return;
-    const guard = new Set(seen).add(node);
-    if (holds(node)) {
-      add(keys);
-      return;
-    }
-    const target = resolved(node, document);
-    if (target) walk7(target.node, target.document, keys, guard);
-    for (const branch of ["allOf", "anyOf", "oneOf"]) {
-      if (Array.isArray(node[branch])) for (const member of node[branch]) walk7(member, document, keys, guard);
-    }
-    if (isSchema(node.properties)) {
-      for (const [name2, child] of Object.entries(node.properties)) walk7(child, document, [...keys, name2], guard);
-    }
-    const open = [node.items, node.additionalProperties];
-    if (Array.isArray(node.prefixItems)) open.push(...node.prefixItems);
-    if (isSchema(node.patternProperties)) open.push(...Object.values(node.patternProperties));
-    if (open.some((child) => reaches(child, document, /* @__PURE__ */ new Set()))) add(keys);
-  };
-  if (referent.schema) walk7(referent.schema, referent.schema, [], /* @__PURE__ */ new Set());
-  return out;
-}
-function pointerReads(pointers) {
-  const read = pointerPlaces(pointers).map((keys) => ({ kind: "value", keys }));
-  return () => read;
-}
-function crossingPlace(pointer) {
-  return placeAt([], `/${pointer.split("/")[1] ?? ""}`);
-}
-function pointerPlaces(pointers) {
-  const places = /* @__PURE__ */ new Map();
-  for (const pointer of pointers) {
-    const segments = pointer.split("/").slice(1);
-    for (let i = 1; i < segments.length; i++) {
-      if (segments[i] === "*" || segments[i] === "-") continue;
-      const keys = placeAt([], `/${segments.slice(i).join("/")}`);
-      places.set(JSON.stringify(keys), keys);
-    }
-  }
-  return [...places.values()];
 }
 
 // ../../analyzer/nodejs/src/module-metadata-scope.ts
@@ -49370,7 +50714,7 @@ var MATCH_KEYS = [
   "ancestor",
   "withoutKey"
 ];
-function isPlainObject5(value2) {
+function isPlainObject8(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function deepEquals(a, b) {
@@ -49379,7 +50723,7 @@ function deepEquals(a, b) {
     if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
     return a.every((item, i) => deepEquals(item, b[i]));
   }
-  if (isPlainObject5(a) && isPlainObject5(b)) {
+  if (isPlainObject8(a) && isPlainObject8(b)) {
     const aKeys = Object.keys(a);
     if (aKeys.length !== Object.keys(b).length) return false;
     return aKeys.every((k) => Object.hasOwn(b, k) && deepEquals(a[k], b[k]));
@@ -49394,7 +50738,7 @@ function requireStringList(describe7, raw, key3) {
   return value2;
 }
 function readMigrationMatch(describe7, raw, surface = "core") {
-  if (!isPlainObject5(raw)) throw new Error(`${describe7}: 'match' must be a mapping`);
+  if (!isPlainObject8(raw)) throw new Error(`${describe7}: 'match' must be a mapping`);
   for (const key3 of Object.keys(raw)) {
     if (!MATCH_KEYS.includes(key3)) {
       throw new Error(
@@ -49492,7 +50836,7 @@ function readMigrationMatch(describe7, raw, surface = "core") {
 }
 var ANCESTOR_KEYS = ["path", "key", "value"];
 function readAncestor(describe7, raw, matchedKey) {
-  if (!isPlainObject5(raw)) throw new Error(`${describe7}: 'match.ancestor' must be a mapping`);
+  if (!isPlainObject8(raw)) throw new Error(`${describe7}: 'match.ancestor' must be a mapping`);
   for (const key3 of Object.keys(raw)) {
     if (!ANCESTOR_KEYS.includes(key3)) {
       throw new Error(
@@ -49529,11 +50873,11 @@ function ancestorMatches(document, site, ancestor) {
       if (!Array.isArray(holder)) return false;
       holder = holder[segment];
     } else {
-      if (!isPlainObject5(holder)) return false;
+      if (!isPlainObject8(holder)) return false;
       holder = holder[segment];
     }
   }
-  return isPlainObject5(holder) && Object.hasOwn(holder, ancestor.key) && deepEquals(holder[ancestor.key], ancestor.value);
+  return isPlainObject8(holder) && Object.hasOwn(holder, ancestor.key) && deepEquals(holder[ancestor.key], ancestor.value);
 }
 function isHoleCandidate(value2) {
   return typeof value2 === "string" && value2.includes("${{");
@@ -49542,7 +50886,7 @@ function buildMatchIndex(document, keys, roots, scalars = false) {
   const index = /* @__PURE__ */ new Map();
   const scalarSites = [];
   const result = { byKey: index, scalars: scalarSites };
-  if (keys.size === 0 && !scalars || roots.size === 0 || !isPlainObject5(document)) return result;
+  if (keys.size === 0 && !scalars || roots.size === 0 || !isPlainObject8(document)) return result;
   const stack = [];
   const record = (key3, value2, parent) => {
     const bucket2 = index.get(key3) ?? [];
@@ -49561,7 +50905,7 @@ function buildMatchIndex(document, keys, roots, scalars = false) {
       }
       return;
     }
-    if (!isPlainObject5(node) || isTaggedSentinel(node)) return;
+    if (!isPlainObject8(node) || isTaggedSentinel(node)) return;
     for (const [key3, value2] of Object.entries(node)) {
       stack.push(key3);
       if (keys.has(key3)) record(key3, value2, node);
@@ -49665,7 +51009,7 @@ function outsideRe2Subset(pattern2) {
   return void 0;
 }
 function selectMatches(index, document, match) {
-  const kind = isPlainObject5(document) ? document.kind : void 0;
+  const kind = isPlainObject8(document) ? document.kind : void 0;
   if (typeof kind !== "string") return [];
   if (!match.inKind.includes(kind) && !match.inKind.includes(MATCH_ANY)) return [];
   const sites = match.key !== void 0 ? index.byKey.get(match.key) : index.scalars;
@@ -49684,7 +51028,7 @@ function selectMatches(index, document, match) {
     }
     if (!valueMatches(match, site.value)) continue;
     if (match.withSibling !== void 0 && !Object.hasOwn(site.parent, match.withSibling)) continue;
-    if (match.withoutKey !== void 0 && (!isPlainObject5(site.value) || isTaggedSentinel(site.value) || Object.hasOwn(site.value, match.withoutKey))) {
+    if (match.withoutKey !== void 0 && (!isPlainObject8(site.value) || isTaggedSentinel(site.value) || Object.hasOwn(site.value, match.withoutKey))) {
       continue;
     }
     if (match.ancestor && !ancestorMatches(document, site.path, match.ancestor)) continue;
@@ -52388,7 +53732,7 @@ function valueAt2(root, pointer) {
   }
   return current;
 }
-function isPlainObject6(value2) {
+function isPlainObject9(value2) {
   if (value2 === null || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const proto = Object.getPrototypeOf(value2);
   return proto === Object.prototype || proto === null;
@@ -52398,7 +53742,7 @@ function sameValue(a, b) {
   if (Array.isArray(a)) {
     return Array.isArray(b) && a.length === b.length && a.every((item, i) => sameValue(item, b[i]));
   }
-  if (!isPlainObject6(a) || !isPlainObject6(b)) return false;
+  if (!isPlainObject9(a) || !isPlainObject9(b)) return false;
   const keys = Object.keys(a);
   return keys.length === Object.keys(b).length && keys.every((key3) => Object.hasOwn(b, key3) && sameValue(a[key3], b[key3]));
 }
@@ -52457,7 +53801,7 @@ function withoutStandInFindings(errors, judgment) {
       }
       return `[${items.join(",")}]`;
     }
-    if (isPlainObject6(value2)) {
+    if (isPlainObject9(value2)) {
       const members2 = [];
       for (const name2 of Object.keys(value2).sort()) {
         const member = writtenKey(value2[name2], `${path}/${escapeSegment2(name2)}`);
@@ -52493,7 +53837,7 @@ function withoutStandInFindings(errors, judgment) {
     if (Array.isArray(written)) {
       return Array.isArray(allowed) && written.length === allowed.length && written.every((item, i) => agrees(item, allowed[i], `${path}/${i}`));
     }
-    if (!isPlainObject6(written) || !isPlainObject6(allowed)) return sameValue(written, allowed);
+    if (!isPlainObject9(written) || !isPlainObject9(allowed)) return sameValue(written, allowed);
     const keys = Object.keys(written);
     return keys.length === Object.keys(allowed).length && keys.every(
       (key3) => Object.hasOwn(allowed, key3) && agrees(written[key3], allowed[key3], `${path}/${escapeSegment2(key3)}`)
@@ -52647,6 +53991,7 @@ var ANNOTATION_KEYWORDS = [
   "x-telo-span-attribute",
   "x-telo-step-context",
   "x-telo-text-context",
+  "x-telo-text-keys",
   "x-telo-text-values",
   "x-telo-text-values-for",
   "x-telo-topology-role",
@@ -53539,7 +54884,7 @@ var SCHEMA_KEYS = /* @__PURE__ */ new Set([
 var SCHEMA_MAP_KEYS = /* @__PURE__ */ new Set(["properties", "patternProperties"]);
 var SCHEMA_LIST_KEYS = /* @__PURE__ */ new Set(["anyOf", "oneOf", "allOf", "prefixItems"]);
 var VALUE_TYPE_KEY = "x-telo-type";
-var isSchema2 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
+var isSchema3 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 var declaredDocuments = /* @__PURE__ */ new WeakSet();
 function declaredDocument(root) {
   declaredDocuments.add(root);
@@ -53553,12 +54898,12 @@ function childSchemas(node) {
   const out = [];
   for (const [key3, value2] of Object.entries(node)) {
     if (SCHEMA_KEYS.has(key3)) {
-      if (Array.isArray(value2)) out.push(...value2.filter(isSchema2));
-      else if (isSchema2(value2)) out.push(value2);
+      if (Array.isArray(value2)) out.push(...value2.filter(isSchema3));
+      else if (isSchema3(value2)) out.push(value2);
     } else if (SCHEMA_LIST_KEYS.has(key3) && Array.isArray(value2)) {
-      out.push(...value2.filter(isSchema2));
-    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema2(value2)) {
-      out.push(...Object.values(value2).filter(isSchema2));
+      out.push(...value2.filter(isSchema3));
+    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema3(value2)) {
+      out.push(...Object.values(value2).filter(isSchema3));
     }
   }
   return out;
@@ -53580,7 +54925,7 @@ function referenced(node, root, external) {
   }
   if (!root) return { schema: besideReference(node), root };
   const target = resolveSchemaPointer(root, ref);
-  return isSchema2(target) ? { schema: target, root } : void 0;
+  return isSchema3(target) ? { schema: target, root } : void 0;
 }
 function enter2(at3, external) {
   const seen = /* @__PURE__ */ new Set();
@@ -53595,7 +54940,7 @@ function enter2(at3, external) {
   return { at: at3, followed: true };
 }
 function expand(node, enclosingRoot, external, open) {
-  if (!isSchema2(node) || !holdsReference(node)) return node;
+  if (!isSchema3(node) || !holdsReference(node)) return node;
   const { root } = declaredAt(node, enclosingRoot);
   if (typeof node.$ref === "string") {
     const target = referenced(node, root, external);
@@ -53616,7 +54961,7 @@ function expand(node, enclosingRoot, external, open) {
       out[key3] = Array.isArray(value2) ? value2.map(beneath) : beneath(value2);
     } else if (SCHEMA_LIST_KEYS.has(key3) && Array.isArray(value2)) {
       out[key3] = value2.map(beneath);
-    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema2(value2)) {
+    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema3(value2)) {
       out[key3] = Object.fromEntries(Object.entries(value2).map(([k, v]) => [k, beneath(v)]));
     } else {
       out[key3] = value2;
@@ -53630,7 +54975,7 @@ function shapeNamedBy(schema4, root, external) {
 var CHAIN_SEGMENT = /^([a-zA-Z_][a-zA-Z0-9_]*)((?:\[\d+\])*)$/;
 var declaredFor = (node, hop) => hop === void 0 ? node.items : node.properties?.[hop];
 function cannotHold(node, hop) {
-  const holds = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema2(value2);
+  const holds = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema3(value2);
   const entry2 = valueTypeOf(node);
   if (entry2?.representation === "instance") return true;
   const container = hop === void 0 ? "array" : "object";
@@ -53640,7 +54985,7 @@ function cannotHold(node, hop) {
   }
   if ("const" in node && !holds(node.const)) return true;
   if (Array.isArray(node.enum) && !node.enum.some(holds)) return true;
-  return hop !== void 0 && node.additionalProperties === false && node.patternProperties === void 0 && !(isSchema2(node.properties) && Object.hasOwn(node.properties, hop));
+  return hop !== void 0 && node.additionalProperties === false && node.patternProperties === void 0 && !(isSchema3(node.properties) && Object.hasOwn(node.properties, hop));
 }
 var DeclaredSet = class {
   roots = /* @__PURE__ */ new Map();
@@ -53661,7 +55006,7 @@ function bareUnion(shape) {
   const keys = Object.keys(shape).filter((key3) => !ANNOTATION_KEYS.has(key3));
   if (keys.length !== 1 || keys[0] !== "anyOf" && keys[0] !== "oneOf") return void 0;
   const alternatives = shape[keys[0]];
-  return Array.isArray(alternatives) && alternatives.length > 0 && alternatives.every(isSchema2) ? alternatives : void 0;
+  return Array.isArray(alternatives) && alternatives.length > 0 && alternatives.every(isSchema3) ? alternatives : void 0;
 }
 function navigateDeclaredChain(context, chain, external) {
   let held = [declaredAt(context, void 0)];
@@ -53673,8 +55018,8 @@ function navigateDeclaredChain(context, chain, external) {
     const reach = (written, alternative) => {
       const { at: at3, followed } = enter2(written, external);
       const own2 = declaredFor(at3.schema, hop);
-      if (!followed && (alternative || !isSchema2(own2))) return false;
-      if (isSchema2(own2)) {
+      if (!followed && (alternative || !isSchema3(own2))) return false;
+      if (isSchema3(own2)) {
         next.add(declaredAt(own2, at3.root));
         return true;
       }
@@ -53687,7 +55032,7 @@ function navigateDeclaredChain(context, chain, external) {
       open.add(at3.schema);
       const claimed = alternatives.every(
         // `false` admits no value; any other non-schema says nothing.
-        (branch) => isSchema2(branch) ? reach(declaredAt(branch, at3.root), true) : branch === false
+        (branch) => isSchema3(branch) ? reach(declaredAt(branch, at3.root), true) : branch === false
       );
       open.delete(at3.schema);
       distributed.add(at3);
@@ -54538,7 +55883,7 @@ function readResourceRules(schema4) {
     const pointer = entry2.in;
     if (pointer !== void 0 && typeof pointer !== "string") return;
     const resolve2 = entry2.resolve;
-    if (resolve2 !== void 0 && !(Array.isArray(resolve2) && resolve2.every((p) => typeof p === "string" && pointerSegments(p)))) {
+    if (resolve2 !== void 0 && !(Array.isArray(resolve2) && resolve2.every((p) => typeof p === "string" && pointerSegments2(p)))) {
       return;
     }
     rules.push({
@@ -54563,7 +55908,7 @@ function declaredResourceRules(definition, resolve2) {
   }
   return out;
 }
-function pointerSegments(pointer) {
+function pointerSegments2(pointer) {
   if (pointer === "" || pointer === "/") return [];
   if (!pointer.startsWith("/")) return void 0;
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
@@ -54665,7 +56010,7 @@ function placesAlong(from, steps) {
   return places;
 }
 function resolvePointer(value2, pointer) {
-  const segments = pointerSegments(pointer);
+  const segments = pointerSegments2(pointer);
   if (!segments) return void 0;
   let current = value2;
   for (const segment of segments) {
@@ -54683,7 +56028,7 @@ function resolvePointer(value2, pointer) {
   return current;
 }
 function pointerToPath(pointer) {
-  const segments = pointerSegments(pointer) ?? [];
+  const segments = pointerSegments2(pointer) ?? [];
   return segments.reduce((acc, segment) => {
     if (/^\d+$/.test(segment)) return `${acc}[${segment}]`;
     return acc === "" ? segment : `${acc}.${segment}`;
@@ -54805,7 +56150,7 @@ function findDynamicRead(chains, roots) {
 function ruleReferentReads(rules, pointers, root, moduleNames, atRoot = false) {
   const crossings = atRoot ? [[]] : [];
   for (const pointer of pointers) {
-    const segments = pointerSegments(pointer) ?? [];
+    const segments = pointerSegments2(pointer) ?? [];
     for (let j = 1; j <= segments.length; j++) crossings.push(segments.slice(0, j));
   }
   const places = /* @__PURE__ */ new Map();
@@ -54893,38 +56238,38 @@ var RESOLVED_REFERENCE_MARKER = "__ref";
 function resolvedReference(kind, name2, alias, indexes = []) {
   return alias === void 0 ? { __ref: true, kind, name: name2, indexes: [...indexes] } : { __ref: true, kind, name: name2, alias, indexes: [...indexes] };
 }
-var isPlainObject7 = (value2) => {
+var isPlainObject10 = (value2) => {
   if (value2 === null || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
 function isResolvedReference(value2) {
-  return isPlainObject7(value2) && value2[RESOLVED_REFERENCE_MARKER] === true && typeof value2.kind === "string" && typeof value2.name === "string";
+  return isPlainObject10(value2) && value2[RESOLVED_REFERENCE_MARKER] === true && typeof value2.kind === "string" && typeof value2.name === "string";
 }
 function isInlineDeclaration(value2) {
-  return isPlainObject7(value2) && typeof value2.kind === "string" && value2[RESOLVED_REFERENCE_MARKER] !== true;
+  return isPlainObject10(value2) && typeof value2.kind === "string" && value2[RESOLVED_REFERENCE_MARKER] !== true;
 }
 function isLegacyReferenceForm(value2, kindDeclaresName) {
-  return isPlainObject7(value2) && !Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER) && typeof value2.kind === "string" && typeof value2.name === "string" && kindDeclaresName(value2.kind) === false;
+  return isPlainObject10(value2) && !Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER) && typeof value2.kind === "string" && typeof value2.name === "string" && kindDeclaresName(value2.kind) === false;
 }
 function asResolvedReference(value2) {
   return { [RESOLVED_REFERENCE_MARKER]: true, ...value2, indexes: [] };
 }
 function carriesReferenceMarker(value2) {
-  return isPlainObject7(value2) && Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER);
+  return isPlainObject10(value2) && Object.prototype.hasOwnProperty.call(value2, RESOLVED_REFERENCE_MARKER);
 }
 function declaresNameField(definition, resolve2) {
   if (!definition) return false;
   return schemaDeclaresTopLevel(effectiveAuthorSchema(definition, resolve2), "name");
 }
 function schemaDeclaresTopLevel(schema4, key3) {
-  if (!isPlainObject7(schema4)) return false;
+  if (!isPlainObject10(schema4)) return false;
   const root = schema4;
   const seen = /* @__PURE__ */ new Set();
   const declares = (node) => {
-    if (!isPlainObject7(node) || seen.has(node)) return false;
+    if (!isPlainObject10(node) || seen.has(node)) return false;
     seen.add(node);
-    if (isPlainObject7(node.properties) && Object.prototype.hasOwnProperty.call(node.properties, key3)) {
+    if (isPlainObject10(node.properties) && Object.prototype.hasOwnProperty.call(node.properties, key3)) {
       return true;
     }
     const ref = node.$ref;
@@ -55887,7 +57232,7 @@ function reachPositions(schema4, data, schemaFrom, shapes) {
       const rel = relativeFieldPath(declaredPath, prefix);
       if (rel === void 0) continue;
       const leadsTo = at3.refs.length > 0 ? declaredPath : [...reach.paths.values()].find(
-        (below) => below.refs.length > 0 && at3.recurse.some((to) => relativeFieldPath(below.pattern, to) !== void 0)
+        (below2) => below2.refs.length > 0 && at3.recurse.some((to) => relativeFieldPath(below2.pattern, to) !== void 0)
       )?.pattern;
       if (leadsTo !== void 0) emit(reach, prefix, at0, base, baseKeys, rel, [...patternBase, ...leadsTo]);
       if (at3.recurse.length === 0) continue;
@@ -56152,7 +57497,7 @@ function declaredScopes(sites) {
     const regions = /* @__PURE__ */ new Map();
     for (const { scope } of site.scopes) {
       for (const pointer of Array.isArray(scope) ? scope : [scope]) {
-        const keys = pointerSegments(pointer.startsWith("/") ? pointer : `/${pointer}`);
+        const keys = pointerSegments2(pointer.startsWith("/") ? pointer : `/${pointer}`);
         if (keys) regions.set(JSON.stringify(keys), keys);
       }
     }
@@ -56392,13 +57737,13 @@ function walkOwnCelExpressions(value2, path, cb, isMember = isScopeMemberDeclara
     });
     return;
   }
-  if (value2 !== null && typeof value2 === "object" && !value2.__compiled && isPlainObject8(value2)) {
+  if (value2 !== null && typeof value2 === "object" && !value2.__compiled && isPlainObject11(value2)) {
     for (const k in value2) {
       walkOwnCelExpressions(value2[k], path ? `${path}.${k}` : k, cb, isMember);
     }
   }
 }
-function isPlainObject8(value2) {
+function isPlainObject11(value2) {
   const proto = Object.getPrototypeOf(value2);
   return proto === Object.prototype || proto === null;
 }
@@ -56492,11 +57837,11 @@ var ScopedNameResolver = class {
   declarationsOf(name2) {
     const own2 = this.moduleLevel.get(name2) ?? [];
     if (!this.base) return own2;
-    const below = this.base.resolver.declarationsOf(name2);
-    if (below.length === 0) return own2;
-    if (own2.length === 0) return below;
+    const below2 = this.base.resolver.declarationsOf(name2);
+    if (below2.length === 0) return own2;
+    if (own2.length === 0) return below2;
     const seen = new Set(own2);
-    return [...own2, ...below.filter((d) => !seen.has(d))].sort(this.base.order);
+    return [...own2, ...below2.filter((d) => !seen.has(d))].sort(this.base.order);
   }
   /** The module-level declaration of `name` by `module` itself — a name read
    *  through an import alias or the module's own name, never a scope's. A module
@@ -58258,7 +59603,7 @@ var fromReferrerReads = () => [{ kind: "referrers", reads: READS_SLOT_SCOPES }];
 
 // ../../analyzer/nodejs/src/element-from-item.ts
 var ELEMENT_FROM_ITEM = "x-telo-context-element-from-item";
-var isSchema3 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema4 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 var GRAMMAR = /^(0|[1-9][0-9]*)((\/([^/~]|~[01])*)+)$/;
 function readRelativePointer(value2) {
   if (typeof value2 !== "string") return void 0;
@@ -58335,7 +59680,7 @@ function deref2(node, document, shapes) {
     seen.add(current);
     const local = current.$ref.startsWith("#");
     const target = local ? resolveSchemaPointer(doc, current.$ref) : shapes(current.$ref);
-    if (!isSchema3(target)) break;
+    if (!isSchema4(target)) break;
     if (!local) doc = target;
     current = target;
   }
@@ -58343,12 +59688,12 @@ function deref2(node, document, shapes) {
 }
 function memberOf(node, document, segment, shapes) {
   const [resolved, doc] = deref2(node, document, shapes);
-  if (/^(0|[1-9][0-9]*)$/.test(segment) && isSchema3(resolved.items)) return [resolved.items, doc];
-  if (isSchema3(resolved.properties) && isSchema3(resolved.properties[segment])) {
+  if (/^(0|[1-9][0-9]*)$/.test(segment) && isSchema4(resolved.items)) return [resolved.items, doc];
+  if (isSchema4(resolved.properties) && isSchema4(resolved.properties[segment])) {
     return [resolved.properties[segment], doc];
   }
   for (const member of Array.isArray(resolved.allOf) ? resolved.allOf : []) {
-    if (isSchema3(member)) {
+    if (isSchema4(member)) {
       const found = memberOf(member, doc, segment, shapes);
       if (found) return found;
     }
@@ -59622,11 +60967,11 @@ var ModuleFunctionIndex = class {
   isOwned(manifest) {
     return this.moduleKeyOf(manifest) === ROOT_MODULE_KEY;
   }
-  merged(own2, below) {
-    if (!below || below.length === 0) return [...own2 ?? []];
-    if (!own2 || own2.length === 0) return [...below];
+  merged(own2, below2) {
+    if (!below2 || below2.length === 0) return [...own2 ?? []];
+    if (!own2 || own2.length === 0) return [...below2];
     const seen = new Set(own2);
-    return [...own2, ...below.filter((d) => !seen.has(d))].sort(this.base.order);
+    return [...own2, ...below2.filter((d) => !seen.has(d))].sort(this.base.order);
   }
   declaredIn(module, name2) {
     return this.merged(this.declared.get(module)?.get(name2), this.base?.index.declaredIn(module, name2));
@@ -59679,8 +61024,8 @@ var ModuleFunctionIndex = class {
       const resolution = this.resolve(caller, `${receiver}.${name2}`);
       if (resolution.status === "resolved") out.push({ name: name2, function: resolution });
     }
-    const below = this.base && source !== void 0 ? this.base.index.callablesThrough(caller, receiver).filter((entry2) => !this.holdsName(source, entry2.name)) : [];
-    const all = below.length === 0 ? out : [...out, ...below].sort((a, b) => this.base.order(a.function.manifest, b.function.manifest));
+    const below2 = this.base && source !== void 0 ? this.base.index.callablesThrough(caller, receiver).filter((entry2) => !this.holdsName(source, entry2.name)) : [];
+    const all = below2.length === 0 ? out : [...out, ...below2].sort((a, b) => this.base.order(a.function.manifest, b.function.manifest));
     this.through.set(key3, all);
     return all;
   }
@@ -61875,21 +63220,21 @@ function resolvedRefInSchema(obj) {
 // ../../analyzer/nodejs/src/caught-member.ts
 var X_TELO_CAUGHT_MEMBER = "x-telo-caught-member";
 var CAUGHT_MEMBERS = ["code", "data"];
-function isPlainObject9(value2) {
+function isPlainObject12(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function caughtMemberOf(node) {
-  if (!isPlainObject9(node)) return void 0;
+  if (!isPlainObject12(node)) return void 0;
   const value2 = node[X_TELO_CAUGHT_MEMBER];
   return value2 === "code" || value2 === "data" ? value2 : void 0;
 }
 function isCatchListSchema(schema4) {
-  return isPlainObject9(schema4) && schema4["x-telo-outcome-list"] === "catches";
+  return isPlainObject12(schema4) && schema4["x-telo-outcome-list"] === "catches";
 }
 function catchListContext(listSchema) {
-  if (!isPlainObject9(listSchema)) return void 0;
+  if (!isPlainObject12(listSchema)) return void 0;
   const context = listSchema["x-telo-context"];
-  return isPlainObject9(context) ? context : void 0;
+  return isPlainObject12(context) ? context : void 0;
 }
 function caughtMemberNodes(context) {
   const out = [];
@@ -61897,18 +63242,18 @@ function caughtMemberNodes(context) {
     if (seen.has(node)) return;
     seen.add(node);
     const properties = node.properties;
-    if (!isPlainObject9(properties)) return;
+    if (!isPlainObject12(properties)) return;
     for (const [name2, child] of Object.entries(properties)) {
-      if (!isPlainObject9(child)) continue;
+      if (!isPlainObject12(child)) continue;
       const next = [...chain, name2];
       out.push({ chain: next, node: child });
       visit4(child, next, seen);
     }
   };
   const bindings = context?.properties;
-  if (!isPlainObject9(bindings)) return out;
+  if (!isPlainObject12(bindings)) return out;
   for (const [name2, binding] of Object.entries(bindings)) {
-    if (isPlainObject9(binding)) visit4(binding, [name2], /* @__PURE__ */ new Set());
+    if (isPlainObject12(binding)) visit4(binding, [name2], /* @__PURE__ */ new Set());
   }
   return out;
 }
@@ -61920,11 +63265,11 @@ function withCaughtData(context, data) {
     if (caughtMemberOf(node) === "data") return data;
     if (seen.has(node)) return node;
     const properties = node.properties;
-    if (!isPlainObject9(properties)) return node;
+    if (!isPlainObject12(properties)) return node;
     seen.add(node);
     let next;
     for (const [name2, child] of Object.entries(properties)) {
-      if (!isPlainObject9(child)) continue;
+      if (!isPlainObject12(child)) continue;
       const replaced = replace(child, seen);
       if (replaced === child) continue;
       next ??= { ...properties };
@@ -67069,7 +68414,7 @@ function isObject7(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function schemaAtPointer(schema4, pointer) {
-  const segments = pointerSegments(pointer);
+  const segments = pointerSegments2(pointer);
   if (!segments) return void 0;
   let node = schema4;
   for (const segment of segments) {
@@ -67159,7 +68504,7 @@ function ruleCollectionSchemas(schema4, pointer, module, shapes) {
   return { nodes: reached.flatMap(resolved).map((place2) => place2.node) };
 }
 function rulePointerReaches(schema4, pointer, kindSchemas) {
-  const segments = pointerSegments(pointer);
+  const segments = pointerSegments2(pointer);
   if (!segments) return "absent";
   const seen = /* @__PURE__ */ new Set();
   const walk7 = (node, rest) => {
@@ -67283,7 +68628,7 @@ function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames
         issue(`${at3}.resolve`, "'resolve' must be a list of JSON Pointers to this kind's reference slots.");
       } else {
         entry2.resolve.forEach((pointer, i) => {
-          if (typeof pointer !== "string" || !pointerSegments(pointer)) {
+          if (typeof pointer !== "string" || !pointerSegments2(pointer)) {
             issue(`${at3}.resolve[${i}]`, "Each 'resolve' entry must be a JSON Pointer starting with '/'.");
           } else if (rulePointerReaches(schema4, pointer, kindSchemas) === "absent") {
             issue(
@@ -67679,7 +69024,7 @@ var PeerBinder = class {
    * reference reads as {@link resolveReferences} reads it.
    */
   resolveAlong(manifest, kind, view, pointer) {
-    const segments = pointerSegments(pointer);
+    const segments = pointerSegments2(pointer);
     if (!segments) return { ok: false, failure: { reason: "unknown-shape", at: pointer } };
     return this.along(manifest, kind, view, segments);
   }
@@ -69773,7 +71118,7 @@ function nestedCandidatesOf(union2, registry, aliases, scopes) {
         }
         return;
       }
-      if (!isPlainContainer(value2)) return;
+      if (!isPlainContainer2(value2)) return;
       if (Array.isArray(value2)) {
         value2.forEach((item, i) => visit4(item, [...written, i], [...unionKeys, i], holding2, dead, false));
         return;
@@ -70272,7 +71617,7 @@ function fromSelf(holder, self, input) {
       if (node2 !== void 0) reached.push({ node: node2, written, exact, holding: holding2 });
       return;
     }
-    if (!isPlainObject10(node2)) {
+    if (!isPlainObject13(node2)) {
       if (node2 !== void 0 && node2 !== null) unknown = true;
       return;
     }
@@ -70338,7 +71683,7 @@ function selfDefaults(holder, input) {
 function valueAlong(value2, keys) {
   let node = value2;
   for (const key3 of keys) {
-    if (!isPlainObject10(node)) return void 0;
+    if (!isPlainObject13(node)) return void 0;
     node = node[key3];
   }
   return node;
@@ -70366,7 +71711,7 @@ function throughBase(base, self, holder, input) {
   for (let i = 0; i < self.length; i++) {
     const forwarded2 = selfForwardPath(node);
     if (forwarded2) return fromSelf(holder, [...forwarded2, ...self.slice(i)], input);
-    if (!isPlainObject10(node)) return void 0;
+    if (!isPlainObject13(node)) return void 0;
     node = node[self[i]];
     if (node === void 0) return void 0;
   }
@@ -70396,7 +71741,7 @@ function readBaseMapping(node, reading, at3 = []) {
     reading.hold?.(items);
     return items;
   }
-  if (isPlainObject10(node)) {
+  if (isPlainObject13(node)) {
     const out = {};
     for (const [key3, child] of Object.entries(node)) {
       const read = readBaseMapping(child, reading, [...at3, key3]);
@@ -70423,7 +71768,7 @@ function reachedPlainly(holder, path, union2) {
       if (node !== void 0) out.push({ node, written, exact, holding: holding2 });
       return;
     }
-    if (!isPlainObject10(node)) return;
+    if (!isPlainObject13(node)) return;
     walk7(node[path[i]], i + 1, written && !exact ? [...written, path[i]] : written, exact, holding2);
   };
   walk7(holder.manifest, 0, rootWritten(holder, union2), false, EVERYWHERE);
@@ -70439,7 +71784,7 @@ function place(view, entry2, at3, route, value2, canonicalKind, union2) {
     const segment = at3[i];
     const container = slot.get();
     const parent = literal;
-    literal = isPlainContainer(literal) ? literal[segment] : void 0;
+    literal = isPlainContainer2(literal) ? literal[segment] : void 0;
     slot = {
       get: () => container[segment],
       set: (v) => {
@@ -70486,7 +71831,7 @@ function mirrored(option, present2, value2) {
 }
 function containerFor(next, literal, canonicalKind, union2) {
   const child = typeof next === "number" ? [] : {};
-  const declared = isPlainObject10(literal) ? literal.kind : void 0;
+  const declared = isPlainObject13(literal) ? literal.kind : void 0;
   if (typeof declared === "string" && !Array.isArray(child)) child.kind = canonicalKind(declared);
   union2.hold(child);
   return child;
@@ -70498,7 +71843,7 @@ function fillGaps(container, segment, literalItems) {
     container[j] = isAlternatives(item) ? new Alternatives(item.options.map((option) => mirrored(option, option.present, {}))) : {};
   }
 }
-function isPlainContainer(value2) {
+function isPlainContainer2(value2) {
   return !!value2 && typeof value2 === "object" && !isAlternatives(value2) && !isOpaque(value2);
 }
 function viewMetadata(root, name2) {
@@ -70522,7 +71867,7 @@ function isCompiled(value2) {
 function isOpaque(value2) {
   return isTaggedSentinel(value2) || isRefSentinel(value2) || isCompiled(value2);
 }
-function isPlainObject10(value2) {
+function isPlainObject13(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2) && !isOpaque(value2) && !isAlternatives(value2);
 }
 
@@ -72024,12 +73369,12 @@ function slotInputsPath(site) {
   if (site.refs.length === 0) return void 0;
   const inputs = siteRefEntry(site).inputs;
   if (!inputs) return void 0;
-  const pointer = pointerSegments2(inputs);
+  const pointer = pointerSegments3(inputs);
   if (!pointer) return void 0;
   const enclosing = site.path.slice(0, Math.max(0, site.path.lastIndexOf(".")));
   return [enclosing, ...pointer].filter(Boolean).join(".");
 }
-function pointerSegments2(pointer) {
+function pointerSegments3(pointer) {
   if (!pointer.startsWith("/")) return void 0;
   const segments = pointer.slice(1).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((s) => s.length > 0 && !/^\d+$/.test(s)) ? segments : void 0;
@@ -73337,29 +74682,29 @@ function kindDocumentIn(graph, mod, kind, seen = /* @__PURE__ */ new Set()) {
 // ../../analyzer/nodejs/src/application-source-slot.ts
 var APPLICATION_SOURCE_ANNOTATION = "x-telo-application-source";
 var APPLICATION_INPUT_BLOCKS = ["variables", "secrets", "ports", "needs"];
-var isPlainObject11 = (value2) => {
+var isPlainObject14 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
-function pointerSegments3(pointer) {
+function pointerSegments4(pointer) {
   if (typeof pointer !== "string" || !pointer.startsWith("/") || pointer === "/") return void 0;
   const segments = pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((segment) => segment !== "") ? segments : void 0;
 }
 function readFeeds(raw) {
-  if (!isPlainObject11(raw)) return void 0;
+  if (!isPlainObject14(raw)) return void 0;
   const feeds = {};
   for (const block of APPLICATION_INPUT_BLOCKS) {
-    const segments = pointerSegments3(raw[block]);
+    const segments = pointerSegments4(raw[block]);
     if (segments) feeds[block] = segments;
   }
   return feeds;
 }
 function readApplicationSourceSlot(schema4) {
-  if (!isPlainObject11(schema4) || !isPlainObject11(schema4.properties)) return void 0;
+  if (!isPlainObject14(schema4) || !isPlainObject14(schema4.properties)) return void 0;
   for (const [field, property] of Object.entries(schema4.properties)) {
-    if (!isPlainObject11(property) || !(APPLICATION_SOURCE_ANNOTATION in property)) continue;
+    if (!isPlainObject14(property) || !(APPLICATION_SOURCE_ANNOTATION in property)) continue;
     const feeds = readFeeds(property[APPLICATION_SOURCE_ANNOTATION]);
     if (feeds) return { field, feeds };
   }
@@ -73368,7 +74713,7 @@ function readApplicationSourceSlot(schema4) {
 function valueAtKeys(holder, keys) {
   let value2 = holder;
   for (const key3 of keys) {
-    if (!isPlainObject11(value2)) return void 0;
+    if (!isPlainObject14(value2)) return void 0;
     value2 = value2[key3];
   }
   return value2;
@@ -73394,7 +74739,7 @@ function applicationSourceCandidates(manifests, fieldOf) {
       node.forEach(visit4);
       return;
     }
-    if (!isPlainObject11(node)) return;
+    if (!isPlainObject14(node)) return;
     if (typeof node.kind === "string") {
       const field = fieldOf(node.kind);
       const source = field !== void 0 ? node[field] : void 0;
@@ -73422,7 +74767,7 @@ var quoted = (names) => names.map((name2) => `'${name2}'`).join(", ");
 function declaresProperty(schema4, keys) {
   let node = schema4;
   for (const key3 of keys) {
-    if (!isPlainObject11(node) || !isPlainObject11(node.properties) || !(key3 in node.properties)) {
+    if (!isPlainObject14(node) || !isPlainObject14(node.properties) || !(key3 in node.properties)) {
       return false;
     }
     node = node.properties[key3];
@@ -73439,7 +74784,7 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
     const where = render2(path);
     problems.push({ path: where, message: `'${kind}' declares '${where}': ${detail}` });
   };
-  const root = isPlainObject11(schema4) ? schema4 : void 0;
+  const root = isPlainObject14(schema4) ? schema4 : void 0;
   let annotated;
   const judge = (property, path, field) => {
     const annotationPath = [...path, APPLICATION_SOURCE_ANNOTATION];
@@ -73471,7 +74816,7 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
       );
     }
     const raw = property[APPLICATION_SOURCE_ANNOTATION];
-    if (!isPlainObject11(raw)) {
+    if (!isPlainObject14(raw)) {
       refuse3(annotationPath, `it must be an object. ${SHAPE}`);
       return;
     }
@@ -73488,7 +74833,7 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
     for (const block of APPLICATION_INPUT_BLOCKS) {
       if (raw[block] === void 0) continue;
       const blockPath = [...annotationPath, block];
-      const segments = pointerSegments3(raw[block]);
+      const segments = pointerSegments4(raw[block]);
       if (!segments) {
         refuse3(
           blockPath,
@@ -73515,11 +74860,11 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path, field) => {
-    if (!isPlainObject11(node) || seen.has(node)) return;
+    if (!isPlainObject14(node) || seen.has(node)) return;
     seen.add(node);
     if (APPLICATION_SOURCE_ANNOTATION in node) judge(node, path, field);
     for (const key3 of SCHEMA_MAPS) {
-      if (isPlainObject11(node[key3])) {
+      if (isPlainObject14(node[key3])) {
         for (const [name2, child] of Object.entries(node[key3])) {
           visit4(child, [...path, key3, name2], node === root && key3 === "properties" ? name2 : void 0);
         }
@@ -74988,7 +76333,7 @@ function importRequirements(imports, keys, ownNeeds, keyOf, context) {
     const library = requirement;
     const libraryDoc = target.manifests.find((m) => m.kind === "Telo.Library");
     const shared = libraryDoc?.lifecycle === "shared";
-    const below = (path) => path.rooted ? path : shared ? { segments: [target.module, ...path.segments], rooted: true } : { segments: [alias, ...path.segments], rooted: false };
+    const below2 = (path) => path.rooted ? path : shared ? { segments: [target.module, ...path.segments], rooted: true } : { segments: [alias, ...path.segments], rooted: false };
     const resourceInputs = new Set(readResourceInputs(libraryDoc).map((input) => input.name));
     const suppliedResources = readSuppliedResources(importDoc);
     const translate = (dimension) => {
@@ -74999,13 +76344,13 @@ function importRequirements(imports, keys, ownNeeds, keyOf, context) {
         }
         const nested = library.nested.get(dimension.key);
         if (nested) {
-          const key4 = keyOf(below(nested));
+          const key4 = keyOf(below2(nested));
           return keys.has(key4) ? { key: key4 } : void 0;
         }
         const need = dimension.needPath?.[0];
         const written2 = need !== void 0 ? supplied[need] : void 0;
         if (written2 === void 0) {
-          const key4 = keyOf(below({ segments: dimension.needPath ?? [], rooted: false }), dimension.field, dimension.member);
+          const key4 = keyOf(below2({ segments: dimension.needPath ?? [], rooted: false }), dimension.field, dimension.member);
           return keys.has(key4) ? { key: key4 } : void 0;
         }
         const supply = needSupplyOf(written2);
@@ -75044,7 +76389,7 @@ function importRequirements(imports, keys, ownNeeds, keyOf, context) {
       const test2 = testOf(holding2);
       const written = supplied[need];
       if (written === void 0) {
-        out.environment.push({ path: below({ segments: [need], rooted: false }), optional: optional2, test: test2 });
+        out.environment.push({ path: below2({ segments: [need], rooted: false }), optional: optional2, test: test2 });
         continue;
       }
       const supply = needSupplyOf(written);
@@ -75053,7 +76398,7 @@ function importRequirements(imports, keys, ownNeeds, keyOf, context) {
       }
     }
     for (const item of library.environment) {
-      out.environment.push({ path: below(item.path), optional: item.optional, test: testOf(item.holding) });
+      out.environment.push({ path: below2(item.path), optional: item.optional, test: testOf(item.holding) });
     }
   }
   return out;
@@ -77926,6 +79271,8 @@ var AnalysisRegistry = class _AnalysisRegistry {
 };
 
 // ../../analyzer/nodejs/src/builtin-vocabulary.ts
+var import_ajv2 = __toESM(require_ajv(), 1);
+var import_ajv_formats2 = __toESM(require_dist(), 1);
 var import_formats2 = __toESM(require_formats(), 1);
 var BUILTIN_VOCABULARY_KIND = "Telo.Builtins";
 function isBuiltinVocabularyRoot(manifest) {
@@ -77936,6 +79283,7 @@ function builtinVocabularyImportMessage(source, version2) {
   const release = typeof version2 === "string" && version2 !== "" ? `telo ${version2}` : "a telo release";
   return `'${source}' is the built-in vocabulary of ${release}; its kinds need no import \u2014 remove this \`imports:\` entry and write them as \`Telo.<Kind>\`.`;
 }
+var Ajv2 = import_ajv2.default.default ?? import_ajv2.default;
 var JSON_SCHEMA_FORMATS = new Set(Object.keys(import_formats2.fullFormats));
 
 // ../../analyzer/nodejs/src/context-fill-cycle.ts
@@ -78554,513 +79902,17 @@ function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModu
   }
 }
 
-// ../../analyzer/nodejs/src/text-judgement.ts
-function coreProblem(problem, prefix) {
-  const where = problem.range === null ? "" : ` (at offset ${problem.range.start} of the pattern)`;
-  return { code: problem.code, message: `${problem.message}${where}`, path: [...prefix, ...problem.path] };
-}
-function selectsPlural(message) {
-  return !isPattern(message);
-}
-var SOURCE_LANGUAGE_MISSING_MESSAGE = "this text selects a plural case, but the module that writes it declares no lang:, so nothing says which language's plural rules select it \u2014 add lang: <language tag> to the module document, naming the language its texts are written in";
-function judgeText(value2, lang) {
-  const read = readText(value2);
-  if (!read.ok) return { problems: read.problems.map((problem) => coreProblem(problem, [])) };
-  return { text: read.text, problems: languageProblems(read.text.message, lang, isTextObject(value2) ? ["text"] : []) };
-}
-function isTextObject(value2) {
-  return !!value2 && typeof value2 === "object" && !Array.isArray(value2) && Object.hasOwn(value2, "text");
-}
-function languageProblems(message, lang, prefix) {
-  if (!selectsPlural(message)) return [];
-  if (lang === null) {
-    return [{ code: "MESSAGE_SOURCE_LANGUAGE_MISSING", message: SOURCE_LANGUAGE_MISSING_MESSAGE, path: prefix }];
-  }
-  return invalidPluralCategories(message, lang).map((problem) => coreProblem(problem, prefix));
-}
-function judgeMessage(value2) {
-  const read = readMessage(value2);
-  return read.ok ? { message: read.message, problems: [] } : { problems: read.problems.map((problem) => coreProblem(problem, [])) };
-}
-function textKey(source, context) {
-  return JSON.stringify([source, context]);
-}
-function keyOfText(text3) {
-  return textKey(messageIdentity(text3.message), text3.context);
-}
-var ENTRY_COMPUTED_MESSAGE = "a text catalog holds literals only \u2014 this value is computed, so it cannot be checked against its source or looked up; write the translation itself";
-function catalogComputedProblem() {
-  return {
-    code: "MESSAGE_ENTRY_COMPUTED",
-    message: "a text catalog holds literals only \u2014 this value is computed, so the catalogs it produces cannot be checked against their sources or looked up; write each catalog itself",
-    path: []
-  };
-}
-function judgeCatalog(catalog, isExpression3) {
-  const problems = [];
-  const entries = [];
-  const computed = expressionPaths(catalog, isExpression3, []);
-  for (const path of computed) problems.push({ code: "MESSAGE_ENTRY_COMPUTED", message: ENTRY_COMPUTED_MESSAGE, path });
-  if (computed.length > 0) return { entries, problems };
-  if (!catalog || typeof catalog !== "object" || Array.isArray(catalog)) return { entries, problems };
-  const { lang, texts } = catalog;
-  if (!Array.isArray(texts)) return { entries, problems };
-  const seen = /* @__PURE__ */ new Map();
-  texts.forEach((entry2, index) => {
-    if (!entry2 || typeof entry2 !== "object" || Array.isArray(entry2)) return;
-    const { text: text3, translation, context } = entry2;
-    const source = judgeMessage(text3);
-    const target = judgeMessage(translation);
-    problems.push(
-      ...source.problems.map((p) => ({ ...p, path: ["texts", index, "text", ...p.path] })),
-      ...target.problems.map((p) => ({ ...p, path: ["texts", index, "translation", ...p.path] }))
-    );
-    if (!source.message || !target.message) return;
-    const at3 = ["texts", index, "translation"];
-    for (const problem of unknownVariables(target.message, source.message)) problems.push(coreProblem(problem, at3));
-    if (typeof lang === "string") {
-      for (const problem of invalidPluralCategories(target.message, lang)) problems.push(coreProblem(problem, at3));
-    }
-    const key3 = textKey(messageIdentity(source.message), typeof context === "string" ? context : null);
-    const first = seen.get(key3);
-    if (first !== void 0) {
-      problems.push({
-        code: "MESSAGE_ENTRY_DUPLICATE",
-        message: `this entry translates the same text and context as texts[${first}], so only one of them could ever be used`,
-        path: ["texts", index]
-      });
-      return;
-    }
-    seen.set(key3, index);
-    entries.push({ index, key: key3, source: source.message, translation: target.message });
-  });
-  return { entries, problems };
-}
-function expressionPaths(value2, isExpression3, path) {
-  if (isExpression3(value2)) return [path];
-  if (Array.isArray(value2)) return value2.flatMap((item, index) => expressionPaths(item, isExpression3, [...path, index]));
-  if (value2 && typeof value2 === "object" && Object.getPrototypeOf(value2) === Object.prototype) {
-    return Object.entries(value2).flatMap(([key3, child]) => expressionPaths(child, isExpression3, [...path, key3]));
-  }
-  return [];
-}
-function judgeValues(message, values) {
-  const problems = [];
-  const selectors = selectorNames(message);
-  for (const name2 of messageVariables(message)) {
-    const value2 = values.get(name2);
-    if (!value2) {
-      problems.push({
-        code: "MESSAGE_PLACEHOLDER_UNBOUND",
-        message: `no value is given for ${name2}, which the message reads${selectors.has(name2) ? " to select a plural case" : ""}`,
-        path: []
-      });
-      continue;
-    }
-    if (value2.kind === "refused" || value2.kind === "string" && selectors.has(name2)) {
-      problems.push({
-        code: "MESSAGE_PLACEHOLDER_VALUE_UNSUPPORTED",
-        message: selectors.has(name2) ? `the value given for ${name2} is ${value2.describe}, and ${name2} selects a plural case, which needs a number` : `the value given for ${name2} is ${value2.describe}, and a placeholder takes a string or a number`,
-        path: [name2]
-      });
-    }
-  }
-  return problems;
-}
-function selectorNames(message) {
-  const out = /* @__PURE__ */ new Set();
-  const pending = [message];
-  while (pending.length > 0) {
-    const at3 = pending.pop();
-    if (isPattern(at3)) continue;
-    out.add(at3.plural);
-    pending.push(...Object.values(at3.cases));
-  }
-  return out;
-}
-function runtimeValueKind(value2) {
-  if (typeof value2 === "string") return { kind: "string", describe: "a string" };
-  if (typeof value2 === "number" || typeof value2 === "bigint" || isCelUint(value2)) {
-    return { kind: "number", describe: "a number" };
-  }
-  if (value2 === null) return { kind: "refused", describe: "null" };
-  if (typeof value2 === "boolean") return { kind: "refused", describe: "a boolean" };
-  if (Array.isArray(value2)) return { kind: "refused", describe: "a list" };
-  return { kind: "refused", describe: "neither a string nor a number" };
-}
-function celTypeValueKind(type) {
-  if (type === void 0 || type === "dyn") return { kind: "unknown", describe: "a value of unknown type" };
-  if (type === "string") return { kind: "string", describe: "a string" };
-  if (type === "int" || type === "uint" || type === "double") return { kind: "number", describe: `a ${type}` };
-  return { kind: "refused", describe: `a ${type}` };
-}
-function schemaValueKind(schema4) {
-  const type = schema4 && typeof schema4 === "object" ? schema4.type : void 0;
-  if (type === "string") return { kind: "string", describe: "a string" };
-  if (type === "integer" || type === "number") return { kind: "number", describe: `a value declared ${type}` };
-  if (type === "boolean" || type === "null" || type === "array" || type === "object") {
-    return { kind: "refused", describe: `a value declared ${type}` };
-  }
-  return { kind: "unknown", describe: "a value of unknown type" };
-}
-
-// ../../analyzer/nodejs/src/text-slot.ts
-var MESSAGE_FRAGMENT = "Message";
-var TEXT_FRAGMENT = "Text";
-var TEXT_CATALOG_FRAGMENT = "TextCatalog";
-var TEXT_CONTEXT_ANNOTATION = "x-telo-text-context";
-var TEXT_VALUES_FOR_ANNOTATION = "x-telo-text-values-for";
-var TEXT_VALUES_ANNOTATION = "x-telo-text-values";
-var TEXT_VALUES_FROM_ANNOTATION = "x-telo-text-values-from";
-var TEXT_RECORD_FRAGMENT = "TextRecord";
-var TEXT_ANNOTATION_VALUE_SCHEMAS = {
-  [TEXT_CONTEXT_ANNOTATION]: { type: "string", minLength: 1 },
-  [TEXT_VALUES_FOR_ANNOTATION]: { type: "string", pattern: "^/" },
-  [TEXT_VALUES_FROM_ANNOTATION]: { type: "string", pattern: "^(0|[1-9][0-9]*)(/.*)?$" }
-};
-function textFragmentOf(schema4) {
-  const name2 = manifestFragmentOf(schema4);
-  return name2 === MESSAGE_FRAGMENT || name2 === TEXT_FRAGMENT || name2 === TEXT_CATALOG_FRAGMENT ? name2 : void 0;
-}
-function isTextRecordSchema(schema4) {
-  return manifestFragmentOf(schema4) === TEXT_RECORD_FRAGMENT;
-}
-function isTextSchema(schema4) {
-  return textFragmentOf(schema4) === TEXT_FRAGMENT;
-}
-function isTextOrRecordUnion(schema4, root, resolveRef2) {
-  if (!isPlainObject12(schema4)) return false;
-  const branches = [...Array.isArray(schema4.anyOf) ? schema4.anyOf : [], ...Array.isArray(schema4.oneOf) ? schema4.oneOf : []];
-  let text3 = false;
-  let record = false;
-  for (const branch of branches) {
-    let node = branch;
-    if (isPlainObject12(node) && typeof node.$ref === "string" && textFragmentOf(node) === void 0 && !isTextRecordSchema(node)) {
-      node = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref)?.schema;
-    }
-    if (textFragmentOf(node) === TEXT_FRAGMENT) text3 = true;
-    if (isTextRecordSchema(node)) record = true;
-  }
-  return text3 && record;
-}
-function producesTextRecord(schema4, root = isPlainObject12(schema4) ? schema4 : {}, resolveRef2) {
-  const resolved = (node2) => isPlainObject12(node2) && typeof node2.$ref === "string" && !isTextRecordSchema(node2) ? node2.$ref.startsWith("#") ? resolveSchemaPointer(root, node2.$ref) : resolveRef2?.(node2.$ref)?.schema : node2;
-  const node = resolved(schema4);
-  if (isTextRecordSchema(node)) return true;
-  if (!isPlainObject12(node)) return false;
-  const branches = [...Array.isArray(node.anyOf) ? node.anyOf : [], ...Array.isArray(node.oneOf) ? node.oneOf : []];
-  if (branches.length === 0) return false;
-  let record = false;
-  for (const branch of branches) {
-    const at3 = resolved(branch);
-    if (isTextRecordSchema(at3)) record = true;
-    else if (!(isPlainObject12(at3) && at3.type === "null")) return false;
-  }
-  return record;
-}
-function renderValuePath(path) {
-  let out = "";
-  for (const segment of path) {
-    if (typeof segment === "number") out += `[${segment}]`;
-    else out += out === "" ? segment : `.${segment}`;
-  }
-  return out;
-}
-var isPlainObject12 = (value2) => {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
-  const prototype = Object.getPrototypeOf(value2);
-  return prototype === Object.prototype || prototype === null;
-};
-var declaring = /* @__PURE__ */ new WeakMap();
-function declaresText(schema4, root = schema4) {
-  let byNode = declaring.get(root);
-  if (!byNode) declaring.set(root, byNode = /* @__PURE__ */ new WeakMap());
-  let known = byNode.get(schema4);
-  if (known === void 0) {
-    const seen = /* @__PURE__ */ new Set();
-    const scan = (node) => {
-      if (!node || typeof node !== "object" || seen.has(node)) return false;
-      seen.add(node);
-      if (Array.isArray(node)) return node.some(scan);
-      if (isTextRecordSchema(node)) return false;
-      if (textFragmentOf(node) !== void 0 || TEXT_VALUES_FOR_ANNOTATION in node) return true;
-      const ref = node.$ref;
-      if (typeof ref === "string") {
-        if (!ref.startsWith("#")) return true;
-        if (scan(resolveSchemaPointer(root, ref))) return true;
-      }
-      return Object.values(node).some(scan);
-    };
-    byNode.set(schema4, known = scan(schema4));
-  }
-  return known;
-}
-function pointerSegments4(pointer) {
-  if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
-  return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
-}
-function declaredTextValuesOf(schema4) {
-  if (!isPlainObject12(schema4)) return void 0;
-  const declared = schema4[TEXT_VALUES_ANNOTATION];
-  return isPlainObject12(declared) ? declared : void 0;
-}
-function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
-  if (typeof value2 !== "string" && !isPlainObject12(value2)) return false;
-  const keys = isPlainObject12(value2) ? Object.keys(value2) : [];
-  const seen = /* @__PURE__ */ new Set();
-  const admits = (node, at3) => {
-    if (!isPlainObject12(node) || seen.has(node)) return false;
-    seen.add(node);
-    if (typeof node.$ref === "string") {
-      if (node.$ref.startsWith("#")) {
-        if (admits(resolveSchemaPointer(at3, node.$ref), at3)) return true;
-      } else {
-        const named = resolveRef2?.(node.$ref);
-        if (named && admits(named.schema, named.root)) return true;
-      }
-    }
-    for (const union2 of ["anyOf", "oneOf"]) {
-      if (Array.isArray(node[union2]) && node[union2].some((branch) => admits(branch, at3))) return true;
-    }
-    const types = node.type === void 0 ? [] : [node.type].flat();
-    if (typeof value2 === "string") return types.includes("string");
-    if (!types.includes("object")) return false;
-    const properties = isPlainObject12(node.properties) ? node.properties : {};
-    const required = Array.isArray(node.required) ? node.required : [];
-    if (!required.every((name2) => typeof name2 === "string" && keys.includes(name2))) return false;
-    return node.additionalProperties !== false || keys.every((key3) => key3 in properties);
-  };
-  return admits(fragmentNode, root);
-}
-var RESOURCE_ENVELOPE = /* @__PURE__ */ new Set(["kind", "metadata"]);
-function branchExcludes(branch, root, value2, path, resolveRef2) {
-  if (!isPlainObject12(value2)) return false;
-  const keys = Object.keys(value2).filter((key3) => path.length > 0 || !RESOURCE_ENVELOPE.has(key3));
-  const ancestry = /* @__PURE__ */ new Set();
-  const excludes = (node, at3) => {
-    if (!isPlainObject12(node) || ancestry.has(node)) return false;
-    ancestry.add(node);
-    try {
-      if (typeof node.$ref === "string") {
-        const target = node.$ref.startsWith("#") ? { schema: resolveSchemaPointer(at3, node.$ref), root: at3 } : resolveRef2?.(node.$ref);
-        if (target && excludes(target.schema, target.root)) return true;
-      }
-      const required = Array.isArray(node.required) ? node.required : [];
-      if (required.some((name2) => typeof name2 === "string" && !Object.hasOwn(value2, name2))) return true;
-      if (node.additionalProperties === false) {
-        const properties = isPlainObject12(node.properties) ? node.properties : {};
-        const patterns = isPlainObject12(node.patternProperties) ? Object.keys(node.patternProperties) : [];
-        const extra = keys.some(
-          (key3) => !Object.hasOwn(properties, key3) && !patterns.some((pattern2) => safeRegExp(pattern2)?.test(key3))
-        );
-        if (extra) return true;
-      }
-      if (Array.isArray(node.allOf) && node.allOf.some((member) => excludes(member, at3))) return true;
-      for (const union2 of ["anyOf", "oneOf"]) {
-        const alternatives = node[union2];
-        if (Array.isArray(alternatives) && alternatives.length > 0) {
-          if (alternatives.every((alternative) => excludes(alternative, at3))) return true;
-        }
-      }
-      return false;
-    } finally {
-      ancestry.delete(node);
-    }
-  };
-  return excludes(branch, root);
-}
-function relativePointerOf(pointer) {
-  if (typeof pointer !== "string") return void 0;
-  const match = /^(0|[1-9][0-9]*)(\/.*)?$/.exec(pointer);
-  if (!match) return void 0;
-  return { up: Number(match[1]), segments: match[2] ? pointerSegments4(match[2]) : [] };
-}
-function valuesFromAt(pointer, holder) {
-  const relative = relativePointerOf(pointer);
-  if (!relative) return void 0;
-  let at3 = holder;
-  for (let level = 0; level < relative.up && at3; level++) at3 = at3.outer;
-  if (!at3) return void 0;
-  let schema4 = at3.value;
-  for (const segment of relative.segments) schema4 = isPlainObject12(schema4) ? schema4[segment] : void 0;
-  return { path: [...at3.path, ...relative.segments], schema: schema4 };
-}
-function textSites(schema4, data, options, root = schema4) {
-  const texts = /* @__PURE__ */ new Map();
-  const values = /* @__PURE__ */ new Map();
-  const expressions = [];
-  if (!declaresText(schema4, root)) return { texts: [], values: [], expressions };
-  const entered = /* @__PURE__ */ new Set();
-  const ids = /* @__PURE__ */ new WeakMap();
-  let nextId = 0;
-  const nodeId = (node) => {
-    let id = ids.get(node);
-    if (id === void 0) ids.set(node, id = nextId++);
-    return id;
-  };
-  const walk7 = (node, root2, value2, path, holder, inheritedValues, inheritedFrom) => {
-    if (!node || typeof node !== "object" || Array.isArray(node) || value2 === void 0) return;
-    const declared = node;
-    const key3 = `${nodeId(declared)}\0${renderValuePath(path)}`;
-    if (entered.has(key3)) return;
-    entered.add(key3);
-    if (isTextRecordSchema(declared)) return;
-    const fragment = textFragmentOf(declared);
-    if (fragment !== void 0) {
-      const at3 = renderValuePath(path);
-      const admitted = options.isExpression(value2) || fragmentAdmits(declared, path.length === 0 ? siteValueOf({ path, value: value2 }) : value2, root2, options.resolveRef);
-      if (admitted && !texts.has(at3)) {
-        const declaredValues = declaredTextValuesOf(declared) ?? inheritedValues;
-        const valuesFrom2 = valuesFromAt(declared[TEXT_VALUES_FROM_ANNOTATION] ?? inheritedFrom, holder);
-        texts.set(at3, {
-          fragment,
-          path,
-          value: value2,
-          ...declaredValues ? { declaredValues } : {},
-          ...valuesFrom2 ? { valuesFrom: valuesFrom2 } : {}
-        });
-      }
-      return;
-    }
-    const pairing = pointerSegments4(declared[TEXT_VALUES_FOR_ANNOTATION]);
-    if (pairing && holder && !values.has(renderValuePath(path))) {
-      let text3 = holder.value;
-      for (const segment of pairing) text3 = isPlainObject12(text3) ? text3[segment] : void 0;
-      values.set(renderValuePath(path), {
-        path,
-        values: value2,
-        textPath: [...holder.path, ...pairing],
-        text: text3
-      });
-    }
-    if (options.isExpression(value2)) {
-      if (declaresText(declared, root2)) expressions.push({ path, schema: declared, root: root2 });
-      return;
-    }
-    if (typeof declared.$ref === "string") {
-      const carried = declaredTextValuesOf(declared) ?? inheritedValues;
-      const carriedFrom = declared[TEXT_VALUES_FROM_ANNOTATION] ?? inheritedFrom;
-      if (declared.$ref.startsWith("#")) {
-        walk7(resolveSchemaPointer(root2, declared.$ref), root2, value2, path, holder, carried, carriedFrom);
-      } else {
-        const named = options.resolveRef?.(declared.$ref);
-        if (named) walk7(named.schema, named.root, value2, path, holder, carried, carriedFrom);
-      }
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(declared[union2])) {
-        for (const branch of declared[union2]) {
-          if (union2 !== "allOf" && branchExcludes(branch, root2, value2, path, options.resolveRef)) continue;
-          walk7(branch, root2, value2, path, holder);
-        }
-      }
-    }
-    if (Array.isArray(value2)) {
-      if (declared.items && typeof declared.items === "object" && !Array.isArray(declared.items)) {
-        value2.forEach((item, index) => walk7(declared.items, root2, item, [...path, index], holder));
-      }
-      return;
-    }
-    if (!isPlainObject12(value2)) return;
-    const properties = isPlainObject12(declared.properties) ? declared.properties : {};
-    const patterns = isPlainObject12(declared.patternProperties) ? declared.patternProperties : {};
-    const here = { value: value2, path, outer: holder };
-    for (const [name2, child] of Object.entries(value2)) {
-      const childPath = [...path, name2];
-      if (name2 in properties) {
-        walk7(properties[name2], root2, child, childPath, here);
-        continue;
-      }
-      let matched = false;
-      for (const [pattern2, patternSchema] of Object.entries(patterns)) {
-        if (safeRegExp(pattern2)?.test(name2)) {
-          matched = true;
-          walk7(patternSchema, root2, child, childPath, here);
-        }
-      }
-      if (!matched && declared.additionalProperties && typeof declared.additionalProperties === "object") {
-        walk7(declared.additionalProperties, root2, child, childPath, here);
-      }
-    }
-  };
-  walk7(schema4, root, data, [], void 0);
-  return { texts: [...texts.values()], values: [...values.values()], expressions };
-}
-function siteValueOf(site) {
-  if (site.path.length > 0 || !isPlainObject12(site.value)) return site.value;
-  const { kind, metadata, ...fields } = site.value;
-  return fields;
-}
-var reachingCatalog = /* @__PURE__ */ new WeakMap();
-function reachesTextCatalog(schema4, root, resolveRef2) {
-  let byNode = reachingCatalog.get(root);
-  if (!byNode) reachingCatalog.set(root, byNode = /* @__PURE__ */ new WeakMap());
-  let known = byNode.get(schema4);
-  if (known === void 0) {
-    const seen = /* @__PURE__ */ new Set();
-    const scan = (node, at3) => {
-      if (!node || typeof node !== "object" || seen.has(node)) return false;
-      seen.add(node);
-      if (Array.isArray(node)) return node.some((item) => scan(item, at3));
-      if (textFragmentOf(node) === TEXT_CATALOG_FRAGMENT) return true;
-      const ref = node.$ref;
-      if (typeof ref === "string") {
-        if (ref.startsWith("#")) {
-          if (scan(resolveSchemaPointer(at3, ref), at3)) return true;
-        } else {
-          const named = resolveRef2?.(ref);
-          if (named && scan(named.schema, named.root)) return true;
-        }
-      }
-      return Object.values(node).some((child) => scan(child, at3));
-    };
-    byNode.set(schema4, known = scan(schema4, root));
-  }
-  return known;
-}
-function catalogsComputedAbove(walk7, options) {
-  const out = /* @__PURE__ */ new Map();
-  for (const expression of walk7.expressions) {
-    const at3 = renderValuePath(expression.path);
-    if (!out.has(at3) && reachesTextCatalog(expression.schema, expression.root, options.resolveRef)) {
-      out.set(at3, expression.path);
-    }
-  }
-  return [...out.values()];
-}
-var patternCache = /* @__PURE__ */ new Map();
-function safeRegExp(pattern2) {
-  let compiled2 = patternCache.get(pattern2);
-  if (compiled2 === void 0) {
-    try {
-      compiled2 = new RegExp(pattern2, "u");
-    } catch {
-      compiled2 = null;
-    }
-    patternCache.set(pattern2, compiled2);
-  }
-  return compiled2;
-}
-function expressionsWithin(value2, isExpression3, path = []) {
-  if (isExpression3(value2)) return [{ path, value: value2 }];
-  if (Array.isArray(value2)) return value2.flatMap((item, index) => expressionsWithin(item, isExpression3, [...path, index]));
-  if (isPlainObject12(value2)) {
-    return Object.entries(value2).flatMap(([key3, child]) => expressionsWithin(child, isExpression3, [...path, key3]));
-  }
-  return [];
-}
-
 // ../../analyzer/nodejs/src/text-schemas.ts
 var CONTRACT_KEYS = /* @__PURE__ */ new Set(["inputType", "outputType"]);
-var isPlainObject13 = (value2) => {
+var isPlainObject15 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
 function inlineSchemaOf(value2) {
-  if (!isPlainObject13(value2)) return void 0;
+  if (!isPlainObject15(value2)) return void 0;
   if (typeof value2.kind === "string") {
-    return isResolvedReference(value2) || !isPlainObject13(value2.schema) ? void 0 : value2.schema;
+    return isResolvedReference(value2) || !isPlainObject15(value2.schema) ? void 0 : value2.schema;
   }
   return value2;
 }
@@ -79088,7 +79940,7 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
       entered.add(key3);
       const fragment = manifestFragmentOf(declared);
       if (fragment === "KindSchema" || fragment === "JsonSchema7") {
-        if (isPlainObject13(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
+        if (isPlainObject15(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
         return;
       }
       if (fragment === "CallableParams" && Array.isArray(value2)) add("params", path, value2);
@@ -79107,14 +79959,14 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
         if (Array.isArray(declared[union2])) for (const branch of declared[union2]) walk7(branch, value2, path);
       }
       if (Array.isArray(value2)) {
-        if (isPlainObject13(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
+        if (isPlainObject15(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
         return;
       }
-      if (!isPlainObject13(value2)) return;
-      const properties = isPlainObject13(declared.properties) ? declared.properties : {};
+      if (!isPlainObject15(value2)) return;
+      const properties = isPlainObject15(declared.properties) ? declared.properties : {};
       for (const [name2, child] of Object.entries(value2)) {
         if (name2 in properties) walk7(properties[name2], child, [...path, name2]);
-        else if (isPlainObject13(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
+        else if (isPlainObject15(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
       }
     };
     walk7(kindSchema, manifest, []);
@@ -79125,7 +79977,7 @@ function schemaValueSites(kindSchema, manifest, isExpression3) {
       value2.forEach((item, index) => contracts(item, [...path, index]));
       return;
     }
-    if (!isPlainObject13(value2)) return;
+    if (!isPlainObject15(value2)) return;
     for (const [key3, child] of Object.entries(value2)) {
       if (CONTRACT_KEYS.has(key3)) {
         const inline = inlineSchemaOf(child);
@@ -79161,12 +80013,12 @@ function schemaNodes(schema4) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path) => {
-    if (!isPlainObject13(node) || seen.has(node)) return;
+    if (!isPlainObject15(node) || seen.has(node)) return;
     seen.add(node);
     out.push({ node, path });
     for (const key3 of SUBSCHEMA_MAPS) {
       const map3 = node[key3];
-      if (!isPlainObject13(map3)) continue;
+      if (!isPlainObject15(map3)) continue;
       for (const [name2, child] of Object.entries(map3)) {
         if ((key3 === "$defs" || key3 === "definitions") && isHoistedFragmentDefKey(name2)) continue;
         visit4(child, [...path, key3, name2]);
@@ -79187,7 +80039,7 @@ function textContextOf(node) {
   return typeof context === "string" && context !== "" ? context : null;
 }
 function schemaTexts(schema4) {
-  if (!isPlainObject13(schema4)) return [];
+  if (!isPlainObject15(schema4)) return [];
   const cached = schemaTextMemo.get(schema4);
   if (cached) return cached;
   const out = [];
@@ -79228,10 +80080,10 @@ function shapeProblem(annotation, value2, path) {
 }
 function propertiesOf(node, root) {
   let at3 = node;
-  for (let hops = 0; hops < 32 && isPlainObject13(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
+  for (let hops = 0; hops < 32 && isPlainObject15(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
     at3 = resolveSchemaPointer(root, at3.$ref);
   }
-  return isPlainObject13(at3) && isPlainObject13(at3.properties) ? at3.properties : void 0;
+  return isPlainObject15(at3) && isPlainObject15(at3.properties) ? at3.properties : void 0;
 }
 function declaresObject(node) {
   const type = node.type;
@@ -79248,7 +80100,7 @@ function schemaAt(start, segments, root) {
 }
 function isTextNode(node, root) {
   if (isTextSchema(node)) return true;
-  if (isPlainObject13(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
+  if (isPlainObject15(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
     return isTextSchema(resolveSchemaPointer(root, node.$ref));
   }
   return false;
@@ -79277,7 +80129,7 @@ function textAnnotationProblems(site) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION} is on a node that holds no object: a message's values are an object keyed by placeholder name`);
       return;
     }
-    const segments = pointerSegments4(pointer);
+    const segments = pointerSegments(pointer);
     const target = enclosing ? schemaAt(enclosing, segments, root) : void 0;
     if (target === void 0) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION}: '${pointer}' names nothing beside this field \u2014 the pointer is relative to the object holding it`);
@@ -79315,13 +80167,13 @@ function paramsValuesForProblems(params) {
   const problems = [];
   const byName2 = /* @__PURE__ */ new Map();
   for (const param of params) {
-    if (isPlainObject13(param) && typeof param.name === "string" && isPlainObject13(param.schema)) {
+    if (isPlainObject15(param) && typeof param.name === "string" && isPlainObject15(param.schema)) {
       byName2.set(param.name, param.schema);
     }
   }
   const paired = /* @__PURE__ */ new Map();
   params.forEach((param, index) => {
-    if (!isPlainObject13(param) || !isPlainObject13(param.schema)) return;
+    if (!isPlainObject15(param) || !isPlainObject15(param.schema)) return;
     const schema4 = param.schema;
     if (!(TEXT_VALUES_FOR_ANNOTATION in schema4)) return;
     const path = [index, "schema"];
@@ -79337,7 +80189,7 @@ function paramsValuesForProblems(params) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION} is on a parameter that holds no object: a message's values are an object keyed by placeholder name`);
       return;
     }
-    const segments = pointerSegments4(pointer);
+    const segments = pointerSegments(pointer);
     const named = segments.length === 1 ? byName2.get(segments[0]) : void 0;
     if (named === void 0) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION}: '${pointer}' names no parameter \u2014 the pointer is relative to the call's arguments, keyed by parameter name, and names the Text parameter itself`);
@@ -79362,7 +80214,7 @@ function textParameters(params) {
   params.forEach((param, index) => {
     if (typeof param.name !== "string" || !isTextSchema(param.schema)) return;
     const pairedAt = params.findIndex((other) => {
-      const segments = isPlainObject13(other.schema) ? pointerSegments4(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
+      const segments = isPlainObject15(other.schema) ? pointerSegments(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
       return segments?.length === 1 && segments[0] === param.name;
     });
     const paired = pairedAt === -1 ? void 0 : params[pairedAt];
@@ -79376,7 +80228,7 @@ function textParameters(params) {
 }
 function textContextNodes(value2, path = []) {
   if (Array.isArray(value2)) return value2.flatMap((item, index) => textContextNodes(item, [...path, index]));
-  if (!isPlainObject13(value2)) return [];
+  if (!isPlainObject15(value2)) return [];
   const own2 = TEXT_CONTEXT_ANNOTATION in value2 ? [{ node: value2, path }] : [];
   return [...own2, ...Object.entries(value2).flatMap(([key3, child]) => textContextNodes(child, [...path, key3]))];
 }
@@ -79626,12 +80478,12 @@ function readAlong(root, path) {
     const next = [];
     for (const node of nodes) {
       if (typeof segment === "number") {
-        if (isSchema4(node.items)) next.push(node.items);
+        if (isSchema5(node.items)) next.push(node.items);
         continue;
       }
       const property = node.properties?.[segment];
-      if (isSchema4(property)) next.push(property);
-      else if (isSchema4(node.additionalProperties)) next.push(node.additionalProperties);
+      if (isSchema5(property)) next.push(property);
+      else if (isSchema5(node.additionalProperties)) next.push(node.additionalProperties);
     }
     if (next.length === 0) return {};
     nodes = expand2(next, root);
@@ -79656,7 +80508,7 @@ function expand2(nodes, root) {
     for (const key3 of ["oneOf", "anyOf", "allOf"]) {
       const branches = resolved[key3];
       if (!Array.isArray(branches)) continue;
-      for (const branch of branches) if (isSchema4(branch)) visit4(branch);
+      for (const branch of branches) if (isSchema5(branch)) visit4(branch);
     }
   };
   for (const node of nodes) visit4(node);
@@ -79676,7 +80528,7 @@ function segmentsOf(path) {
   }
   return out;
 }
-function isSchema4(value2) {
+function isSchema5(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 
@@ -79854,7 +80706,7 @@ function readReferrerRules(schema4) {
     if (referrer !== void 0 && typeof referrer !== "string") return;
     if (peers !== void 0 && typeof peers !== "string") return;
     const { resolve: resolve2, resolveSelf } = entry2;
-    const pointers = (value2) => value2 === void 0 || Array.isArray(value2) && value2.every((p) => typeof p === "string" && pointerSegments(p));
+    const pointers = (value2) => value2 === void 0 || Array.isArray(value2) && value2.every((p) => typeof p === "string" && pointerSegments2(p));
     if (!pointers(resolve2) || !pointers(resolveSelf)) return;
     if (entry2.severity !== void 0 && entry2.severity !== "warning" && entry2.severity !== "error") {
       return;
@@ -79957,6 +80809,12 @@ function resolveSchemaRefKinds(definition, resolver) {
         if (result.status === "ok") return result.kind;
         record(kind, `${path}.${REFERRER_RULES_ANNOTATION}`, "referrer");
         return void 0;
+      });
+    }
+    if (hasTextKeys(obj)) {
+      rewriteTextKeysKinds(obj, (kind) => {
+        const result = resolver.resolveKindResult(kind);
+        return result.status === "ok" ? result.kind : void 0;
       });
     }
     for (const key3 of Object.keys(obj)) {
@@ -81226,7 +82084,7 @@ function validatePeersDeclaration(entry2, at3, issue, context) {
     );
     return;
   }
-  if (pointerSegments(peers) === void 0 || peers === "" || peers === "/") {
+  if (pointerSegments2(peers) === void 0 || peers === "" || peers === "/") {
     issue(
       `${at3}.peers`,
       `'peers' must be a JSON Pointer to a collection, e.g. /tables \u2014 '${peers}' is not one.`
@@ -81261,7 +82119,7 @@ function validateResolveSelfDeclaration(entry2, at3, issue, context) {
     return;
   }
   resolveSelf.forEach((pointer, i) => {
-    if (typeof pointer !== "string" || !pointerSegments(pointer) || pointer === "" || pointer === "/") {
+    if (typeof pointer !== "string" || !pointerSegments2(pointer) || pointer === "" || pointer === "/") {
       issue(`${at3}.resolveSelf[${i}]`, "Each 'resolveSelf' entry must be a JSON Pointer starting with '/'.");
     } else if (context.selfDeclares?.(pointer) === "absent") {
       issue(
@@ -81287,7 +82145,7 @@ function validateResolveDeclaration(entry2, at3, issue, context) {
   }
   const referrer = entry2.referrer;
   resolve2.forEach((pointer, i) => {
-    if (typeof pointer !== "string" || !pointerSegments(pointer) || pointer === "" || pointer === "/") {
+    if (typeof pointer !== "string" || !pointerSegments2(pointer) || pointer === "" || pointer === "/") {
       issue(`${at3}.resolve[${i}]`, "Each 'resolve' entry must be a JSON Pointer starting with '/'.");
     } else if (context.referrerDeclares?.(referrer, pointer) === "absent") {
       issue(
@@ -81755,7 +82613,7 @@ function topologyRoleProblems(definition, authorSchema) {
 // ../../analyzer/nodejs/src/validate-caught-members.ts
 var SCHEMA_FIELDS2 = ["schema", "status", "inputType", "outputType"];
 var DATA_KEYWORDS2 = /* @__PURE__ */ new Set(["const", "default", "enum", "examples"]);
-function isPlainObject14(value2) {
+function isPlainObject16(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 var isStringSchema = (node) => node.type === "string" || Array.isArray(node.type) && node.type.length > 0 && node.type.every((t) => t === "string");
@@ -81769,7 +82627,7 @@ function caughtMemberProblems(definition) {
       node.forEach((item, i) => collectLists(item, `${at3}[${i}]`, seen));
       return;
     }
-    if (!isPlainObject14(node) || seen.has(node)) return;
+    if (!isPlainObject16(node) || seen.has(node)) return;
     seen.add(node);
     if (isCatchListSchema(node)) {
       let hasCode = false;
@@ -81790,7 +82648,7 @@ function caughtMemberProblems(definition) {
       node.forEach((item, i) => scan(item, `${at3}[${i}]`, seen));
       return;
     }
-    if (!isPlainObject14(node) || seen.has(node)) return;
+    if (!isPlainObject16(node) || seen.has(node)) return;
     seen.add(node);
     if (Object.hasOwn(node, X_TELO_CAUGHT_MEMBER)) {
       const path = `${at3}.${X_TELO_CAUGHT_MEMBER}`;
@@ -83978,14 +84836,14 @@ function collectValueSchemaIssues(manifest, defSchema, types, validator, valueSc
 }
 
 // ../../analyzer/nodejs/src/validate-match-for.ts
-var isSchema5 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema6 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) {
-  if (!isSchema5(schema4)) return [];
+  if (!isSchema6(schema4)) return [];
   const root = schema4;
   const problems = [];
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path, role, underAccessor, levels) => {
-    if (!isSchema5(node) || seen.has(node)) return;
+    if (!isSchema6(node) || seen.has(node)) return;
     seen.add(node);
     const here = levels && levels.length > 0 ? [...levels.slice(0, -1), { node, key: levels[levels.length - 1].key }] : levels;
     const accessorHere = underAccessor || declaredEvalMode(node) === "accessor";
@@ -84078,9 +84936,9 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       }
     }
     const other = { kind: "other" };
-    const deeper = (key3, child) => here && isSchema5(child) ? [...here, { node: child, key: key3 }] : void 0;
+    const deeper = (key3, child) => here && isSchema6(child) ? [...here, { node: child, key: key3 }] : void 0;
     for (const map3 of ["properties", "patternProperties"]) {
-      if (!isSchema5(node[map3])) continue;
+      if (!isSchema6(node[map3])) continue;
       for (const [key3, child] of Object.entries(node[map3])) {
         visit4(
           child,
@@ -84092,7 +84950,7 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       }
     }
     for (const map3 of ["$defs", "definitions"]) {
-      if (!isSchema5(node[map3])) continue;
+      if (!isSchema6(node[map3])) continue;
       for (const [key3, child] of Object.entries(node[map3])) {
         visit4(child, [...path, map3, key3], other, false, void 0);
       }
@@ -84109,8 +84967,8 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       node[key3].forEach((branch, i) => visit4(branch, [...path, key3, i], other, accessorHere, here));
     }
     const context = node["x-telo-context"];
-    if (isSchema5(context)) {
-      if (isSchema5(context.properties)) {
+    if (isSchema6(context)) {
+      if (isSchema6(context.properties)) {
         for (const [key3, binding] of Object.entries(context.properties)) {
           visit4(binding, [...path, "x-telo-context", "properties", key3], { kind: "binding", field: here }, false, void 0);
         }
@@ -84129,7 +84987,7 @@ function deref4(node, document, shapes) {
     seen.add(current);
     const local = current.$ref.startsWith("#");
     const target = local ? resolveSchemaPointer(doc, current.$ref) : shapes(current.$ref);
-    if (!isSchema5(target)) break;
+    if (!isSchema6(target)) break;
     if (!local) doc = target;
     current = target;
   }
@@ -84139,13 +84997,13 @@ function isArraySchema(node) {
   return node.items !== void 0 || node.type === "array";
 }
 function targetRefusal(enclosing, pointer, document, shapes) {
-  const segments = pointer === "" ? [] : pointerSegments4(pointer) ?? [];
+  const segments = pointer === "" ? [] : pointerSegments(pointer) ?? [];
   let [current, doc] = deref4(enclosing, document, shapes);
   let field;
   for (const segment of segments) {
     if (isArraySchema(current)) return `'${pointer}' crosses an array, which holds any number of values`;
     const next = propertySchemas(current).find(([key3]) => key3 === segment)?.[1];
-    if (!isSchema5(next)) return `the enclosing object declares nothing at '${pointer}'`;
+    if (!isSchema6(next)) return `the enclosing object declares nothing at '${pointer}'`;
     field = next;
     [current, doc] = deref4(next, doc, shapes);
   }
@@ -84154,7 +85012,7 @@ function targetRefusal(enclosing, pointer, document, shapes) {
   return `the field at '${pointer}' is not an 'x-telo-eval: accessor' field`;
 }
 function matchUnsatisfiable(matches, type, shapes, document) {
-  if (!isSchema5(matches) || !isSchema5(type)) return void 0;
+  if (!isSchema6(matches) || !isSchema6(type)) return void 0;
   const [resolved, doc] = deref4(type, document ?? type, shapes);
   const alternatives = resolved.anyOf ?? resolved.oneOf;
   if (Array.isArray(alternatives) && alternatives.length > 0) {
@@ -84205,13 +85063,13 @@ function constRefusal(value2, type) {
 function disjoint(matches, type, document, shapes) {
   if (Array.isArray(matches.allOf)) {
     for (const member of matches.allOf) {
-      const reason = isSchema5(member) ? disjoint(member, type, document, shapes) : void 0;
+      const reason = isSchema6(member) ? disjoint(member, type, document, shapes) : void 0;
       if (reason) return reason;
     }
   }
   if (Array.isArray(matches.anyOf) && matches.anyOf.length > 0) {
     const reasons = matches.anyOf.map(
-      (branch) => isSchema5(branch) ? disjoint(branch, type, document, shapes) : void 0
+      (branch) => isSchema6(branch) ? disjoint(branch, type, document, shapes) : void 0
     );
     if (reasons.every((reason) => reason !== void 0)) return reasons[0];
   }
@@ -84231,26 +85089,26 @@ function disjoint(matches, type, document, shapes) {
       return `it requires one of ${matches.enum.map(describe5).join(", ")}, and ${constRefusal(matches.enum[0], type) ?? "none can hold"}`;
     }
   }
-  const declared = isSchema5(type.properties) ? type.properties : {};
+  const declared = isSchema6(type.properties) ? type.properties : {};
   const closed = type.additionalProperties === false && type.patternProperties === void 0;
   const objectValue = !types || types.includes("object");
   if (Array.isArray(matches.required) && closed && objectValue) {
     const missing = matches.required.find((name2) => typeof name2 === "string" && !(name2 in declared));
     if (missing !== void 0) return `it requires the member '${missing}', which the value's closed object never has`;
   }
-  if (isSchema5(matches.properties)) {
+  if (isSchema6(matches.properties)) {
     const always = /* @__PURE__ */ new Set([
       ...Array.isArray(matches.required) ? matches.required : [],
       ...Array.isArray(type.required) ? type.required : []
     ]);
     for (const [name2, member] of Object.entries(matches.properties)) {
-      if (!always.has(name2) || !isSchema5(declared[name2])) continue;
+      if (!always.has(name2) || !isSchema6(declared[name2])) continue;
       const [memberType, doc] = deref4(declared[name2], document, shapes);
       const reason = matchUnsatisfiable(member, memberType, shapes, doc);
       if (reason) return `its member '${name2}' can never hold: ${reason}`;
     }
   }
-  if (isSchema5(matches.items) && isSchema5(type.items)) {
+  if (isSchema6(matches.items) && isSchema6(type.items)) {
     const nonEmpty = (matches.minItems ?? 0) >= 1 || (type.minItems ?? 0) >= 1;
     if (nonEmpty) {
       const [itemType, doc] = deref4(type.items, document, shapes);
@@ -84264,7 +85122,7 @@ function matchPlaces(value2, kindSchema, shapes, isExpression3) {
   const out = [];
   const judged = /* @__PURE__ */ new Set();
   for (const site of matchForSitesOf(kindSchema, shapes)) {
-    const pointer = site.pointer === "" ? [] : pointerSegments4(site.pointer);
+    const pointer = site.pointer === "" ? [] : pointerSegments(site.pointer);
     if (!pointer || pointer.length === 0) continue;
     for (const parts of concreteEvalPaths(value2, site.path, isExpression3)) {
       if (at2(value2, parts) === void 0) continue;
@@ -84277,7 +85135,7 @@ function matchPlaces(value2, kindSchema, shapes, isExpression3) {
   return out;
 }
 function unsatisfiedMatch(matches, accessor, typed, shapes, isExpression3) {
-  if (!isSchema5(matches) || isExpression3(matches)) return void 0;
+  if (!isSchema6(matches) || isExpression3(matches)) return void 0;
   if (accessor === void 0) return void 0;
   const type = isExpression3(accessor) ? typed : { const: accessor };
   if (!type) return void 0;
@@ -84322,7 +85180,7 @@ function slotAdmitsNull(schema4) {
 }
 
 // ../../analyzer/nodejs/src/rule-declaration-view.ts
-function isPlainContainer2(value2) {
+function isPlainContainer3(value2) {
   if (!value2 || typeof value2 !== "object" || isTaggedSentinel(value2)) return false;
   if (Array.isArray(value2)) return true;
   const prototype = Object.getPrototypeOf(value2);
@@ -84362,7 +85220,7 @@ var RuleDeclarationViews = class {
         const target = refSentinelTarget2(node);
         if (target) return resolve2(target, module, writer) ?? node;
       }
-      if (!isPlainContainer2(node)) return node;
+      if (!isPlainContainer3(node)) return node;
       if (Array.isArray(node)) {
         const items = node.map((item, index) => walk7(item, `${path}[${index}]`));
         return items.some((item, index) => item !== node[index]) ? items : node;
@@ -84612,7 +85470,7 @@ function pointerSegments5(pointer) {
   if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
-var isPlainObject15 = (value2) => {
+var isPlainObject17 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
@@ -84628,7 +85486,7 @@ function externalListProblem(value2) {
   return `'external' must be a list of the bare specifiers the kind supplies, each a non-empty string.`;
 }
 function readAnnotation(raw) {
-  if (!isPlainObject15(raw)) return void 0;
+  if (!isPlainObject17(raw)) return void 0;
   const entry2 = pointerSegments5(raw.entry);
   if (!entry2) return void 0;
   return {
@@ -84673,7 +85531,7 @@ function browserExportSites(schema4, data) {
     if (annotation && holder && !out.has(path)) {
       let specifier = holder.value;
       for (const segment of annotation.entry) {
-        specifier = isPlainObject15(specifier) ? specifier[segment] : void 0;
+        specifier = isPlainObject17(specifier) ? specifier[segment] : void 0;
       }
       out.set(path, {
         path,
@@ -84698,8 +85556,8 @@ function browserExportSites(schema4, data) {
       }
       return;
     }
-    if (!isPlainObject15(value2)) return;
-    const properties = isPlainObject15(declared.properties) ? declared.properties : {};
+    if (!isPlainObject17(value2)) return;
+    const properties = isPlainObject17(declared.properties) ? declared.properties : {};
     const here = { value: value2, path };
     for (const [name2, child] of Object.entries(value2)) {
       const childPath = path === "" ? name2 : `${path}.${name2}`;
@@ -84784,7 +85642,7 @@ function browserExportAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const judge = (raw, path) => {
     const shape = `The annotation is { entry: <JSON Pointer>, abi?: [<generation>\u2026], external?: [<specifier>\u2026] }.`;
-    if (!isPlainObject15(raw)) {
+    if (!isPlainObject17(raw)) {
       refuse3(path, `it must be an object. ${shape}`);
       return;
     }
@@ -84812,11 +85670,11 @@ function browserExportAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path) => {
-    if (!isPlainObject15(node) || seen.has(node)) return;
+    if (!isPlainObject17(node) || seen.has(node)) return;
     seen.add(node);
     if (BROWSER_EXPORT_ANNOTATION in node) judge(node[BROWSER_EXPORT_ANNOTATION], [...path, BROWSER_EXPORT_ANNOTATION]);
     for (const key3 of SCHEMA_MAPS2) {
-      if (isPlainObject15(node[key3])) {
+      if (isPlainObject17(node[key3])) {
         for (const [name2, child] of Object.entries(node[key3])) {
           visit4(child, [...path, key3, name2]);
         }
@@ -87364,7 +88222,7 @@ var SINGULAR = {
   ports: "port",
   needs: "need"
 };
-var isPlainObject16 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
+var isPlainObject18 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 var isDeclarationDocument2 = (m) => isModuleKind(m.kind) || m.kind === "Telo.Import" || isKindDocument(m);
 function validateApplicationInputs(manifests, rootModules, records, scope) {
   if (Object.keys(records).length === 0) return [];
@@ -87414,7 +88272,7 @@ function validateApplicationInputs(manifests, rootModules, records, scope) {
       const keys = slot.feeds[block];
       if (!keys) continue;
       const written = valueAtKeys(node, keys);
-      if (!isPlainObject16(written)) continue;
+      if (!isPlainObject18(written)) continue;
       const mapPath = keys.join(".");
       const declared2 = block === "needs" ? new Map(child.needs.map((n) => [n.name, n])) : new Map(Object.entries(child[block]));
       const accepted = {};
@@ -87478,7 +88336,7 @@ function validateApplicationInputs(manifests, rootModules, records, scope) {
         }
         return;
       }
-      if (!isPlainObject16(value2) || !shape || !need.type) return;
+      if (!isPlainObject18(value2) || !shape || !need.type) return;
       for (const finding of fieldSupplyFindings(value2, shape, `${label2}: need '${key3}'`, need.type, path)) {
         report(finding.code, finding.message, finding.path);
       }
@@ -89435,7 +90293,7 @@ var moduleOf8 = (manifest) => {
 };
 var nameOf4 = (manifest) => String(manifest?.metadata?.name ?? "<inline>");
 var key2 = (module, name2) => scopeAddress(module, name2).key;
-function isPlainContainer3(value2) {
+function isPlainContainer4(value2) {
   if (!value2 || typeof value2 !== "object") return false;
   if (Array.isArray(value2)) return true;
   const prototype = Object.getPrototypeOf(value2);
@@ -89549,7 +90407,7 @@ function validateCallableData(input) {
       }
       return void 0;
     }
-    if (isPlainContainer3(value2) && isInlineDeclaration(value2)) {
+    if (isPlainContainer4(value2) && isInlineDeclaration(value2)) {
       const module2 = moduleOf8(holder);
       const inline = {
         ...value2,
@@ -89657,7 +90515,7 @@ function validateCallableData(input) {
           at: path
         };
       }
-      if (!isPlainContainer3(node)) return void 0;
+      if (!isPlainContainer4(node)) return void 0;
       if (Array.isArray(node)) {
         for (let index = 0; index < node.length; index++) {
           const found = expression(node[index], `${path}[${index}]`);
@@ -90036,19 +90894,19 @@ function validateScopedKindDocuments(members2, libraries, registry, aliases, ali
 }
 
 // ../../analyzer/nodejs/src/text-slot-accessor.ts
-var isSchema6 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema7 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function childSchemas2(node) {
   const out = [];
   for (const map3 of [node.properties, node.patternProperties]) {
-    if (isSchema6(map3)) out.push(...Object.values(map3).filter(isSchema6));
+    if (isSchema7(map3)) out.push(...Object.values(map3).filter(isSchema7));
   }
-  if (isSchema6(node.additionalProperties)) out.push(node.additionalProperties);
-  if (isSchema6(node.items)) out.push(node.items);
-  else if (Array.isArray(node.items)) out.push(...node.items.filter(isSchema6));
+  if (isSchema7(node.additionalProperties)) out.push(node.additionalProperties);
+  if (isSchema7(node.items)) out.push(node.items);
+  else if (Array.isArray(node.items)) out.push(...node.items.filter(isSchema7));
   for (const key3 of ["oneOf", "anyOf", "allOf"]) {
-    if (Array.isArray(node[key3])) out.push(...node[key3].filter(isSchema6));
+    if (Array.isArray(node[key3])) out.push(...node[key3].filter(isSchema7));
   }
-  for (const key3 of ["then", "else"]) if (isSchema6(node[key3])) out.push(node[key3]);
+  for (const key3 of ["then", "else"]) if (isSchema7(node[key3])) out.push(node[key3]);
   return out;
 }
 function textBeneath(node, root, resolveRef2, seen, shape) {
@@ -90059,7 +90917,7 @@ function textBeneath(node, root, resolveRef2, seen, shape) {
   if (typeof node.$ref === "string") {
     if (node.$ref.startsWith("#")) {
       const target = resolveSchemaPointer(root, node.$ref);
-      const found = isSchema6(target) ? textBeneath(target, root, resolveRef2, seen, shape) : void 0;
+      const found = isSchema7(target) ? textBeneath(target, root, resolveRef2, seen, shape) : void 0;
       if (found) return found;
     } else {
       const named = resolveRef2?.(node.$ref);
@@ -90075,11 +90933,11 @@ function textBeneath(node, root, resolveRef2, seen, shape) {
   return void 0;
 }
 function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
-  if (!isSchema6(schema4) || !isSchema6(schema4.properties)) return [];
+  if (!isSchema7(schema4) || !isSchema7(schema4.properties)) return [];
   const problems = [];
   const judged = /* @__PURE__ */ new Set();
   const visit4 = (node, path, open, shape) => {
-    if (!isSchema6(node)) return;
+    if (!isSchema7(node)) return;
     const mode = declaredEvalMode(node);
     if (mode) {
       if (mode !== "accessor" || judged.has(node)) return;
@@ -90100,9 +90958,9 @@ function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) 
       const local = node.$ref.startsWith("#");
       const document = shape?.document ?? schema4;
       const target = local ? resolveSchemaPointer(document, node.$ref) : resolveRef2?.(node.$ref);
-      if (!isSchema6(target) || open.includes(target)) return;
+      if (!isSchema7(target) || open.includes(target)) return;
       if (local) {
-        const segments = pointerSegments4(node.$ref.slice(1)) ?? [];
+        const segments = pointerSegments(node.$ref.slice(1)) ?? [];
         if (shape) visit4(target, path, [...open, target], { ...shape, inner: segments });
         else visit4(target, [...at3, ...segments], [...open, target]);
       } else {
@@ -90111,23 +90969,23 @@ function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) 
       }
       return;
     }
-    if (isSchema6(node.properties)) {
+    if (isSchema7(node.properties)) {
       for (const [key3, child] of Object.entries(node.properties)) {
         const [p, s] = step(["properties", key3]);
         visit4(child, p, open, s);
       }
     }
-    if (isSchema6(node.patternProperties)) {
+    if (isSchema7(node.patternProperties)) {
       for (const [key3, child] of Object.entries(node.patternProperties)) {
         const [p, s] = step(["patternProperties", key3]);
         visit4(child, p, open, s);
       }
     }
-    if (isSchema6(node.additionalProperties)) {
+    if (isSchema7(node.additionalProperties)) {
       const [p, s] = step(["additionalProperties"]);
       visit4(node.additionalProperties, p, open, s);
     }
-    if (isSchema6(node.items)) {
+    if (isSchema7(node.items)) {
       const [p, s] = step(["items"]);
       visit4(node.items, p, open, s);
     }
@@ -90143,146 +91001,6 @@ function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) 
   for (const [key3, child] of Object.entries(schema4.properties)) visit4(child, [...at3, "properties", key3], []);
   return problems;
 }
-
-// ../../analyzer/nodejs/src/text-values.ts
-var isSchema7 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-function declaredValueKinds(declared) {
-  return new Map(Object.entries(declared).map(([name2, schema4]) => [name2, schemaValueKind(schema4)]));
-}
-function fragmentAt(node, root, resolveRef2) {
-  const own2 = textFragmentOf(node);
-  if (own2 !== void 0) return own2;
-  if (typeof node.$ref !== "string") return void 0;
-  const target = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref);
-  return isSchema7(target) ? textFragmentOf(target) : void 0;
-}
-function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
-  if (!isSchema7(schema4)) return [];
-  const problems = [];
-  const visited = /* @__PURE__ */ new Set();
-  const report = (path, shape, inner, reason, annotation = TEXT_VALUES_ANNOTATION) => {
-    const where = renderValuePath(shape ? path : [...path, annotation]);
-    const place2 = shape ? `'${where}', which reaches '${renderValuePath([...inner, annotation])}' in the named shape '${shape}' it names,` : `'${where}'`;
-    problems.push({ path: where, message: `'${kind}' declares ${place2} ${reason}` });
-  };
-  const visit4 = (node, root, path, shape, inner) => {
-    if (!isSchema7(node) || visited.has(node)) return;
-    visited.add(node);
-    const step = (key3) => shape ? [path, [...inner, ...key3]] : [[...path, ...key3], inner];
-    if (TEXT_VALUES_ANNOTATION in node) {
-      const declared = node[TEXT_VALUES_ANNOTATION];
-      const fragment = fragmentAt(node, root, resolveRef2);
-      if (fragment !== "Text" && fragment !== "Message") {
-        report(path, shape, inner, "on a node that is no text: it declares the values a Text or a Message is formatted with, so write it beside the text's `$ref: telo://manifest#/$defs/Text`.");
-      } else if (!isSchema7(declared)) {
-        report(path, shape, inner, "as something other than a map of value names to their schemas. Write `{}` for a text formatted with no values.");
-      } else {
-        for (const [name2, value2] of Object.entries(declared)) {
-          const type = isSchema7(value2) ? value2.type : void 0;
-          if (type !== "string" && type !== "integer" && type !== "number") {
-            report(path, shape, inner, `with '${name2}' typed as neither a string nor a number: a message formats only those. Declare it 'type: string', 'integer' or 'number'.`);
-          }
-        }
-      }
-    }
-    if (TEXT_VALUES_FROM_ANNOTATION in node) {
-      const fragment = fragmentAt(node, root, resolveRef2);
-      const from = (why) => report(path, shape, inner, why, TEXT_VALUES_FROM_ANNOTATION);
-      if (fragment !== "Text" && fragment !== "Message") {
-        from("on a node that is no text: it names the schema whose required properties a Text or a Message is formatted with, so write it beside the text's `$ref: telo://manifest#/$defs/Text`.");
-      } else if (!relativePointerOf(node[TEXT_VALUES_FROM_ANNOTATION])) {
-        from("as something other than a relative JSON pointer (`0/data` names the sibling `data`).");
-      } else if (TEXT_VALUES_ANNOTATION in node) {
-        from(`beside ${TEXT_VALUES_ANNOTATION}: a text's values are declared one way. Remove one of the two.`);
-      }
-    }
-    if (isSchema7(node.properties)) {
-      for (const [key3, child] of Object.entries(node.properties)) {
-        const relative = relativePointerOf(isSchema7(child) ? child[TEXT_VALUES_FROM_ANNOTATION] : void 0);
-        if (!relative || relative.up !== 0 || relative.segments.length === 0) continue;
-        if (!Object.hasOwn(node.properties, relative.segments[0])) {
-          const [p, i] = step(["properties", key3]);
-          report(p, shape, i, `naming '${relative.segments[0]}', which the object holding the text does not declare.`, TEXT_VALUES_FROM_ANNOTATION);
-        }
-      }
-      for (const [key3, child] of Object.entries(node.properties)) {
-        const segments = pointerSegments4(isSchema7(child) ? child[TEXT_VALUES_FOR_ANNOTATION] : void 0);
-        if (!segments) continue;
-        let target = node;
-        for (const segment of segments) target = isSchema7(target) && isSchema7(target.properties) ? target.properties[segment] : void 0;
-        if (isSchema7(target) && TEXT_VALUES_ANNOTATION in target) {
-          const [p, i] = step(["properties", ...segments.flatMap((segment, n) => n === 0 ? [segment] : ["properties", segment])]);
-          report(p, shape, i, `on a text '${key3}' already pairs with values through x-telo-text-values-for: the text is formatted with those. Remove one of the two.`);
-        }
-      }
-      for (const [key3, child] of Object.entries(node.properties)) {
-        const [p, i] = step(["properties", key3]);
-        visit4(child, root, p, shape, i);
-      }
-    }
-    for (const mapKey of ["patternProperties", "$defs", "definitions"]) {
-      if (!isSchema7(node[mapKey])) continue;
-      for (const [key3, child] of Object.entries(node[mapKey])) {
-        const [p, i] = step([mapKey, key3]);
-        visit4(child, root, p, shape, i);
-      }
-    }
-    for (const single of ["additionalProperties", "items", "then", "else"]) {
-      if (isSchema7(node[single])) {
-        const [p, i] = step([single]);
-        visit4(node[single], root, p, shape, i);
-      }
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(node[union2])) {
-        node[union2].forEach((branch, index) => {
-          const [p, i] = step([union2, index]);
-          visit4(branch, root, p, shape, i);
-        });
-      }
-    }
-    if (typeof node.$ref === "string" && !node.$ref.startsWith("#")) {
-      const named = resolveRef2?.(node.$ref);
-      const name2 = parseCanonicalTypeSchemaId(node.$ref)?.typeName ?? node.$ref;
-      if (named) visit4(named, named, path, shape ?? name2, shape ? inner : []);
-    }
-  };
-  visit4(schema4, schema4, at3, void 0, []);
-  return problems;
-}
-function dataValueKind(schema4) {
-  const type = isSchema7(schema4) ? schema4.type : void 0;
-  const types = Array.isArray(type) ? type : type === void 0 ? [] : [type];
-  if (types.length === 0) return { kind: "refused", describe: "a value of no declared type" };
-  if (types.every((t) => t === "string")) return { kind: "string", describe: "a string" };
-  if (types.every((t) => t === "integer" || t === "number")) return { kind: "number", describe: "a number" };
-  if (types.every((t) => t === "string" || t === "integer" || t === "number")) {
-    return { kind: "string", describe: "a string or a number" };
-  }
-  return { kind: "refused", describe: `a value declared ${types.join(" or ")}` };
-}
-function dataTextValues(schema4) {
-  if (!isSchema7(schema4)) return /* @__PURE__ */ new Map();
-  const properties = isSchema7(schema4.properties) ? schema4.properties : {};
-  const required = Array.isArray(schema4.required) ? schema4.required.filter((n) => typeof n === "string") : [];
-  return new Map(required.map((name2) => [name2, dataValueKind(properties[name2])]));
-}
-function judgeDataValues(message, schema4, dataPath) {
-  const known = dataTextValues(schema4);
-  const names = [...known.keys()];
-  const advice = `this text is formatted with the required properties of '${renderValuePath(dataPath)}'` + (names.length === 0 ? ", which declares none" : `: ${names.map((name2) => `{$${name2}}`).join(", ")}`) + " \u2014 name only those, or declare the property and list it under required";
-  return judgeValues(message, known).map(
-    (problem) => problem.code === "MESSAGE_PLACEHOLDER_UNBOUND" ? { ...problem, message: `${problem.message}, but ${advice}` } : problem
-  );
-}
-function judgeDeclaredValues(message, declared) {
-  const names = Object.keys(declared);
-  const advice = names.length === 0 ? "whoever shows this text formats it with no values \u2014 write it without placeholders" : `whoever shows this text formats it with ${names.map((name2) => `{$${name2}}`).join(", ")} \u2014 write only those placeholders`;
-  return judgeValues(message, declaredValueKinds(declared)).map(
-    (problem) => problem.code === "MESSAGE_PLACEHOLDER_UNBOUND" ? { ...problem, message: `${problem.message}, but ${advice}` } : problem
-  );
-}
-var textValuesForReads = ({ value: value2, at: at3 }) => typeof value2 === "string" ? [{ kind: "value", keys: placeAt(enclosingKeys(at3), value2) }] : [];
 
 // ../../analyzer/nodejs/src/validate-throws-coverage.ts
 var SOURCE46 = "telo-analyzer";
@@ -94998,6 +95716,7 @@ var ANNOTATION_READS = {
   "x-telo-span-attribute": READS_NOTHING,
   "x-telo-step-context": READS_NOTHING,
   "x-telo-text-context": READS_NOTHING,
+  "x-telo-text-keys": READS_NOTHING,
   "x-telo-text-values": READS_NOTHING,
   "x-telo-text-values-for": textValuesForReads,
   "x-telo-topology-role": READS_NOTHING,
@@ -95202,16 +95921,16 @@ function ownSitesOf(declaration, space, schemas3, view) {
       }
       return;
     }
-    const below = separable && !inForce.related;
+    const below2 = separable && !inForce.related;
     if (Array.isArray(value2)) {
       const items = itemInForce(inForce, schemas3);
-      value2.forEach((item, i) => visit4(item, items, [...unionKeys, i], [...written, i], options, condition, site, below, void 0));
+      value2.forEach((item, i) => visit4(item, items, [...unionKeys, i], [...written, i], options, condition, site, below2, void 0));
       return;
     }
     if (value2 === null || typeof value2 !== "object" || isTaggedSentinel(value2)) return;
     const record = value2;
     let here = inForce;
-    let childSeparable = below;
+    let childSeparable = below2;
     const place2 = unionKeys.length > 0 ? nested.of(record) : void 0;
     if (place2 === "undecided") childSeparable = false;
     else if (place2 !== void 0) {
@@ -95222,7 +95941,7 @@ function ownSitesOf(declaration, space, schemas3, view) {
         childSeparable = !own2.related;
       } else {
         here = { conjuncts: [...inForce.conjuncts, ...own2.conjuncts], related: inForce.related || own2.related };
-        childSeparable = below && !own2.related;
+        childSeparable = below2 && !own2.related;
       }
     }
     for (const [key3, field] of Object.entries(record)) {
@@ -98316,17 +99035,76 @@ function valueAt8(root, keys) {
   return node;
 }
 
+// ../../analyzer/nodejs/src/translation-coverage.ts
+var asciiLowercase2 = (text3) => text3.replace(/[A-Z]/g, (letter) => String.fromCharCode(letter.charCodeAt(0) + 32));
+function servedLanguages(fallback, catalogLangs) {
+  const served = /* @__PURE__ */ new Map([[asciiLowercase2(fallback), fallback]]);
+  for (const lang of catalogLangs) {
+    const key3 = asciiLowercase2(lang);
+    if (!served.has(key3)) served.set(key3, lang);
+  }
+  return [...served.values()];
+}
+function missingTranslations(input) {
+  const { served, layers, texts, keyedSets } = input;
+  const textLangs = (key3) => layers.filter((layer) => layer.texts.has(key3)).map((layer) => layer.lang);
+  const keyLangs = (set2, key3) => layers.filter((layer) => layer.keyed.get(set2)?.has(key3) === true).map((layer) => layer.lang);
+  const reached = (lang, source, translated) => lookupLanguage(lang, [source, ...translated]) !== null;
+  const missingAt = /* @__PURE__ */ new Map();
+  for (const lang of served) {
+    if (asciiLowercase2(lang) === UNDETERMINED_LANGUAGE) continue;
+    const found = [];
+    for (const shown of keyedSets) {
+      const missing = shown.keys.filter((key3) => !reached(lang, shown.lang, keyLangs(shown.set, key3)));
+      if (missing.length > 0) found.push({ lang, set: shown.set, missing });
+    }
+    const missingTexts = /* @__PURE__ */ new Set();
+    for (const group of texts) {
+      for (const key3 of group.keys) {
+        if (!reached(lang, group.lang, textLangs(key3))) missingTexts.add(key3);
+      }
+    }
+    if (missingTexts.size > 0) found.push({ lang, missing: [...missingTexts] });
+    missingAt.set(asciiLowercase2(lang), found);
+  }
+  const out = [];
+  for (const lang of served) {
+    const found = missingAt.get(asciiLowercase2(lang));
+    if (!found) continue;
+    const covering = truncationChain(lang).slice(1).flatMap((shorter) => missingAt.get(asciiLowercase2(shorter)) ?? []);
+    for (const entry2 of found) {
+      const reported = new Set(covering.filter((c) => c.set === entry2.set).flatMap((c) => c.missing));
+      const missing = entry2.missing.filter((item) => !reported.has(item));
+      if (missing.length > 0) out.push({ ...entry2, missing });
+    }
+  }
+  return out;
+}
+
 // ../../analyzer/nodejs/src/module-lang.ts
 function moduleLangOf(moduleDoc2) {
   if (!moduleDoc2 || typeof moduleDoc2 !== "object") return null;
   const lang = moduleDoc2.lang;
   return typeof lang === "string" && lang !== "" ? lang : null;
 }
+function recordLangOf(lang) {
+  return lang ?? UNDETERMINED_LANGUAGE;
+}
+
+// ../../analyzer/nodejs/src/builtin-translations.ts
+var CATALOGS = Object.freeze(
+  BUILTIN_TRANSLATION_FILES.map(
+    ([lang, data]) => Object.freeze({ lang, catalog: data })
+  )
+);
+function builtinTranslationCatalogs() {
+  return CATALOGS;
+}
 
 // ../../analyzer/nodejs/src/validate-texts.ts
 var SOURCE51 = "telo-analyzer";
 var isExpression2 = (value2) => isTaggedSentinel(value2);
-var isPlainObject17 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+var isPlainObject19 = (value2) => !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 function valueAt9(container, path) {
   let at3 = container;
   for (const key3 of path) at3 = at3 && typeof at3 === "object" ? at3[key3] : void 0;
@@ -98413,6 +99191,10 @@ function validateTexts(options) {
     return schema4 && typeof schema4 === "object" ? schema4 : void 0;
   };
   const walkOptions = { isExpression: isExpression2, resolveRef: resolveNamed };
+  const resolveFrom = (kind, from) => resolveDef.in(kind, from.metadata?.module);
+  const definitionOf = (kind, module) => typeof kind === "string" ? resolveDef.in(kind, module === ROOT_MODULE_KEY ? void 0 : module) : void 0;
+  const translatesKeys = (kind, module) => keyedSetOf(definitionOf(kind, module), resolveFrom) !== void 0;
+  const keyedCatalogOf = (value2, module) => translatesKeys(value2.kind, module) ? { keyedCatalog: siteValueOf({ path: [], value: value2 }) } : {};
   const walkOf = (schema4, value2) => schema4 ? textSites(schema4, value2, walkOptions) : { texts: [], values: [], expressions: [] };
   const baseForwardsOf = (manifest, module) => {
     if (typeof manifest.kind !== "string") return void 0;
@@ -98425,7 +99207,7 @@ function validateTexts(options) {
       seen.add(definition);
       const { base, extends: parentKind } = definition;
       if (typeof parentKind !== "string") return void 0;
-      if (isPlainObject17(base)) {
+      if (isPlainObject19(base)) {
         const next = [];
         const source = value2;
         const materialize2 = (node, at3) => {
@@ -98434,12 +99216,12 @@ function validateTexts(options) {
             const link = links.find((l) => l.at.every((segment, i) => forwarded[i] === segment));
             if (link) next.push({ at: at3, from: [...link.from, ...forwarded.slice(link.at.length)] });
             let target = source;
-            for (const key3 of forwarded) target = isPlainObject17(target) ? target[key3] : void 0;
+            for (const key3 of forwarded) target = isPlainObject19(target) ? target[key3] : void 0;
             return target;
           }
           if (isExpression2(node)) return void 0;
           if (Array.isArray(node)) return node.map((item, index) => materialize2(item, [...at3, index]));
-          if (isPlainObject17(node)) {
+          if (isPlainObject19(node)) {
             const out = {};
             for (const [key3, child] of Object.entries(node)) {
               const materialized = materialize2(child, [...at3, key3]);
@@ -98472,7 +99254,13 @@ function validateTexts(options) {
   const writingsOf = (manifest, module) => {
     if (isModuleKind(manifest.kind) || manifest.kind === "Telo.Import") return [];
     const out = [
-      { manifest, base: [], module, walk: walkOf(schemaOfKind(manifest.kind, module), manifest) }
+      {
+        manifest,
+        base: [],
+        module,
+        walk: walkOf(schemaOfKind(manifest.kind, module), manifest),
+        ...keyedCatalogOf(manifest, module)
+      }
     ];
     const forwarded = baseForwardsOf(manifest, module);
     if (forwarded) out.push(forwarded);
@@ -98480,17 +99268,18 @@ function validateTexts(options) {
     const definition = manifest;
     if (Array.isArray(definition.resources)) {
       definition.resources.forEach((entry2, index) => {
-        if (!isPlainObject17(entry2)) return;
+        if (!isPlainObject19(entry2)) return;
         out.push({
           manifest,
           base: ["resources", index],
           module,
           walk: walkOf(schemaOfKind(entry2.kind, module), entry2),
-          forwards: true
+          forwards: true,
+          ...keyedCatalogOf(entry2, module)
         });
       });
     }
-    if (isPlainObject17(definition.base) && typeof definition.extends === "string") {
+    if (isPlainObject19(definition.base) && typeof definition.extends === "string") {
       out.push({
         manifest,
         base: ["base"],
@@ -98507,12 +99296,33 @@ function validateTexts(options) {
     if (!set2) shown.set(module, set2 = /* @__PURE__ */ new Set());
     set2.add(key3);
   };
+  const written = /* @__PURE__ */ new Map();
+  const showText = (module, text3, counted = true) => {
+    const key3 = keyOfText(text3);
+    show(module, key3);
+    if (!counted || messageIdentity(text3.message) === "") return;
+    let set2 = written.get(module);
+    if (!set2) written.set(module, set2 = /* @__PURE__ */ new Set());
+    set2.add(key3);
+  };
   const diagnostics = [];
   const catalogs = [];
   const visit4 = (manifest, module, judged) => {
     const lang = scope.langOfModule(module);
     const judgedPaths = /* @__PURE__ */ new Set();
+    const bodyWrote = (place2) => options.bodyWroteWhole?.(manifest, renderValuePath(place2)) === true;
+    if (judged && isKeyedTranslationsDoc(manifest)) {
+      for (const problem of judgeKeyedDeclaration(manifest, lang, isExpression2)) {
+        diagnostics.push(problemDiagnostic(problem, manifest, [], "the keyed text"));
+      }
+    }
     for (const writing of writingsOf(manifest, module)) {
+      if (judged && writing.keyedCatalog !== void 0) {
+        for (const problem of judgeKeyedCatalog(writing.keyedCatalog, isExpression2)) {
+          if (bodyWrote([...writing.base, ...problem.path])) continue;
+          diagnostics.push(problemDiagnostic(problem, manifest, writing.base, "the translation"));
+        }
+      }
       for (const site of writing.walk.texts) {
         const path = [...writing.base, ...site.path];
         const at3 = renderValuePath(path);
@@ -98560,7 +99370,8 @@ function validateTexts(options) {
         const writer = options.writerAt?.(manifest, at3);
         const writtenIn = writer ? scope.moduleOf(writer) : module;
         const text3 = judgeText(site.value, writer ? scope.langOfModule(writtenIn) : lang);
-        if (text3.text) show(writtenIn, keyOfText(text3.text));
+        const kindThrows = isKindDocument(manifest) && writing.base.length === 0 && site.path[0] === "throws";
+        if (text3.text) showText(writtenIn, text3.text, !kindThrows);
         if (!judged) continue;
         if (!own2) {
           for (const problem of text3.problems) diagnostics.push(problemDiagnostic(problem, manifest, path, "the text"));
@@ -98599,7 +99410,7 @@ function validateTexts(options) {
         diagnostics.push(problemDiagnostic(catalogComputedProblem(), manifest, at3, "the value"));
       }
       for (const pairing of writing.walk.values) {
-        if (!isPlainObject17(pairing.values) || isExpression2(pairing.values) || expressionsWithin(pairing.text, isExpression2).length > 0) {
+        if (!isPlainObject19(pairing.values) || isExpression2(pairing.values) || expressionsWithin(pairing.text, isExpression2).length > 0) {
           continue;
         }
         const read = readText(pairing.text);
@@ -98682,7 +99493,7 @@ function validateTexts(options) {
           const argument = call.arguments[parameter.index];
           if (!argument?.literal) continue;
           const read = readText(argument.value);
-          if (read.ok) show(module, keyOfText(read.text));
+          if (read.ok) showText(module, read.text);
         }
       }
     }
@@ -98703,7 +99514,169 @@ function validateTexts(options) {
       );
     }
   }
+  const application = manifests.find((m) => m.kind === "Telo.Application" && scope.isOwned(m));
+  if (application) diagnostics.push(...missingTranslationDiagnostics(application));
   return diagnostics;
+  function missingTranslationDiagnostics(application2) {
+    const appModule = scope.moduleOf(application2);
+    const modules = closure.reach(appModule);
+    const kinds = instantiatedKinds2(modules);
+    const listed = listedCatalogLayers(application2, appModule);
+    const served = servedLanguages(
+      recordLangOf(moduleLangOf(application2)),
+      listed.map((layer) => layer.lang)
+    );
+    const layers = [...builtinTranslationLayers(), ...listed];
+    const texts = [
+      { lang: BUILTIN_ERROR_TEXT_LANG, keys: builtinShownTexts() },
+      ...[...modules].flatMap((module) => {
+        const keys = written.get(module);
+        return keys ? [{ lang: recordLangOf(scope.langOfModule(module)), keys }] : [];
+      }),
+      ...instantiatedThrowsTexts(kinds)
+    ];
+    const findings = missingTranslations({ served, layers, texts, keyedSets: shownKeyedSets(kinds) });
+    const path = Object.hasOwn(application2, "translations") ? ["translations"] : ["lang"];
+    return findings.map(
+      ({ lang, set: set2, missing }) => diagnostic(
+        "MESSAGE_TRANSLATION_MISSING",
+        set2 === void 0 ? `'${lang}' is served, but nothing translates ${missing.length === 1 ? "this text" : `these ${missing.length} texts`} into it, so each shows in the language it is written in: ${missing.map(describeTextKey).join(", ")}. Translate them in a Telo.TextTranslations catalog of lang '${lang}' listed under translations.catalogs.` : `'${lang}' is served, but nothing translates ${missing.length === 1 ? "this key" : `these ${missing.length} keys`} of '${set2}' into it, so each shows its source wording: ${missing.join(", ")}. List a catalog of '${set2}' in lang '${lang}' under translations.catalogs that translates them.`,
+        { manifest: application2, path },
+        DiagnosticSeverity2.Warning
+      )
+    );
+  }
+  function listedCatalogLayers(application2, appModule) {
+    const catalogs2 = application2.translations?.catalogs;
+    if (!Array.isArray(catalogs2)) return [];
+    const importTargets = /* @__PURE__ */ new Map();
+    for (const m of manifests) {
+      const target = m.metadata?.resolvedModuleName;
+      if (m.kind === "Telo.Import" && typeof target === "string" && scope.moduleOf(m) === appModule) {
+        importTargets.set(String(m.metadata?.name), target);
+      }
+    }
+    return catalogs2.flatMap((reference) => {
+      const declared = listedCatalog(reference, appModule, importTargets);
+      if (!declared) return [];
+      const { kind, metadata, ...configuration } = declared.manifest;
+      const lang = configuration.lang;
+      if (typeof lang !== "string" || lang === "") return [];
+      const set2 = keyedSetOf(definitionOf(kind, declared.module), resolveFrom);
+      if (set2) {
+        const messages = configuration.messages;
+        const keys = new Set(isPlainObject19(messages) ? Object.keys(messages) : []);
+        return [{ lang, texts: /* @__PURE__ */ new Set(), keyed: /* @__PURE__ */ new Map([[keyedSetKind(set2), keys]]) }];
+      }
+      const entries = judgeCatalog(configuration, isExpression2).entries;
+      return [{ lang, texts: new Set(entries.map((entry2) => entry2.key)), keyed: /* @__PURE__ */ new Map() }];
+    });
+  }
+  function listedCatalog(reference, appModule, importTargets) {
+    if (!isResolvedReference(reference)) return void 0;
+    if (reference.alias === void 0) {
+      const manifest2 = manifests.find(
+        (m) => m.metadata?.name === reference.name && scope.isOwned(m) && scope.moduleOf(m) === appModule && m.kind !== "Telo.Import" && !isModuleKind(m.kind) && !isKindDocument(m)
+      );
+      return manifest2 && { manifest: manifest2, module: appModule };
+    }
+    const target = importTargets.get(reference.alias);
+    if (target === void 0) return void 0;
+    const manifest = manifests.find((m) => {
+      const meta = m.metadata;
+      return meta?.module === target && meta.forwardedExport === true && meta.name === reference.name;
+    });
+    return manifest && { manifest, module: target };
+  }
+  function instantiatedThrowsTexts(kinds) {
+    const byLang = /* @__PURE__ */ new Map();
+    const seenKinds = /* @__PURE__ */ new Set();
+    for (const { kind, module } of kinds) {
+      const codes = /* @__PURE__ */ new Set();
+      const visited = /* @__PURE__ */ new Set();
+      let definition = definitionOf(kind, module);
+      while (definition && !visited.has(definition)) {
+        visited.add(definition);
+        const declared = definition.throws?.codes;
+        const definitionModule = definition.metadata?.module;
+        if (isPlainObject19(declared)) {
+          for (const [code, entry2] of Object.entries(declared)) {
+            if (codes.has(code)) continue;
+            codes.add(code);
+            if (!isPlainObject19(entry2)) continue;
+            const read = readText(entry2.displayMessage);
+            if (!read.ok || messageIdentity(read.text.message) === "") continue;
+            const lang = recordLangOf(typeof definitionModule === "string" ? scope.langOfModule(definitionModule) : null);
+            const memo2 = `${lang}\0${keyOfText(read.text)}`;
+            if (seenKinds.has(memo2)) continue;
+            seenKinds.add(memo2);
+            let set2 = byLang.get(lang);
+            if (!set2) byLang.set(lang, set2 = /* @__PURE__ */ new Set());
+            set2.add(keyOfText(read.text));
+          }
+        }
+        const parent = definition.extends;
+        definition = typeof parent === "string" ? resolveDef.in(parent, definition.metadata?.module) : void 0;
+      }
+    }
+    return [...byLang].map(([lang, keys]) => ({ lang, keys }));
+  }
+  function shownKeyedSets(kinds) {
+    const sets = /* @__PURE__ */ new Map();
+    for (const { kind, module } of kinds) {
+      const declarer = textKeysDeclarer(definitionOf(kind, module), resolveDef);
+      if (!declarer) continue;
+      for (const named of textKeysOf(declarer.schema)) {
+        const set2 = keyedSetOf(resolveDef.in(named, declarer.metadata?.module), resolveFrom);
+        const shape = keyedTranslationsOf(set2);
+        if (!set2 || !shape) continue;
+        const id = keyedSetKind(set2);
+        if (sets.has(id)) continue;
+        const setModule = set2.metadata?.module;
+        sets.set(id, {
+          set: id,
+          lang: recordLangOf(typeof setModule === "string" ? scope.langOfModule(setModule) : null),
+          keys: Object.keys(shape.keys)
+        });
+      }
+    }
+    return [...sets.values()];
+  }
+  function instantiatedKinds2(modules) {
+    const found = /* @__PURE__ */ new Map();
+    const showsKind = (kind, module) => {
+      found.set(`${module}\0${kind}`, { kind, module });
+    };
+    const seen = /* @__PURE__ */ new Set();
+    const walk7 = (value2, module) => {
+      if (!value2 || typeof value2 !== "object" || seen.has(value2) || isExpression2(value2)) return;
+      seen.add(value2);
+      if (Array.isArray(value2)) {
+        for (const item of value2) walk7(item, module);
+        return;
+      }
+      if (!isPlainObject19(value2)) return;
+      if (typeof value2.kind === "string" && !isResolvedReference(value2)) {
+        if (isKindDocument(value2)) {
+          walk7(value2.resources, module);
+          return;
+        }
+        showsKind(value2.kind, module);
+      }
+      for (const [key3, child] of Object.entries(value2)) {
+        if (!key3.startsWith("x-telo-")) walk7(child, module);
+      }
+    };
+    for (const manifest of manifests) {
+      const module = scope.moduleOf(manifest);
+      if (modules.has(module)) walk7(manifest, module);
+    }
+    for (const library of moduleDocuments) {
+      if (!modules.has(library.module)) continue;
+      for (const manifest of library.manifests) walk7(manifest, library.module);
+    }
+    return [...found.values()];
+  }
 }
 function celSourcesOf(value2) {
   if (isTaggedSentinel(value2)) {
@@ -98711,7 +99684,7 @@ function celSourcesOf(value2) {
     return typeof source === "string" ? celExpressionsOf(engine, source) : [];
   }
   if (Array.isArray(value2)) return value2.flatMap(celSourcesOf);
-  if (isPlainObject17(value2) && Object.getPrototypeOf(value2) === Object.prototype) {
+  if (isPlainObject19(value2) && Object.getPrototypeOf(value2) === Object.prototype) {
     return Object.values(value2).flatMap(celSourcesOf);
   }
   return [];
@@ -98764,6 +99737,15 @@ function builtinShownTexts() {
   );
   return builtinShown;
 }
+var builtinLayers;
+function builtinTranslationLayers() {
+  builtinLayers ??= builtinTranslationCatalogs().map(({ lang, catalog }) => ({
+    lang,
+    texts: new Set(judgeCatalog(catalog, () => false).entries.map((entry2) => entry2.key)),
+    keyed: /* @__PURE__ */ new Map()
+  }));
+  return builtinLayers;
+}
 var ClosureTexts = class {
   constructor(manifests, scope, shown) {
     this.shown = shown;
@@ -98783,17 +99765,23 @@ var ClosureTexts = class {
     const cached = this.memo.get(module);
     if (cached) return cached;
     const texts = new Set(builtinShownTexts());
+    for (const reached of this.reach(module)) {
+      for (const key3 of this.shown.get(reached) ?? []) texts.add(key3);
+    }
+    this.memo.set(module, texts);
+    return texts;
+  }
+  /** `module` and every module it imports, directly or through others. */
+  reach(module) {
     const seen = /* @__PURE__ */ new Set();
     const pending = [module];
     while (pending.length > 0) {
       const next = pending.pop();
       if (seen.has(next)) continue;
       seen.add(next);
-      for (const key3 of this.shown.get(next) ?? []) texts.add(key3);
       for (const target of this.edges.get(next) ?? []) pending.push(target);
     }
-    this.memo.set(module, texts);
-    return texts;
+    return seen;
   }
 };
 
@@ -103328,7 +104316,7 @@ var StaticAnalyzer = class {
     for (const m of manifests) {
       const declared = kindDeclarationOf(m);
       if (!declared) continue;
-      if (needTypeOf(declared)) {
+      if (needTypeOf(declared) || keyedTranslationsOf(declared)) {
         defs.register(declared);
         continue;
       }
@@ -104994,6 +105982,23 @@ var StaticAnalyzer = class {
         }
       }
     }
+    const pushKindDocumentProblem = (m, ownModule, problem) => {
+      const message = `${m.kind} ${problem.message}`;
+      const via = ownModule ? reach.of(ownModule) : void 0;
+      diagnostics.push(
+        ownModule && via ? importAnchoredDiagnostic(problem.code, ownModule, via, message) : {
+          severity: DiagnosticSeverity2.Error,
+          code: problem.code,
+          source: SOURCE52,
+          message,
+          data: {
+            resource: { kind: m.kind, name: m.metadata?.name },
+            filePath: m.metadata?.source,
+            path: problem.path
+          }
+        }
+      );
+    };
     const textAccessorKinds = /* @__PURE__ */ new Set();
     for (const m of allManifests) {
       if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
@@ -105011,6 +106016,10 @@ var StaticAnalyzer = class {
           code: "TEXT_VALUES_INVALID",
           ...problem
         })),
+        ...textKeysProblems(String(m.metadata?.name), m.schema, (kind) => defs.resolve(kind)).map((problem) => ({
+          code: "TEXT_KEYS_INVALID",
+          ...problem
+        })),
         ...browserExportAnnotationProblems(String(m.metadata?.name), m.schema).map((problem) => ({
           code: "BROWSER_EXPORT_ANNOTATION_INVALID",
           ...problem
@@ -105020,23 +106029,22 @@ var StaticAnalyzer = class {
           ...problem
         }))
       ];
-      for (const problem of kindProblems) {
-        const message = `${m.kind} ${problem.message}`;
-        const via = ownModule ? reach.of(ownModule) : void 0;
-        diagnostics.push(
-          ownModule && via ? importAnchoredDiagnostic(problem.code, ownModule, via, message) : {
-            severity: DiagnosticSeverity2.Error,
-            code: problem.code,
-            source: SOURCE52,
-            message,
-            data: {
-              resource: { kind: m.kind, name: m.metadata?.name },
-              filePath: m.metadata?.source,
-              path: problem.path
-            }
-          }
-        );
+      for (const problem of kindProblems) pushKindDocumentProblem(m, ownModule, problem);
+    }
+    const placementJudged = /* @__PURE__ */ new Set();
+    const judgePlacement = (m, module) => {
+      const key3 = `${module ?? ""}\0${String(m.kind)}\0${String(m.metadata?.name)}`;
+      if (placementJudged.has(key3)) return;
+      placementJudged.add(key3);
+      for (const problem of misplacedTextKeys(m)) {
+        pushKindDocumentProblem(m, module, { code: "TEXT_KEYS_INVALID", ...problem });
       }
+    };
+    for (const m of allManifests) {
+      judgePlacement(m, m.metadata?.module);
+    }
+    for (const library of options?.moduleDocuments ?? []) {
+      for (const m of library.manifests) judgePlacement(m, library.module);
     }
     if (allManifests.some(
       (m) => isKindDocument(m) && !!m.schema && typeof m.schema === "object" && schemaDeclaresBrowserExport(m.schema)
@@ -105406,7 +106414,7 @@ function parentPaths(path) {
 }
 
 // ../../analyzer/nodejs/src/migrations/patch.ts
-function isPlainObject18(value2) {
+function isPlainObject20(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function containerOf2(root, path) {
@@ -105418,7 +106426,7 @@ function containerOf2(root, path) {
       if (!Array.isArray(current)) return void 0;
       current = current[segment];
     } else {
-      if (!isPlainObject18(current)) return void 0;
+      if (!isPlainObject20(current)) return void 0;
       current = current[segment];
     }
   }
@@ -105434,7 +106442,7 @@ function readAt(root, path) {
     }
     return { found: true, value: container[key3] };
   }
-  if (!isPlainObject18(container) || !Object.hasOwn(container, key3)) {
+  if (!isPlainObject20(container) || !Object.hasOwn(container, key3)) {
     return { found: false, value: void 0 };
   }
   return { found: true, value: container[key3] };
@@ -105457,7 +106465,7 @@ function planPatch(root, path, ops) {
       case "rename-key": {
         const located = containerOf2(root, currentPath);
         const key3 = located?.key;
-        if (!located || typeof key3 !== "string" || !isPlainObject18(located.container)) {
+        if (!located || typeof key3 !== "string" || !isPlainObject20(located.container)) {
           return { ok: false, refusal: "not-a-mapping-entry" };
         }
         if (op.to !== key3 && Object.hasOwn(located.container, op.to)) {
@@ -105517,7 +106525,7 @@ function planPatch(root, path, ops) {
         break;
       }
       case "add-key": {
-        if (!isPlainObject18(currentValue) || isTaggedSentinel(currentValue)) {
+        if (!isPlainObject20(currentValue) || isTaggedSentinel(currentValue)) {
           return { ok: false, refusal: "not-a-mapping" };
         }
         if (Object.hasOwn(currentValue, op.key)) return { ok: false, refusal: "destination-occupied" };
@@ -105548,7 +106556,7 @@ function applyEffectsToTree(root, effects) {
     switch (effect.kind) {
       case "rename-key": {
         const parent = effect.parent.length === 0 ? root : readAt(root, effect.parent).value;
-        if (!isPlainObject18(parent)) continue;
+        if (!isPlainObject20(parent)) continue;
         const entries = Object.entries(parent);
         for (const [key3] of entries) delete parent[key3];
         for (const [key3, value2] of entries) {
@@ -105572,7 +106580,7 @@ function applyEffectsToTree(root, effects) {
       }
       case "add-key": {
         const target = readAt(root, effect.path).value;
-        if (isPlainObject18(target)) target[effect.key] = structuredClone(effect.value);
+        if (isPlainObject20(target)) target[effect.key] = structuredClone(effect.value);
         break;
       }
       case "remove-entry": {
@@ -105580,7 +106588,7 @@ function applyEffectsToTree(root, effects) {
         if (!located) continue;
         if (typeof located.key === "number") {
           if (Array.isArray(located.container)) located.container.splice(located.key, 1);
-        } else if (isPlainObject18(located.container)) {
+        } else if (isPlainObject20(located.container)) {
           delete located.container[located.key];
         }
         break;
@@ -105593,7 +106601,7 @@ function writeAt(container, key3, value2) {
     if (Array.isArray(container)) container[key3] = value2;
     return;
   }
-  if (isPlainObject18(container)) container[key3] = value2;
+  if (isPlainObject20(container)) container[key3] = value2;
 }
 function formatMigrationPath(path) {
   let out = "";
@@ -105680,7 +106688,7 @@ var MigrationEntryError = class extends Error {
     this.name = "MigrationEntryError";
   }
 };
-function isPlainObject19(value2) {
+function isPlainObject21(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function requireString3(file, node, key3) {
@@ -105712,17 +106720,17 @@ function requireScalarValue(file, index, op, value2) {
 function isLiteralData(value2) {
   if (isScalar2(value2)) return true;
   if (Array.isArray(value2)) return value2.every(isLiteralData);
-  return isPlainObject19(value2) && Object.values(value2).every(isLiteralData);
+  return isPlainObject21(value2) && Object.values(value2).every(isLiteralData);
 }
 function requireAddedValue(file, index, value2) {
-  if (isScalar2(value2) || isPlainObject19(value2) && isLiteralData(value2)) return;
+  if (isScalar2(value2) || isPlainObject21(value2) && isLiteralData(value2)) return;
   throw new MigrationEntryError(
     file,
     `patch[${index}] ('add-key') value must be a scalar or a mapping of plain data (mappings, sequences, strings, numbers, booleans, null)`
   );
 }
 function readOperation(file, raw, index) {
-  if (!isPlainObject19(raw)) {
+  if (!isPlainObject21(raw)) {
     throw new MigrationEntryError(file, `patch[${index}] must be a mapping`);
   }
   const op = raw.op;
@@ -105794,7 +106802,7 @@ function readOperation(file, raw, index) {
   }
 }
 function readRule(file, raw, index, surface) {
-  if (!isPlainObject19(raw)) {
+  if (!isPlainObject21(raw)) {
     throw new MigrationEntryError(file, `rules[${index}] must be a mapping`);
   }
   if (!Array.isArray(raw.patch) || raw.patch.length === 0) {
@@ -105815,7 +106823,7 @@ function readRule(file, raw, index, surface) {
   return { match, patch };
 }
 function parseMigrationEntry(file, data, surface = "core") {
-  if (!isPlainObject19(data)) {
+  if (!isPlainObject21(data)) {
     throw new MigrationEntryError(file, "an entry must be a mapping");
   }
   for (const key3 of Object.keys(data)) {
@@ -107834,6 +108842,12 @@ var TELO_SCHEMA_ANNOTATIONS = {
     title: "Outcome list",
     description: "Marks an array of conditional response-rendering entries (`returns:`).",
     anyOf: [{ type: "boolean" }, { type: "string" }]
+  },
+  "x-telo-text-keys": {
+    title: "Text keys",
+    description: "On the schema root: the keyed text sets this kind's resources show, each an alias-qualified kind a `Telo.KeyedTranslations` document declares (`[<Alias>.Translations]`). Written anywhere else, or naming any other kind, it is refused.",
+    type: "array",
+    items: { type: "string" }
   },
   [X_TELO_TEXT_VALUES]: {
     title: "Text values",
