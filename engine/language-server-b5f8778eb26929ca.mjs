@@ -16064,7 +16064,7 @@ var require_objects = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/objects.js"(exports, module) {
     "use strict";
     var { LOOP_SENTINEL } = require_constants();
-    function isObject15(value2) {
+    function isObject16(value2) {
       return value2 !== null && typeof value2 === "object";
     }
     function recursiveFreeze(value_) {
@@ -16102,7 +16102,7 @@ var require_objects = __commonJS({
       return value_;
     }
     module.exports = {
-      isObject: isObject15,
+      isObject: isObject16,
       recursiveFreeze
     };
   }
@@ -16221,7 +16221,7 @@ var require_encode = __commonJS({
       REUSED_SEARCH_PARAMS_KEY,
       REUSED_SEARCH_PARAMS_OFFSET
     } = require_constants();
-    var { isObject: isObject15 } = require_objects();
+    var { isObject: isObject16 } = require_objects();
     var { isNonEmptyString } = require_strings();
     var { encodeURIComponent: encodeURIComponent2 } = globalThis;
     function encodeNamespace(namespace) {
@@ -16237,7 +16237,7 @@ var require_encode = __commonJS({
       return "";
     }
     function encodeQualifiers(qualifiers) {
-      if (isObject15(qualifiers)) {
+      if (isObject16(qualifiers)) {
         const qualifiersKeys = Object.keys(qualifiers).sort();
         const searchParams = new URLSearchParams();
         for (let i = 0, { length } = qualifiersKeys; i < length; i += 1) {
@@ -16303,7 +16303,7 @@ var require_helpers = __commonJS({
 var require_normalize = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/normalize.js"(exports, module) {
     "use strict";
-    var { isObject: isObject15 } = require_objects();
+    var { isObject: isObject16 } = require_objects();
     var { isBlank: isBlank2 } = require_strings();
     function normalizeName(rawName) {
       return typeof rawName === "string" ? rawName.trim() : void 0;
@@ -16363,7 +16363,7 @@ var require_normalize = __commonJS({
       return typeof rawVersion === "string" ? rawVersion.trim() : void 0;
     }
     function qualifiersToEntries(rawQualifiers) {
-      if (isObject15(rawQualifiers)) {
+      if (isObject16(rawQualifiers)) {
         return rawQualifiers instanceof URLSearchParams ? rawQualifiers.entries() : Object.entries(rawQualifiers);
       }
       return typeof rawQualifiers === "string" ? new URLSearchParams(rawQualifiers).entries() : Object.entries({});
@@ -16924,7 +16924,7 @@ var require_package_url = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/package-url.js"(exports, module) {
     "use strict";
     var { decodePurlComponent } = require_decode();
-    var { isObject: isObject15, recursiveFreeze } = require_objects();
+    var { isObject: isObject16, recursiveFreeze } = require_objects();
     var { isBlank: isBlank2, isNonEmptyString, trimLeadingSlashes } = require_strings();
     var { PurlComponent } = require_purl_component();
     var { PurlQualifierNames } = require_purl_qualifier_names();
@@ -16943,7 +16943,7 @@ var require_package_url = __commonJS({
         PurlComponent.name.validate(name2, true);
         const version2 = isNonEmptyString(rawVersion) ? PurlComponent.version.normalize(rawVersion) : rawVersion;
         PurlComponent.version.validate(version2, true);
-        const qualifiers = typeof rawQualifiers === "string" || isObject15(rawQualifiers) ? PurlComponent.qualifiers.normalize(rawQualifiers) : rawQualifiers;
+        const qualifiers = typeof rawQualifiers === "string" || isObject16(rawQualifiers) ? PurlComponent.qualifiers.normalize(rawQualifiers) : rawQualifiers;
         PurlComponent.qualifiers.validate(qualifiers, true);
         const subpath = isNonEmptyString(rawSubpath) ? PurlComponent.subpath.normalize(rawSubpath) : rawSubpath;
         PurlComponent.subpath.validate(subpath, true);
@@ -34518,7 +34518,30 @@ var telo_duration_default = {
   representation: "instance",
   binding: "duration",
   encoding: "cel-duration",
-  description: "A span of time, held as a native duration so it adds to and subtracts from timestamps exactly. Written inline as any CEL duration string (`1h30m`, `250ms`); it is written as seconds (`5400s`)."
+  integerForm: { unit: "ms" },
+  parameters: [
+    {
+      name: "minimum",
+      bound: "minimum",
+      description: "The shortest duration the slot holds, inclusive \u2014 written as a duration (`0s`) or an integer number of milliseconds."
+    },
+    {
+      name: "maximum",
+      bound: "maximum",
+      description: "The longest duration the slot holds, inclusive \u2014 written as a duration (`1h`) or an integer number of milliseconds."
+    },
+    {
+      name: "exclusiveMinimum",
+      bound: "exclusiveMinimum",
+      description: "A duration every value must exceed (`0s` for a positive duration) \u2014 written as a duration or an integer number of milliseconds."
+    },
+    {
+      name: "exclusiveMaximum",
+      bound: "exclusiveMaximum",
+      description: "A duration every value must stay below \u2014 written as a duration or an integer number of milliseconds."
+    }
+  ],
+  description: "A span of time, held as a native duration so it adds to and subtracts from timestamps exactly. Written inline as any CEL duration string (`1h30m`, `250ms`) or as an integer number of milliseconds (`250`); it is written as seconds (`5400s`). A slot may bound it: `x-telo-type: { name: Telo.Duration, minimum: 0s }`."
 };
 
 // ../../sdk/nodejs/src/value-types/entries/telo-host-path.json
@@ -34679,6 +34702,7 @@ var VALUE_TYPE_ENTRY_FILES = [
 
 // ../../sdk/nodejs/src/value-type.ts
 var X_TELO_TYPE = "x-telo-type";
+var VALUE_TYPE_BOUNDS = ["minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum"];
 var HOST_ENTRY_KINDS = ["file", "directory"];
 var VALUE_TYPE_BINDINGS = {
   bytes: {
@@ -34689,7 +34713,11 @@ var VALUE_TYPE_BINDINGS = {
   duration: {
     holds: isCelDuration,
     celType: "google.protobuf.Duration",
-    placeholder: () => celDurationFromNanos(0n)
+    placeholder: () => celDurationFromNanos(0n),
+    compare: (a, b) => {
+      const difference = durationNanos(a) - durationNanos(b);
+      return difference < 0n ? -1 : difference > 0n ? 1 : 0;
+    }
   },
   stream: {
     holds: (value2) => value2 instanceof Stream2,
@@ -34770,6 +34798,7 @@ var ENTRY_KEYS = [
   "live",
   "members",
   "acceptsText",
+  "integerForm",
   "parameters",
   "description",
   "$comment"
@@ -34794,7 +34823,7 @@ function readParameters(file, raw) {
       throw new ValueTypeEntryError(file, `parameters[${i}] must be a mapping`);
     }
     for (const key3 of Object.keys(entry2)) {
-      if (key3 !== "name" && key3 !== "description" && key3 !== "element" && key3 !== "member" && key3 !== "hostEntry") {
+      if (key3 !== "name" && key3 !== "description" && key3 !== "element" && key3 !== "member" && key3 !== "hostEntry" && key3 !== "bound") {
         throw new ValueTypeEntryError(file, `parameters[${i}] has no key '${key3}'`);
       }
     }
@@ -34804,10 +34833,17 @@ function readParameters(file, raw) {
     if (entry2.hostEntry !== void 0 && typeof entry2.hostEntry !== "boolean") {
       throw new ValueTypeEntryError(file, `parameters[${i}].hostEntry must be a boolean when present`);
     }
+    if (entry2.bound !== void 0 && !VALUE_TYPE_BOUNDS.includes(entry2.bound)) {
+      throw new ValueTypeEntryError(
+        file,
+        `parameters[${i}].bound must be one of ${VALUE_TYPE_BOUNDS.join(", ")} when present`
+      );
+    }
     const name2 = requireString(file, entry2, "name");
     return {
       name: name2,
       ...entry2.element === true ? { element: true } : {},
+      ...entry2.bound === void 0 ? {} : { bound: entry2.bound },
       ...entry2.member === void 0 ? {} : { member: requireString(file, entry2, "member") },
       ...entry2.hostEntry === true ? { hostEntry: true } : {},
       ...entry2.description === void 0 ? {} : { description: requireString(file, entry2, "description") }
@@ -34818,6 +34854,11 @@ function readParameters(file, raw) {
   }
   if (params.filter((p) => p.hostEntry).length > 1) {
     throw new ValueTypeEntryError(file, "at most one parameter may declare 'hostEntry'");
+  }
+  for (const bound of VALUE_TYPE_BOUNDS) {
+    if (params.filter((p) => p.bound === bound).length > 1) {
+      throw new ValueTypeEntryError(file, `at most one parameter may declare 'bound: ${bound}'`);
+    }
   }
   return params;
 }
@@ -34911,9 +34952,16 @@ function parseValueTypeEntry(file, data) {
   }
   const members2 = readMembers(file, data, representation);
   const acceptsText = readAcceptsText(file, data, representation);
+  const integerForm = readIntegerForm(file, data, representation);
   const parameters = readParameters(file, data.parameters);
   if (parameters.some((p) => p.hostEntry) && data.fromHost === void 0) {
     throw new ValueTypeEntryError(file, "'hostEntry' belongs to a parameter of a type declaring 'fromHost'");
+  }
+  if (parameters.some((p) => p.bound !== void 0) && (representation !== "instance" || data.live === true || data.encoding === void 0)) {
+    throw new ValueTypeEntryError(
+      file,
+      "'bound' belongs to a parameter of a non-live 'instance' with an 'encoding' \u2014 its argument is written in it"
+    );
   }
   for (const parameter of parameters) {
     if (parameter.member !== void 0 && !(members2 && parameter.member in members2)) {
@@ -34937,6 +34985,7 @@ function parseValueTypeEntry(file, data) {
     live: data.live === true,
     ...members2 === void 0 ? {} : { members: members2 },
     ...acceptsText === void 0 ? {} : { acceptsText },
+    ...integerForm === void 0 ? {} : { integerForm },
     parameters,
     description: requireString(file, data, "description")
   };
@@ -34982,6 +35031,24 @@ function readAcceptsText(file, data, representation) {
   }
   return { code };
 }
+function readIntegerForm(file, data, representation) {
+  if (data.integerForm === void 0) return void 0;
+  if (representation !== "instance" || data.live === true || typeof data.encoding !== "string") {
+    throw new ValueTypeEntryError(file, "'integerForm' belongs to a non-live 'instance' with an 'encoding'");
+  }
+  const raw = data.integerForm;
+  if (!isPlainObject(raw) || Object.keys(raw).some((key3) => key3 !== "unit")) {
+    throw new ValueTypeEntryError(file, "'integerForm' is a mapping holding exactly 'unit'");
+  }
+  const unit = requireString(file, raw, "unit");
+  if (PLAIN_ENCODINGS[data.encoding]?.decode(`0${unit}`) === void 0) {
+    throw new ValueTypeEntryError(
+      file,
+      `'integerForm.unit' '${unit}' is not a unit encoding '${data.encoding}' reads ('0${unit}' does not decode)`
+    );
+  }
+  return { unit };
+}
 function buildRegistry() {
   const registry = /* @__PURE__ */ new Map();
   for (const [file, data] of VALUE_TYPE_ENTRY_FILES) {
@@ -34993,6 +35060,12 @@ function buildRegistry() {
       throw new ValueTypeEntryError(
         file,
         `binding '${entry2.binding}' has no row in this runtime's table \u2014 a value type whose assertion cannot be produced would silently exempt every slot that declares it`
+      );
+    }
+    if (entry2.parameters.some((p) => p.bound) && !VALUE_TYPE_BINDINGS[entry2.binding]?.compare) {
+      throw new ValueTypeEntryError(
+        file,
+        `a parameter declares 'bound', but binding '${entry2.binding}' has no ordering in this runtime`
       );
     }
     registry.set(entry2.name, entry2);
@@ -35018,7 +35091,7 @@ function readValueTypeSlot(schema4) {
     const args = {};
     for (const [key3, value2] of Object.entries(raw)) {
       if (key3 === "name") continue;
-      if (entry2?.parameters.some((p) => p.hostEntry && p.name === key3)) {
+      if (entry2?.parameters.some((p) => (p.hostEntry || p.bound) && p.name === key3)) {
         args[key3] = value2;
         continue;
       }
@@ -35039,6 +35112,9 @@ function hostEntryOf(schema4) {
 }
 function valueTypeOf(schema4) {
   return readValueTypeSlot(schema4)?.entry;
+}
+function isValueTypeSlot(schema4) {
+  return readValueTypeSlot(schema4) !== void 0;
 }
 function isLiveSlot(schema4) {
   return valueTypeOf(schema4)?.live === true;
@@ -35074,6 +35150,75 @@ function plainEncodingOf(schema4) {
 function decodePlainText(schema4, text3) {
   const decoded = plainEncodingOf(schema4)?.decode(text3);
   return decoded === void 0 ? text3 : decoded;
+}
+function decodePlainInteger(schema4, value2) {
+  const entry2 = valueTypeOf(schema4);
+  if (!entry2?.integerForm || !Number.isSafeInteger(value2)) return value2;
+  const decoded = PLAIN_ENCODINGS[entry2.encoding]?.decode(`${value2}${entry2.integerForm.unit}`);
+  return decoded === void 0 ? value2 : decoded;
+}
+function decodeWritten(entry2, written) {
+  const encoding = entry2.encoding === void 0 ? void 0 : PLAIN_ENCODINGS[entry2.encoding];
+  if (!encoding) return void 0;
+  if (typeof written === "string") return encoding.decode(written);
+  if (typeof written === "number" && entry2.integerForm && Number.isSafeInteger(written)) {
+    return encoding.decode(`${written}${entry2.integerForm.unit}`);
+  }
+  return void 0;
+}
+function valueTypeBoundsOf(slot) {
+  const bounds = [];
+  const invalid = [];
+  for (const parameter of slot?.entry?.parameters ?? []) {
+    if (!parameter.bound || !(parameter.name in slot.args)) continue;
+    const written = slot.args[parameter.name];
+    const value2 = decodeWritten(slot.entry, written);
+    if (value2 === void 0) invalid.push(parameter.name);
+    else bounds.push({ parameter: parameter.name, bound: parameter.bound, written, value: value2 });
+  }
+  return { bounds, invalid };
+}
+function valueTypeBoundHolds(typeName2, bound, written, value2) {
+  const entry2 = VALUE_TYPES.get(typeName2);
+  const compare2 = entry2?.binding === void 0 ? void 0 : VALUE_TYPE_BINDINGS[entry2.binding]?.compare;
+  if (!entry2 || !compare2) return true;
+  const limit = decodeWritten(entry2, written);
+  if (limit === void 0) return true;
+  const order = compare2(value2, limit);
+  switch (bound) {
+    case "minimum":
+      return order >= 0;
+    case "maximum":
+      return order <= 0;
+    case "exclusiveMinimum":
+      return order > 0;
+    case "exclusiveMaximum":
+      return order < 0;
+  }
+}
+var BOUND_WORDS = {
+  minimum: "at least",
+  maximum: "at most",
+  exclusiveMinimum: "greater than",
+  exclusiveMaximum: "less than"
+};
+function valueTypeBoundsText(slot) {
+  const encoding = slot?.entry?.encoding === void 0 ? void 0 : PLAIN_ENCODINGS[slot.entry.encoding];
+  if (!encoding) return "";
+  return valueTypeBoundsOf(slot).bounds.map(({ bound, value: value2 }) => `${BOUND_WORDS[bound]} ${encoding.encode(value2)}`).join(" and ");
+}
+function valueTypeBoundRefusal(slot, value2) {
+  const entry2 = slot?.entry;
+  const binding = entry2?.binding === void 0 ? void 0 : VALUE_TYPE_BINDINGS[entry2.binding];
+  if (!entry2 || !binding?.holds(value2)) return void 0;
+  const missed = valueTypeBoundsOf(slot).bounds.some(
+    ({ bound, written }) => !valueTypeBoundHolds(entry2.name, bound, written, value2)
+  );
+  if (!missed) return void 0;
+  return `must be a ${entry2.name} ${valueTypeBoundsText(slot)}, not ${PLAIN_ENCODINGS[entry2.encoding].encode(value2)}`;
+}
+function integerFormText(entry2) {
+  return entry2.integerForm && `an integer, read as that many ${entry2.integerForm.unit}`;
 }
 function membersOf(schema4) {
   return valueTypeOf(schema4)?.members;
@@ -35140,6 +35285,14 @@ function tryParseDurationMs(value2) {
   if (!match) return null;
   return Number(match[1]) * UNIT_MS[match[2]];
 }
+var NANOS_PER_MILLISECOND2 = 1000000n;
+function durationMs(value2) {
+  if (isCelDuration(value2)) {
+    const nanos = durationNanos(value2);
+    return Number(nanos / NANOS_PER_MILLISECOND2) + Number(nanos % NANOS_PER_MILLISECOND2) / 1e6;
+  }
+  return Number.isSafeInteger(value2) ? value2 : void 0;
+}
 
 // ../../sdk/nodejs/src/emitted-step.ts
 var EMITTED_STEP_MEMBER = "__emitted";
@@ -35170,10 +35323,24 @@ var REF_IDENTITY = Symbol.for("telo.refIdentity");
 
 // ../../sdk/nodejs/src/invoke-step.ts
 function retryBackoffMs(policy, resend) {
-  const initial = policy.initialDelay ?? parseDuration2(policy.delay) ?? 250;
+  const initial = policyDelayMs(policy.initialDelay, "initialDelay") ?? parseDuration2(policy.delay) ?? 250;
   const factor = policy.factor ?? 2;
-  const maxDelay = policy.maxDelay ?? 32e3;
-  return Math.min(maxDelay, initial * Math.pow(factor, resend));
+  return Math.min(retryMaxDelayMs(policy), initial * Math.pow(factor, resend));
+}
+function retryMaxDelayMs(policy) {
+  return policyDelayMs(policy.maxDelay, "maxDelay") ?? 32e3;
+}
+function policyDelayMs(value2, field) {
+  if (value2 === void 0) return void 0;
+  const ms = durationMs(value2);
+  if (ms === void 0 || ms < 0) {
+    throw new InvokeError(
+      "ERR_INVALID_VALUE",
+      `Step retry: '${field}' must be a duration of at least zero, or an integer number of milliseconds.`,
+      { field }
+    );
+  }
+  return ms;
 }
 function parseDuration2(value2) {
   if (value2 === void 0) return void 0;
@@ -37799,24 +37966,15 @@ var BUILTIN_FRAGMENT_FILES = [
       },
       "retry": {
         "title": "Retry",
-        "$ref": "telo://manifest#/$defs/RetryPolicy",
-        "properties": {
-          "nonRetryable": {
-            "title": "Non-retryable codes",
-            "description": "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "default": []
-          }
-        }
+        "$ref": "telo://manifest#/$defs/RetryPolicy"
       },
       "timeout": {
         "title": "Timeout",
-        "description": "How long ONE attempt may take, in milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
-        "type": "integer",
-        "minimum": 1
+        "description": "How long ONE attempt may take \u2014 a positive duration (`500ms`, `30s`) or an integer number of milliseconds; on elapse the dispatch is cancelled and the step fails ERR_STEP_TIMEOUT. Per attempt rather than for the whole retry loop, so what a single call is allowed to take does not depend on how slow the earlier attempts were. It belongs to the step rather than the target because the target does not know who is waiting.",
+        "x-telo-type": {
+          "name": "Telo.Duration",
+          "exclusiveMinimum": "0s"
+        }
       }
     }
   }],
@@ -38975,10 +39133,11 @@ var BUILTIN_FRAGMENT_FILES = [
       },
       "initialDelay": {
         "title": "Initial delay",
-        "description": "Milliseconds to wait before the first re-attempt.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 250
+        "description": "How long to wait before the first re-attempt, at least zero: a duration (`250ms`, `2s`) or an integer number of milliseconds. 250ms when omitted.",
+        "x-telo-type": {
+          "name": "Telo.Duration",
+          "minimum": "0s"
+        }
       },
       "factor": {
         "title": "Factor",
@@ -38989,10 +39148,11 @@ var BUILTIN_FRAGMENT_FILES = [
       },
       "maxDelay": {
         "title": "Max delay",
-        "description": "Ceiling on the delay between re-attempts, in milliseconds.",
-        "type": "integer",
-        "minimum": 0,
-        "default": 32e3
+        "description": "Ceiling on the delay between re-attempts, at least zero: a duration (`30s`) or an integer number of milliseconds. 32s when omitted.",
+        "x-telo-type": {
+          "name": "Telo.Duration",
+          "minimum": "0s"
+        }
       },
       "jitter": {
         "title": "Jitter",
@@ -39004,9 +39164,61 @@ var BUILTIN_FRAGMENT_FILES = [
         ],
         "default": "full"
       },
+      "nonRetryable": {
+        "title": "Non-retryable codes",
+        "description": "Error codes that end the loop immediately instead of consuming the budget. The built-in exclusions are the ones decidable without judgement \u2014 a cancellation, and the kernel's verdicts on the shape of the call; whether a DOMAIN failure is worth re-attempting only the author knows, and without this every terminal one is retried to exhaustion \u2014 for a non-idempotent target, N extra attempts at a side effect.",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "retryAfter": {
+        "title": "Retry after",
+        "description": "CEL over the failure just caught (`error`): a duration replaces the computed backoff before the next re-attempt, and null keeps it. How a failure that says when to come back \u2014 a rate limit's reset time in its data \u2014 is waited out exactly. Waited as stated, with no jitter, and capped by `maxDelay`. `error` exists only where the policy is evaluated per failure; where the resource holding it resolves its fields once, when it is created, it is a fixed wait.",
+        "x-telo-context": {
+          "type": "object",
+          "properties": {
+            "error": {
+              "type": "object",
+              "description": "The failure the re-attempt is deciding about.",
+              "x-telo-context-eval": "runtime",
+              "required": [
+                "code",
+                "message"
+              ],
+              "properties": {
+                "code": {
+                  "description": "Structured error code; INTERNAL_ERROR for a failure that carries none.",
+                  "type": "string"
+                },
+                "message": {
+                  "description": "Human-readable error message.",
+                  "type": "string"
+                },
+                "data": {
+                  "description": "Structured payload the failure carries, else null."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "anyOf": [
+          {
+            "x-telo-type": {
+              "name": "Telo.Duration",
+              "minimum": "0s"
+            }
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
       "delay": {
         "title": "Delay",
-        "description": "DEPRECATED duration string (`250ms`, `1s`) \u2014 read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
+        "description": "DEPRECATED \u2014 write `initialDelay`, which takes a duration. A duration string (`250ms`, `1s`) read as `initialDelay` when that is absent. The pattern is what makes a typo a `telo check` failure instead of a silently different backoff.",
         "type": "string",
         "pattern": "^[0-9]+(\\.[0-9]+)?\\s*(ms|s|m|h)$"
       }
@@ -41836,7 +42048,11 @@ function visitAccess(node, out) {
 function schemaIsNullable(schema4) {
   if (!schema4 || typeof schema4 !== "object") return false;
   const t = schema4.type;
-  return t === "null" || Array.isArray(t) && t.includes("null");
+  if (t === "null" || Array.isArray(t) && t.includes("null")) return true;
+  const branches = Array.isArray(schema4.anyOf) ? schema4.anyOf : Array.isArray(schema4.oneOf) ? schema4.oneOf : [];
+  return branches.some(
+    (branch) => schemaIsNullable(branch)
+  );
 }
 function schemaAtChain(chain, schema4) {
   let current = schema4;
@@ -41963,37 +42179,143 @@ function chainsRefusedAt(node, ranges) {
   return refused2;
 }
 function chainFailureAgainstSchema(chain, schema4) {
-  let current = schema4;
+  const walked = [];
+  let current = [schema4];
   for (let i = 0; i < chain.length; i++) {
     const key3 = chain[i];
-    if (!current || typeof current !== "object") return null;
+    const alternatives = alternativesOf(
+      current,
+      walked,
+      key3 === INDEX_SEGMENT ? holdsCollection : holdsObject
+    );
+    if (!alternatives || alternatives.length === 0) return null;
+    walked.push(...alternatives);
     if (key3 === INDEX_SEGMENT) {
-      const element = current.items && typeof current.items === "object" && !Array.isArray(current.items) ? current.items : !current.properties && current.additionalProperties && typeof current.additionalProperties === "object" ? current.additionalProperties : void 0;
-      if (!element) return null;
-      current = element;
+      const elements = [];
+      for (const alternative of alternatives) {
+        const element = alternative.items && typeof alternative.items === "object" && !Array.isArray(alternative.items) ? alternative.items : !alternative.properties && alternative.additionalProperties && typeof alternative.additionalProperties === "object" ? alternative.additionalProperties : void 0;
+        if (!element) return null;
+        elements.push(element);
+      }
+      current = elements;
       continue;
     }
-    const members2 = membersOf(current);
-    const props = members2 ?? current.properties;
-    if (!props) return null;
-    if (key3 in props) {
-      const propSchema = props[key3];
-      if (isLiveSlot(propSchema) && i < chain.length - 1) {
+    const found = [];
+    let declares = false;
+    const available = [];
+    for (const alternative of alternatives) {
+      const conjuncts = schemaConjuncts(
+        alternative,
+        (node) => node,
+        (_2, raw) => followLocalRef(raw, walked)
+      );
+      if (!conjuncts) return null;
+      let declared;
+      let groupDeclares = false;
+      for (const conjunct of conjuncts) {
+        const members2 = membersOf(conjunct);
+        const props = members2 ?? conjunct.properties;
+        if (!props) continue;
+        groupDeclares = true;
+        if (key3 in props) {
+          declared = props[key3];
+          break;
+        }
+        if (!members2 && conjunct.additionalProperties === true) return null;
+        for (const name2 of Object.keys(props)) if (!available.includes(name2)) available.push(name2);
+      }
+      if (!groupDeclares) return null;
+      declares = true;
+      if (declared !== void 0) found.push(declared);
+    }
+    if (found.length > 0) {
+      if (i < chain.length - 1 && found.some((node) => isLiveSlot(node))) {
         const path2 = chain.slice(0, i + 1).join(".");
         return {
           path: path2,
           message: `'${path2}' yields a stream \u2014 pipe it through an Encoder or iterate in a JS.Script step (no member access on stream-typed values)`
         };
       }
-      current = propSchema;
+      current = found;
       continue;
     }
-    if (!members2 && current.additionalProperties === true) return null;
+    if (!declares) return null;
     const path = chain.slice(0, i + 1).join(".");
-    const available = Object.keys(props).join(", ");
-    return { path, message: `'${path}' is not defined (available: ${available})` };
+    return { path, message: `'${path}' is not defined (available: ${available.join(", ")})` };
   }
   return null;
+}
+function alternativesOf(nodes, walked, holds) {
+  const out = [];
+  const visit4 = (raw, depth) => {
+    if (depth > 32) return false;
+    const node = followLocalRef(raw, [...walked, ...out]);
+    if (!node || typeof node !== "object") return false;
+    const branches = Array.isArray(node.anyOf) ? node.anyOf : Array.isArray(node.oneOf) ? node.oneOf : void 0;
+    if (branches && !node.properties && !node.allOf) {
+      for (const branch of branches) {
+        if (!branch || typeof branch !== "object" || !visit4(branch, depth + 1)) return false;
+      }
+      return true;
+    }
+    if (holds(node)) out.push(node);
+    return true;
+  };
+  for (const node of nodes) if (!visit4(node, 0)) return void 0;
+  return out;
+}
+function holdsCollection(node) {
+  if (node["x-telo-type"] !== void 0) return false;
+  const types = Array.isArray(node.type) ? node.type : node.type === void 0 ? void 0 : [node.type];
+  return !types || types.includes("array") || types.includes("object");
+}
+function holdsObject(node) {
+  if (membersOf(node)) return true;
+  if (node["x-telo-type"] !== void 0) return false;
+  const types = Array.isArray(node.type) ? node.type : node.type === void 0 ? void 0 : [node.type];
+  if (types && !types.includes("object")) return false;
+  if ("const" in node && (node.const === null || typeof node.const !== "object")) return false;
+  return true;
+}
+function schemaConjuncts(node, schemaOf2, member) {
+  const out = [node];
+  const all = schemaOf2(node).allOf;
+  if (!Array.isArray(all)) return out;
+  for (const raw of all) {
+    const read = member(node, raw);
+    if (read === void 0) return void 0;
+    const nested = schemaConjuncts(read, schemaOf2, member);
+    if (!nested) return void 0;
+    out.push(...nested);
+  }
+  return out;
+}
+function followLocalRef(node, walked) {
+  const seen = /* @__PURE__ */ new Set();
+  let current = node;
+  while (current && typeof current === "object" && typeof current.$ref === "string") {
+    if (seen.has(current)) return void 0;
+    seen.add(current);
+    const ref = current.$ref;
+    if (!ref.startsWith("#")) return void 0;
+    let target;
+    for (let i = walked.length - 1; i >= 0 && target === void 0; i--) {
+      target = schemaAtPointer(walked[i], ref.slice(1));
+    }
+    current = target;
+  }
+  return current;
+}
+function schemaAtPointer(root, pointer) {
+  if (pointer === "") return root;
+  if (!pointer.startsWith("/")) return void 0;
+  let current = root;
+  for (const raw of pointer.slice(1).split("/")) {
+    const segment = decodeURIComponent(raw).replace(/~1/g, "/").replace(/~0/g, "~");
+    if (!current || typeof current !== "object") return void 0;
+    current = current[segment];
+  }
+  return current && typeof current === "object" && !Array.isArray(current) ? current : void 0;
 }
 
 // ../../templating/nodejs/src/cel/diagnose.ts
@@ -53602,6 +53924,11 @@ function explainValueTypeErrors(errors, data) {
   return errors.map((err) => {
     if (err.keyword !== X_TELO_TYPE) return err;
     const annotation = err.params?.typeArguments ?? err.params?.valueType;
+    const outOfBounds = valueTypeBoundRefusal(
+      readValueTypeSlot({ [X_TELO_TYPE]: annotation }),
+      valueAt(data, err.instancePath)
+    );
+    if (outOfBounds) return { ...err, message: outOfBounds };
     const slot = membersSlotOf({ [X_TELO_TYPE]: annotation });
     if (!slot) return err;
     return { ...err, message: `is not a ${slot.entry.name}: ${membersValueRefusal(slot, valueAt(data, err.instancePath))}` };
@@ -53981,6 +54308,7 @@ var ANNOTATION_KEYWORDS = [
   "x-telo-ref",
   "x-telo-requires-zone",
   "x-telo-resource-rules",
+  "x-telo-retry-for",
   "x-telo-returns-from",
   "x-telo-schema-from",
   "x-telo-schema-map",
@@ -53988,6 +54316,7 @@ var ANNOTATION_KEYWORDS = [
   "x-telo-schema-projection-from",
   "x-telo-scope",
   "x-telo-sensitive",
+  "x-telo-serializable",
   "x-telo-span-attribute",
   "x-telo-step-context",
   "x-telo-text-context",
@@ -54039,11 +54368,28 @@ function valueTypeKeyword(options = {}) {
         code: codegen`require("@telorun/sdk").VALUE_TYPE_BINDINGS[${entry2.binding}].holds`
       });
       const bound = boundMemberArguments(entry2, cxt.schema);
-      if (bound.length === 0) {
+      const { bounds } = valueTypeBoundsOf(readValueTypeSlot({ [X_TELO_TYPE]: cxt.schema }));
+      if (bound.length === 0 && bounds.length === 0) {
         cxt.pass(codegen`${holds}(${cxt.data})`);
         return;
       }
       const valid = cxt.gen.let("valid", codegen`${holds}(${cxt.data})`);
+      if (bounds.length > 0) {
+        const holdsBound = cxt.gen.scopeValue("func", {
+          ref: valueTypeBoundHolds,
+          code: codegen`require("@telorun/sdk").valueTypeBoundHolds`
+        });
+        for (const { bound: kind, written } of bounds) {
+          cxt.gen.if(
+            valid,
+            () => cxt.gen.assign(valid, codegen`${holdsBound}(${entry2.name}, ${kind}, ${written}, ${cxt.data})`)
+          );
+        }
+      }
+      if (bound.length === 0) {
+        cxt.pass(valid);
+        return;
+      }
       for (const { parameter, member } of bound) {
         cxt.gen.if(codegen`${valid} && ${cxt.data}[${member}] !== undefined`, () => {
           const accepted = cxt.gen.name("valid");
@@ -54077,8 +54423,11 @@ function valueTypeKeyword(options = {}) {
         const range = celType === void 0 ? void 0 : CEL_SCALAR_FORMS[celType]?.range;
         if (range) return `must be a ${entry2.name}, ${range.describe}`;
         const encoding = entry2.encoding === void 0 ? void 0 : PLAIN_ENCODINGS[entry2.encoding];
-        if (!encoding) return `must be a ${entry2.name}`;
-        return `must be a ${entry2.name} \u2014 text written in the manifest or an environment variable is read only as ${encoding.form}, and a computed value must already be one` + producingTags(entry2);
+        const bounds = valueTypeBoundsText(readValueTypeSlot({ [X_TELO_TYPE]: cxt.schema }));
+        const named = bounds ? `${entry2.name} ${bounds}` : entry2.name;
+        if (!encoding) return `must be a ${named}`;
+        const integer3 = integerFormText(entry2);
+        return `must be a ${named} \u2014 text written in the manifest or an environment variable is read only as ${encoding.form}` + (integer3 ? `, a number written in the manifest only as ${integer3}` : "") + `, and a computed value must already be one` + producingTags(entry2);
       },
       // The failed type's name travels with the error, so a consumer keys on
       // WHAT failed (a relative host path) rather than on the sentence.
@@ -54196,6 +54545,7 @@ function compare(rawSource, rawTarget, path, conflicts, resolveRef2, seen, roles
     for (const [argument, targetArg] of Object.entries(targetType.args)) {
       const sourceArg = sourceType.args[argument];
       if (sourceArg === void 0) continue;
+      if (targetType.entry?.parameters.some((p) => p.bound && p.name === argument)) continue;
       if (targetType.entry?.parameters.some((p) => p.hostEntry && p.name === argument)) {
         if (sourceArg !== targetArg) {
           conflicts.push({
@@ -54781,6 +55131,8 @@ function fittingUnionBranches(schema4, data, root, external) {
     }
     return true;
   });
+  const read = encodedReading(fits, data);
+  if (read) fits.splice(0, fits.length, read);
   if (schema4.type === void 0 && schema4.properties === void 0) return fits;
   const base = { ...schema4 };
   delete base[unionKey];
@@ -54793,6 +55145,14 @@ function fittingUnionBranches(schema4, data, root, external) {
       ...required.length > 0 ? { required: [...new Set(required)] } : {}
     };
   });
+}
+function encodedReading(fits, data) {
+  if (fits.length < 2 || typeof data !== "string" && typeof data !== "number") return void 0;
+  if (!fits.every((branch) => plainEncodingOf(branch) !== void 0)) return void 0;
+  const reading = fits.filter(
+    (branch) => typeof data === "string" ? plainEncodingOf(branch).decode(data) !== void 0 : decodePlainInteger(branch, data) !== data
+  );
+  return reading.length === 1 ? reading[0] : void 0;
 }
 function collectProperties(schema4) {
   const props = { ...schema4.properties ?? {} };
@@ -55115,7 +55475,7 @@ function producedTypeName(engine) {
   return void 0;
 }
 function forwardedSchemaOf(produced2) {
-  if (!produced2 || isExpressionResult(produced2) || alternativesOf(produced2) !== void 0) return void 0;
+  if (!produced2 || isExpressionResult(produced2) || alternativesOf2(produced2) !== void 0) return void 0;
   if (typeof produced2[INFERRED_TYPE] !== "string") return produced2;
   const rest = { ...produced2 };
   delete rest[INFERRED_TYPE];
@@ -55174,7 +55534,7 @@ function stepContextAt(steps, path) {
       [site.name]: {
         type: "object",
         properties: {
-          result: alternativesOf(settled) === void 0 && !isExpressionResult(settled) ? settled : { [SAME_NAMED_RESULTS]: site.alternatives, [READING_ALTERNATIVE]: site.index }
+          result: alternativesOf2(settled) === void 0 && !isExpressionResult(settled) ? settled : { [SAME_NAMED_RESULTS]: site.alternatives, [READING_ALTERNATIVE]: site.index }
         }
       }
     });
@@ -55185,7 +55545,7 @@ var readingSites = /* @__PURE__ */ new WeakMap();
 function sameNamedSites(steps) {
   const sites = [];
   for (const [name2, step] of Object.entries(steps.properties ?? {})) {
-    const alternatives = alternativesOf(step?.properties?.result);
+    const alternatives = alternativesOf2(step?.properties?.result);
     alternatives?.forEach(({ at: at3 }, index) => {
       if (at3 !== void 0) sites.push({ at: at3, name: name2, index, alternatives });
     });
@@ -55204,7 +55564,7 @@ function computedProducers(steps) {
   };
   for (const [name2, step] of Object.entries(steps.properties ?? {})) {
     const result = resultSchemaOf(step);
-    const alternatives = alternativesOf(result);
+    const alternatives = alternativesOf2(result);
     if (alternatives) for (const alternative of alternatives) add(name2, alternative.result);
     else add(name2, result);
   }
@@ -55223,7 +55583,7 @@ function stepContextWithFacts(steps, reads, fact) {
       return factResult(asked ? fact(producer) : OPEN_FACT);
     };
     properties[name2] = mapResult(step, (result) => {
-      const alternatives = alternativesOf(result);
+      const alternatives = alternativesOf2(result);
       if (!alternatives) return settle(result);
       return {
         ...result,
@@ -55254,7 +55614,7 @@ function resultRecord(step) {
   return { kind: "record", fields: /* @__PURE__ */ new Map([["result", nameType(step.properties.result)]]), open: false };
 }
 function nameType(result) {
-  const alternatives = alternativesOf(result);
+  const alternatives = alternativesOf2(result);
   if (!alternatives) return resultType(result);
   const reading = result[READING_ALTERNATIVE];
   let agreed;
@@ -55295,7 +55655,7 @@ function isLiteralResult(schema4) {
 function isExpressionResult(schema4) {
   return typeof schema4?.[INFERRED_RESULT] === "string";
 }
-function alternativesOf(schema4) {
+function alternativesOf2(schema4) {
   const alternatives = schema4?.[SAME_NAMED_RESULTS];
   return Array.isArray(alternatives) ? alternatives : void 0;
 }
@@ -56876,7 +57236,7 @@ function followRef(node, path, walk7) {
   const ref = isRefSentinel(node) ? shapeRefOfSentinel(node) : node.$ref;
   if (ref === void 0) return;
   if (ref.startsWith("#")) {
-    followLocalRef(node, path, walk7);
+    followLocalRef2(node, path, walk7);
     return;
   }
   const stop = stopAt(walk7, path);
@@ -56886,7 +57246,7 @@ function shapeRefOfSentinel(sentinel) {
   const target = refSentinelTarget2(sentinel);
   return target ? `telo://${target.alias ?? "Self"}/${target.name}` : void 0;
 }
-function followLocalRef(node, path, walk7) {
+function followLocalRef2(node, path, walk7) {
   const target = resolveLocalReference(node, walk7.reach.document);
   if (!target || target.node === node) return;
   const entered = walk7.onStack.get(target.node);
@@ -58807,6 +59167,11 @@ function declarationValuesAt(consumer, segments, scope) {
     }
     const [segment, ...tail] = rest;
     const into = (key3) => {
+      if (tail.length === 0 && inner.length === 0 && holder.declaration !== consumer && isContractField(key3) && value2[key3] === void 0) {
+        const declared = kindContractOf(holder.declaration, key3, scope);
+        if (declared) out.push(declared);
+        return;
+      }
       const nextInner = [...inner, key3];
       const nextContainers = [...containers, value2];
       reach(
@@ -58827,6 +59192,16 @@ function declarationValuesAt(consumer, segments, scope) {
   };
   reach(start, consumer, [], [], slots, false, segments);
   return out;
+}
+var isContractField = (key3) => key3 === "inputType" || key3 === "outputType";
+function kindContractOf(declaration, direction, scope) {
+  if (typeof declaration.kind !== "string") return void 0;
+  const resolve2 = (kind, from) => scope.resolveDefinition(kind, from);
+  const definition = resolve2(declaration.kind, declaration);
+  const value2 = effectiveContractField(definition, resolve2, direction);
+  const declarer = contractDeclarer(definition, resolve2, direction);
+  if (value2 === void 0 || value2 === null || !declarer) return void 0;
+  return { value: value2, holder: declarer };
 }
 function referenceSlotsOf(holder, inner, run, anchor) {
   const slots = run.scope.referenceSlots(holder.declaration, holder.scope);
@@ -60063,10 +60438,13 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
       const navigated = navigatePath(manifestRoot, fromRoot.split("/"));
       if (navigated && typeof navigated === "object" && !Array.isArray(navigated)) {
         const resolved = resolveTypeFieldToSchema(navigated, declarations ?? NO_DECLARATIONS, manifestRoot) ?? navigated;
-        return defs ? withRefSlotsAsReadings(resolved, {
-          resolve: (kind) => defs.resolve(kind),
-          resolveKind: (kind) => aliases?.resolveKind(kind)
-        }) : resolved;
+        return keepDeclaredNullability(
+          schema4,
+          defs ? withRefSlotsAsReadings(resolved, {
+            resolve: (kind) => defs.resolve(kind),
+            resolveKind: (kind) => aliases?.resolveKind(kind)
+          }) : resolved
+        );
       }
     }
     if (defs) {
@@ -60084,13 +60462,13 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
         if (!target) continue;
         const own2 = target.entry?.[field];
         const ownResolved = own2 !== void 0 ? resolveTypeFieldToSchema(own2, declarations ?? NO_DECLARATIONS, manifestRoot) : void 0;
-        if (ownResolved && typeof ownResolved === "object") return ownResolved;
+        if (ownResolved && typeof ownResolved === "object") return keepDeclaredNullability(schema4, ownResolved);
         const canonical = scope?.resolveKind(target.kind) ?? target.kind;
         const def = defs.resolve(canonical) ?? defs.resolve(target.kind);
         const typeField = def ? def[field] : void 0;
         const resolved = resolveTypeFieldToSchema(typeField, declarations ?? NO_DECLARATIONS);
         if (resolved && typeof resolved === "object") {
-          return resolved;
+          return keepDeclaredNullability(schema4, resolved);
         }
       }
     }
@@ -60115,7 +60493,7 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
       const refManifest = member ? member.kind === ref.kind ? member : void 0 : names.declarationsOf(ref.name).find((m) => m.kind === ref.kind) ?? crossedDeclaration(ref, manifestRoot, referenceHost);
       if (refManifest) {
         const resolved = refFromSchema(refManifest, segments, declarations, referenceHost);
-        if (resolved) return resolved;
+        if (resolved) return keepDeclaredNullability(schema4, resolved);
       }
       if (defs) {
         const canonical = aliases?.resolveKind(ref.kind) ?? ref.kind;
@@ -60126,7 +60504,7 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
             declarations
           );
           if (resolved && typeof resolved === "object") {
-            return resolved;
+            return keepDeclaredNullability(schema4, resolved);
           }
           if (segments.length === 1) {
             const derived = valueDerivedContract(
@@ -60134,7 +60512,7 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
               defs.effectiveSchemaOf?.(def) ?? def.schema,
               segments[0]
             );
-            if (derived) return derived;
+            if (derived) return keepDeclaredNullability(schema4, derived);
           }
         }
       }
@@ -60154,6 +60532,16 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
     return { ...schema4, properties: props };
   }
   return schema4;
+}
+function declaresNull(node) {
+  const type = node.type;
+  return type === "null" || Array.isArray(type) && type.includes("null") || node.nullable === true;
+}
+function keepDeclaredNullability(node, resolved) {
+  if (!declaresNull(node) || declaresNull(resolved)) return resolved;
+  const own2 = resolved.type ?? (Array.isArray(node.type) ? node.type.filter((t) => t !== "null") : node.type);
+  const types = own2 === void 0 ? [] : Array.isArray(own2) ? own2 : [own2];
+  return types.length === 0 ? { ...resolved, nullable: true } : { ...resolved, type: [...types, "null"] };
 }
 function crossedDeclaration(ref, holder, host) {
   const lookup = host?.scope.resolveManifest(ref, holder);
@@ -68413,7 +68801,7 @@ var RESOURCE_RULE_BUDGET_MS = RULE_BUDGET_MS;
 function isObject7(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
-function schemaAtPointer(schema4, pointer) {
+function schemaAtPointer2(schema4, pointer) {
   const segments = pointerSegments2(pointer);
   if (!segments) return void 0;
   let node = schema4;
@@ -68848,6 +69236,16 @@ function referenceValueOf(value2) {
   }
   return void 0;
 }
+function pathSegments(path) {
+  const out = [];
+  for (const segment of path.split(".")) {
+    const parsed = /^([^[\]]*)((?:\[\d+\])*)$/.exec(segment);
+    if (!parsed) return [segment];
+    if (parsed[1] !== "") out.push(parsed[1]);
+    for (const index of parsed[2].match(/\d+/g) ?? []) out.push(index);
+  }
+  return out;
+}
 function entryBoundary(concrete, shape) {
   const c = concrete.split(".");
   const s = shape.split(".");
@@ -68938,6 +69336,7 @@ var PeerBinder = class {
     this.env = env;
   }
   collections = /* @__PURE__ */ new WeakMap();
+  coReferrers = /* @__PURE__ */ new WeakMap();
   /** `declaration` as a rule reads it. Every declaration a rule binds goes
    *  through here before anything scans it for dynamic values. */
   view(declaration) {
@@ -69106,6 +69505,42 @@ var PeerBinder = class {
     const entry2 = entryShapeOf(shapes, path, Array.isArray(raw));
     return entry2 !== void 0 && (!continues || shapes.includes(entry2));
   }
+  /**
+   * One co-referrer as a `coReferrers:` rule reads it: the declaration (through
+   * {@link view}) with each of its reference sites resolved one level, by the
+   * same per-reference resolution `peers:` applies — an unresolved reference,
+   * a library's kind-only input, a slot refusing the kind it names, or a
+   * resolved declaration holding an expression fails the binding. The
+   * declaration's own data is bound as written: which of it a condition reads
+   * is the evaluator's read-narrowed scan, so an unrelated expression in a
+   * co-referrer does not switch the rule off.
+   *
+   * Cached per declaration, so a rule judging n referrers of one slot resolves
+   * each co-referrer once rather than once per referrer that sees it.
+   */
+  coReferrer(manifest, kind) {
+    const cached = this.coReferrers.get(manifest);
+    if (cached) return cached;
+    const resolved = this.resolveCoReferrer(manifest, kind);
+    this.coReferrers.set(manifest, resolved);
+    return resolved;
+  }
+  resolveCoReferrer(manifest, kind) {
+    const name2 = manifest.metadata?.name ?? "<unnamed>";
+    const sites = this.env.refSitesOf(manifest, kind);
+    if (!sites) return { ok: false, failure: { reason: "unknown-shape", at: name2 } };
+    const written = this.view(manifest);
+    const resolver = this.resolver(manifest, (path) => sites.get(path));
+    let value2 = written;
+    for (const [path, site] of sites) {
+      const reference = referenceValueOf(navigatePath2(written, path));
+      if (!reference) continue;
+      const resolved = resolveReference2(reference, site, `${name2}.${path}`, resolver);
+      if (!resolved.ok) return resolved;
+      value2 = replaceAt(value2, pathSegments(path), resolved.value);
+    }
+    return { ok: true, value: value2 };
+  }
   /** True when the rule has something to compare — the input to the
    *  never-exercised report, asked through the same cache. */
   hasPeers(referrer, referrerKind, pointer, slotPath) {
@@ -69251,7 +69686,7 @@ function analyzerPeersTarget(registry) {
       const schema4 = registry.effectiveSchema(kind);
       if (!schema4) continue;
       sawSchema = true;
-      const node = schemaAtPointer(schema4, pointer);
+      const node = schemaAtPointer2(schema4, pointer);
       if (node === void 0 || !isIterableSchema(node)) continue;
       sawCollection = true;
       const declared = registry.declaredReachOf({ kind });
@@ -69266,6 +69701,25 @@ function analyzerPeersTarget(registry) {
     const filter = registry.resolve(referrerKind);
     if (implementations.length === 0 && filter?.kind === "Telo.Abstract") return "unknown";
     return sawCollection ? "plain" : "absent";
+  };
+}
+function analyzerReferrerSlot(registry) {
+  return (referrerKind, pointer) => {
+    const implementations = registry.getByExtends(referrerKind).map(
+      (d) => d.metadata.module ? `${d.metadata.module}.${d.metadata.name}` : String(d.metadata.name)
+    );
+    const path = pointerToPath(pointer);
+    let sawSchema = false;
+    for (const kind of [referrerKind, ...implementations]) {
+      if (!registry.effectiveSchema(kind)) continue;
+      sawSchema = true;
+      const declared = registry.declaredReachOf({ kind });
+      if (declared?.references.some((reference) => reference.path === path)) return "ok";
+    }
+    if (!sawSchema) return "unknown";
+    const filter = registry.resolve(referrerKind);
+    if (implementations.length === 0 && filter?.kind === "Telo.Abstract") return "unknown";
+    return "absent";
   };
 }
 function analyzerReferrerDeclares(registry) {
@@ -70116,42 +70570,71 @@ function refHint(value2) {
 
 // ../../analyzer/nodejs/src/plain-literal-decoding.ts
 function decodePlainLiterals(value2, schema4, external, rootSchema = schema4) {
-  return mapTextLeaves(value2, schema4, decodePlainText, external, rootSchema, void 0, composeLiteralMembers);
+  return mapTextLeaves(
+    value2,
+    schema4,
+    decodePlainText,
+    external,
+    rootSchema,
+    void 0,
+    composeLiteralMembers,
+    decodePlainInteger
+  );
 }
 function composeLiteralMembers(schema4, record) {
   const slot = membersSlotOf(schema4);
   return slot ? readMembersLiteral(slot, record) : void 0;
 }
-function mapTextLeaves(value2, schema4, leaf, external, rootSchema = schema4, visit4, record) {
-  const walk7 = (node, raw, base, pointer) => {
+function mapTextLeaves(value2, schema4, leaf, external, rootSchema = schema4, visit4, record, numeric2) {
+  const expand4 = (node, raw, base) => {
     const entered = resolveRefIn(raw, base, external);
     const selected = selectUnionBranch(entered.schema, node, entered.root, external);
-    const { schema: here, root } = resolveRefIn(selected, entered.root, external);
-    visit4?.(here, node, pointer);
-    if (typeof node === "string") return leaf(here, node, pointer);
+    const here = resolveRefIn(selected, entered.root, external);
+    return schemaConjuncts(
+      here,
+      (part) => part.schema,
+      (part, member) => {
+        if (!member || typeof member !== "object" || Array.isArray(member)) return void 0;
+        const read = resolveRefIn(member, part.root, external);
+        if (typeof read.schema.$ref === "string") return void 0;
+        const branch = selectUnionBranch(read.schema, node, read.root, external);
+        return resolveRefIn(branch, read.root, external);
+      }
+    ) ?? [here];
+  };
+  const walk7 = (node, raw, pointer) => {
+    const parts = raw.flatMap((part) => expand4(node, part.schema, part.root));
+    const slot = parts.find((part) => isValueTypeSlot(part.schema)) ?? parts[0];
+    visit4?.(slot.schema, node, pointer);
+    if (typeof node === "string") return leaf(slot.schema, node, pointer);
+    if (typeof node === "number" && numeric2) return numeric2(slot.schema, node);
     if (!node || typeof node !== "object") return node;
-    if (here["x-telo-ref"] !== void 0) return node;
+    if (parts.some((part) => part.schema["x-telo-ref"] !== void 0)) return node;
     if (isCompiledValue(node) || isTaggedSentinel(node)) return node;
     if (Array.isArray(node)) {
-      const item = resolveRefIn(here.items ?? {}, root, external);
-      for (let i = 0; i < node.length; i++) node[i] = walk7(node[i], item.schema, item.root, `${pointer}/${i}`);
+      const items = parts.filter((part) => part.schema.items && typeof part.schema.items === "object").map((part) => ({ schema: part.schema.items, root: part.root }));
+      const each = items.length > 0 ? items : [{ schema: {}, root: slot.root }];
+      for (let i = 0; i < node.length; i++) node[i] = walk7(node[i], each, `${pointer}/${i}`);
       return node;
     }
     if (!isCelRecord(node)) return node;
-    const mapped = record?.(here, node, pointer);
+    const mapped = record?.(slot.schema, node, pointer);
     if (mapped !== void 0) return mapped;
-    const properties = collectProperties(here);
-    const additional = here.additionalProperties && typeof here.additionalProperties === "object" ? here.additionalProperties : void 0;
     const entries = node;
     for (const key3 of Object.keys(entries)) {
-      const child = properties[key3] ?? additional;
-      if (child) {
-        entries[key3] = walk7(entries[key3], child, root, `${pointer}/${key3.replace(/~/g, "~0").replace(/\//g, "~1")}`);
+      const children = [];
+      for (const part of parts) {
+        const additional = part.schema.additionalProperties && typeof part.schema.additionalProperties === "object" ? part.schema.additionalProperties : void 0;
+        const child = collectProperties(part.schema)[key3] ?? additional;
+        if (child) children.push({ schema: child, root: part.root });
+      }
+      if (children.length > 0) {
+        entries[key3] = walk7(entries[key3], children, `${pointer}/${key3.replace(/~/g, "~0").replace(/\//g, "~1")}`);
       }
     }
     return node;
   };
-  return walk7(value2, schema4, rootSchema, "");
+  return walk7(value2, [{ schema: schema4, root: rootSchema }], "");
 }
 function substituteDecodedCelFields(data, schema4, rootSchema, options = {}) {
   const decoded = decodePlainLiterals(
@@ -73064,7 +73547,7 @@ function leafDeclaration(value2) {
   }
   return void 0;
 }
-function alternativesOf2(sentinel) {
+function alternativesOf3(sentinel) {
   const out = [];
   for (const [id] of branchesOf({ sentinel, tag: sentinel.__expand })) {
     const key3 = id.startsWith("case:") ? id.slice("case:".length) : id;
@@ -73084,7 +73567,7 @@ function standInFor(sentinel, stamp) {
   if (sentinel.__expand === "for-each") {
     marks[FAMILY_STAMP] = repeatOf(sentinel);
   } else {
-    const alternatives = alternativesOf2(sentinel);
+    const alternatives = alternativesOf3(sentinel);
     marks[CHOICE_STAMP] = {
       path: "",
       tag: sentinel.__expand,
@@ -73818,6 +74301,139 @@ function startsWith3(pattern2, at3) {
   });
 }
 
+// ../../analyzer/nodejs/src/retry-for-slot.ts
+var RETRY_FOR_ANNOTATION = "x-telo-retry-for";
+var RETRY_POLICY_FRAGMENT = "RetryPolicy";
+var CODE_PATTERN = /^[A-Z][A-Z0-9_]*$/;
+function isObject9(value2) {
+  return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
+}
+function topLevelField(pointer) {
+  if (typeof pointer !== "string" || !/^\/[^/]+$/.test(pointer)) return void 0;
+  return pointer.slice(1).replace(/~1/g, "/").replace(/~0/g, "~");
+}
+function readRetryFor(node) {
+  const raw = node?.[RETRY_FOR_ANNOTATION];
+  if (!isObject9(raw) || topLevelField(raw.slot) === void 0) return void 0;
+  const codes = /* @__PURE__ */ new Map();
+  if (raw.codes !== void 0) {
+    if (!isObject9(raw.codes)) return void 0;
+    for (const [code, meta] of Object.entries(raw.codes)) {
+      if (!CODE_PATTERN.test(code) || !isObject9(meta)) return void 0;
+      codes.set(code, isObject9(meta.data) ? { data: meta.data } : {});
+    }
+  }
+  return { slot: raw.slot, codes };
+}
+function retryForSites(schema4) {
+  if (!isObject9(schema4) || !isObject9(schema4.properties)) return [];
+  const out = [];
+  for (const [field, node] of Object.entries(schema4.properties)) {
+    const retryFor = isObject9(node) ? readRetryFor(node) : void 0;
+    if (retryFor) out.push({ field, retryFor });
+  }
+  return out;
+}
+function retryForTargetField(retryFor) {
+  return topLevelField(retryFor.slot);
+}
+var retryForReads = ({ node }) => {
+  const retryFor = readRetryFor(node);
+  return retryFor ? [{ kind: "reference", keys: [retryForTargetField(retryFor)], transitive: true, reads: drivenReads }] : [];
+};
+function retryForProblems(definition) {
+  const schema4 = definition.schema;
+  if (!isObject9(schema4)) return [];
+  const name2 = String(definition.metadata?.name);
+  const problems = [];
+  const properties = isObject9(schema4.properties) ? schema4.properties : {};
+  const visit4 = (node, path, topLevelField2) => {
+    if (node[RETRY_FOR_ANNOTATION] !== void 0) {
+      const at3 = `${path}.${RETRY_FOR_ANNOTATION}`;
+      if (topLevelField2 === void 0) {
+        problems.push({
+          path: at3,
+          message: `'${name2}' declares \`${RETRY_FOR_ANNOTATION}\` at '${at3}', where nothing reads it. It belongs on a named top-level property of the kind's schema holding a retry policy.`
+        });
+      } else {
+        problems.push(...annotationProblems(name2, node, at3, topLevelField2, properties));
+      }
+    }
+    for (const child of schemaChildren(node)) {
+      const childPath = child.at === void 0 ? `${path}.${child.keyword}` : `${path}.${child.keyword}.${child.at}`;
+      const isTopLevel = node === schema4 && child.keyword === "properties" && typeof child.at === "string";
+      visit4(child.schema, childPath, isTopLevel ? child.at : void 0);
+    }
+  };
+  visit4(schema4, "schema", void 0);
+  return problems;
+}
+function annotationProblems(name2, node, at3, field, properties) {
+  const problems = [];
+  const problem = (where, message) => problems.push({ path: where, message: `'${name2}' ${message}` });
+  const raw = node[RETRY_FOR_ANNOTATION];
+  if (!isObject9(raw)) {
+    problem(at3, `\`${RETRY_FOR_ANNOTATION}\` must be an object: { slot: /<field>, codes?: { <CODE>: { description, data? } } }.`);
+    return problems;
+  }
+  for (const key3 of Object.keys(raw)) {
+    if (key3 !== "slot" && key3 !== "codes") {
+      problem(`${at3}.${key3}`, `\`${RETRY_FOR_ANNOTATION}\` has no key '${key3}' \u2014 only 'slot' and 'codes'.`);
+    }
+  }
+  if (node["x-telo-fragment"] !== RETRY_POLICY_FRAGMENT) {
+    problem(
+      at3,
+      `annotates '${field}', which does not hold a retry policy. Write the field as \`$ref: telo://manifest#/$defs/RetryPolicy\` beside the annotation.`
+    );
+  }
+  const target = topLevelField(raw.slot);
+  if (target === void 0) {
+    problem(
+      `${at3}.slot`,
+      "names its slot with 'slot', a JSON Pointer to one top-level field of the kind (/invoke)."
+    );
+  } else {
+    const slot = isObject9(properties[target]) ? readRefSlot(properties[target]) : void 0;
+    if (!slot) {
+      problem(
+        `${at3}.slot`,
+        `names '${raw.slot}' as the slot '${field}' retries, but the kind declares no reference slot there.`
+      );
+    } else if (!possibleUses(slot).some(transfersControl) && possibleUses(slot).length > 0) {
+      problem(
+        `${at3}.slot`,
+        `names '${raw.slot}' as the slot '${field}' retries, but that slot transfers no control \u2014 a held dependency is never dispatched, so nothing there is re-attempted.`
+      );
+    }
+  }
+  if (raw.codes !== void 0) {
+    if (!isObject9(raw.codes)) {
+      problem(`${at3}.codes`, "lists its own codes as a map: { <CODE>: { description, data? } }.");
+    } else {
+      for (const [code, meta] of Object.entries(raw.codes)) {
+        const where = `${at3}.codes.${code}`;
+        if (!CODE_PATTERN.test(code)) {
+          problem(where, `names code '${code}', which is not an upper-case code (ERR_QUEUE_TIMEOUT).`);
+        }
+        if (!isObject9(meta) || typeof meta.description !== "string") {
+          problem(where, `describes code '${code}' with no 'description' \u2014 say when the kind raises it.`);
+          continue;
+        }
+        for (const key3 of Object.keys(meta)) {
+          if (key3 !== "description" && key3 !== "data") {
+            problem(`${where}.${key3}`, `describes code '${code}' with '${key3}' \u2014 only 'description' and 'data'.`);
+          }
+        }
+        if (meta.data !== void 0 && !isObject9(meta.data)) {
+          problem(`${where}.data`, `types code '${code}''s data with something that is not a JSON Schema object.`);
+        }
+      }
+    }
+  }
+  return problems;
+}
+
 // ../../analyzer/nodejs/src/resolve-throws-union.ts
 var PLAIN_ERROR_CODE = "INTERNAL_ERROR";
 function createResolveCtx(allManifests, defs, aliases, aliasesByModule = /* @__PURE__ */ new Map(), rootModules = /* @__PURE__ */ new Set(), moduleManifests = /* @__PURE__ */ new Map()) {
@@ -74028,6 +74644,56 @@ function receivedConfiguration(manifest, definition, ctx) {
 function drivenOrigin(manifest, configured, data, path) {
   const writer = configured.writerOf(data);
   return writer !== void 0 ? { module: writer } : refOrigin(manifest, path);
+}
+var STEP_TIMEOUT_CODE = "ERR_STEP_TIMEOUT";
+function forEachRetriedDispatch(manifest, definition, ctx, visit4) {
+  const configured = receivedConfiguration(manifest, definition, ctx);
+  const walk7 = (steps, invokeField, path, origin) => {
+    steps.forEach((raw, i) => {
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+      const step = raw;
+      const at3 = `${path}[${i}]`;
+      if (step[invokeField]) {
+        if (step.retry && typeof step.retry === "object" && !Array.isArray(step.retry)) {
+          const union2 = cloneUnion(resolveStepInvokeThrows(step, invokeField, void 0, ctx, origin));
+          if (step.timeout !== void 0) union2.codes.set(STEP_TIMEOUT_CODE, {});
+          visit4({ policy: step.retry, path: `${at3}.retry`, union: union2 });
+        }
+        return;
+      }
+      for (const key3 of ["try", "catch", "finally", "then", "else", "do", "default"]) {
+        if (Array.isArray(step[key3])) walk7(step[key3], invokeField, `${at3}.${key3}`, origin);
+      }
+      if (Array.isArray(step.elseif)) {
+        step.elseif.forEach((branch, b) => {
+          if (Array.isArray(branch?.then)) {
+            walk7(branch.then, invokeField, `${at3}.elseif[${b}].then`, origin);
+          }
+        });
+      }
+      if (step.cases && typeof step.cases === "object") {
+        for (const [key3, arr] of Object.entries(step.cases)) {
+          if (Array.isArray(arr)) walk7(arr, invokeField, `${at3}.cases.${key3}`, origin);
+        }
+      }
+    });
+  };
+  forEachDrivenSlot(configured.schema, configured.data, (driven) => {
+    if (driven.kind !== "step") return;
+    const origin = drivenOrigin(manifest, configured, driven.data, driven.path);
+    for (const invoke of new Set(driven.slots.map((slot) => slot.invoke))) {
+      walk7(driven.data, invoke, driven.path, origin);
+    }
+  });
+  const fields = manifest;
+  for (const { field, retryFor } of retryForSites(definition.schema)) {
+    const policy = fields[field];
+    if (!policy || typeof policy !== "object" || Array.isArray(policy)) continue;
+    const target = retryForTargetField(retryFor);
+    const union2 = cloneUnion(resolveRefTargetThrows(fields[target], ctx, refOrigin(manifest, target)));
+    for (const [code, meta] of retryFor.codes) union2.codes.set(code, meta);
+    visit4({ policy, path: field, union: union2 });
+  }
 }
 function stepSiteThrows(steps, slots, ctx, origin) {
   const result = emptyUnion();
@@ -77345,7 +78011,7 @@ function completeAssignment(configurations, picked) {
   }
   return out;
 }
-function alternativesOf3(site, declaration) {
+function alternativesOf4(site, declaration) {
   const out = [];
   for (const [id] of branchesOf(site)) {
     const key3 = id.startsWith("case:") ? id.slice("case:".length) : id;
@@ -77382,7 +78048,7 @@ function annotateChoices(graph, reading, assignment) {
     const choice = {
       path: site.declaration ? "" : pathOf2(site.keys),
       tag: site.tag,
-      alternatives: alternativesOf3(site, site.declaration),
+      alternatives: alternativesOf4(site, site.declaration),
       selected: typeof branch === "string" && !branch.startsWith("\0") ? branch.startsWith("case:") ? branch.slice("case:".length) : branch : site.tag === "if" ? ABSENT_ALTERNATIVE : null
     };
     if (site.declaration) node.choice = choice;
@@ -80686,11 +81352,11 @@ function nestedAddress(holder, keys, declaration) {
 }
 
 // ../../analyzer/nodejs/src/referrer-rule.ts
-function isObject9(value2) {
+function isObject10(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function readRawReferrerRules(schema4) {
-  if (!isObject9(schema4)) return void 0;
+  if (!isObject10(schema4)) return void 0;
   return schema4[REFERRER_RULES_ANNOTATION];
 }
 function readReferrerRules(schema4) {
@@ -80698,13 +81364,16 @@ function readReferrerRules(schema4) {
   if (!Array.isArray(raw)) return [];
   const rules = [];
   raw.forEach((entry2, index) => {
-    if (!isObject9(entry2)) return;
+    if (!isObject10(entry2)) return;
     const condition = celSourceOf(entry2.condition);
-    const { code, message, referrer, peers } = entry2;
+    const { code, message, referrer, peers, coReferrers } = entry2;
     if (!condition || typeof code !== "string" || typeof message !== "string") return;
     if (code.length === 0 || message.length === 0) return;
     if (referrer !== void 0 && typeof referrer !== "string") return;
     if (peers !== void 0 && typeof peers !== "string") return;
+    if (coReferrers !== void 0 && (typeof coReferrers !== "string" || !pointerSegments2(coReferrers))) {
+      return;
+    }
     const { resolve: resolve2, resolveSelf } = entry2;
     const pointers = (value2) => value2 === void 0 || Array.isArray(value2) && value2.every((p) => typeof p === "string" && pointerSegments2(p));
     if (!pointers(resolve2) || !pointers(resolveSelf)) return;
@@ -80714,6 +81383,7 @@ function readReferrerRules(schema4) {
     rules.push({
       ...referrer === void 0 ? {} : { referrer },
       ...peers === void 0 ? {} : { peers },
+      ...coReferrers === void 0 ? {} : { coReferrers },
       ...resolve2 === void 0 ? {} : { resolve: resolve2 },
       ...resolveSelf === void 0 ? {} : { resolveSelf },
       condition,
@@ -80742,7 +81412,7 @@ function rewriteReferrerRuleKinds(node, rewrite) {
   const raw = node[REFERRER_RULES_ANNOTATION];
   if (!Array.isArray(raw)) return;
   for (const entry2 of raw) {
-    if (!isObject9(entry2) || typeof entry2.referrer !== "string") continue;
+    if (!isObject10(entry2) || typeof entry2.referrer !== "string") continue;
     const rewritten = rewrite(entry2.referrer);
     if (rewritten !== void 0) entry2.referrer = rewritten;
   }
@@ -81302,6 +81972,163 @@ function runZoneAnalysis(args) {
   return diagnostics;
 }
 
+// ../../analyzer/nodejs/src/serializable-slot.ts
+var X_TELO_SERIALIZABLE = "x-telo-serializable";
+var serializableReads = ({ at: at3 }) => [{ kind: "reference", keys: at3, transitive: true, reads: READS_WHOLE }];
+function isNode2(value2) {
+  return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
+}
+var UNION_KEYS = ["anyOf", "oneOf", "allOf"];
+var CONDITIONAL_KEYS = ["then", "else"];
+function liveValueIn(schema4, external) {
+  if (!isNode2(schema4)) return void 0;
+  const visited = /* @__PURE__ */ new Set();
+  const walk7 = (node, root, path) => {
+    if (!isNode2(node) || visited.has(node)) return void 0;
+    visited.add(node);
+    const slot = readValueTypeSlot(node);
+    if (slot?.entry?.live) return { path: `/${path.join("/")}`, type: slot.entry.name };
+    if (typeof node.$ref === "string") {
+      const target = resolveRefIn(node, root, external);
+      if (target.schema !== node) {
+        const found = walk7(target.schema, target.root, path);
+        if (found) return found;
+      }
+    }
+    for (const [name2, child] of Object.entries(isNode2(node.properties) ? node.properties : {})) {
+      const found = walk7(child, root, [...path, name2]);
+      if (found) return found;
+    }
+    for (const child of Object.values(isNode2(node.patternProperties) ? node.patternProperties : {})) {
+      const found = walk7(child, root, [...path, "*"]);
+      if (found) return found;
+    }
+    const nested = [
+      ...isNode2(node.additionalProperties) ? [node.additionalProperties] : [],
+      ...Array.isArray(node.items) ? node.items : isNode2(node.items) ? [node.items] : [],
+      ...isNode2(node.additionalItems) ? [node.additionalItems] : []
+    ];
+    for (const child of nested) {
+      const found = walk7(child, root, [...path, "*"]);
+      if (found) return found;
+    }
+    for (const key3 of [...UNION_KEYS, ...CONDITIONAL_KEYS]) {
+      const branches = Array.isArray(node[key3]) ? node[key3] : isNode2(node[key3]) ? [node[key3]] : [];
+      for (const branch of branches) {
+        const found = walk7(branch, root, path);
+        if (found) return found;
+      }
+    }
+    return void 0;
+  };
+  return walk7(schema4, schema4, []);
+}
+function serializableSites(kindSchema, resource, external) {
+  const sites = [];
+  const recorded = /* @__PURE__ */ new Set();
+  const seen = /* @__PURE__ */ new Map();
+  const walk7 = (node, root, value2, path) => {
+    if (!isNode2(node) || value2 === void 0) return;
+    const values = seen.get(node) ?? /* @__PURE__ */ new Set();
+    if (values.has(value2)) return;
+    values.add(value2);
+    seen.set(node, values);
+    if (node[X_TELO_SERIALIZABLE] === true) {
+      const pointer = path.map((segment) => `/${segment.replace(/~/g, "~0").replace(/\//g, "~1")}`).join("");
+      if (!recorded.has(pointer)) {
+        recorded.add(pointer);
+        sites.push({ pointer, value: value2 });
+      }
+      return;
+    }
+    if (typeof node.$ref === "string") {
+      const target = resolveRefIn(node, root, external);
+      if (target.schema !== node) walk7(target.schema, target.root, value2, path);
+    }
+    for (const key3 of UNION_KEYS) {
+      if (Array.isArray(node[key3])) for (const branch of node[key3]) walk7(branch, root, value2, path);
+    }
+    if (Array.isArray(value2)) {
+      value2.forEach((item, i) => {
+        const items = Array.isArray(node.items) ? node.items[i] : node.items;
+        walk7(items, root, item, [...path, String(i)]);
+      });
+      return;
+    }
+    if (!isNode2(value2)) return;
+    const properties = isNode2(node.properties) ? node.properties : {};
+    for (const [key3, child] of Object.entries(value2)) {
+      if (key3 in properties) {
+        walk7(properties[key3], root, child, [...path, key3]);
+        continue;
+      }
+      const pattern2 = Object.entries(isNode2(node.patternProperties) ? node.patternProperties : {}).find(
+        ([source]) => new RegExp(source, "u").test(key3)
+      );
+      if (pattern2) walk7(pattern2[1], root, child, [...path, key3]);
+      else if (isNode2(node.additionalProperties)) walk7(node.additionalProperties, root, child, [...path, key3]);
+    }
+  };
+  walk7(kindSchema, kindSchema, resource, []);
+  return sites;
+}
+function serializableProblems(kindSchema, resource, shapeOf3, external) {
+  const problems = [];
+  for (const site of serializableSites(kindSchema, resource, external)) {
+    const shape = shapeOf3(site.value);
+    const live = shape ? liveValueIn(shape, external) : void 0;
+    if (!live) continue;
+    const field = site.pointer.slice(1).replace(/\//g, ".");
+    problems.push({
+      pointer: site.pointer,
+      live,
+      message: `'${field}' names a shape whose values are stored or serialized, but it holds a live ${live.type} at ${live.path} \u2014 a live value exists once, as it is consumed, so it cannot be written down and read back. Declare that member as the data it carries instead.`
+    });
+  }
+  return problems;
+}
+function isSchemaValued(node) {
+  const slot = readRefSlot(node);
+  if (slot) {
+    const uses = possibleUses(slot);
+    return uses.length > 0 && uses.every((use) => use === "schema");
+  }
+  return node["x-telo-fragment"] === "JsonSchema7" || node.$ref === "#/$defs/telo:JsonSchema7";
+}
+function serializableAnnotationProblems(kindSchema) {
+  const problems = [];
+  const visited = /* @__PURE__ */ new Set();
+  const walk7 = (node, path) => {
+    if (typeof node !== "object" || node === null || visited.has(node)) return;
+    visited.add(node);
+    if (Array.isArray(node)) {
+      node.forEach((item, i) => walk7(item, [...path, String(i)]));
+      return;
+    }
+    const record = node;
+    if (X_TELO_SERIALIZABLE in record) {
+      const pointer = path.map((segment) => `/${segment.replace(/~/g, "~0").replace(/\//g, "~1")}`).join("");
+      if (record[X_TELO_SERIALIZABLE] !== true) {
+        problems.push({
+          pointer,
+          message: `'${X_TELO_SERIALIZABLE}' takes only 'true', not ${JSON.stringify(record[X_TELO_SERIALIZABLE])}.`
+        });
+      } else if (!isSchemaValued(record)) {
+        problems.push({
+          pointer,
+          message: `'${X_TELO_SERIALIZABLE}' belongs on a slot holding a shape \u2014 a reference slot with 'use: schema', or a JSON-Schema-valued field \u2014 where it says that shape's values are stored or serialized; here it is read by nothing.`
+        });
+      }
+    }
+    for (const [key3, child] of Object.entries(record)) {
+      if (key3 === X_TELO_SERIALIZABLE) continue;
+      walk7(child, [...path, key3]);
+    }
+  };
+  walk7(kindSchema, []);
+  return problems;
+}
+
 // ../../analyzer/nodejs/src/validate-durable-regions.ts
 var SOURCE7 = "telo";
 function impureCalls(source, moduleNames, moduleCallFlags) {
@@ -81406,7 +82233,7 @@ function checkUnjournalableResults(region, resolveDef, graph, reportModules, dia
         severity: DiagnosticSeverity2.Warning,
         code: "DURABLE_UNJOURNALABLE_RESULT",
         source: SOURCE7,
-        message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', whose declared output is a live value, inside a durable region (${region.provider.kind} '${region.provider.name}'). A live handle is produced by consuming it, so it cannot be recorded and replayed \u2014 the run will fail at this step with ERR_DURABLE_UNJOURNALABLE_VALUE. Collect what you need from it into a plain value inside the step, or move the streaming work outside the durable body.`,
+        message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', whose declared output holds a live value, inside a durable region (${region.provider.kind} '${region.provider.name}'). A live handle is produced by consuming it, so it cannot be recorded and replayed \u2014 the run will fail at this step with ERR_DURABLE_UNJOURNALABLE_VALUE. Collect what you need from it into a plain value inside the step, or move the streaming work outside the durable body.`,
         data: {
           resource: { kind: manifest.kind, name: manifest.metadata?.name },
           filePath: manifest.metadata?.source,
@@ -81418,17 +82245,10 @@ function checkUnjournalableResults(region, resolveDef, graph, reportModules, dia
 }
 function isLiveSchema(schema4) {
   if (!schema4 || typeof schema4 !== "object") return false;
-  const annotation = schema4["x-telo-type"];
-  const name2 = typeof annotation === "string" ? annotation : annotation?.name;
-  if (!name2) {
-    const inner = schema4.schema;
-    return inner !== void 0 && inner !== schema4 ? isLiveSchema(inner) : false;
-  }
-  return LIVE_TYPE_NAMES.has(name2);
+  const inner = schema4.schema;
+  const declared = inner && typeof inner === "object" && !("x-telo-type" in schema4) ? inner : schema4;
+  return liveValueIn(declared) !== void 0;
 }
-var LIVE_TYPE_NAMES = new Set(
-  [...VALUE_TYPES.values()].filter((e) => e.live).map((e) => e.name)
-);
 function celScopeOf(node, graph) {
   if (node.type === "resource") return [node.manifest, node.manifest, ""];
   const owner = graph.nodes.get(node.owner);
@@ -81531,15 +82351,22 @@ function validateZoneViolations(args) {
   return diagnostics;
 }
 function suspendingBackoff(raw) {
-  if (!raw || typeof raw !== "object") return false;
-  const policy = raw;
-  if (!Object.values(policy).every(isStaticValue)) return false;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return false;
+  const policy = decodePlainLiterals({ ...raw }, RetryPolicySchema);
+  if (policy.retryAfter !== void 0) return false;
+  if (!BACKOFF_FIELDS.every((field) => isStaticValue(field, policy[field]))) return false;
   const attempts = policy.attempts;
   if (typeof attempts !== "number" || attempts <= 0) return false;
   return retryBackoffMs(policy, attempts - 1) >= SUSPENDING_BACKOFF_MS;
 }
-function isStaticValue(value2) {
-  return value2 === void 0 || typeof value2 === "number" || typeof value2 === "string";
+var BACKOFF_FIELDS = ["attempts", "initialDelay", "delay", "factor", "maxDelay"];
+function isStaticValue(field, value2) {
+  if (value2 === void 0) return true;
+  if (field === "initialDelay" || field === "maxDelay") {
+    const ms = durationMs(value2);
+    return ms !== void 0 && ms >= 0;
+  }
+  return field === "delay" ? typeof value2 === "string" : typeof value2 === "number";
 }
 function owned2(manifest, reportModules) {
   const module = manifest.metadata?.module;
@@ -81745,7 +82572,7 @@ function validateZoneSlotDeclarations(definition) {
 
 // ../../analyzer/nodejs/src/validate-schema-projection.ts
 var PROJECTION = "x-telo-schema-projection";
-function isObject10(value2) {
+function isObject11(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 var PROJECTION_FROM2 = "x-telo-schema-projection-from";
@@ -81768,7 +82595,7 @@ function derivationIssues(manifest, kindDocument) {
       node.forEach((item, index) => visit4(item, `${path}[${index}]`, [...segments, index]));
       return;
     }
-    if (!isObject10(node)) return;
+    if (!isObject11(node)) return;
     for (const [key3, value2] of Object.entries(node)) {
       const at3 = path === "" ? key3 : `${path}.${key3}`;
       if (key3 === PROJECTION_FROM2) {
@@ -81800,7 +82627,7 @@ function projectionIssues(manifest) {
       )
     );
   }
-  if (!isObject10(raw)) {
+  if (!isObject11(raw)) {
     return [
       ...issues,
       issue(
@@ -81850,7 +82677,7 @@ function projectionIssues(manifest) {
   }
   const reference = raw.reference;
   if (reference !== void 0) {
-    if (!isObject10(reference)) {
+    if (!isObject11(reference)) {
       issues.push(
         issue(
           "SCHEMA_PROJECTION_INVALID",
@@ -81936,7 +82763,7 @@ function modifierDefaultProblems(schema4, projection) {
   return problems;
 }
 function isArrayCollection(collection) {
-  return !!collection && isObject10(collection.items) && !isObject10(collection.additionalProperties);
+  return !!collection && isObject11(collection.items) && !isObject11(collection.additionalProperties);
 }
 function nestedProblem(nested, schema4, projection) {
   if (nested === void 0) return void 0;
@@ -81970,7 +82797,7 @@ function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
 }
 
 // ../../analyzer/nodejs/src/validate-referrer-rules.ts
-function isObject11(value2) {
+function isObject12(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function validateReferrerRuleDeclarations(manifest, context = {}) {
@@ -81989,7 +82816,7 @@ function validateReferrerRuleDeclarations(manifest, context = {}) {
   const seen = /* @__PURE__ */ new Map();
   raw.forEach((entry2, index) => {
     const at3 = `${base}[${index}]`;
-    if (!isObject11(entry2)) {
+    if (!isObject12(entry2)) {
       issue(at3, "A rule must be an object with 'condition', 'code' and 'message'.");
       return;
     }
@@ -82046,6 +82873,7 @@ function validateReferrerRuleDeclarations(manifest, context = {}) {
       issue(`${at3}.condition`, UNTAGGED_CONDITION, untaggedConditionFix(condition));
     }
     validatePeersDeclaration(entry2, at3, issue, context);
+    validateCoReferrersDeclaration(entry2, at3, issue, context);
     validateResolveDeclaration(entry2, at3, issue, context);
     validateResolveSelfDeclaration(entry2, at3, issue, context);
     if (condition) {
@@ -82061,7 +82889,7 @@ function referrerRuleCallIssues(manifest, moduleNames, flagsOf) {
   if (!Array.isArray(raw)) return [];
   const issues = [];
   raw.forEach((entry2, index) => {
-    const condition = isObject11(entry2) ? celSourceOf(entry2.condition) : void 0;
+    const condition = isObject12(entry2) ? celSourceOf(entry2.condition) : void 0;
     if (!condition) return;
     for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
       issues.push({
@@ -82108,6 +82936,30 @@ function validatePeersDeclaration(entry2, at3, issue, context) {
     issue(
       `${at3}.peers`,
       `'${peers}' on '${entry2.referrer}' holds plain data \u2014 nothing in it is a reference, so no entry resolves to a declaration and the rule would run against values it cannot compare. Name a collection whose items are, or contain, a reference.`
+    );
+  }
+}
+function validateCoReferrersDeclaration(entry2, at3, issue, context) {
+  const { coReferrers } = entry2;
+  if (coReferrers === void 0) return;
+  if (typeof coReferrers !== "string" || pointerSegments2(coReferrers) === void 0 || coReferrers === "" || coReferrers === "/") {
+    issue(
+      `${at3}.coReferrers`,
+      "'coReferrers' is a JSON Pointer naming the reference slot of the REFERRER kind through which it reaches this resource (e.g. /table); the other declarations reaching it there bind as 'coReferrers'."
+    );
+    return;
+  }
+  if (typeof entry2.referrer !== "string" || entry2.referrer.length === 0) {
+    issue(
+      `${at3}.coReferrers`,
+      "'coReferrers' names a reference slot of the REFERRER, so the rule must also declare 'referrer:' \u2014 without a kind there is nothing to check the pointer against."
+    );
+    return;
+  }
+  if (context.referrerSlot?.(entry2.referrer, coReferrers) === "absent") {
+    issue(
+      `${at3}.coReferrers`,
+      `'${entry2.referrer}' declares no reference slot at '${coReferrers}'. The pointer must name the slot through which the referrer reaches this resource \u2014 one reference, not a collection \u2014 or no referrer ever matches and the rule never runs.`
     );
   }
 }
@@ -82163,6 +83015,8 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
   const findings = [];
   for (const rule of rules) {
     const perEntry = rule.peers !== void 0;
+    const coSlot = rule.coReferrers === void 0 ? void 0 : pointerToPath(rule.coReferrers);
+    const throughSlot = coSlot === void 0 ? [] : referrersThrough(rule, coSlot, referrers, kindMatches);
     const compiled2 = compileRuleCondition(rule.condition, context.moduleNames);
     if ("reason" in compiled2) {
       findings.push({ kind: "failed", rule, reason: compiled2.reason });
@@ -82179,6 +83033,7 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
         findings.push({ kind: "over-budget", rule, referrer, elapsedMs: elapsed });
         break;
       }
+      if (coSlot !== void 0 && referrer.path !== coSlot) continue;
       if (!perEntry) {
         if (seen.has(referrer.manifest)) continue;
         seen.add(referrer.manifest);
@@ -82209,6 +83064,14 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
         scope.peers = bound.binding.peers;
         scope.entry = bound.binding.entry;
       }
+      if (coSlot !== void 0) {
+        const bound = bindCoReferrers(referrer, throughSlot, context.peerBinder, coSlot);
+        if (!bound.ok) {
+          findings.push({ kind: "unbound", rule, referrer, failure: bound.failure });
+          continue;
+        }
+        scope.coReferrers = bound.values;
+      }
       const dynamic = findDynamicRead(chains, scope);
       if (dynamic !== void 0) {
         findings.push({ kind: "skipped", rule, referrer, dynamic });
@@ -82233,9 +83096,35 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
   }
   return findings;
 }
+function referrersThrough(rule, slot, referrers, kindMatches) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const referrer of referrers) {
+    if (referrer.path !== slot || seen.has(referrer.manifest)) continue;
+    if (rule.referrer !== void 0 && !kindMatches(rule.referrer, referrer.kind)) continue;
+    seen.add(referrer.manifest);
+    out.push(referrer);
+  }
+  return out;
+}
+function bindCoReferrers(referrer, throughSlot, binder, slot) {
+  if (!binder) return { ok: false, failure: { reason: "unknown-shape", at: slot } };
+  const values = [];
+  for (const other of throughSlot) {
+    if (other.manifest === referrer.manifest) continue;
+    const bound = binder.coReferrer(other.manifest, other.kind);
+    if (!bound.ok) return bound;
+    values.push(bound.value);
+  }
+  return { ok: true, values };
+}
 function referrerRuleExercised(rule, referrers, kindMatches, context = {}) {
   const matching = rule.referrer === void 0 ? referrers : referrers.filter((referrer) => kindMatches(rule.referrer, referrer.kind));
   if (matching.length === 0) return false;
+  if (rule.coReferrers !== void 0) {
+    const slot = pointerToPath(rule.coReferrers);
+    return matching.some((referrer) => referrer.path === slot);
+  }
   if (rule.peers === void 0) return true;
   const binder = context.peerBinder;
   if (!binder) return false;
@@ -82309,7 +83198,7 @@ function reportUnexercisedReferrerRule(definition, rule) {
   return {
     code: "REFERRER_RULE_UNEXERCISED",
     severity: "information",
-    message: rule.peers !== void 0 ? `Referrer rule '${rule.code}' never ran with peers to compare: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + ` references a resource of this kind while '${rule.peers}' held another declaration, so nothing has proven the condition. An empty peer set everywhere is what a typo in 'peers:' looks like from outside.` : `Referrer rule '${rule.code}' never ran: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + " references a resource of this kind, so nothing has proven the condition." + (rule.referrer === void 0 ? "" : " A 'referrer' naming a kind no manifest uses disables the rule in silence."),
+    message: rule.coReferrers !== void 0 ? `Referrer rule '${rule.code}' never ran: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + ` references a resource of this kind through '${rule.coReferrers}', so nothing has proven the condition.` : rule.peers !== void 0 ? `Referrer rule '${rule.code}' never ran with peers to compare: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + ` references a resource of this kind while '${rule.peers}' held another declaration, so nothing has proven the condition. An empty peer set everywhere is what a typo in 'peers:' looks like from outside.` : `Referrer rule '${rule.code}' never ran: nothing` + (rule.referrer === void 0 ? "" : ` of kind '${rule.referrer}'`) + " references a resource of this kind, so nothing has proven the condition." + (rule.referrer === void 0 ? "" : " A 'referrer' naming a kind no manifest uses disables the rule in silence."),
     manifest: definition,
     path: `schema.${REFERRER_RULES_ANNOTATION}[${rule.index}]`,
     rule: rule.code
@@ -82769,7 +83658,19 @@ function checkNode(node, manifest, path, issues) {
     }
   }
   const declared = new Set(slot.entry.parameters.map((p) => p.name));
+  const unreadBounds = new Set(valueTypeBoundsOf(slot).invalid);
   for (const argument of Object.keys(slot.args)) {
+    if (unreadBounds.has(argument)) {
+      const encoding = slot.entry.encoding === void 0 ? void 0 : PLAIN_ENCODINGS[slot.entry.encoding];
+      const integer3 = integerFormText(slot.entry);
+      issues.push({
+        code: "X_TELO_TYPE_ARGUMENT_INVALID",
+        manifest,
+        path,
+        message: `'${slot.entry.name}' parameter '${argument}' is a bound, written as a ${slot.entry.name} (${encoding?.form ?? "its plain encoding"}${integer3 ? `, or ${integer3}` : ""}), not ${JSON.stringify(slot.args[argument])}.`
+      });
+      continue;
+    }
     const parameter = slot.entry.parameters.find((p) => p.name === argument);
     if (parameter?.hostEntry) {
       const token = slot.args[argument];
@@ -84695,7 +85596,7 @@ function producedValueMisfits(value2, target, resolveRef2) {
     }
   }
 }
-var UNION_KEYS = ["anyOf", "oneOf"];
+var UNION_KEYS2 = ["anyOf", "oneOf"];
 function conjoined(schema4, resolveRef2, open = /* @__PURE__ */ new Set()) {
   if (!schema4 || typeof schema4 !== "object" || Array.isArray(schema4)) return schema4;
   let node = schema4;
@@ -84719,7 +85620,7 @@ function conjoined(schema4, resolveRef2, open = /* @__PURE__ */ new Set()) {
   if (out.additionalProperties && typeof out.additionalProperties === "object") {
     out.additionalProperties = walk7(out.additionalProperties);
   }
-  for (const key3 of UNION_KEYS) {
+  for (const key3 of UNION_KEYS2) {
     const branches = out[key3];
     if (!Array.isArray(branches)) continue;
     const { [key3]: _union, ...base } = out;
@@ -86246,13 +87147,13 @@ function validateOnFull(manifest, out) {
 function loggingBlocks(manifest) {
   const blocks = [];
   const root = manifest.logging;
-  if (isObject12(root)) blocks.push({ block: root, prefix: "logging." });
+  if (isObject13(root)) blocks.push({ block: root, prefix: "logging." });
   const imports = manifest.imports;
-  if (isObject12(imports)) {
+  if (isObject13(imports)) {
     for (const [alias, entry2] of Object.entries(imports)) {
-      if (!isObject12(entry2)) continue;
+      if (!isObject13(entry2)) continue;
       const block = entry2.logging;
-      if (isObject12(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
+      if (isObject13(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
     }
   }
   return blocks;
@@ -86264,7 +87165,7 @@ function isSinkKind(manifest, registry, aliases, aliasesByModule) {
   const canonical = resolver.resolveKind(manifest.kind) ?? manifest.kind;
   return registry.resolve(canonical)?.capability === "Telo.Sink";
 }
-function isObject12(value2) {
+function isObject13(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 
@@ -87134,7 +88035,7 @@ var FILE_KEYS = ["upstream", "member", "sha256", "executable"];
 var URL_ORIGIN = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
 var LOOPBACK_HOST = /^(localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[::1\])$/i;
 var SOURCE_ARCHIVE_FORMATS = ["tar.gz"];
-var isObject13 = (value2) => typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
+var isObject14 = (value2) => typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 function resolveLinkTarget(linkPath, target) {
   const dir = linkPath.includes("/") ? linkPath.slice(0, linkPath.lastIndexOf("/")) : "";
   if (target.startsWith("/") || target.startsWith("\\")) return void 0;
@@ -87170,7 +88071,7 @@ function readModuleSources(ownerJson, options = {}) {
   const problems = [];
   if (declared === void 0) return { sources, problems };
   const problem = (code, path, message) => problems.push({ code, path, message });
-  if (!isObject13(declared)) {
+  if (!isObject14(declared)) {
     problem("SHAPE", "sources", "sources: expected a map of source name to source.");
     return { sources, problems };
   }
@@ -87178,12 +88079,12 @@ function readModuleSources(ownerJson, options = {}) {
   for (const [name2, raw] of Object.entries(declared)) {
     const at3 = `sources.${name2}`;
     const label2 = `source '${name2}'`;
-    if (!isObject13(raw)) {
+    if (!isObject14(raw)) {
       problem("SHAPE", at3, `${label2}: expected an object.`);
       continue;
     }
     const build = raw.build;
-    if (typeof raw.version !== "string" || typeof raw.url !== "string" || !SOURCE_ARCHIVE_FORMATS.includes(raw.archive) || !Array.isArray(raw.notices) || raw.notices.length === 0 || raw.notices.some((notice) => typeof notice !== "string") || !isObject13(raw.entries) || build !== void 0 && (!isObject13(build) || typeof build.cargo !== "string" || !ignorePins && "inputs" in build && typeof build.inputs !== "string" || Object.keys(build).some((key3) => !BUILD_KEYS.includes(key3))) || Object.keys(raw).some((key3) => !SOURCE_KEYS.includes(key3))) {
+    if (typeof raw.version !== "string" || typeof raw.url !== "string" || !SOURCE_ARCHIVE_FORMATS.includes(raw.archive) || !Array.isArray(raw.notices) || raw.notices.length === 0 || raw.notices.some((notice) => typeof notice !== "string") || !isObject14(raw.entries) || build !== void 0 && (!isObject14(build) || typeof build.cargo !== "string" || !ignorePins && "inputs" in build && typeof build.inputs !== "string" || Object.keys(build).some((key3) => !BUILD_KEYS.includes(key3))) || Object.keys(raw).some((key3) => !SOURCE_KEYS.includes(key3))) {
       problem(
         "SHAPE",
         at3,
@@ -87232,7 +88133,7 @@ function readModuleSources(ownerJson, options = {}) {
       valid = false;
     });
     let readBuild;
-    if (isObject13(build)) {
+    if (isObject14(build)) {
       const written = build.cargo.trim();
       const verdict = /^\.?\/?$/.test(written) ? { path: "" } : normalizeNativePath(written);
       const inputs = ignorePins ? void 0 : build.inputs;
@@ -87284,7 +88185,7 @@ function readModuleSources(ownerJson, options = {}) {
       const entryLabel = `${label2} entry '${key3}'`;
       const path = pathOfKey.get(key3);
       if (path === void 0) continue;
-      if (!isObject13(value2)) {
+      if (!isObject14(value2)) {
         problem("SHAPE", entryAt, `${entryLabel}: expected an object.`);
         valid = false;
         continue;
@@ -89842,7 +90743,7 @@ var ZONE_ANNOTATIONS = [
   "x-telo-violates-zone"
 ];
 var TEMPLATE_BODY_KEYS = ["resources", "invoke", "run", "targets", "provide", "mount"];
-function isObject14(value2) {
+function isObject15(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 var SOURCE41 = "telo-analyzer";
@@ -89908,7 +90809,7 @@ function callableKindIssues(definition, resolve2) {
   const issues = [];
   const def = definition;
   const doc = definition;
-  const schema4 = isObject14(doc.schema) ? doc.schema : void 0;
+  const schema4 = isObject15(doc.schema) ? doc.schema : void 0;
   if (schema4) issues.push(...untypedCallableSlotIssues(schema4, "schema", def, resolve2));
   const parent = resolveParent(def, resolve2);
   if (typeof doc.extends === "string" && !parent && doc.capability === void 0) {
@@ -90020,7 +90921,7 @@ function determinismIssues(definition, def, doc, resolve2) {
     return issues;
   }
   if (declared !== true) return issues;
-  const schema4 = isObject14(doc.schema) ? doc.schema : void 0;
+  const schema4 = isObject15(doc.schema) ? doc.schema : void 0;
   if (definition.kind !== "Telo.Abstract" && schema4) {
     for (const [path, kinds] of callableSlotKinds(schema4, "schema", def, resolve2)) {
       const undetermined = kinds.filter((kind) => !requiresDeterminism(resolve2(kind, def), resolve2));
@@ -91154,6 +92055,88 @@ function schemaDrivesInvocables(schema4) {
   });
   return drives;
 }
+function collectCelStrings(value2, path) {
+  const out = [];
+  if (isTaggedSentinel(value2)) {
+    for (const expr of celExpressionsOf(value2.engine, value2.source)) {
+      out.push({ expr: expr.trim(), path });
+    }
+    return out;
+  }
+  if (Array.isArray(value2)) {
+    for (const [i, v] of value2.entries()) {
+      out.push(...collectCelStrings(v, `${path}[${i}]`));
+    }
+    return out;
+  }
+  if (value2 !== null && typeof value2 === "object") {
+    for (const [k, v] of Object.entries(value2)) {
+      out.push(...collectCelStrings(v, path ? `${path}.${k}` : k));
+    }
+  }
+  return out;
+}
+function checkCelChainAgainstDataSchema(entry2, dataSchema, resource, filePath, env, routing = resource) {
+  const parsed = env.parse(entry2.expr);
+  if (parsed.diagnostics.length > 0) return [];
+  const diagnostics = [];
+  for (const chain of extractAccessChains(parsed.root)) {
+    if (chain[0] !== "error" || chain[1] !== "data" || chain.length <= 2) continue;
+    const err = validateChainAgainstSchema(chain.slice(2), dataSchema);
+    if (err) {
+      diagnostics.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "CEL_UNKNOWN_FIELD",
+        source: SOURCE46,
+        message: `${resource.kind}/${resource.name}: CEL at '${entry2.path}': error.data.${err}`,
+        data: { resource: routing, filePath, path: entry2.path }
+      });
+    }
+  }
+  return diagnostics;
+}
+function checkRetriedDispatches(ladder, env, rootModules) {
+  const diagnostics = [];
+  for (const manifest of ladder.allManifests) {
+    if (!manifest.kind || !manifest.metadata?.name) continue;
+    const module = manifest.metadata.module;
+    if (module && rootModules.size > 0 && !rootModules.has(module)) continue;
+    if (isKindDocument(manifest)) continue;
+    const definition = ladder.definitionOf(manifest);
+    if (!definition?.schema) continue;
+    const enclosing = ladder.scopedBy.get(manifest);
+    const anchor = enclosing?.owner ?? manifest;
+    const pathPrefix = enclosing ? `${enclosing.path}.` : "";
+    const resource = { kind: manifest.kind, name: manifest.metadata.name };
+    const routing = enclosing ? { kind: anchor.kind, name: anchor.metadata.name } : resource;
+    const filePath = anchor.metadata?.source;
+    forEachRetriedDispatch(manifest, definition, ladder.resolveCtx, ({ policy, path, union: union2 }) => {
+      if (union2.unbounded) return;
+      const codes = union2.codes;
+      const at3 = `${pathPrefix}${path}`;
+      const nonRetryable = policy.nonRetryable;
+      if (Array.isArray(nonRetryable)) {
+        nonRetryable.forEach((code, i) => {
+          if (typeof code !== "string" || codes.has(code) || isAmbientContractErrorCode(code)) return;
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Warning,
+            code: "NON_RETRYABLE_CODE_NOT_THROWN",
+            source: SOURCE46,
+            message: `retry.nonRetryable names '${code}', which the retried dispatch cannot throw \u2014 its throw union is {${[...codes.keys()].sort().join(", ") || "\u2205"}}. A code nothing raises ends nothing, so the re-attempts it was meant to stop still happen.`,
+            data: { resource: routing, filePath, path: `${at3}.nonRetryable[${i}]` }
+          });
+        });
+      }
+      const schemas3 = [...codes.values()].map((meta) => meta.data).filter(Boolean);
+      if (policy.retryAfter === void 0 || schemas3.length === 0) return;
+      const dataSchema = intersectDataSchemas(schemas3);
+      for (const entry2 of collectCelStrings(policy.retryAfter, `${at3}.retryAfter`)) {
+        diagnostics.push(...checkCelChainAgainstDataSchema(entry2, dataSchema, resource, filePath, env, routing));
+      }
+    });
+  }
+  return diagnostics;
+}
 function validateThrowsCoverage(manifests, defs, aliases, env, aliasesByModule = /* @__PURE__ */ new Map(), rootModules = /* @__PURE__ */ new Set(), moduleManifests = /* @__PURE__ */ new Map(), built, bodyWroteWhole) {
   const diagnostics = [];
   diagnostics.push(...validateThrowsDeclarations(manifests));
@@ -91220,6 +92203,7 @@ function validateThrowsCoverage(manifests, defs, aliases, env, aliasesByModule =
     if (site.isScope) continue;
     diagnostics.push(...checkCoverage(site, union2, ladder, generatedKinds));
   }
+  diagnostics.push(...checkRetriedDispatches(ladder, env, rootModules));
   return diagnostics;
 }
 
@@ -95706,6 +96690,7 @@ var ANNOTATION_READS = {
   "x-telo-requires-zone": requiresZoneReads,
   // Judged by the `resourceRules` relation group, which declares what its rules read.
   "x-telo-resource-rules": READS_NOTHING,
+  "x-telo-retry-for": retryForReads,
   "x-telo-returns-from": returnsFromReads,
   "x-telo-schema-from": schemaFromReads,
   "x-telo-schema-map": READS_NOTHING,
@@ -95713,6 +96698,7 @@ var ANNOTATION_READS = {
   "x-telo-schema-projection-from": projectionFromReads,
   "x-telo-scope": scopeReads,
   "x-telo-sensitive": READS_NOTHING,
+  "x-telo-serializable": serializableReads,
   "x-telo-span-attribute": READS_NOTHING,
   "x-telo-step-context": READS_NOTHING,
   "x-telo-text-context": READS_NOTHING,
@@ -101600,6 +102586,20 @@ function ownSchemaChecks(world, m, declared) {
   );
   const issues = [...ajvIssues, ...valueSchemaIssues];
   if (!ownModule || rootModules.has(ownModule)) {
+    for (const problem of serializableProblems(
+      projected,
+      m,
+      (value2) => world.valueSchemaHost.typeSchemaOf(value2, m),
+      (ref) => defs.schemaForId(ref)
+    )) {
+      push4({
+        severity: DiagnosticSeverity2.Error,
+        code: "SCHEMA_NOT_SERIALIZABLE",
+        source: SOURCE52,
+        message: `${m.kind}/${resource.name}: ${problem.message}`,
+        data: { resource, filePath, path: pointerToPath(problem.pointer) }
+      });
+    }
     for (const diagnostic2 of moduleFileEntryMismatches(m, (path) => navigateSchemaToExprPath(projected, path))) {
       push4(diagnostic2);
     }
@@ -104330,6 +105330,32 @@ var StaticAnalyzer = class {
       if (!ownModule || rootModules.has(ownModule)) {
         refConstraintIssues.push(...issues);
         refSlotIssues.push(...validateRefSlotDeclarations(m));
+        for (const problem of serializableAnnotationProblems(def.schema)) {
+          scopeSlotDiagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "SERIALIZABLE_ANNOTATION_INVALID",
+            source: SOURCE52,
+            message: problem.message,
+            data: {
+              resource: { kind: m.kind, name: def.metadata?.name },
+              filePath: def.metadata?.source,
+              path: pointerToPath(`/schema${problem.pointer}`)
+            }
+          });
+        }
+        for (const problem of retryForProblems(def)) {
+          scopeSlotDiagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "RETRY_FOR_INVALID",
+            source: SOURCE52,
+            message: problem.message,
+            data: {
+              resource: { kind: m.kind, name: def.metadata?.name },
+              filePath: def.metadata?.source,
+              path: problem.path
+            }
+          });
+        }
         for (const problem of scopeSlotProblems(def)) {
           scopeSlotDiagnostics.push({
             severity: DiagnosticSeverity2.Error,
@@ -104457,6 +105483,7 @@ var StaticAnalyzer = class {
     }
     const peersTarget = analyzerPeersTarget(defs);
     const referrerDeclares = analyzerReferrerDeclares(defs);
+    const referrerSlot = analyzerReferrerSlot(defs);
     const kindSchemas = analyzerKindSchemas(defs);
     const ruleShapes = (ref, module) => defs.namedShapeAt(ref, module, moduleAliasScope({ module }, aliases, aliasesByModule));
     const inheritedRules = (declarer) => {
@@ -104511,6 +105538,7 @@ var StaticAnalyzer = class {
           ...validateReferrerRuleDeclarations(declarer, {
             peersTarget,
             referrerDeclares,
+            referrerSlot,
             selfDeclares: (pointer) => rulePointerReaches(
               effectiveAuthorSchema(declarer, (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k)),
               pointer,
@@ -108863,6 +109891,17 @@ var TELO_SCHEMA_ANNOTATIONS = {
     title: "Match for",
     description: "This field holds a JSON Schema matched against the value an accessor field names: a JSON Pointer, relative to the object enclosing this field, to that `x-telo-eval: accessor` field. A schema that can never hold for the accessor's type is refused.",
     type: "string"
+  },
+  "x-telo-retry-for": {
+    title: "Retry for",
+    description: "The retry policy at this field re-attempts the dispatch through one of this kind's own reference slots: `slot` is a JSON Pointer to that top-level field, and `codes` lists the codes the kind raises into the loop itself, each with a `description` and an optional `data` schema. `telo check` then judges `nonRetryable` and types `retryAfter`'s `error` against that dispatch's throws plus these codes, as it does a step's own retry.",
+    type: "object"
+  },
+  "x-telo-serializable": {
+    title: "Serializable",
+    description: "On a slot holding a shape (a reference slot with `use: schema`, or a JSON-Schema-valued field): values of that shape are stored or serialized, so it may hold no live value at any depth. A shape holding one is refused where the resource names it, and when the resource is created. Only `true`.",
+    type: "boolean",
+    const: true
   },
   "x-telo-catches-for": {
     title: "Catches for",
