@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.132.0+unreleased";
+var TELO_ENGINE_VERSION = "0.132.0";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -28197,7 +28197,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.132.0+unreleased";
+var ENGINE_VERSION = "0.132.0";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -69463,7 +69463,7 @@ function emitStepEdges(node, ctx) {
       path: `${node.path}.${key3}`,
       use
     };
-    const target = ctx.resolveName(targetName);
+    const target = ctx.resolveName(targetName, written);
     if (target) edge.to = target.id;
     if (unresolved) edge.unresolved = unresolved;
     if (unresolvedReason) edge.unresolvedReason = unresolvedReason;
@@ -69579,16 +69579,17 @@ function buildCallGraph(resources, registry, options = {}) {
   }
   const topLevel2 = [...nodes.values()];
   const names = new ScopedNameResolver(topLevel2, NODE_READING);
-  const instanceThrough = (value2, source, name2) => {
+  const instanceThrough = (value2, source) => {
     const sentinel = refSentinelTarget2(value2);
     const alias = sentinel ? sentinel.alias : value2?.alias;
-    const target = sentinel ? sentinel.name : name2;
+    const target = sentinel ? sentinel.name : value2?.name;
+    if (typeof target !== "string") return void 0;
     if (typeof alias !== "string" || alias === "Self") return void 0;
     const module = moduleAliasScope(source.metadata, options.aliases, options.aliasesByModule)?.moduleForAlias(alias);
     if (!module) return void 0;
     const declared = names.declarationsOf(target).filter((n) => declaringModule(n.manifest) === module);
     if (declared.length === 0) return void 0;
-    if (declared.length === 1) return sentinel ? declared[0] : void 0;
+    if (declared.length === 1) return declared[0];
     return names.inModule(target, module, importPathThrough(source, alias));
   };
   const ownInstance = (source, found) => {
@@ -69621,7 +69622,10 @@ function buildCallGraph(resources, registry, options = {}) {
     if (collected.length > 0) stepsByOwner.set(node.id, collected);
   };
   for (const node of topLevel2) {
-    collectStepsFor(node, (name2) => names.resolve(name2, declaringModule(node.manifest)));
+    collectStepsFor(
+      node,
+      (name2, written) => instanceThrough(written, node.manifest) ?? names.resolve(name2, declaringModule(node.manifest))
+    );
   }
   const rescopeStepEdges = (ownerId, holder, scopes, module) => {
     for (const [key3, edge] of stepEdgesByPath) {
@@ -69692,7 +69696,10 @@ function buildCallGraph(resources, registry, options = {}) {
         if (entry2.callsCoReferrers) edge.callsCoReferrers = entry2.callsCoReferrers;
         edges.push(edge);
       }
-      collectStepsFor(node, (name2) => names.resolve(name2, module, site));
+      collectStepsFor(
+        node,
+        (name2, written) => instanceThrough(written, view) ?? names.resolve(name2, module, site)
+      );
       if (declareScopedMembers(node.id, address, ownScopes, module)) {
         rescopeStepEdges(node.id, address, ownScopes, module);
       }
@@ -69737,7 +69744,7 @@ function buildCallGraph(resources, registry, options = {}) {
           use
         };
         const found = names.locate(targetName, declaringModule(event.source), event.within);
-        const instance = instanceThrough(event.value, event.source, targetName) ?? ownInstance(event.source, found?.declaration);
+        const instance = instanceThrough(event.value, event.source) ?? ownInstance(event.source, found?.declaration);
         if (instance) edge.to = instance.id;
         else if (found) edge.to = found.declaration.id;
         if (unresolved) edge.unresolved = unresolved;
@@ -69976,7 +69983,8 @@ function referenceAlias(value2) {
 function refTargetName(value2) {
   const sentinel = refSentinelTarget2(value2);
   if (sentinel) return sentinel.indexes.length > 0 ? sentinel.name : sentinel.source;
-  return isResolvedReference(value2) ? value2.name : void 0;
+  if (!isResolvedReference(value2)) return void 0;
+  return value2.alias !== void 0 && value2.alias !== "Self" ? `${value2.alias}.${value2.name}` : value2.name;
 }
 function projectToPairs(graph, options = {}) {
   const out = /* @__PURE__ */ new Map();
@@ -99263,12 +99271,13 @@ var CelJudge = class {
           });
           continue;
         }
-        if (part !== "site" && reported && !sibling && !w.runReachable.has(read.name)) {
+        const startName = read.alias ? `${read.alias}.${read.name}` : read.name;
+        if (part !== "site" && reported && !sibling && !w.runReachable.has(startName)) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "OBSERVED_STATE_NEVER_RUN",
             source: SOURCE51,
-            message: `${m.kind}/${resource.name}: '${read.name}' reports '${read.field ?? OBSERVED_STATE_KEY}' only while it is running, and nothing starts it. Add '!ref ${read.name}' to a targets: list, or invoke it from a step.`,
+            message: `${m.kind}/${resource.name}: '${startName}' reports '${read.field ?? OBSERVED_STATE_KEY}' only while it is running, and nothing starts it. Add '!ref ${startName}' to a targets: list, or invoke it from a step.`,
             data: { resource, filePath, path }
           });
         }
