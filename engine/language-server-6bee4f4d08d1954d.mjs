@@ -4296,13 +4296,13 @@ var init_main = __esm({
       WorkspaceSymbol2.create = create;
     })(WorkspaceSymbol || (WorkspaceSymbol = {}));
     (function(DocumentSymbol2) {
-      function create(name2, detail, kind, range, selectionRange, children) {
+      function create(name2, detail, kind, range, selectionRange2, children) {
         const result = {
           name: name2,
           detail,
           kind,
           range,
-          selectionRange
+          selectionRange: selectionRange2
         };
         if (children !== void 0) {
           result.children = children;
@@ -4791,8 +4791,8 @@ var init_main = __esm({
         return value2 !== null && typeof value2 === "object";
       }
       Is2.objectLiteral = objectLiteral;
-      function typedArray(value2, check2) {
-        return Array.isArray(value2) && value2.every(check2);
+      function typedArray(value2, check) {
+        return Array.isArray(value2) && value2.every(check);
       }
       Is2.typedArray = typedArray;
     })(Is || (Is = {}));
@@ -4917,8 +4917,8 @@ var require_is2 = __commonJS({
     function stringArray(value2) {
       return array(value2) && value2.every((elem) => string2(elem));
     }
-    function typedArray(value2, check2) {
-      return Array.isArray(value2) && value2.every(check2);
+    function typedArray(value2, check) {
+      return Array.isArray(value2) && value2.every(check);
     }
     function objectLiteral(value2) {
       return value2 !== null && typeof value2 === "object";
@@ -7523,8 +7523,8 @@ var require_is3 = __commonJS({
     function stringArray(value2) {
       return array(value2) && value2.every((elem) => string2(elem));
     }
-    function typedArray(value2, check2) {
-      return Array.isArray(value2) && value2.every(check2);
+    function typedArray(value2, check) {
+      return Array.isArray(value2) && value2.every(check);
     }
     function thenable(value2) {
       return value2 && func(value2.then);
@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.132.0";
+var TELO_ENGINE_VERSION = "0.133.0";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -17737,6 +17737,9 @@ function stringPrefix(text3) {
   if (lower === "br") return { raw: true, bytes: true };
   return void 0;
 }
+function isLineBreak(ch) {
+  return ch === "\n" || ch === "\r";
+}
 function isSpace(ch) {
   return ch === " " || ch === "	" || ch === "\n" || ch === "\r" || ch === "\f" || ch === "\v";
 }
@@ -17821,7 +17824,7 @@ var Lexer = class {
    */
   readQuotedIdentifier(start) {
     const close = this.source.indexOf("`", start + 1);
-    if (close === -1 || this.source.slice(start + 1, close).includes("\n")) {
+    if (close === -1 || /[\n\r]/.test(this.source.slice(start + 1, close))) {
       this.diagnostics.report(
         "unterminated_string",
         "a quoted member name ends at its closing backtick",
@@ -17952,7 +17955,7 @@ var Lexer = class {
   }
   /**
    * A raw literal: a backslash takes the next character with it, both kept as written —
-   * except a line feed in a single-line literal, which ends it.
+   * except a line break in a single-line literal, which ends it.
    */
   scanRaw(from, terminator, triple, bytes3) {
     const source = this.source;
@@ -17961,8 +17964,8 @@ var Lexer = class {
     while (at3 < source.length) {
       if (source.startsWith(terminator, at3)) return { units, end: at3 + terminator.length };
       const ch = source[at3];
-      if (!triple && ch === "\n") break;
-      if (ch === "\\" && at3 + 1 < source.length && (triple || source[at3 + 1] !== "\n")) {
+      if (!triple && isLineBreak(ch)) break;
+      if (ch === "\\" && at3 + 1 < source.length && (triple || !isLineBreak(source[at3 + 1]))) {
         units.push(92);
         at3 += 1 + this.literalCharacter(at3 + 1, bytes3, units);
         continue;
@@ -17992,7 +17995,7 @@ var Lexer = class {
     while (at3 < source.length) {
       if (source.startsWith(terminator, at3)) return { units, end: at3 + terminator.length };
       const ch = source[at3];
-      if (!triple && ch === "\n") break;
+      if (!triple && isLineBreak(ch)) break;
       if (ch !== "\\") {
         at3 += this.literalCharacter(at3, bytes3, units);
         continue;
@@ -18144,6 +18147,36 @@ function textOf(units) {
     text3 += String.fromCharCode(...units.slice(at3, at3 + 4096));
   }
   return text3;
+}
+function quotedLiteralEnd(source, quoteAt) {
+  const quote = source[quoteAt];
+  if (quote === "`") {
+    const close = source.indexOf("`", quoteAt + 1);
+    if (close === -1 || /[\n\r]/.test(source.slice(quoteAt + 1, close))) return void 0;
+    return close + 1;
+  }
+  if (quote !== "'" && quote !== '"') {
+    throw new Error(`quotedLiteralEnd: offset ${quoteAt} holds no quote`);
+  }
+  let wordStart = quoteAt;
+  while (wordStart > 0 && isIdentPart(source[wordStart - 1])) wordStart -= 1;
+  const raw = stringPrefix(source.slice(wordStart, quoteAt))?.raw ?? false;
+  const triple = source.slice(quoteAt, quoteAt + 3) === quote.repeat(3);
+  const terminator = triple ? quote.repeat(3) : quote;
+  let at3 = quoteAt + terminator.length;
+  while (at3 < source.length) {
+    if (source.startsWith(terminator, at3)) return at3 + terminator.length;
+    const ch = source[at3];
+    if (!triple && isLineBreak(ch)) return void 0;
+    if (ch !== "\\") {
+      at3 += 1;
+    } else if (raw && (at3 + 1 >= source.length || !triple && isLineBreak(source[at3 + 1]))) {
+      at3 += 1;
+    } else {
+      at3 += 2;
+    }
+  }
+  return void 0;
 }
 function tokenize(source) {
   const diagnostics = new FirstSyntaxDiagnostic();
@@ -18887,7 +18920,7 @@ function memberName(text3, what) {
 }
 function fieldName(text3, quoted4) {
   if (!quoted4 && isIdentifierSpelling(text3)) return text3;
-  if (text3.includes("`") || text3.includes("\n") || text3 === "") {
+  if (text3.includes("`") || text3.includes("\n") || text3.includes("\r") || text3 === "") {
     throw new CelSerializeError(`${JSON.stringify(text3)} cannot be written as a member name`);
   }
   return `\`${text3}\``;
@@ -22467,7 +22500,7 @@ var makeOnePass = (p) => {
   const visitQueue = new QueueOnePass(p.inst.length);
   const onePassRunes = new Array(p.inst.length);
   const m = new Array(p.inst.length).fill(false);
-  const check2 = (pc) => {
+  const check = (pc) => {
     let ok = true;
     const inst = p.inst[pc];
     if (visitQueue.contains(pc)) return true;
@@ -22475,7 +22508,7 @@ var makeOnePass = (p) => {
     switch (inst.op) {
       case Inst.ALT:
       case Inst.ALT_MATCH: {
-        ok = check2(inst.out) && check2(inst.arg);
+        ok = check(inst.out) && check(inst.arg);
         let matchOut = m[inst.out];
         let matchArg = m[inst.arg];
         if (matchOut && matchArg) return false;
@@ -22500,7 +22533,7 @@ var makeOnePass = (p) => {
       case Inst.CAPTURE:
       case Inst.EMPTY_WIDTH:
       case Inst.NOP:
-        ok = check2(inst.out);
+        ok = check(inst.out);
         m[pc] = m[inst.out];
         onePassRunes[pc] = onePassRunes[inst.out] ? onePassRunes[inst.out].slice() : [];
         inst.next = new Uint32Array(Math.floor(onePassRunes[pc].length / 2) + 1).fill(inst.out);
@@ -22572,7 +22605,7 @@ var makeOnePass = (p) => {
   instQueue.insert(p.start);
   while (!instQueue.empty()) {
     visitQueue.clear();
-    if (!check2(instQueue.next())) return null;
+    if (!check(instQueue.next())) return null;
   }
   for (let i = 0; i < p.inst.length; i++) if (onePassRunes[i]) p.inst[i].runes = onePassRunes[i];
   return p;
@@ -27375,7 +27408,7 @@ var BY_NAME = /* @__PURE__ */ new Map([
   [">=", ordering((compared) => compared >= 0)],
   ["type", (ctx, a) => celTypeValueOf(value(a), ctx.range)]
 ]);
-function ordering(holds) {
+function ordering(holds2) {
   return (ctx, a, b) => {
     const compared = celCompare(value(a), value(b));
     if (compared === void 0) {
@@ -27386,7 +27419,7 @@ function ordering(holds) {
         ctx.range
       );
     }
-    return holds(compared);
+    return holds2(compared);
   };
 }
 function isNotANumber(value2) {
@@ -28197,7 +28230,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.132.0";
+var ENGINE_VERSION = "0.133.0";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -29827,10 +29860,10 @@ var Checker = class {
    * call as it was written, which is the one thing a reader needs to find it.
    */
   checkLiteralArguments(node, resolved) {
-    const check2 = resolved.metadata.checkArguments;
-    if (check2 === void 0) return;
+    const check = resolved.metadata.checkArguments;
+    if (check === void 0) return;
     const written = node.kind === "receiverCall" ? [node.receiver, ...node.args] : node.args;
-    const refusal = check2(
+    const refusal = check(
       written.map((argument) => argument.kind === "literal" ? literalValue(argument.literal) : void 0)
     );
     if (refusal === void 0) return;
@@ -30020,9 +30053,9 @@ function isNullTest(args) {
   const isNull = (type) => type.kind === "primitive" && type.name === "null";
   return isNull(left) && admitsNull(right) || isNull(right) && admitsNull(left);
 }
-function presenceBranches(union2, holds, presence) {
+function presenceBranches(union2, holds2, presence) {
   if (!presence) return union2.members;
-  const holding2 = union2.members.filter(holds);
+  const holding2 = union2.members.filter(holds2);
   return holding2.length > 0 ? holding2 : union2.members;
 }
 function holdsMembers(type) {
@@ -33370,8 +33403,8 @@ function functionCatalog() {
 function registerFunctionCatalog(environment2, options = {}) {
   const handlers = options.handlers ?? {};
   for (const entry2 of DATA2.functions) {
-    const check2 = entry2.checksLiteralArguments ? catalogLiteralCheck(entry2.name) : void 0;
-    if (entry2.checksLiteralArguments && check2 === void 0) {
+    const check = entry2.checksLiteralArguments ? catalogLiteralCheck(entry2.name) : void 0;
+    if (entry2.checksLiteralArguments && check === void 0) {
       throw new Error(
         `the catalog declares that ${entry2.name} checks its literal arguments, and no guard answers for it`
       );
@@ -33388,7 +33421,7 @@ function registerFunctionCatalog(environment2, options = {}) {
         hostBacked: entry2.hostBacked,
         description: entry2.summary,
         origin: "function-catalog",
-        ...check2 === void 0 ? {} : { checkArguments: check2 }
+        ...check === void 0 ? {} : { checkArguments: check }
       });
     }
   }
@@ -34548,7 +34581,7 @@ var telo_duration_default = {
 
 // ../../sdk/nodejs/src/value-types/entries/telo-host-path.json
 var telo_host_path_default = {
-  $comment: "A nominal brand over `string`: CEL types a host path as `Telo.HostPath`, so `+` does not quietly turn one into a plain string and a plain string is not accepted where one is required. It is extended with `.joinPath(relative)` and read as text with `string(path)`. `fromHost` names the anchor a host-supplied value (an env var, or the `default:` standing in for one) is resolved against; every other value of this type must already be absolute. The `entry` parameter is found by its `hostEntry` flag, never by its name: its argument is a token (`file` | `directory`) saying what the path names when something is there, each runtime mapping it to its own filesystem query.",
+  $comment: "A nominal brand over `string`: CEL types a host path as `Telo.HostPath`, so `+` does not quietly turn one into a plain string and a plain string is not accepted where one is required. It is extended with `.joinPath(relative)` and read as text with `string(path)`. `fromHost` names the anchor a host-supplied value (an env var, or the `default:` standing in for one) is resolved against; every other value of this type must already be absolute. The `entry` parameter is found by its `hostEntry` flag, never by its name: its argument is a token (`file` | `directory`) saying what the path names when something is there, each runtime mapping it to its own filesystem query. The `mediaType` parameter is found by its `hostMediaType` flag: its argument is a key of its `signatures`, each a list of alternative hex patterns read from the file's first byte (`??` any byte).",
   name: "Telo.HostPath",
   representation: "json",
   base: "string",
@@ -34558,6 +34591,18 @@ var telo_host_path_default = {
       name: "entry",
       hostEntry: true,
       description: "What the path names when something is there: `directory`, or `file` (anything that is not a directory; links are followed). Omitted means either. An absent path is never refused by it \u2014 a database file or a journal directory is created by whatever uses it."
+    },
+    {
+      name: "mediaType",
+      hostMediaType: true,
+      signatures: {
+        "application/pdf": ["255044462d"],
+        "image/gif": ["474946383761", "474946383961"],
+        "image/jpeg": ["ffd8ff"],
+        "image/png": ["89504e470d0a1a0a"],
+        "image/webp": ["52494646????????57454250"]
+      },
+      description: "The media type of the file the path names, judged by its leading bytes: `image/png`, `image/jpeg`, `image/gif`, `image/webp` or `application/pdf`. A directory there does not hold one. Omitted means any. An absent path is never refused by it."
     }
   ],
   description: "An absolute path on the machine running the application \u2014 a data directory, a database file, an output location. A variable of this type set from the environment may be relative and is resolved against the working directory; anywhere else a relative path is refused. Extend one with `.joinPath('sub/dir')`, which uses the host's separator. A file that ships with the module is written with `!module-path` instead."
@@ -34825,7 +34870,7 @@ function readParameters(file, raw) {
       throw new ValueTypeEntryError(file, `parameters[${i}] must be a mapping`);
     }
     for (const key3 of Object.keys(entry2)) {
-      if (key3 !== "name" && key3 !== "description" && key3 !== "element" && key3 !== "member" && key3 !== "hostEntry" && key3 !== "bound") {
+      if (key3 !== "name" && key3 !== "description" && key3 !== "element" && key3 !== "member" && key3 !== "hostEntry" && key3 !== "hostMediaType" && key3 !== "signatures" && key3 !== "bound") {
         throw new ValueTypeEntryError(file, `parameters[${i}] has no key '${key3}'`);
       }
     }
@@ -34834,6 +34879,12 @@ function readParameters(file, raw) {
     }
     if (entry2.hostEntry !== void 0 && typeof entry2.hostEntry !== "boolean") {
       throw new ValueTypeEntryError(file, `parameters[${i}].hostEntry must be a boolean when present`);
+    }
+    if (entry2.hostMediaType !== void 0 && typeof entry2.hostMediaType !== "boolean") {
+      throw new ValueTypeEntryError(file, `parameters[${i}].hostMediaType must be a boolean when present`);
+    }
+    if (entry2.hostMediaType === true !== (entry2.signatures !== void 0)) {
+      throw new ValueTypeEntryError(file, `parameters[${i}] declares 'signatures' exactly when it declares 'hostMediaType'`);
     }
     if (entry2.bound !== void 0 && !VALUE_TYPE_BOUNDS.includes(entry2.bound)) {
       throw new ValueTypeEntryError(
@@ -34848,6 +34899,7 @@ function readParameters(file, raw) {
       ...entry2.bound === void 0 ? {} : { bound: entry2.bound },
       ...entry2.member === void 0 ? {} : { member: requireString(file, entry2, "member") },
       ...entry2.hostEntry === true ? { hostEntry: true } : {},
+      ...entry2.hostMediaType === true ? { hostMediaType: true, signatures: readSignatures(file, i, entry2.signatures) } : {},
       ...entry2.description === void 0 ? {} : { description: requireString(file, entry2, "description") }
     };
   });
@@ -34857,12 +34909,47 @@ function readParameters(file, raw) {
   if (params.filter((p) => p.hostEntry).length > 1) {
     throw new ValueTypeEntryError(file, "at most one parameter may declare 'hostEntry'");
   }
+  if (params.filter((p) => p.hostMediaType).length > 1) {
+    throw new ValueTypeEntryError(file, "at most one parameter may declare 'hostMediaType'");
+  }
   for (const bound of VALUE_TYPE_BOUNDS) {
     if (params.filter((p) => p.bound === bound).length > 1) {
       throw new ValueTypeEntryError(file, `at most one parameter may declare 'bound: ${bound}'`);
     }
   }
   return params;
+}
+var MEDIA_TYPE_TOKEN = /^[a-z0-9][a-z0-9!#$&^_.+-]*\/[a-z0-9][a-z0-9!#$&^_.+-]*$/;
+var SIGNATURE_PATTERN = /^(?:[0-9a-f]{2}|\?\?)+$/;
+function readSignatures(file, i, raw) {
+  const at3 = `parameters[${i}].signatures`;
+  if (!isPlainObject(raw) || Object.keys(raw).length === 0) {
+    throw new ValueTypeEntryError(file, `${at3} must be a non-empty mapping of media types to signatures`);
+  }
+  const out = {};
+  for (const [mediaType, patterns] of Object.entries(raw)) {
+    if (!MEDIA_TYPE_TOKEN.test(mediaType)) {
+      throw new ValueTypeEntryError(file, `${at3} key '${mediaType}' is not a lower-case media type (type/subtype)`);
+    }
+    if (!Array.isArray(patterns) || patterns.length === 0) {
+      throw new ValueTypeEntryError(file, `${at3}.${mediaType} must be a non-empty sequence of signatures`);
+    }
+    out[mediaType] = patterns.map((pattern2) => {
+      if (typeof pattern2 !== "string" || !SIGNATURE_PATTERN.test(pattern2) || /^(?:\?\?)+$/.test(pattern2)) {
+        throw new ValueTypeEntryError(
+          file,
+          `${at3}.${mediaType} signature ${JSON.stringify(pattern2)} must be lower-case hex byte pairs, '??' for any byte, at least one byte fixed`
+        );
+      }
+      const bytes3 = [];
+      for (let k = 0; k < pattern2.length; k += 2) {
+        const pair = pattern2.slice(k, k + 2);
+        bytes3.push(pair === "??" ? null : parseInt(pair, 16));
+      }
+      return bytes3;
+    });
+  }
+  return out;
 }
 function parseValueTypeEntry(file, data) {
   if (!isPlainObject(data)) throw new ValueTypeEntryError(file, "an entry must be a mapping");
@@ -34958,6 +35045,9 @@ function parseValueTypeEntry(file, data) {
   const parameters = readParameters(file, data.parameters);
   if (parameters.some((p) => p.hostEntry) && data.fromHost === void 0) {
     throw new ValueTypeEntryError(file, "'hostEntry' belongs to a parameter of a type declaring 'fromHost'");
+  }
+  if (parameters.some((p) => p.hostMediaType) && data.fromHost === void 0) {
+    throw new ValueTypeEntryError(file, "'hostMediaType' belongs to a parameter of a type declaring 'fromHost'");
   }
   if (parameters.some((p) => p.bound !== void 0) && (representation !== "instance" || data.live === true || data.encoding === void 0)) {
     throw new ValueTypeEntryError(
@@ -35093,7 +35183,7 @@ function readValueTypeSlot(schema4) {
     const args = {};
     for (const [key3, value2] of Object.entries(raw)) {
       if (key3 === "name") continue;
-      if (entry2?.parameters.some((p) => (p.hostEntry || p.bound) && p.name === key3)) {
+      if (entry2?.parameters.some((p) => (p.hostEntry || p.hostMediaType || p.bound) && p.name === key3)) {
         args[key3] = value2;
         continue;
       }
@@ -35111,6 +35201,34 @@ function hostEntryOf(schema4) {
   const parameter = hostEntryParameter(slot);
   const token = parameter ? slot.args[parameter.name] : void 0;
   return HOST_ENTRY_KINDS.includes(token) ? token : void 0;
+}
+function hostMediaTypeParameter(slot) {
+  return slot?.entry?.parameters.find((p) => p.hostMediaType);
+}
+function hostMediaTypeOf(schema4) {
+  const slot = readValueTypeSlot(schema4);
+  const parameter = hostMediaTypeParameter(slot);
+  const token = parameter ? slot.args[parameter.name] : void 0;
+  return typeof token === "string" && Object.hasOwn(parameter.signatures, token) ? token : void 0;
+}
+var HOST_MEDIA_HEAD_LENGTH = Math.max(
+  0,
+  ...[...VALUE_TYPES.values()].flatMap(
+    (entry2) => entry2.parameters.flatMap((p) => Object.values(p.signatures ?? {}).flat().map((signature) => signature.length))
+  )
+);
+function carries(head, signatures) {
+  return signatures.some(
+    (signature) => head.length >= signature.length && signature.every((byte, i) => byte === null || head[i] === byte)
+  );
+}
+function hostMediaTypeMismatch(schema4, head) {
+  const declared = hostMediaTypeOf(schema4);
+  if (declared === void 0) return void 0;
+  const signatures = hostMediaTypeParameter(readValueTypeSlot(schema4)).signatures;
+  if (carries(head, signatures[declared])) return void 0;
+  const found = Object.keys(signatures).find((mediaType) => carries(head, signatures[mediaType]));
+  return { declared, found };
 }
 function valueTypeOf(schema4) {
   return readValueTypeSlot(schema4)?.entry;
@@ -35758,6 +35876,9 @@ function plainScalar(value2) {
   return void 0;
 }
 
+// ../../sdk/nodejs/src/controller-frame.ts
+var encoder3 = new TextEncoder();
+
 // ../../sdk/nodejs/src/zone-attributes/entries/atomic.json
 var atomic_default = {
   $comment: "Distinct from `idempotent`, and the exactly-once machinery reads the difference literally: per-step journaling is safe inside a transaction PRECISELY because a rollback erases the journal's own entries too. A region that rolls nothing back has no such property, so it declares `idempotent` instead \u2014 borrowing this name there would let a journal's attestation relax collapse and record entries for effects that will re-run.",
@@ -36337,6 +36458,9 @@ var BUILTIN_DOCUMENT_FILES = [
         "requires": {
           "$ref": "telo://manifest#/$defs/Requires"
         },
+        "restrictions": {
+          "$ref": "telo://manifest#/$defs/Restrictions"
+        },
         "lang": {
           "title": "Language",
           "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
@@ -36614,6 +36738,92 @@ var BUILTIN_DOCUMENT_FILES = [
       },
       "additionalProperties": false
     }
+  }],
+  ["DesktopHost.json", {
+    "kind": "Telo.NeedType",
+    "metadata": {
+      "name": "DesktopHost",
+      "description": "The desktop shell an application runs inside: native windows, a tray icon and a quit command for a web application, with an identity (application id, product name, icon) and the local port its windows show. Reached over a private local control channel the host opens."
+    },
+    "fields": {
+      "endpoint": {
+        "description": "The host's control channel: a local socket, `unix:` on Linux and macOS, `npipe:` on Windows.",
+        "x-telo-type": {
+          "name": "Telo.Url",
+          "scheme": {
+            "enum": [
+              "unix",
+              "npipe"
+            ]
+          },
+          "user": {
+            "not": {}
+          },
+          "password": {
+            "not": {}
+          }
+        }
+      },
+      "token": {
+        "type": "string",
+        "minLength": 1,
+        "x-telo-sensitive": true,
+        "description": "The secret the application presents to the host on the control channel."
+      }
+    },
+    "required": [
+      "endpoint",
+      "token"
+    ],
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "identifier": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9-]*(\\.[A-Za-z][A-Za-z0-9-]*)+$",
+          "description": "The application's reverse-DNS identifier (`run.telo.hello`)."
+        },
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The name a person sees: window titles, the menu bar and the installed application."
+        },
+        "icon": {
+          "type": "string",
+          "x-telo-type": {
+            "name": "Telo.HostPath",
+            "entry": "file",
+            "mediaType": "image/png"
+          },
+          "description": "The application icon, a PNG file of the module written `!module-path`."
+        },
+        "port": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The key of the root's `ports:` the windows show, a `tcp` port."
+        },
+        "showInDock": {
+          "type": "boolean",
+          "default": true,
+          "description": "`false` gives a macOS application no Dock icon and no app menu, for one that lives in the menu bar. Other platforms ignore it."
+        },
+        "callbackPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "App-relative paths an external identity provider returns to (`/auth/callback`), each starting with `/` and holding no query or fragment."
+        }
+      },
+      "required": [
+        "identifier",
+        "productName"
+      ],
+      "additionalProperties": false
+    },
+    "supply": "root",
+    "unique": true
   }],
   ["DurableDirectory.json", {
     "kind": "Telo.NeedType",
@@ -37089,6 +37299,9 @@ var BUILTIN_DOCUMENT_FILES = [
         "requires": {
           "$ref": "telo://manifest#/$defs/Requires"
         },
+        "restrictions": {
+          "$ref": "telo://manifest#/$defs/Restrictions"
+        },
         "lang": {
           "title": "Language",
           "description": "The language this module's own texts are written in, as an RFC 5646 language tag. A plural source text is selected with this language's plural rules; a module without it writes in `und`, whose only category is `other`.",
@@ -37168,7 +37381,7 @@ var BUILTIN_DOCUMENT_FILES = [
     "kind": "Telo.Definition",
     "metadata": {
       "name": "NeedType",
-      "description": "Declares a type of dependency a module can ask whoever runs it for \u2014 a database, a credential, a public address \u2014 as the fields a fulfilment hands over, which are required, the parameters a request may state, and whether fulfilments are versioned, carry features or must come from the root."
+      "description": "Declares a type of dependency a module can ask whoever runs it for \u2014 a database, a credential, a public address \u2014 as the fields a fulfilment hands over, which are required, the parameters a request may state, and whether fulfilments are versioned, carry features, must come from the root or are asked for at most once per module."
     },
     "capability": "Telo.Template",
     "schema": {
@@ -37211,7 +37424,7 @@ var BUILTIN_DOCUMENT_FILES = [
         },
         "parameters": {
           "title": "Parameters",
-          "description": "JSON Schema of the literal parameters a need of this type may state.",
+          "description": "JSON Schema of the parameters a need of this type may state. Each is a literal, or a `!module-path` where the parameter is a `Telo.HostPath`.",
           "$ref": "telo://manifest#/$defs/JsonSchema7"
         },
         "version": {
@@ -37237,12 +37450,64 @@ var BUILTIN_DOCUMENT_FILES = [
           "enum": [
             "root"
           ]
+        },
+        "unique": {
+          "title": "Unique",
+          "description": "`true` when a module declares at most one need of this type.",
+          "type": "boolean"
         }
       },
       "required": [
         "metadata",
         "fields"
       ],
+      "additionalProperties": false
+    }
+  }],
+  ["OpenUrl.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "OpenUrl",
+      "description": "Hands a web address to the machine running the application so it can be opened in a browser: a freshly started server's start page, a sign-in consent page. The call returns at once with no result, never waits for or fails on a browser, and the address is always written to the log."
+    },
+    "capability": "Telo.Invocable",
+    "inputType": {
+      "kind": "Telo.JsonSchema",
+      "schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "x-telo-type": {
+              "name": "Telo.Url",
+              "scheme": {
+                "enum": [
+                  "http",
+                  "https"
+                ]
+              },
+              "user": {
+                "not": {}
+              },
+              "password": {
+                "not": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "outputType": {
+      "kind": "Telo.JsonSchema",
+      "schema": {
+        "type": "null"
+      }
+    },
+    "schema": {
+      "type": "object",
       "additionalProperties": false
     }
   }],
@@ -39118,6 +39383,30 @@ var BUILTIN_FRAGMENT_FILES = [
         "additionalProperties": true
       }
     ]
+  }],
+  ["Restrictions", {
+    "title": "Restrictions",
+    "description": "Runtime requirements found after a version was measured, each with the reason whoever is held back is shown. An entry narrows the runtime range of the versions it covers: without `versions` only this one, with `versions` the listed earlier versions through this one.",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "versions": {
+          "title": "Versions",
+          "description": "The module versions the entry covers, as `>=` / `>` / `<=` / `<` comparators; a range with no upper bound runs through this version. Absent, the entry covers only this version.",
+          "type": "string"
+        },
+        "requires": {
+          "$ref": "telo://manifest#/$defs/Requires"
+        },
+        "reason": {
+          "title": "Reason",
+          "description": "What breaks outside the range, shown to whoever the entry holds back.",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
   }],
   ["RetryAttempts", {
     "title": "Retry attempts",
@@ -41120,7 +41409,7 @@ function localTarget(root, ref) {
   }
   return node;
 }
-function kindPlaces(referent, holds) {
+function kindPlaces(referent, holds2) {
   const out = [];
   const add = (keys) => {
     if (out.some((held) => held.length <= keys.length && held.every((key3, i) => key3 === keys[i]))) return;
@@ -41142,7 +41431,7 @@ function kindPlaces(referent, holds) {
     const known = reaching.get(node);
     if (known !== void 0) return known;
     seen.add(node);
-    let found = holds(node);
+    let found = holds2(node);
     const target = found ? void 0 : resolved(node, document);
     if (target) found = reaches(target.node, target.document, seen);
     const children = [];
@@ -41157,7 +41446,7 @@ function kindPlaces(referent, holds) {
   const walk7 = (node, document, keys, seen) => {
     if (!isSchema(node) || seen.has(node)) return;
     const guard = new Set(seen).add(node);
-    if (holds(node)) {
+    if (holds2(node)) {
       add(keys);
       return;
     }
@@ -41828,8 +42117,8 @@ function closingOffset(source, from) {
   let i = from;
   while (i < source.length) {
     const c = source[i];
-    if (c === "'" || c === '"') {
-      const after = skipString(source, i);
+    if (c === "'" || c === '"' || c === "`") {
+      const after = quotedLiteralEnd(source, i);
       if (after === void 0) return void 0;
       i = after;
       continue;
@@ -41842,29 +42131,6 @@ function closingOffset(source, from) {
     i++;
   }
   return void 0;
-}
-function skipString(source, quoteAt) {
-  const quote = source[quoteAt];
-  const raw = /[rR]/.test(literalPrefix(source, quoteAt));
-  const triple = source.startsWith(quote.repeat(3), quoteAt);
-  const delimiter = triple ? quote.repeat(3) : quote;
-  let i = quoteAt + delimiter.length;
-  while (i < source.length) {
-    if (!raw && source[i] === "\\") {
-      i += 2;
-      continue;
-    }
-    if (!triple && source[i] === "\n") return void 0;
-    if (source.startsWith(delimiter, i)) return i + delimiter.length;
-    i++;
-  }
-  return void 0;
-}
-function literalPrefix(source, quoteAt) {
-  let i = quoteAt;
-  while (i > 0 && quoteAt - i < 2 && /[rRbB]/.test(source[i - 1])) i--;
-  if (i > 0 && /[A-Za-z0-9_]/.test(source[i - 1])) return "";
-  return source.slice(i, quoteAt);
 }
 
 // ../../templating/nodejs/src/cel/analyze.ts
@@ -42253,7 +42519,7 @@ function chainFailureAgainstSchema(chain, schema4) {
   }
   return null;
 }
-function alternativesOf(nodes, walked, holds) {
+function alternativesOf(nodes, walked, holds2) {
   const out = [];
   const visit4 = (raw, depth) => {
     if (depth > 32) return false;
@@ -42266,7 +42532,7 @@ function alternativesOf(nodes, walked, holds) {
       }
       return true;
     }
-    if (holds(node)) out.push(node);
+    if (holds2(node)) out.push(node);
     return true;
   };
   for (const node of nodes) if (!visit4(node, 0)) return void 0;
@@ -42479,6 +42745,9 @@ var INCLUDE_ENGINE_NAMES = /* @__PURE__ */ new Set([
   INCLUDE_TEXT_ENGINE,
   INCLUDE_BYTES_ENGINE
 ]);
+function isModulePathSentinel(v) {
+  return isTaggedSentinel(v) && v.engine === MODULE_PATH_ENGINE;
+}
 var MODULE_FILE_ENGINE_NAMES = /* @__PURE__ */ new Set([
   INCLUDE_TEXT_ENGINE,
   INCLUDE_BYTES_ENGINE,
@@ -42905,10 +43174,12 @@ function stringConversion(env) {
   return conversion;
 }
 function runtimeTypeOf(value2) {
-  if (value2 === null || value2 === void 0) return "null";
-  if (Array.isArray(value2)) return "a list";
-  if (isCelMap(value2) || isCelRecord(value2)) return "a map";
-  return `a value of type ${value2.constructor?.name ?? typeof value2}`;
+  const name2 = celTypeNameOf(value2);
+  if (name2 === void 0) return "a value outside the CEL value domain";
+  if (name2 === "null_type") return "null";
+  if (name2 === "list") return "a list";
+  if (name2 === "map") return "a map";
+  return `a value of type ${typeValueName(name2)}`;
 }
 
 // ../../templating/nodejs/src/engines/literal.ts
@@ -49539,8 +49810,8 @@ function localRefName(value2) {
 // ../../analyzer/nodejs/src/resource-input.ts
 var INJECTED = "xTeloInjected";
 var OPTIONAL_INPUT = "xTeloOptionalInput";
-function readResourceInputs(moduleDoc2) {
-  const raw = moduleDoc2?.resources;
+function readResourceInputs(moduleDoc3) {
+  const raw = moduleDoc3?.resources;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
   const out = [];
   for (const [name2, value2] of Object.entries(raw)) {
@@ -49568,10 +49839,10 @@ function isInjectedDeclaration(manifest) {
 function isOptionalResourceInput(manifest) {
   return isInjectedDeclaration(manifest) && manifest?.metadata?.[OPTIONAL_INPUT] === true;
 }
-function injectedDeclarations(moduleDoc2, ownModule) {
-  const inputs = readResourceInputs(moduleDoc2);
+function injectedDeclarations(moduleDoc3, ownModule) {
+  const inputs = readResourceInputs(moduleDoc3);
   if (inputs.length === 0) return [];
-  const meta = moduleDoc2.metadata;
+  const meta = moduleDoc3.metadata;
   return inputs.map((input) => ({
     kind: input.kind,
     metadata: {
@@ -49584,8 +49855,8 @@ function injectedDeclarations(moduleDoc2, ownModule) {
     }
   }));
 }
-function readLibraryLifecycle(moduleDoc2) {
-  const doc = moduleDoc2;
+function readLibraryLifecycle(moduleDoc3) {
+  const doc = moduleDoc3;
   if (doc?.kind !== "Telo.Library") return "isolated";
   return doc.lifecycle === "shared" ? "shared" : "isolated";
 }
@@ -49617,7 +49888,8 @@ function readNeedTypeShape(doc) {
     ...parameters ? { parameters } : {},
     ...record.version === "semver" ? { version: "semver" } : {},
     ...features ? { features } : {},
-    ...record.supply === "root" ? { supply: "root" } : {}
+    ...record.supply === "root" ? { supply: "root" } : {},
+    ...record.unique === true ? { unique: true } : {}
   };
 }
 function needTypeDefinition(doc) {
@@ -49700,8 +49972,8 @@ function isTextFieldSchema(schema4) {
   }
   return false;
 }
-function readNeeds(moduleDoc2) {
-  const raw = moduleDoc2?.needs;
+function readNeeds(moduleDoc3) {
+  const raw = moduleDoc3?.needs;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return [];
   const out = [];
   for (const [name2, value2] of Object.entries(raw)) {
@@ -49722,6 +49994,12 @@ function readNeeds(moduleDoc2) {
     });
   }
   return out;
+}
+function needParametersPaths(moduleDoc3) {
+  return readNeeds(moduleDoc3).filter((need) => need.parameters !== void 0).map((need) => `needs.${need.name}.parameters`);
+}
+function isAtOrBeneathPath(path, paths) {
+  return paths.some((p) => path === p || path.startsWith(`${p}.`) || path.startsWith(`${p}[`));
 }
 function readEnvBindings(raw) {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return void 0;
@@ -49747,10 +50025,10 @@ function needSupplyOf(value2) {
   return { form: "invalid" };
 }
 var INJECTED_NEED = "xTeloNeed";
-function injectedNeedDeclarations(moduleDoc2, ownModule) {
-  const needs = readNeeds(moduleDoc2);
+function injectedNeedDeclarations(moduleDoc3, ownModule) {
+  const needs = readNeeds(moduleDoc3);
   if (needs.length === 0) return [];
-  const meta = moduleDoc2.metadata;
+  const meta = moduleDoc3.metadata;
   return needs.map((need) => ({
     kind: need.kind,
     metadata: {
@@ -51274,71 +51552,71 @@ function deepEquals(a, b) {
   }
   return false;
 }
-function requireStringList(describe7, raw, key3) {
+function requireStringList(describe8, raw, key3) {
   const value2 = raw[key3];
   if (!Array.isArray(value2) || value2.length === 0 || value2.some((v) => typeof v !== "string")) {
-    throw new Error(`${describe7}: 'match.${key3}' must be a non-empty sequence of strings`);
+    throw new Error(`${describe8}: 'match.${key3}' must be a non-empty sequence of strings`);
   }
   return value2;
 }
-function readMigrationMatch(describe7, raw, surface = "core") {
-  if (!isPlainObject8(raw)) throw new Error(`${describe7}: 'match' must be a mapping`);
+function readMigrationMatch(describe8, raw, surface = "core") {
+  if (!isPlainObject8(raw)) throw new Error(`${describe8}: 'match' must be a mapping`);
   for (const key3 of Object.keys(raw)) {
     if (!MATCH_KEYS.includes(key3)) {
       throw new Error(
-        `${describe7}: 'match' has no key '${key3}'. Known keys: ${MATCH_KEYS.join(", ")}.`
+        `${describe8}: 'match' has no key '${key3}'. Known keys: ${MATCH_KEYS.join(", ")}.`
       );
     }
   }
   const bySelector = Object.hasOwn(raw, "key") ? "key" : Object.hasOwn(raw, "scalar") ? "scalar" : void 0;
   if (bySelector === void 0 || Object.hasOwn(raw, "key") && Object.hasOwn(raw, "scalar")) {
-    throw new Error(`${describe7}: 'match' takes exactly one of 'key' or 'scalar'`);
+    throw new Error(`${describe8}: 'match' takes exactly one of 'key' or 'scalar'`);
   }
   if (bySelector === "key" && (typeof raw.key !== "string" || raw.key.length === 0)) {
-    throw new Error(`${describe7}: 'match.key' must be a non-empty string`);
+    throw new Error(`${describe8}: 'match.key' must be a non-empty string`);
   }
   if (bySelector === "scalar") {
     if (!SCALAR_SHAPES.includes(raw.scalar)) {
       throw new Error(
-        `${describe7}: 'match.scalar' must be one of ${SCALAR_SHAPES.join(", ")}`
+        `${describe8}: 'match.scalar' must be one of ${SCALAR_SHAPES.join(", ")}`
       );
     }
     for (const key3 of ["value", "valueOneOf", "valuePattern", "valueNotPattern", "withSibling"]) {
       if (Object.hasOwn(raw, key3)) {
-        throw new Error(`${describe7}: 'match.${key3}' does not apply to a 'scalar' rule`);
+        throw new Error(`${describe8}: 'match.${key3}' does not apply to a 'scalar' rule`);
       }
     }
   }
   if (Object.hasOwn(raw, "value") && Object.hasOwn(raw, "valueOneOf")) {
-    throw new Error(`${describe7}: 'match' takes at most one of 'value' or 'valueOneOf'`);
+    throw new Error(`${describe8}: 'match' takes at most one of 'value' or 'valueOneOf'`);
   }
   if (Object.hasOwn(raw, "valueOneOf") && !Array.isArray(raw.valueOneOf)) {
-    throw new Error(`${describe7}: 'match.valueOneOf' must be a sequence`);
+    throw new Error(`${describe8}: 'match.valueOneOf' must be a sequence`);
   }
   for (const key3 of ["valuePattern", "valueNotPattern"]) {
     if (!Object.hasOwn(raw, key3)) continue;
     if (Object.hasOwn(raw, "value") || Object.hasOwn(raw, "valueOneOf")) {
-      throw new Error(`${describe7}: 'match.${key3}' does not combine with 'value' / 'valueOneOf'`);
+      throw new Error(`${describe8}: 'match.${key3}' does not combine with 'value' / 'valueOneOf'`);
     }
-    readValuePattern(`${describe7}: 'match.${key3}'`, raw[key3]);
+    readValuePattern(`${describe8}: 'match.${key3}'`, raw[key3]);
   }
   if (Object.hasOwn(raw, "withSibling") && typeof raw.withSibling !== "string") {
-    throw new Error(`${describe7}: 'match.withSibling' must be a string`);
+    throw new Error(`${describe8}: 'match.withSibling' must be a string`);
   }
   if (Object.hasOwn(raw, "notUnder") && (!Array.isArray(raw.notUnder) || raw.notUnder.some((k) => typeof k !== "string"))) {
-    throw new Error(`${describe7}: 'match.notUnder' must be a sequence of strings`);
+    throw new Error(`${describe8}: 'match.notUnder' must be a sequence of strings`);
   }
   if (Object.hasOwn(raw, "inSchema") && typeof raw.inSchema !== "boolean") {
-    throw new Error(`${describe7}: 'match.inSchema' must be a boolean`);
+    throw new Error(`${describe8}: 'match.inSchema' must be a boolean`);
   }
   if (Object.hasOwn(raw, "withoutKey") && (typeof raw.withoutKey !== "string" || raw.withoutKey.length === 0)) {
-    throw new Error(`${describe7}: 'match.withoutKey' must be a non-empty string`);
+    throw new Error(`${describe8}: 'match.withoutKey' must be a non-empty string`);
   }
   if (Object.hasOwn(raw, "ancestor")) {
     if (bySelector !== "key") {
-      throw new Error(`${describe7}: 'match.ancestor' applies only to a 'key' rule`);
+      throw new Error(`${describe8}: 'match.ancestor' applies only to a 'key' rule`);
     }
-    readAncestor(describe7, raw.ancestor, raw.key);
+    readAncestor(describe8, raw.ancestor, raw.key);
   }
   const wildcards = [
     ...Array.isArray(raw.inKind) ? raw.inKind : [],
@@ -51347,25 +51625,25 @@ function readMigrationMatch(describe7, raw, surface = "core") {
   if (wildcards.length > 0 && bySelector === "scalar") {
     if (surface !== "core") {
       throw new Error(
-        `${describe7}: a module's migration may not reach '${MATCH_ANY}' \u2014 it names only kinds it owns`
+        `${describe8}: a module's migration may not reach '${MATCH_ANY}' \u2014 it names only kinds it owns`
       );
     }
   } else if (wildcards.length > 0) {
     if (raw.inSchema !== true) {
       throw new Error(
-        `${describe7}: 'match.inKind' / 'match.under' may only be '${MATCH_ANY}' together with 'inSchema: true' \u2014 the schema region is what bounds a walk the wildcard unbounds`
+        `${describe8}: 'match.inKind' / 'match.under' may only be '${MATCH_ANY}' together with 'inSchema: true' \u2014 the schema region is what bounds a walk the wildcard unbounds`
       );
     }
     if (!raw.key.startsWith("x-telo-")) {
       throw new Error(
-        `${describe7}: '${MATCH_ANY}' is legal only for a rule keyed on an 'x-telo-*' annotation, which is Telo vocabulary wherever it appears \u2014 '${raw.key}' could mean something else inside a resource's own configuration`
+        `${describe8}: '${MATCH_ANY}' is legal only for a rule keyed on an 'x-telo-*' annotation, which is Telo vocabulary wherever it appears \u2014 '${raw.key}' could mean something else inside a resource's own configuration`
       );
     }
   }
   const match = {
     ...bySelector === "key" ? { key: raw.key } : { scalar: raw.scalar },
-    inKind: requireStringList(describe7, raw, "inKind"),
-    under: requireStringList(describe7, raw, "under")
+    inKind: requireStringList(describe8, raw, "inKind"),
+    under: requireStringList(describe8, raw, "under")
   };
   if (Object.hasOwn(raw, "value")) match.value = raw.value;
   if (Object.hasOwn(raw, "valueOneOf")) match.valueOneOf = raw.valueOneOf;
@@ -51374,33 +51652,33 @@ function readMigrationMatch(describe7, raw, surface = "core") {
   if (Object.hasOwn(raw, "withSibling")) match.withSibling = raw.withSibling;
   if (Object.hasOwn(raw, "notUnder")) match.notUnder = raw.notUnder;
   if (raw.inSchema === true) match.inSchema = true;
-  if (Object.hasOwn(raw, "ancestor")) match.ancestor = readAncestor(describe7, raw.ancestor, raw.key);
+  if (Object.hasOwn(raw, "ancestor")) match.ancestor = readAncestor(describe8, raw.ancestor, raw.key);
   if (Object.hasOwn(raw, "withoutKey")) match.withoutKey = raw.withoutKey;
   return match;
 }
 var ANCESTOR_KEYS = ["path", "key", "value"];
-function readAncestor(describe7, raw, matchedKey) {
-  if (!isPlainObject8(raw)) throw new Error(`${describe7}: 'match.ancestor' must be a mapping`);
+function readAncestor(describe8, raw, matchedKey) {
+  if (!isPlainObject8(raw)) throw new Error(`${describe8}: 'match.ancestor' must be a mapping`);
   for (const key3 of Object.keys(raw)) {
     if (!ANCESTOR_KEYS.includes(key3)) {
       throw new Error(
-        `${describe7}: 'match.ancestor' has no key '${key3}'. Known keys: ${ANCESTOR_KEYS.join(", ")}.`
+        `${describe8}: 'match.ancestor' has no key '${key3}'. Known keys: ${ANCESTOR_KEYS.join(", ")}.`
       );
     }
   }
   const path = raw.path;
   if (!Array.isArray(path) || path.length === 0 || path.some((s) => typeof s !== "string" || s.length === 0)) {
-    throw new Error(`${describe7}: 'match.ancestor.path' must be a non-empty sequence of keys`);
+    throw new Error(`${describe8}: 'match.ancestor.path' must be a non-empty sequence of keys`);
   }
   if (path[path.length - 1] !== matchedKey) {
-    throw new Error(`${describe7}: 'match.ancestor.path' must end at the matched key '${matchedKey}'`);
+    throw new Error(`${describe8}: 'match.ancestor.path' must end at the matched key '${matchedKey}'`);
   }
   if (typeof raw.key !== "string" || raw.key.length === 0) {
-    throw new Error(`${describe7}: 'match.ancestor.key' must be a non-empty string`);
+    throw new Error(`${describe8}: 'match.ancestor.key' must be a non-empty string`);
   }
   const value2 = raw.value;
   if (!(value2 === null || ["string", "number", "boolean"].includes(typeof value2))) {
-    throw new Error(`${describe7}: 'match.ancestor.value' must be a scalar`);
+    throw new Error(`${describe8}: 'match.ancestor.value' must be a scalar`);
   }
   return { path, key: raw.key, value: value2 };
 }
@@ -51507,20 +51785,20 @@ function fullMatch(pattern2, value2) {
   }
   return compiled2.test(value2);
 }
-function readValuePattern(describe7, raw) {
+function readValuePattern(describe8, raw) {
   if (typeof raw !== "string" || raw.length === 0) {
-    throw new Error(`${describe7} must be a non-empty string`);
+    throw new Error(`${describe8} must be a non-empty string`);
   }
   const refusal = outsideRe2Subset(raw);
   if (refusal) {
     throw new Error(
-      `${describe7} uses ${refusal}, which is outside the RE2 subset every runtime's migration reader accepts \u2014 no lookaround, no backreferences`
+      `${describe8} uses ${refusal}, which is outside the RE2 subset every runtime's migration reader accepts \u2014 no lookaround, no backreferences`
     );
   }
   try {
     new RegExp(`^(?:${raw})$`, "u");
   } catch (err) {
-    throw new Error(`${describe7} is not a valid pattern: ${err instanceof Error ? err.message : err}`);
+    throw new Error(`${describe8} is not a valid pattern: ${err instanceof Error ? err.message : err}`);
   }
 }
 function outsideRe2Subset(pattern2) {
@@ -54588,17 +54866,17 @@ function valueTypeKeyword(options = {}) {
       if (entry2.live && !options.assertLive) return;
       const binding = VALUE_TYPE_BINDINGS[entry2.binding];
       if (!binding) return;
-      const holds = cxt.gen.scopeValue("func", {
+      const holds2 = cxt.gen.scopeValue("func", {
         ref: binding.holds,
         code: codegen`require("@telorun/sdk").VALUE_TYPE_BINDINGS[${entry2.binding}].holds`
       });
       const bound = boundMemberArguments(entry2, cxt.schema);
       const { bounds } = valueTypeBoundsOf(readValueTypeSlot({ [X_TELO_TYPE]: cxt.schema }));
       if (bound.length === 0 && bounds.length === 0) {
-        cxt.pass(codegen`${holds}(${cxt.data})`);
+        cxt.pass(codegen`${holds2}(${cxt.data})`);
         return;
       }
-      const valid = cxt.gen.let("valid", codegen`${holds}(${cxt.data})`);
+      const valid = cxt.gen.let("valid", codegen`${holds2}(${cxt.data})`);
       if (bounds.length > 0) {
         const holdsBound = cxt.gen.scopeValue("func", {
           ref: valueTypeBoundHolds,
@@ -54771,7 +55049,7 @@ function compare(rawSource, rawTarget, path, conflicts, resolveRef2, seen, roles
       const sourceArg = sourceType.args[argument];
       if (sourceArg === void 0) continue;
       if (targetType.entry?.parameters.some((p) => p.bound && p.name === argument)) continue;
-      if (targetType.entry?.parameters.some((p) => p.hostEntry && p.name === argument)) {
+      if (targetType.entry?.parameters.some((p) => (p.hostEntry || p.hostMediaType) && p.name === argument)) {
         if (sourceArg !== targetArg) {
           conflicts.push({
             message: `${path}<${argument}>: ${roles.source} names a ${JSON.stringify(sourceArg)}, ${roles.target} expects a ${JSON.stringify(targetArg)}`,
@@ -54990,14 +55268,14 @@ function celTypeSatisfiesJsonSchema(celType, schema4) {
   const branches = valueTypeOf(schema4) === void 0 ? unionBranches(schema4) : void 0;
   if (branches) return branches.some((branch) => celTypeSatisfiesJsonSchema(celType, branch));
   if (!celBaseTypeSatisfies(name2, schema4)) return false;
-  const holds = (part, slot) => part === void 0 || part === "dyn" || !slot || typeof slot !== "object" || Array.isArray(slot) || typeof slot.$ref === "string" || celTypeSatisfiesJsonSchema(part, slot);
-  if (name2 === "list") return holds(args[0], schema4.items);
+  const holds2 = (part, slot) => part === void 0 || part === "dyn" || !slot || typeof slot !== "object" || Array.isArray(slot) || typeof slot.$ref === "string" || celTypeSatisfiesJsonSchema(part, slot);
+  if (name2 === "list") return holds2(args[0], schema4.items);
   if (name2 === "map") {
     const value2 = args[1];
-    if (!holds(value2, schema4.additionalProperties)) return false;
+    if (!holds2(value2, schema4.additionalProperties)) return false;
     const required = Array.isArray(schema4.required) ? schema4.required : [];
     return required.every(
-      (key3) => typeof key3 !== "string" || declaresOwnDefault(schema4.properties?.[key3]) || holds(value2, schema4.properties?.[key3])
+      (key3) => typeof key3 !== "string" || declaresOwnDefault(schema4.properties?.[key3]) || holds2(value2, schema4.properties?.[key3])
     );
   }
   return true;
@@ -55148,6 +55426,10 @@ function membersPlaceholder(schema4) {
   const members2 = { ...base };
   for (const parameter of slot.entry.parameters) {
     if (parameter.member === void 0 || slot.args[parameter.name] === void 0) continue;
+    if (memberForbidden(slot, parameter.member)) {
+      delete members2[parameter.member];
+      continue;
+    }
     members2[parameter.member] = celPlaceholderForSchema(memberSlotSchema(slot, parameter.member));
   }
   const built = slot.codec.compose(members2);
@@ -55536,9 +55818,9 @@ var referenceBeneath = /* @__PURE__ */ new WeakMap();
 function holdsReference(node) {
   const known = referenceBeneath.get(node);
   if (known !== void 0) return known;
-  const holds = typeof node.$ref === "string" || childSchemas(node).some(holdsReference);
-  referenceBeneath.set(node, holds);
-  return holds;
+  const holds2 = typeof node.$ref === "string" || childSchemas(node).some(holdsReference);
+  referenceBeneath.set(node, holds2);
+  return holds2;
 }
 var besideReference = (node) => Object.fromEntries(Object.entries(node).filter(([key3]) => !REFERENCE_KEYS.has(key3)));
 function referenced(node, root, external) {
@@ -55599,7 +55881,7 @@ function shapeNamedBy(schema4, root, external) {
 var CHAIN_SEGMENT = /^([a-zA-Z_][a-zA-Z0-9_]*)((?:\[\d+\])*)$/;
 var declaredFor = (node, hop) => hop === void 0 ? node.items : node.properties?.[hop];
 function cannotHold(node, hop) {
-  const holds = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema3(value2);
+  const holds2 = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema3(value2);
   const entry2 = valueTypeOf(node);
   if (entry2?.representation === "instance") return true;
   const container = hop === void 0 ? "array" : "object";
@@ -55607,8 +55889,8 @@ function cannotHold(node, hop) {
   if (typeof type === "string" ? type !== container : Array.isArray(type) && !type.includes(container)) {
     return true;
   }
-  if ("const" in node && !holds(node.const)) return true;
-  if (Array.isArray(node.enum) && !node.enum.some(holds)) return true;
+  if ("const" in node && !holds2(node.const)) return true;
+  if (Array.isArray(node.enum) && !node.enum.some(holds2)) return true;
   return hop !== void 0 && node.additionalProperties === false && node.patternProperties === void 0 && !(isSchema3(node.properties) && Object.hasOwn(node.properties, hop));
 }
 var DeclaredSet = class {
@@ -56126,17 +56408,17 @@ function baseNames(moduleName2) {
   if (moduleName2) names.add(moduleName2);
   return names;
 }
-function inlineImportAliases(moduleDoc2) {
-  const imports = moduleDoc2?.imports;
+function inlineImportAliases(moduleDoc3) {
+  const imports = moduleDoc3?.imports;
   return imports !== null && typeof imports === "object" && !Array.isArray(imports) ? Object.keys(imports) : [];
 }
 function moduleCallNamesOfFile(manifests, inherited) {
-  const moduleDoc2 = manifests.find((m) => m && isModuleKind(m.kind));
-  if (!moduleDoc2) return inherited ?? baseNames();
+  const moduleDoc3 = manifests.find((m) => m && isModuleKind(m.kind));
+  if (!moduleDoc3) return inherited ?? baseNames();
   const names = baseNames(
-    typeof moduleDoc2.metadata?.name === "string" ? moduleDoc2.metadata.name : void 0
+    typeof moduleDoc3.metadata?.name === "string" ? moduleDoc3.metadata.name : void 0
   );
-  for (const alias of inlineImportAliases(moduleDoc2)) names.add(alias);
+  for (const alias of inlineImportAliases(moduleDoc3)) names.add(alias);
   for (const m of manifests) {
     const alias = m?.kind === "Telo.Import" ? m.metadata?.name : void 0;
     if (typeof alias === "string" && alias) names.add(alias);
@@ -59123,23 +59405,23 @@ function compileDefaultCondition(condition) {
   if (!isObject5(condition)) return { error: "an 'if' is a JSON Schema: an object or a boolean" };
   const cached = compiledConditions.get(condition);
   if (cached) return cached;
-  let check2;
+  let check;
   try {
     const validate2 = (conditionAjv ??= createAjv()).compile(condition);
-    check2 = (entry2) => validate2(entry2) === true;
+    check = (entry2) => validate2(entry2) === true;
   } catch (error) {
-    check2 = { error: error instanceof Error ? error.message : String(error) };
+    check = { error: error instanceof Error ? error.message : String(error) };
   }
-  compiledConditions.set(condition, check2);
-  return check2;
+  compiledConditions.set(condition, check);
+  return check;
 }
 function applicableDefault(sites, entry2) {
   if (!sites || sites.length !== 1) return void 0;
   const [site] = sites;
   if (site.kind === "field") return site.value;
-  const check2 = compileDefaultCondition(site.condition);
-  if (typeof check2 !== "function") return void 0;
-  return (check2(entry2) ? site.then : site.else)?.value;
+  const check = compileDefaultCondition(site.condition);
+  if (typeof check !== "function") return void 0;
+  return (check(entry2) ? site.then : site.else)?.value;
 }
 function modifierDefaultSitesOf(projection, kindSchema) {
   const sites = {};
@@ -59860,12 +60142,12 @@ function carriesAnnotation(schema4) {
   const known = annotationCarriers.get(schema4);
   if (known !== void 0) return known;
   const seen = /* @__PURE__ */ new Set();
-  const carries = (node) => {
+  const carries2 = (node) => {
     if (seen.has(node)) return false;
     seen.add(node);
-    return node[VALUE_SCHEMA_ANNOTATION] !== void 0 || schemaChildren(node).some((child) => carries(child.schema));
+    return node[VALUE_SCHEMA_ANNOTATION] !== void 0 || schemaChildren(node).some((child) => carries2(child.schema));
   };
-  const result = carries(schema4);
+  const result = carries2(schema4);
   annotationCarriers.set(schema4, result);
   return result;
 }
@@ -62594,6 +62876,23 @@ function hostEntryAt(schema4) {
   }
   return void 0;
 }
+function hostPathNode(schema4) {
+  if (!schema4) return void 0;
+  if (hostAnchorOf(schema4) !== void 0) return schema4;
+  return (unionBranches(schema4) ?? []).find((branch) => hostAnchorOf(branch) !== void 0);
+}
+function hostMediaTypeAt(schema4) {
+  const node = hostPathNode(schema4);
+  return node ? hostMediaTypeOf(node) : void 0;
+}
+function hostMediaTypeMismatchAt(schema4, head) {
+  const node = hostPathNode(schema4);
+  return node ? hostMediaTypeMismatch(node, head) : void 0;
+}
+function hostMediaTypeFinding(subject, found, declared) {
+  const held = found === "directory" ? "is a directory" : found.mediaType !== void 0 ? `is ${found.mediaType}` : "carries no known media type's signature";
+  return `${subject} ${held}; this slot takes ${declared}`;
+}
 function describeHostEntry(entry2) {
   return entry2 === "directory" ? "a directory" : "a file";
 }
@@ -62633,19 +62932,21 @@ function hostPathBranchesFor(slot, literal, source) {
   const paths = branches.filter((branch) => !("const" in branch));
   return { ...slot, ...slot.anyOf ? { anyOf: paths } : { oneOf: paths } };
 }
-function hostPathInputs(moduleDoc2) {
+function hostPathInputs(moduleDoc3) {
   const inputs = {};
   for (const block of ["variables", "secrets"]) {
-    const entries = moduleDoc2[block];
+    const entries = moduleDoc3[block];
     if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
     for (const [name2, entry2] of Object.entries(entries)) {
       if (!entry2 || typeof entry2 !== "object" || !holdsHostPath(entry2)) {
         continue;
       }
       const kind = hostEntryAt(entry2);
+      const mediaType = hostMediaTypeAt(entry2);
       inputs[`${block}.${name2}`] = {
         constants: (unionBranches(entry2) ?? []).filter((branch) => typeof branch.const === "string").map((branch) => branch.const),
-        ...kind !== void 0 ? { entry: kind } : {}
+        ...kind !== void 0 ? { entry: kind } : {},
+        ...mediaType !== void 0 ? { mediaType } : {}
       };
     }
   }
@@ -63191,10 +63492,10 @@ function forwardReExportManifests(result, specs, aliasToModule) {
       if (!sources) continue;
       for (const src of sources) {
         const sourceMeta = src.metadata;
-        const sourcePath = sourceMeta.reExport ? sourceMeta.reExport.importPath : sourceMeta.importPath;
-        if (sourcePath && sourcePath[sourcePath.length - 1] !== spec.alias) continue;
+        const sourcePath2 = sourceMeta.reExport ? sourceMeta.reExport.importPath : sourceMeta.importPath;
+        if (sourcePath2 && sourcePath2[sourcePath2.length - 1] !== spec.alias) continue;
         if (isExpansionSentinel(src)) {
-          const manifest2 = reExportedChoice(src, spec, sourceModule, sourcePath, canonicalKind);
+          const manifest2 = reExportedChoice(src, spec, sourceModule, sourcePath2, canonicalKind);
           result.push(manifest2);
           add(key3, manifest2);
           added = true;
@@ -63212,7 +63513,7 @@ function forwardReExportManifests(result, specs, aliasToModule) {
             // The module that DECLARED it, whose scope its own references are
             // written in — a projection hop through the copy resolves there.
             declaringModule: src.metadata.declaringModule ?? sourceModule,
-            ...sourcePath ? { importPath: sourcePath.slice(0, -1) } : {}
+            ...sourcePath2 ? { importPath: sourcePath2.slice(0, -1) } : {}
           }
         };
         result.push(manifest);
@@ -63223,7 +63524,7 @@ function forwardReExportManifests(result, specs, aliasToModule) {
     if (!added) break;
   }
 }
-function reExportedChoice(src, spec, sourceModule, sourcePath, canonicalKind) {
+function reExportedChoice(src, spec, sourceModule, sourcePath2, canonicalKind) {
   const meta = src.metadata;
   const previous = meta.reExport;
   const canonicalBranches = (value2) => {
@@ -63249,7 +63550,7 @@ function reExportedChoice(src, spec, sourceModule, sourcePath, canonicalKind) {
         name: spec.name,
         module: spec.module,
         declaringModule: previous?.declaringModule ?? meta.declaringModule ?? sourceModule,
-        ...sourcePath ? { importPath: sourcePath.slice(0, -1) } : {}
+        ...sourcePath2 ? { importPath: sourcePath2.slice(0, -1) } : {}
       }
     }
   };
@@ -63423,6 +63724,11 @@ function stampRequiredNeeds(imports, declared) {
     manifest.metadata.requiredNeeds = table;
   }
 }
+function stampedNeedParametersPaths(manifest) {
+  const stamp = manifest.metadata?.requiredNeeds;
+  if (!stamp || typeof stamp !== "object") return [];
+  return Object.entries(stamp).filter(([, need]) => need?.parameters !== void 0).map(([name2]) => `metadata.requiredNeeds.${name2}.parameters`);
+}
 function canonicalizeInputKind(kind, ownModule, aliasToModule) {
   const dot = kind.indexOf(".");
   if (dot <= 0) return kind;
@@ -63435,6 +63741,7 @@ function canonicalizeInputKind(kind, ownModule, aliasToModule) {
 }
 function collectModuleDocuments(graph) {
   stampScopedImportIdentity(graph);
+  const reached = reachedModuleSources(graph);
   const out = [];
   for (const [source, mod] of graph.modules) {
     if (source === graph.rootSource) continue;
@@ -63450,10 +63757,31 @@ function collectModuleDocuments(graph) {
       module: moduleName2,
       sourceId: mod.owner.source,
       manifests: collectModuleManifests(mod),
-      exportedNames
+      exportedNames,
+      reached: reached.has(mod.owner.source)
     });
   }
   return out;
+}
+function reachedModuleSources(graph) {
+  const reached = /* @__PURE__ */ new Set();
+  const visit4 = (mod) => {
+    if (reached.has(mod.owner.source)) return;
+    reached.add(mod.owner.source);
+    for (const file of [mod.owner, ...mod.partials]) {
+      const edges = [
+        ...graph.importEdges.get(file.source)?.values() ?? [],
+        ...graph.scopedImportEdges?.get(file.source) ?? []
+      ];
+      for (const edge of edges) {
+        const target = graph.modules.get(edge.targetSource);
+        if (target) visit4(target);
+      }
+    }
+  };
+  visit4(graph.entry);
+  reached.delete(graph.entry.owner.source);
+  return reached;
 }
 function collectModuleManifests(mod) {
   const owner = stampFile(mod.owner, ownerModuleName(mod.owner));
@@ -63462,11 +63790,11 @@ function collectModuleManifests(mod) {
     partials.push(...stampFile(p, ownerModuleName(mod.owner)));
   }
   const all = [...owner, ...partials];
-  const moduleDoc2 = all.find((m) => isModuleKind(m.kind));
-  if (moduleDoc2) {
-    const ownModule = moduleDoc2.metadata?.name;
-    all.push(...injectedDeclarations(moduleDoc2, ownModule));
-    all.push(...injectedNeedDeclarations(moduleDoc2, ownModule));
+  const moduleDoc3 = all.find((m) => isModuleKind(m.kind));
+  if (moduleDoc3) {
+    const ownModule = moduleDoc3.metadata?.name;
+    all.push(...injectedDeclarations(moduleDoc3, ownModule));
+    all.push(...injectedNeedDeclarations(moduleDoc3, ownModule));
   }
   return all;
 }
@@ -66834,7 +67162,7 @@ function nameTableDiagnostics(sites, manifests, documents, moduleOf11, isOwn, sc
     return typeof name2 === "string" ? name2 : void 0;
   };
   const lineOf = (doc) => doc.metadata?.sourceLine ?? 0;
-  const describe7 = (value2, name2) => {
+  const describe8 = (value2, name2) => {
     const tag = expansionTagOf(value2);
     if (tag) return `the declaration '!${tag}' '${name2}' chooses`;
     const kind = value2.kind;
@@ -66842,7 +67170,7 @@ function nameTableDiagnostics(sites, manifests, documents, moduleOf11, isOwn, sc
     if (isModuleKind(kind)) return `this module's own name (${kind} '${name2}')`;
     return `resource ${kind}/${name2}`;
   };
-  const collision = (name2, later, earlier, scope2) => `${describe7(later, name2)} collides with ${describe7(earlier, name2)} declared earlier \u2014 ` + (scope2 ? `the kernel registers both under '${name2}' in the '${scope2}' scope, so opening that scope fails. ` : `the kernel registers both under '${name2}' in one namespace, so boot fails with ERR_DUPLICATE_RESOURCE. `) + `Rename one of them.`;
+  const collision = (name2, later, earlier, scope2) => `${describe8(later, name2)} collides with ${describe8(earlier, name2)} declared earlier \u2014 ` + (scope2 ? `the kernel registers both under '${name2}' in the '${scope2}' scope, so opening that scope fails. ` : `the kernel registers both under '${name2}' in one namespace, so boot fails with ERR_DUPLICATE_RESOURCE. `) + `Rename one of them.`;
   const choiceDocuments = documents.filter((d) => {
     const tag = expansionTagOf(d);
     return (tag === "if" || tag === "switch") && isOwn(d) && nameOf5(d) !== void 0;
@@ -69112,10 +69440,10 @@ function coReferrerCallProblems(definition, ownSchema, resolve2, complete) {
         if (!complete) pending.push(...unresolved);
         continue;
       }
-      const holds = ownKinds.some(
+      const holds2 = ownKinds.some(
         (mine) => slotKinds.some((theirs) => kindIsA(mine, theirs, resolve2) || kindIsA(theirs, mine, resolve2))
       );
-      if (!holds) {
+      if (!holds2) {
         refuse3(
           at3,
           slotPath,
@@ -75585,7 +75913,7 @@ function buildKindPlane(resources, nodes, deps, options) {
   }
   return out;
 }
-function templateModule(definition, moduleDoc2, moduleResources = []) {
+function templateModule(definition, moduleDoc3, moduleResources = []) {
   const record = definition;
   const metadata = definition.metadata ?? {};
   const module = typeof metadata.module === "string" ? metadata.module : void 0;
@@ -75611,8 +75939,8 @@ function templateModule(definition, moduleDoc2, moduleResources = []) {
     });
   }
   const targets = Array.isArray(record.targets) ? record.targets : record.run !== void 0 && record.run !== null ? [record.run] : [];
-  const moduleName2 = moduleDoc2?.metadata?.name ?? module ?? metadata.name;
-  const imports = moduleDoc2?.imports;
+  const moduleName2 = moduleDoc3?.metadata?.name ?? module ?? metadata.name;
+  const imports = moduleDoc3?.imports;
   const root = {
     kind: "Telo.Application",
     metadata: { name: moduleName2, ...source ? { source } : {} },
@@ -78111,6 +78439,930 @@ function derivedNeedEnvName(path, field) {
   return NEED_ENV_PREFIX + [...path, field].map(envNameSegment).join("__");
 }
 
+// ../glob/nodejs/src/glob-select.ts
+var HARD_IGNORE = ["node_modules/", ".git/", ".telo/"];
+var DEFAULT_IGNORE = [".telobundle.*"];
+var GLOB_PRUNE_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", ".telo"]);
+var REGEX_META = /[.^$+|()[\]{}\\]/;
+function normalize(patterns) {
+  return patterns.map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""));
+}
+function bodyToRegExp(glob, anchored) {
+  let re2 = anchored ? "" : "(?:.*/)?";
+  let i = 0;
+  while (i < glob.length) {
+    const c = glob[i];
+    if (c === "*") {
+      if (glob[i + 1] === "*") {
+        i += 2;
+        if (glob[i] === "/") {
+          re2 += "(?:.*/)?";
+          i++;
+        } else {
+          re2 += ".*";
+        }
+      } else {
+        re2 += "[^/]*";
+        i++;
+      }
+    } else if (c === "?") {
+      re2 += "[^/]";
+      i++;
+    } else {
+      re2 += REGEX_META.test(c) ? "\\" + c : c;
+      i++;
+    }
+  }
+  return new RegExp("^" + re2 + "$");
+}
+function compile(pattern2) {
+  let body2 = pattern2;
+  let negated = false;
+  if (body2.startsWith("!")) {
+    negated = true;
+    body2 = body2.slice(1);
+  }
+  body2 = body2.replace(/^\.\//, "");
+  let anchored = false;
+  if (body2.startsWith("/")) {
+    anchored = true;
+    body2 = body2.slice(1);
+  }
+  const withoutTrailing = body2.endsWith("/") ? body2.slice(0, -1) : body2;
+  anchored = anchored || withoutTrailing.includes("/");
+  if (body2.endsWith("/")) body2 += "**";
+  return { negated, re: bodyToRegExp(body2, anchored) };
+}
+function decide(rel, compiled2) {
+  let selected = false;
+  for (const { negated, re: re2 } of compiled2) {
+    if (re2.test(rel)) selected = !negated;
+  }
+  return selected;
+}
+function lastMatchIndex(rel, patterns) {
+  const compiled2 = normalize([...patterns]).map(compile);
+  let index = -1;
+  for (let i = 0; i < compiled2.length; i++) {
+    if (compiled2[i].re.test(rel)) index = i;
+  }
+  return index;
+}
+function selectByPatterns(relPaths, patterns, opts = {}) {
+  if (patterns.length === 0) return [];
+  const select = normalize(patterns).map(compile);
+  const hard = HARD_IGNORE.map(compile);
+  const soft = opts.applyDefaultIgnore === false ? [] : DEFAULT_IGNORE.map(compile);
+  const exclude = opts.exclude?.length ? normalize(opts.exclude).map(compile) : [];
+  const matched = relPaths.filter((rel) => {
+    if (!rel || !decide(rel, select)) return false;
+    if (decide(rel, hard)) return false;
+    if (soft.length && decide(rel, soft)) return false;
+    if (exclude.length && decide(rel, exclude)) return false;
+    return true;
+  });
+  matched.sort();
+  return matched;
+}
+
+// ../../analyzer/nodejs/src/artifact-axes.ts
+var PLATFORM_AXES = ["os", "arch", "libc", "abi"];
+var AXIS_VALUE_FORMS = {
+  abi: {
+    pattern: new RegExp("^[a-z][a-z0-9_]*-[0-9]+(\\.[0-9]+)*$"),
+    form: "<family>-<version>",
+    examples: ["node-137", "telo-3"]
+  }
+};
+
+// ../../analyzer/nodejs/src/artifact-selector.ts
+var LAYER_ROLES = [
+  "controller",
+  "library",
+  "native",
+  "browser",
+  "assets",
+  "common"
+];
+function isLayerRole(value2) {
+  return typeof value2 === "string" && LAYER_ROLES.includes(value2);
+}
+var CODE_LAYER_ROLES = ["controller", "library"];
+var SELECTOR_LAYER_ROLES = [...CODE_LAYER_ROLES, "native", "browser"];
+function roleCarriesSelector(role) {
+  return SELECTOR_LAYER_ROLES.includes(role);
+}
+var ArtifactSelectorError = class extends Error {
+  code = "INVALID_ARTIFACT_SELECTOR";
+  constructor(detail) {
+    super(detail);
+    this.name = "ArtifactSelectorError";
+  }
+};
+var TOKEN2 = /^[a-z0-9][a-z0-9_.-]*$/;
+function normalizeAxisValue(axis, raw, describe8) {
+  if (typeof raw !== "string") {
+    throw new ArtifactSelectorError(
+      `${describe8}: ${axis} must be a string, got ${raw === null ? "null" : typeof raw}.`
+    );
+  }
+  const value2 = raw.trim().toLowerCase();
+  if (!TOKEN2.test(value2)) {
+    throw new ArtifactSelectorError(
+      `${describe8}: ${axis} value '${raw}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
+    );
+  }
+  const valueForm = AXIS_VALUE_FORMS[axis];
+  if (valueForm && !valueForm.pattern.test(value2)) {
+    throw new ArtifactSelectorError(
+      `${describe8}: ${axis} value '${raw}' must have the form ${valueForm.form}, e.g. ${valueForm.examples.map((e) => `'${e}'`).join(" or ")}.`
+    );
+  }
+  return value2;
+}
+function selectorFromQualifiers(format2, qualifiers, describe8 = "controller selector") {
+  const selector = {
+    format: normalizeAxisValue("format", format2, describe8)
+  };
+  for (const axis of PLATFORM_AXES) {
+    const raw = qualifiers?.[axis];
+    if (raw === void 0 || raw === "") continue;
+    selector[axis] = normalizeAxisValue(axis, raw, describe8);
+  }
+  return selector;
+}
+function normalizeSelector(value2, describe8 = "layer selector") {
+  if (typeof value2 !== "object" || value2 === null || Array.isArray(value2)) {
+    throw new ArtifactSelectorError(`${describe8}: expected an object of selector axes.`);
+  }
+  const record = value2;
+  const selector = selectorFromQualifiers(record.format, record, describe8);
+  const carriesUnknownAxis = Object.keys(record).some(
+    (k) => k !== "format" && !PLATFORM_AXES.includes(k)
+  );
+  return carriesUnknownAxis ? void 0 : selector;
+}
+function selectorKey(selector) {
+  let key3 = selectorKeys.get(selector);
+  if (key3 === void 0) {
+    const pairs2 = [`format=${selector.format}`];
+    for (const axis of PLATFORM_AXES) {
+      const value2 = selector[axis];
+      if (value2 !== void 0) pairs2.push(`${axis}=${value2}`);
+    }
+    key3 = pairs2.sort().join(";");
+    selectorKeys.set(selector, key3);
+  }
+  return key3;
+}
+var selectorKeys = /* @__PURE__ */ new WeakMap();
+function describeSelector(selector) {
+  const platform = PLATFORM_AXES.map((axis) => selector[axis]).filter(
+    (v) => v !== void 0
+  );
+  return platform.length === 0 ? selector.format : `${selector.format} (${platform.join("/")})`;
+}
+function selectorContradictions(selector) {
+  const out = [];
+  if (selector.format === "napi" && selector.abi !== void 0) {
+    out.push({
+      rule: "NAPI_ABI_FORBIDDEN",
+      axis: "abi",
+      detail: `an N-API addon is ABI-stable across runtime releases and states no abi \u2014 remove abi ${selector.abi}, which would keep it from loading anywhere else.`
+    });
+  }
+  if (selector.libc !== void 0 && selector.os !== void 0 && selector.os !== "linux") {
+    out.push({
+      rule: "LIBC_OFF_LINUX",
+      axis: "libc",
+      detail: `libc is only determined on linux, so a selector for os '${selector.os}' that states libc ${selector.libc} could never match a host. Remove libc.`
+    });
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/module-named-files.ts
+var CLAIM_LABEL = {
+  controller: "the controller candidate",
+  library: "the exports.code entry",
+  browser: "the exports.browser entry",
+  assets: "the embed"
+};
+function describeClaim(located) {
+  const { claim, where } = located;
+  return `${CLAIM_LABEL[claim.role]} ${claim.origin}${where === void 0 ? "" : ` on ${where}`}`;
+}
+function nativeClaimConflicts(native, claims) {
+  const out = [];
+  for (const entry2 of native) {
+    for (const claim of claims) {
+      if (claim.claim.path === entry2.path) out.push({ entry: entry2, claim });
+    }
+  }
+  return out;
+}
+function readAssetPatterns(owner) {
+  const assets = owner?.assets;
+  return Array.isArray(assets) ? assets.filter((p) => typeof p === "string") : [];
+}
+function stageableFiles(native, claims, assets) {
+  const out = /* @__PURE__ */ new Map();
+  for (const entry2 of native) {
+    if (out.has(entry2.path)) continue;
+    out.set(entry2.path, {
+      path: entry2.path,
+      label: `${entry2.origin} for ${describeSelector(entry2.selector)}`,
+      layer: `native ${describeSelector(entry2.selector)}`,
+      built: false
+    });
+  }
+  for (const { claim } of claims) {
+    if (claim.role !== "controller") continue;
+    if (!PLATFORM_AXES.some((axis) => claim.selector[axis] !== void 0)) continue;
+    const existing = out.get(claim.path);
+    if (existing) {
+      if (claim.localPath && !existing.built) out.set(claim.path, { ...existing, built: true });
+      continue;
+    }
+    out.set(claim.path, {
+      path: claim.path,
+      label: `controller candidate ${claim.origin}`,
+      layer: `controller ${describeSelector(claim.selector)}`,
+      built: claim.localPath !== void 0
+    });
+  }
+  const patterns = [...assets?.patterns ?? []];
+  for (const source of assets?.sources ?? []) {
+    for (const entry2 of source.entries) {
+      if (out.has(entry2.path)) continue;
+      if (selectByPatterns([entry2.path], patterns, { applyDefaultIgnore: false }).length === 0) continue;
+      out.set(entry2.path, {
+        path: entry2.path,
+        label: `assets: pattern '${patterns[lastMatchIndex(entry2.path, patterns)]}'`,
+        layer: "assets",
+        built: false
+      });
+    }
+  }
+  return out;
+}
+function stagedModuleFiles(native, assets) {
+  const stageable = stageableFiles(native, [], assets);
+  return assets.sources.flatMap(
+    (source) => source.entries.filter((e) => stageable.get(e.path)?.layer === "assets" || source.notices.includes(e.path)).map((e) => e.path)
+  );
+}
+function pathsAtOrBeneath(paths, location) {
+  return paths.filter((p) => p === location || p.startsWith(`${location}/`));
+}
+function unclaimedSourceEntries(sources, stageable, alsoNamed = /* @__PURE__ */ new Set()) {
+  const out = [];
+  for (const source of sources) {
+    for (const entry2 of source.entries) {
+      if (stageable.has(entry2.path) || source.notices.includes(entry2.path)) continue;
+      if (alsoNamed.has(entry2.path)) continue;
+      out.push({ source, entry: entry2 });
+    }
+  }
+  return out;
+}
+function crossLayerSourceLinks(sources, stageable) {
+  const layerOf = (source, path) => stageable.get(path)?.layer ?? (source.notices.includes(path) ? "common" : void 0);
+  const out = [];
+  for (const source of sources) {
+    for (const entry2 of source.entries) {
+      if (entry2.kind !== "link") continue;
+      const layer = layerOf(source, entry2.path);
+      const targetLayer = layerOf(source, entry2.resolved);
+      if (layer !== void 0 && targetLayer !== void 0 && layer !== targetLayer) {
+        out.push({ source, entry: entry2, layer, targetLayer });
+      }
+    }
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/native-entries.ts
+var KNOWN_KEYS = /* @__PURE__ */ new Set(["name", "format", "path", ...PLATFORM_AXES]);
+var REQUIRED_AXES = ["os", "arch"];
+var NAME_TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
+var GLOB_CHARS2 = /[*?[\]{}]/;
+var URI_SCHEME2 = /^[a-z][a-z0-9+.-]*:/i;
+function normalizeNativePath(raw) {
+  if (URI_SCHEME2.test(raw) || raw.startsWith("/") || raw.startsWith("\\")) {
+    return {
+      kind: "escape",
+      detail: `path '${raw}' is not relative to the module root. A native file ships inside the module artifact, so name it relative to the directory holding telo.yaml.`
+    };
+  }
+  if (GLOB_CHARS2.test(raw)) {
+    return {
+      kind: "invalid",
+      detail: `path '${raw}' looks like a pattern. A native entry names exactly one file.`
+    };
+  }
+  const out = [];
+  for (const segment of raw.split(/[/\\]+/)) {
+    if (segment === "" || segment === ".") continue;
+    if (segment !== "..") {
+      out.push(segment);
+      continue;
+    }
+    if (out.length === 0) {
+      return {
+        kind: "escape",
+        detail: `path '${raw}' points above the module root. A native file must ship inside the module directory.`
+      };
+    }
+    out.pop();
+  }
+  if (out.length === 0) {
+    return { kind: "invalid", detail: `path '${raw}' resolves to the module root, not to a file.` };
+  }
+  return { path: out.join("/") };
+}
+function readNativeEntries(ownerJson) {
+  const declared = ownerJson?.native;
+  const entries = [];
+  const problems = [];
+  if (declared === void 0) return { entries, problems };
+  if (!Array.isArray(declared)) {
+    problems.push({
+      kind: "shape",
+      origin: "native",
+      path: "native",
+      message: "native: expected a list of entries."
+    });
+    return { entries, problems };
+  }
+  declared.forEach((raw, index) => {
+    const at3 = `native[${index}]`;
+    const shape = (detail) => problems.push({ kind: "shape", index, origin: at3, path: at3, message: `${at3}: ${detail}` });
+    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+      shape("expected an object.");
+      return;
+    }
+    const entry2 = raw;
+    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS.has(key3));
+    if (unknown.length > 0) {
+      shape(
+        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS].join(", ")}.`
+      );
+      return;
+    }
+    const requiredKeys = ["name", "format", ...REQUIRED_AXES, "path"];
+    const missing = requiredKeys.filter((key3) => typeof entry2[key3] !== "string");
+    if (missing.length > 0) {
+      shape(`${missing.map((k) => `'${k}'`).join(", ")} must be strings.`);
+      return;
+    }
+    const blank = requiredKeys.filter((key3) => entry2[key3].trim() === "");
+    if (blank.length > 0) {
+      for (const key3 of blank) {
+        problems.push({
+          kind: "invalid",
+          index,
+          origin: at3,
+          path: `${at3}.${key3}`,
+          message: `${at3}: '${key3}' must not be empty.`
+        });
+      }
+      return;
+    }
+    const name2 = entry2.name;
+    const origin = `${at3} ('${name2}')`;
+    if (!NAME_TOKEN.test(name2)) {
+      problems.push({
+        kind: "invalid",
+        index,
+        origin,
+        path: `${at3}.name`,
+        message: `${origin}: name '${name2}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
+      });
+      return;
+    }
+    let selector;
+    try {
+      selector = selectorFromQualifiers(entry2.format, entry2, origin);
+    } catch (err) {
+      if (!(err instanceof ArtifactSelectorError)) throw err;
+      problems.push({ kind: "invalid", index, origin, path: at3, message: err.message });
+      return;
+    }
+    const verdict = normalizeNativePath(entry2.path.trim());
+    if (!("path" in verdict)) {
+      problems.push({
+        kind: verdict.kind,
+        index,
+        origin,
+        path: `${at3}.path`,
+        message: `${origin}: ${verdict.detail}`
+      });
+      return;
+    }
+    entries.push({ name: name2, selector, path: verdict.path, index, origin });
+  });
+  return { entries, problems };
+}
+
+// ../../analyzer/nodejs/src/source-entries.ts
+var SOURCE_NAME_TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
+var SHA256_HEX = /^[0-9a-f]{64}$/;
+var INPUTS_DIGEST = /^sha256-[A-Za-z0-9_-]{43}$/;
+var SOURCE_KEYS = ["version", "url", "archive", "notices", "entries", "build"];
+var BUILD_KEYS = ["cargo", "inputs"];
+var URL_PLACEHOLDERS = /* @__PURE__ */ new Set(["version", "upstream"]);
+var FILE_KEYS = ["upstream", "member", "sha256", "executable"];
+var URL_ORIGIN = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
+var LOOPBACK_HOST = /^(localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[::1\])$/i;
+var SOURCE_ARCHIVE_FORMATS = ["tar.gz"];
+var isObject12 = (value2) => typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
+function resolveLinkTarget(linkPath, target) {
+  const dir = linkPath.includes("/") ? linkPath.slice(0, linkPath.lastIndexOf("/")) : "";
+  if (target.startsWith("/") || target.startsWith("\\")) return void 0;
+  const verdict = normalizeNativePath(dir === "" ? target : `${dir}/${target}`);
+  return "path" in verdict ? verdict.path : void 0;
+}
+function sourceUrlProblem(url) {
+  const origin = URL_ORIGIN.exec(url);
+  if (!origin) {
+    return {
+      code: "SOURCE_INVALID",
+      detail: `url '${url}' is not an absolute URL. Write an https:// URL template.`
+    };
+  }
+  const scheme = origin[1].toLowerCase();
+  if (scheme === "https") return void 0;
+  const authority = origin[2];
+  const hostPort = authority.slice(authority.lastIndexOf("@") + 1);
+  const host = hostPort.startsWith("[") ? hostPort.slice(0, hostPort.indexOf("]") + 1) : hostPort.split(":")[0];
+  if (scheme === "http" && LOOPBACK_HOST.test(host)) return void 0;
+  return {
+    code: "SOURCE_URL_INSECURE",
+    detail: `url '${url}' is fetched over ${scheme}, where the archive could be altered on the way. Use https; plain http is accepted only for a loopback host (localhost, 127.0.0.0/8, [::1]).`
+  };
+}
+function runsThrough(path, parent) {
+  return path.startsWith(`${parent}/`);
+}
+function readModuleSources(ownerJson, options = {}) {
+  const ignorePins = options.ignorePins === true;
+  const declared = ownerJson?.sources;
+  const sources = [];
+  const problems = [];
+  if (declared === void 0) return { sources, problems };
+  const problem = (code, path, message) => problems.push({ code, path, message });
+  if (!isObject12(declared)) {
+    problem("SHAPE", "sources", "sources: expected a map of source name to source.");
+    return { sources, problems };
+  }
+  const producers = /* @__PURE__ */ new Map();
+  for (const [name2, raw] of Object.entries(declared)) {
+    const at3 = `sources.${name2}`;
+    const label2 = `source '${name2}'`;
+    if (!isObject12(raw)) {
+      problem("SHAPE", at3, `${label2}: expected an object.`);
+      continue;
+    }
+    const build = raw.build;
+    if (typeof raw.version !== "string" || typeof raw.url !== "string" || !SOURCE_ARCHIVE_FORMATS.includes(raw.archive) || !Array.isArray(raw.notices) || raw.notices.length === 0 || raw.notices.some((notice) => typeof notice !== "string") || !isObject12(raw.entries) || build !== void 0 && (!isObject12(build) || typeof build.cargo !== "string" || !ignorePins && "inputs" in build && typeof build.inputs !== "string" || Object.keys(build).some((key3) => !BUILD_KEYS.includes(key3))) || Object.keys(raw).some((key3) => !SOURCE_KEYS.includes(key3))) {
+      problem(
+        "SHAPE",
+        at3,
+        `${label2}: a source is { version, url, archive (${SOURCE_ARCHIVE_FORMATS.join(" | ")}), notices (non-empty list), entries, build? { cargo, inputs? } } and nothing else.`
+      );
+      continue;
+    }
+    let valid = true;
+    if (!SOURCE_NAME_TOKEN.test(name2)) {
+      problem(
+        "SOURCE_INVALID",
+        `${at3}`,
+        `${label2}: the name is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
+      );
+      valid = false;
+    }
+    for (const key3 of ["version", "url"]) {
+      if (raw[key3].trim() === "") {
+        problem("SOURCE_INVALID", `${at3}.${key3}`, `${label2}: '${key3}' must not be empty.`);
+        valid = false;
+      }
+    }
+    const url = raw.url;
+    for (const match of url.matchAll(/\{([^{}]*)\}/g)) {
+      if (URL_PLACEHOLDERS.has(match[1])) continue;
+      problem(
+        "SOURCE_URL_PLACEHOLDER_UNKNOWN",
+        `${at3}.url`,
+        `${label2}: the url placeholder '{${match[1]}}' is not recognized. A url template may use only {version} (the source's version) and {upstream} (each entry's upstream).`
+      );
+      valid = false;
+    }
+    const insecure = url.trim() === "" ? void 0 : sourceUrlProblem(url);
+    if (insecure) {
+      problem(insecure.code, `${at3}.url`, `${label2}: ${insecure.detail}`);
+      valid = false;
+    }
+    const notices = [];
+    raw.notices.forEach((notice, index) => {
+      const verdict = normalizeNativePath(notice.trim());
+      if ("path" in verdict) {
+        notices.push(verdict.path);
+        return;
+      }
+      problem("SOURCE_INVALID", `${at3}.notices[${index}]`, `${label2}: notice ${verdict.detail}`);
+      valid = false;
+    });
+    let readBuild;
+    if (isObject12(build)) {
+      const written = build.cargo.trim();
+      const verdict = /^\.?\/?$/.test(written) ? { path: "" } : normalizeNativePath(written);
+      const inputs = ignorePins ? void 0 : build.inputs;
+      if (!("path" in verdict)) {
+        problem(
+          "SOURCE_INVALID",
+          `${at3}.build.cargo`,
+          verdict.kind === "escape" ? `${label2}: build.cargo '${written}' is not a directory inside the module. Name the crate relative to the directory holding telo.yaml; code outside the module reaches its digest as a path dependency of that crate.` : `${label2}: build.cargo '${written}' does not name one module-relative directory.`
+        );
+        valid = false;
+      } else if (inputs !== void 0 && !INPUTS_DIGEST.test(inputs)) {
+        problem(
+          "SOURCE_INVALID",
+          `${at3}.build.inputs`,
+          `${label2}: build.inputs must be a digest of the form sha256-<43 base64url characters> \u2014 run \`telo release stage --pin\` to write it.`
+        );
+        valid = false;
+      } else {
+        readBuild = { cargo: verdict.path, ...inputs !== void 0 ? { inputs } : {} };
+      }
+    }
+    const entries = [];
+    const rawEntries = raw.entries;
+    const entryPaths = /* @__PURE__ */ new Map();
+    const links = [];
+    const pathOfKey = /* @__PURE__ */ new Map();
+    for (const key3 of Object.keys(rawEntries)) {
+      const entryAt = `${at3}.entries.${key3}`;
+      const verdict = normalizeNativePath(key3.trim());
+      if (!("path" in verdict)) {
+        problem("SOURCE_ENTRY_INVALID", entryAt, `${label2} entry '${key3}': ${verdict.detail}`);
+        valid = false;
+        continue;
+      }
+      if (entryPaths.has(verdict.path)) {
+        problem(
+          "SOURCE_ENTRY_DUPLICATE",
+          entryAt,
+          `${label2} entry '${key3}': path '${verdict.path}' is also produced by entry '${entryPaths.get(verdict.path)}'.`
+        );
+        valid = false;
+        continue;
+      }
+      entryPaths.set(verdict.path, key3);
+      pathOfKey.set(key3, verdict.path);
+    }
+    for (const [key3, value2] of Object.entries(rawEntries)) {
+      const entryAt = `${at3}.entries.${key3}`;
+      const entryLabel = `${label2} entry '${key3}'`;
+      const path = pathOfKey.get(key3);
+      if (path === void 0) continue;
+      if (!isObject12(value2)) {
+        problem("SHAPE", entryAt, `${entryLabel}: expected an object.`);
+        valid = false;
+        continue;
+      }
+      const fileKeys = FILE_KEYS.filter((k) => k in value2);
+      const isLink = "target" in value2;
+      if (isLink && fileKeys.length > 0) {
+        problem(
+          "SOURCE_ENTRY_INVALID",
+          entryAt,
+          `${entryLabel}: an entry is either a link (target) or a file (upstream, member, sha256, executable) \u2014 remove ${fileKeys.map((k) => `'${k}'`).join(", ")} or 'target'.`
+        );
+        valid = false;
+        continue;
+      }
+      const strings = isLink ? ["target"] : ["upstream", "member"];
+      if (strings.some((k) => typeof value2[k] !== "string") || !ignorePins && "sha256" in value2 && typeof value2.sha256 !== "string" || !ignorePins && "executable" in value2 && typeof value2.executable !== "boolean") {
+        problem("SHAPE", entryAt, `${entryLabel}: expected a file or a link entry.`);
+        valid = false;
+        continue;
+      }
+      const blank = strings.filter((k) => value2[k].trim() === "");
+      if (blank.length > 0) {
+        for (const k of blank) {
+          problem("SOURCE_ENTRY_INVALID", `${entryAt}.${k}`, `${entryLabel}: '${k}' must not be empty.`);
+        }
+        valid = false;
+        continue;
+      }
+      if (isLink) {
+        links.push({ key: key3, path, target: value2.target });
+        continue;
+      }
+      const sha256 = ignorePins ? void 0 : value2.sha256;
+      const executable = ignorePins ? void 0 : value2.executable;
+      if (sha256 !== void 0 && !SHA256_HEX.test(sha256)) {
+        problem(
+          "SOURCE_ENTRY_INVALID",
+          `${entryAt}.sha256`,
+          `${entryLabel}: sha256 must be 64 lowercase hex characters \u2014 run \`telo release stage --pin\` to write it.`
+        );
+        valid = false;
+        continue;
+      }
+      if (sha256 === void 0 !== (executable === void 0)) {
+        problem(
+          "SOURCE_ENTRY_INVALID",
+          entryAt,
+          `${entryLabel}: a pin is sha256 and executable together \u2014 run \`telo release stage --pin\` to write both.`
+        );
+        valid = false;
+        continue;
+      }
+      entries.push({
+        kind: "file",
+        key: key3,
+        path,
+        upstream: value2.upstream,
+        member: value2.member,
+        ...sha256 !== void 0 ? { pin: { sha256, executable } } : {}
+      });
+    }
+    const linkTargets = /* @__PURE__ */ new Map();
+    for (const link of links) {
+      const resolved = resolveLinkTarget(link.path, link.target);
+      const targetAt = `${at3}.entries.${link.key}.target`;
+      if (resolved === link.path) {
+        problem(
+          "SOURCE_LINK_CYCLE",
+          targetAt,
+          `${label2} entry '${link.key}': link target '${link.target}' resolves to the link itself.`
+        );
+        valid = false;
+        continue;
+      }
+      if (resolved === void 0 || !entryPaths.has(resolved)) {
+        problem(
+          "SOURCE_LINK_TARGET_UNRESOLVED",
+          targetAt,
+          `${label2} entry '${link.key}': link target '${link.target}' resolves, relative to the link's directory, to ${resolved === void 0 ? "a path outside the module" : `'${resolved}'`}, which is not another entry of this source.`
+        );
+        valid = false;
+        continue;
+      }
+      linkTargets.set(link.path, resolved);
+      entries.push({ kind: "link", key: link.key, path: link.path, target: link.target, resolved });
+    }
+    for (const link of links) {
+      if (!linkTargets.has(link.path)) continue;
+      const chain = [link.path];
+      for (let next = linkTargets.get(link.path); next !== void 0; next = linkTargets.get(next)) {
+        if (!chain.includes(next)) {
+          chain.push(next);
+          continue;
+        }
+        problem(
+          "SOURCE_LINK_CYCLE",
+          `${at3}.entries.${link.key}.target`,
+          `${label2} entry '${link.key}': the link never reaches a file \u2014 it cycles through ${chain.map((p) => `'${p}'`).join(" \u2192 ")} \u2192 '${next}'. A link chain must end at a file entry.`
+        );
+        valid = false;
+        break;
+      }
+    }
+    for (const entry2 of entries) {
+      const other = producers.get(entry2.path);
+      if (other !== void 0) {
+        problem(
+          "SOURCE_ENTRY_DUPLICATE",
+          `${at3}.entries.${entry2.key}`,
+          `${label2} entry '${entry2.key}': path '${entry2.path}' is also produced by source '${other.source}'. Each staged file has exactly one source.`
+        );
+        valid = false;
+        continue;
+      }
+      for (const [path, producer] of producers) {
+        const relation = runsThrough(entry2.path, path) ? `runs through '${path}' as a directory` : runsThrough(path, entry2.path) ? `is a directory that '${path}' runs through` : void 0;
+        if (relation === void 0) continue;
+        problem(
+          "SOURCE_ENTRY_NESTED",
+          `${at3}.entries.${entry2.key}`,
+          `${label2} entry '${entry2.key}': path '${entry2.path}' ${relation}, and source '${producer.source}' entry '${producer.key}' produces '${path}'. A staged path cannot be both a file and a directory \u2014 give each entry its own path.`
+        );
+        valid = false;
+        break;
+      }
+      producers.set(entry2.path, { source: name2, key: entry2.key });
+    }
+    if (!valid) continue;
+    sources.push({
+      name: name2,
+      version: raw.version,
+      url,
+      archive: raw.archive,
+      notices,
+      entries,
+      ...readBuild !== void 0 ? { build: readBuild } : {}
+    });
+  }
+  return { sources, problems };
+}
+
+// ../../analyzer/nodejs/src/validate-include-placement.ts
+var SOURCE6 = "telo-analyzer";
+var NEVER_INSTANTIATED = /* @__PURE__ */ new Set([
+  "Telo.Application",
+  "Telo.Library",
+  "Telo.Import"
+]);
+function isNeverInstantiated(kind) {
+  return NEVER_INSTANTIATED.has(kind);
+}
+function validateIncludePlacement(manifests) {
+  const out = [];
+  for (const manifest of manifests) {
+    if (!NEVER_INSTANTIATED.has(manifest.kind)) continue;
+    const name2 = manifest.metadata?.name;
+    const filePath = manifest.metadata?.source;
+    const parameters = [...needParametersPaths(manifest), ...stampedNeedParametersPaths(manifest)];
+    walkCelExpressions(manifest, "", (source, path, engineName) => {
+      if (!MODULE_FILE_ENGINE_NAMES.has(engineName)) return;
+      if (isAtOrBeneathPath(path, parameters)) return;
+      const embed = INCLUDE_ENGINE_NAMES.has(engineName);
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: embed ? "INCLUDE_OUTSIDE_RESOURCE" : "MODULE_PATH_OUTSIDE_RESOURCE",
+        source: SOURCE6,
+        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engineName} ${source}\` at '${path}' is never read \u2014 a ${manifest.kind} doc is not instantiated, and ` + (embed ? `a file embed is resolved when the resource holding it is created. Move it onto the resource that needs the file, or read the file at runtime with Fs.File.` : `a module path is resolved when the resource holding it is created. Move it onto the resource that needs the location.`),
+        data: {
+          resource: { kind: manifest.kind, name: name2 ?? "" },
+          filePath,
+          path
+        }
+      });
+    });
+  }
+  return out;
+}
+
+// ../../analyzer/nodejs/src/sources/integrity.ts
+var INTEGRITY_FRAGMENT = /#(sha256-[A-Za-z0-9_+/=-]+)$/;
+var CANONICAL_INTEGRITY = /^sha256-[A-Za-z0-9_-]{43}$/;
+function splitIntegrity(ref) {
+  const match = ref.match(INTEGRITY_FRAGMENT);
+  if (!match) return { base: ref };
+  return { base: ref.slice(0, match.index), integrity: match[1] };
+}
+function foldIntegrity(source, integrity) {
+  return typeof integrity === "string" && !source.includes("#") ? `${source}#${integrity}` : source;
+}
+function isCanonicalIntegrity(value2) {
+  return typeof value2 === "string" && CANONICAL_INTEGRITY.test(value2);
+}
+
+// ../../analyzer/nodejs/src/sources/oci-ref.ts
+var OCI_SCHEME = "oci://";
+function isOciRef(ref) {
+  return splitIntegrity(ref).base.startsWith(OCI_SCHEME);
+}
+
+// ../../analyzer/nodejs/src/module-file-existence.ts
+async function collectLocalModuleFileDiagnostics(entry2, modules, importEdges, sourceFor) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set([entry2.owner.source]);
+  const queue = [entry2];
+  for (let next = queue.shift(); next; next = queue.shift()) {
+    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
+    for (const file of [next.owner, ...next.partials]) {
+      for (const edge of importEdges.get(file.source)?.values() ?? []) {
+        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
+        seen.add(edge.targetSource);
+        const target = modules.get(edge.targetSource);
+        if (target && !isOciRef(target.owner.requestedUrl)) queue.push(target);
+      }
+    }
+  }
+  return out;
+}
+function isPathImport(ref) {
+  return ref.startsWith(".") || ref.startsWith("/");
+}
+var FOUND_ENTRY = "foundEntry";
+function foundEntryOf(value2) {
+  if (!isTaggedSentinel(value2)) return void 0;
+  const found = value2[FOUND_ENTRY];
+  return found === "file" || found === "directory" ? found : void 0;
+}
+var FOUND_HEAD = "foundHead";
+function foundHeadOf(value2) {
+  if (!isTaggedSentinel(value2)) return void 0;
+  const hex = value2[FOUND_HEAD];
+  if (typeof hex !== "string") return void 0;
+  const bytes3 = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes3.length; i++) bytes3[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  return bytes3;
+}
+function walkSentinels(value2, path, cb) {
+  if (isTaggedSentinel(value2)) {
+    cb(value2, path);
+    return;
+  }
+  if (Array.isArray(value2)) {
+    value2.forEach((v, i) => walkSentinels(v, `${path}[${i}]`, cb));
+    return;
+  }
+  if (value2 !== null && typeof value2 === "object" && !value2.__compiled) {
+    for (const [k, v] of Object.entries(value2)) walkSentinels(v, path ? `${path}.${k}` : k, cb);
+  }
+}
+function stagedEntry(staged, relative) {
+  const beneath = pathsAtOrBeneath(staged, relative);
+  if (beneath.length === 0) return void 0;
+  return beneath.includes(relative.replace(/^\.\//, "")) ? "file" : "directory";
+}
+async function collectModuleFileDiagnostics(module, source) {
+  if (!source?.entryAt) return [];
+  const registry = defaultRegistry();
+  const out = [];
+  const ownerSource = module.owner.source;
+  let staged;
+  for (const file of [module.owner, ...module.partials]) {
+    const found = [];
+    file.manifests.forEach((manifest, index) => {
+      if (!manifest) return;
+      const collect4 = (sentinel, at3) => {
+        const claims = registry.get(sentinel.engine)?.fileClaims?.(sentinel.source) ?? [];
+        for (const claim of claims) {
+          found.push({ index, at: at3, sentinel, claims: claims.length, relative: claim.path, code: claim.notFoundCode });
+        }
+      };
+      if (isModuleKind(manifest.kind)) {
+        for (const need of readNeeds(manifest)) {
+          walkSentinels(need.parameters, `needs.${need.name}.parameters`, collect4);
+        }
+        return;
+      }
+      if (isNeverInstantiated(manifest.kind)) return;
+      walkSentinels(manifest, "", collect4);
+    });
+    for (const { index, at: at3, sentinel, claims, relative, code } of found) {
+      staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
+      const entry2 = stagedEntry(staged, relative) ?? await source.entryAt(ownerSource, relative);
+      if (entry2 !== void 0) {
+        if (claims === 1) {
+          const stamped = sentinel;
+          stamped[FOUND_ENTRY] = entry2;
+          const head = entry2 === "file" && HOST_MEDIA_HEAD_LENGTH > 0 ? await source.readHead?.(ownerSource, relative, HOST_MEDIA_HEAD_LENGTH) : void 0;
+          if (head) stamped[FOUND_HEAD] = Array.from(head, (b) => b.toString(16).padStart(2, "0")).join("");
+        }
+        continue;
+      }
+      const written = sentinel.source;
+      const engine = sentinel.engine;
+      const manifest = file.manifests[index];
+      const name2 = manifest.metadata?.name;
+      const range = file.positions[index]?.positionIndex?.get(at3);
+      const absolute = source.locate?.(ownerSource, relative);
+      const hint = await nearMiss(source, ownerSource, relative, written);
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code,
+        source: "telo-analyzer",
+        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
+        data: {
+          resource: { kind: manifest.kind, name: name2 ?? "" },
+          filePath: file.source,
+          path: at3,
+          ...hint?.replacement ? { fix: { replacement: hint.replacement } } : {}
+        },
+        ...range ? { range } : {}
+      });
+    }
+  }
+  return out;
+}
+async function nearMiss(source, ownerSource, relative, written) {
+  if (!source.listDirectory) return void 0;
+  const slash = relative.lastIndexOf("/");
+  const directory = slash === -1 ? "" : relative.slice(0, slash);
+  const entries = await source.listDirectory(ownerSource, directory || ".");
+  if (!entries) return { text: `The directory '${directory}/' does not exist.` };
+  const meant = nearestName(relative.slice(slash + 1), entries);
+  if (!meant) return void 0;
+  const path = directory ? `${directory}/${meant}` : meant;
+  const replacement = written.trim().startsWith("./") ? `./${path}` : path;
+  return { text: `Did you mean '${replacement}'?`, replacement };
+}
+function stagedFilesOf(owner) {
+  const { sources, problems } = readModuleSources(owner);
+  if (problems.length > 0) return [];
+  return stagedModuleFiles(readNativeEntries(owner).entries, {
+    patterns: readAssetPatterns(owner),
+    sources
+  });
+}
+
 // ../../analyzer/nodejs/src/module-version-order.ts
 function parseModuleVersion(raw) {
   if (typeof raw !== "string") return null;
@@ -78240,9 +79492,19 @@ function parseVersionRange(raw, reading = "requires") {
   if (comparators.length === 0) return refuse(`'${text3}' declares no comparator`);
   return { ok: true, range: { raw: text3, comparators } };
 }
+function splitBuildMetadata(version2) {
+  const plus = version2.indexOf("+");
+  if (plus < 0) return { core: version2, unreleased: false };
+  return {
+    core: version2.slice(0, plus),
+    unreleased: version2.slice(plus + 1).split(".").includes("unreleased")
+  };
+}
 function rangeAccepts(range, version2) {
-  const parsed = parseModuleVersion(version2);
+  const { core, unreleased } = splitBuildMetadata(version2);
+  const parsed = parseModuleVersion(core);
   if (!parsed) return false;
+  if (range.unreleased && !unreleased) return false;
   return range.comparators.every((c) => {
     const cmp = compareParsedModuleVersions(parsed, c.parsed);
     switch (c.operator) {
@@ -78338,8 +79600,8 @@ var HOST_PATTERN_ORIGIN = (() => {
   }
   return pattern2;
 })();
-function addressNeedPorts(moduleDoc2) {
-  const needs = moduleDoc2.needs;
+function addressNeedPorts(moduleDoc3) {
+  const needs = moduleDoc3.needs;
   if (!needs || typeof needs !== "object" || Array.isArray(needs)) return [];
   const ports = [];
   for (const need of Object.values(needs)) {
@@ -78350,6 +79612,20 @@ function addressNeedPorts(moduleDoc2) {
     if (typeof port === "string") ports.push(port);
   }
   return ports;
+}
+
+// ../../analyzer/nodejs/src/desktop-host.ts
+var DESKTOP_HOST_TYPE = "Telo.DesktopHost";
+function isPortNeedType(type) {
+  return isAddressNeedType(type) || type === DESKTOP_HOST_TYPE;
+}
+function callbackPathRefusal(path) {
+  if (typeof path !== "string") return void 0;
+  if (!path.startsWith("/")) return `'${path}' must start with '/'`;
+  if (path.includes("?") || path.includes("#")) {
+    return `'${path}' must hold no query or fragment`;
+  }
+  return void 0;
 }
 
 // ../../analyzer/nodejs/src/durable-directory.ts
@@ -78419,7 +79695,7 @@ function resolveNeedTable(graph) {
     if (module.checked) checkModule(graph, module, problem);
   }
   checkConstraintsVerified(graph, problem);
-  const { entries, environment: environment2 } = walkTree2(graph);
+  const { entries, environment: environment2, applications } = walkTree2(graph);
   const root = graph.modules.get(graph.root);
   checkLibraryAddressNeeds(graph, problem);
   if (root?.application) {
@@ -78427,7 +79703,7 @@ function resolveNeedTable(graph) {
     checkAddressNeeds(root, problem);
     checkEnvNames(root, environment2, problem);
   }
-  return { entries, problems, environment: environment2 };
+  return { entries, problems, environment: environment2, applications };
 }
 function checkRootSupplyReached(graph, root, environment2, report) {
   for (const entry2 of environment2) {
@@ -78450,11 +79726,11 @@ function checkLibraryAddressNeeds(graph, report) {
   for (const module of graph.modules.values()) {
     if (!module.checked || module.application) continue;
     for (const need of module.needs) {
-      if (!isAddressNeedType(need.type) || need.parameters === void 0) continue;
+      if (!isPortNeedType(need.type) || need.parameters === void 0) continue;
       report(
         module,
         "NEED_PARAMETERS_INVALID",
-        `Need '${need.name}' (type '${need.type}') states parameters, and a library's address need states none: the port, the primary and custom domains are the application's to say. Drop 'parameters:'; the application declares its own '${need.kind}' naming a port and forwards it at the import.`,
+        need.type === DESKTOP_HOST_TYPE ? `Need '${need.name}' (type '${need.type}') states parameters, and a library's desktop host states none: the identity, the icon and the port are the application's to say. Drop 'parameters:'; the application declares its own '${need.kind}' and forwards it at the import.` : `Need '${need.name}' (type '${need.type}') states parameters, and a library's address need states none: the port, the primary and custom domains are the application's to say. Drop 'parameters:'; the application declares its own '${need.kind}' naming a port and forwards it at the import.`,
         { path: `needs.${need.name}.parameters` }
       );
     }
@@ -78466,7 +79742,7 @@ function checkAddressNeeds(root, report) {
   let primary;
   const customDomains = /* @__PURE__ */ new Map();
   for (const need of root.needs) {
-    if (!isAddressNeedType(need.type)) continue;
+    if (!isPortNeedType(need.type)) continue;
     const parameters = need.parameters && typeof need.parameters === "object" && !Array.isArray(need.parameters) ? need.parameters : {};
     const path = `needs.${need.name}.parameters`;
     const port = parameters.port;
@@ -78474,7 +79750,7 @@ function checkAddressNeeds(root, report) {
       report(
         root,
         "NEED_PARAMETERS_INVALID",
-        `Need '${need.name}' (type '${need.type}') names no port. An address is served on a port of this application: write 'parameters: { port: <key of ports:> }'. Ports: ${list3(Object.keys(declaredPorts))}.`,
+        `Need '${need.name}' (type '${need.type}') names no port. It is served on a port of this application: write 'parameters: { port: <key of ports:> }'. Ports: ${list3(Object.keys(declaredPorts))}.`,
         { path }
       );
     } else if (!Object.hasOwn(declaredPorts, port)) {
@@ -78488,9 +79764,21 @@ function checkAddressNeeds(root, report) {
       report(
         root,
         "NEED_PARAMETERS_INVALID",
-        `Need '${need.name}' names port '${port}', which is a 'udp' port. An address is served over HTTP, on a 'tcp' port.`,
+        need.type === DESKTOP_HOST_TYPE ? `Need '${need.name}' names port '${port}', which is a 'udp' port; a ${DESKTOP_HOST_TYPE} names a tcp key of ports:.` : `Need '${need.name}' names port '${port}', which is a 'udp' port. An address is served over HTTP, on a 'tcp' port.`,
         { path: `${path}.port` }
       );
+    }
+    if (need.type === DESKTOP_HOST_TYPE && Array.isArray(parameters.callbackPaths)) {
+      parameters.callbackPaths.forEach((callback, i) => {
+        const refusal = callbackPathRefusal(callback);
+        if (refusal === void 0) return;
+        report(
+          root,
+          "NEED_PARAMETERS_INVALID",
+          `Need '${need.name}' callbackPaths[${i}]: ${refusal}. A callback path is a literal app-relative path.`,
+          { path: `${path}.callbackPaths[${i}]` }
+        );
+      });
     }
     if (need.type !== PUBLIC_URL_TYPE) continue;
     if (parameters.primary === true) {
@@ -78554,9 +79842,23 @@ function checkModule(graph, module, report) {
       );
     }
   }
+  const firstOfUniqueType = /* @__PURE__ */ new Map();
   for (const need of module.needs) {
     const at3 = { path: `needs.${need.name}.kind` };
     const shape = need.type ? graph.needType(need.type) : void 0;
+    if (shape?.unique && need.type) {
+      const first = firstOfUniqueType.get(need.type);
+      if (first) {
+        report(
+          module,
+          "NEED_DUPLICATE",
+          `Needs '${first.name}' and '${need.name}' are both ${need.kind}, which a module declares at most once. Keep one need of the type and reference it wherever both were used.`,
+          { path: `needs.${need.name}` }
+        );
+      } else {
+        firstOfUniqueType.set(need.type, need);
+      }
+    }
     if (!shape) {
       report(
         module,
@@ -78653,7 +79955,63 @@ function checkParameters(module, need, shape, report) {
     );
     return;
   }
-  const [issue] = validateAgainstSchema(need.parameters ?? {}, shape.parameters);
+  if (need.parameters === void 0 && !module.application && isPortNeedType(need.type)) return;
+  let tagRefused = false;
+  for (const { at: at3, sentinel } of taggedParameters(need.parameters, "")) {
+    const where = at3 ? `${path}.${at3}` : path;
+    if (!isModulePathSentinel(sentinel)) {
+      report(
+        module,
+        "NEED_PARAMETERS_INVALID",
+        `${where}: a need parameter takes a literal or !module-path, not !${sentinel.engine} \u2014 parameters are read when the application loads, before anything is evaluated.`,
+        { path: where }
+      );
+      tagRefused = true;
+      continue;
+    }
+    const slot = at3 ? navigateSchemaToExprPath(shape.parameters, at3) : shape.parameters;
+    if (!holdsHostPath(slot)) {
+      report(
+        module,
+        "NEED_PARAMETERS_INVALID",
+        `${where}: a !module-path names a location on the host, and this parameter of need type '${need.kind}' is not a Telo.HostPath.`,
+        { path: where }
+      );
+      tagRefused = true;
+      continue;
+    }
+    const wanted = hostEntryAt(slot);
+    const found = foundEntryOf(sentinel);
+    if (wanted !== void 0 && found !== void 0 && wanted !== found) {
+      report(
+        module,
+        "HOST_PATH_ENTRY_MISMATCH",
+        `${where}: '${sentinel.source.trim()}' is ${describeHostEntry(found)}; this slot takes ${describeHostEntry(wanted)}.`,
+        { path: where }
+      );
+      continue;
+    }
+    const declared = hostMediaTypeAt(slot);
+    const head = foundHeadOf(sentinel);
+    const mismatch = declared === void 0 ? void 0 : found === "directory" ? "directory" : head ? hostMediaTypeMismatchAt(slot, head) : void 0;
+    if (declared !== void 0 && mismatch) {
+      report(
+        module,
+        "HOST_PATH_CONTENT_MISMATCH",
+        hostMediaTypeFinding(
+          `${where}: '${sentinel.source.trim()}'`,
+          mismatch === "directory" ? mismatch : { mediaType: mismatch.found },
+          declared
+        ) + ".",
+        { path: where }
+      );
+    }
+  }
+  if (tagRefused) return;
+  const [issue] = validateAgainstSchema(
+    substituteCelFields(need.parameters ?? {}, shape.parameters),
+    shape.parameters
+  );
   if (!issue) return;
   report(
     module,
@@ -78661,6 +80019,18 @@ function checkParameters(module, need, shape, report) {
     `Need '${need.name}': parameters do not satisfy need type '${need.kind}' \u2014 ${issue.path ? `at '${issue.path}': ` : ""}${issue.message}.`,
     { path: issue.path ? `${path}.${issue.path}` : path }
   );
+}
+function taggedParameters(value2, at3, out = []) {
+  if (isTaggedSentinel(value2)) {
+    out.push({ at: at3, sentinel: value2 });
+  } else if (Array.isArray(value2)) {
+    value2.forEach((item, i) => taggedParameters(item, `${at3}[${i}]`, out));
+  } else if (value2 !== null && typeof value2 === "object") {
+    for (const [key3, item] of Object.entries(value2)) {
+      taggedParameters(item, at3 ? `${at3}.${key3}` : key3, out);
+    }
+  }
+  return out;
 }
 function needVersionRange(need) {
   if (typeof need.version !== "string") return void 0;
@@ -79139,9 +80509,13 @@ function walkTree2(graph) {
       add(target, need, [...instance.path, need.name], supply, instance.reachedVia, link);
     }
   }
+  const applications = instancesOf(tree).flatMap(
+    (instance) => (graph.modules.get(instance.module)?.applications ?? []).map((place2) => [...instance.path, ...place2])
+  );
   return {
     entries,
-    environment: entries.filter((entry2) => entry2.supply === "environment")
+    environment: entries.filter((entry2) => entry2.supply === "environment"),
+    applications
   };
 }
 function importerFields(graph, need) {
@@ -79229,6 +80603,7 @@ function moduleUnit(key3, manifests, scope, targetOf) {
     needs: readNeeds(doc).map((need) => ({ ...need, type: resolve2(need.kind) })),
     resourceInputs,
     declarations,
+    applications: applicationsOf(declarations, resolve2, scope),
     ...scope.referenceSites ? {
       references: referencesOf(
         declarations,
@@ -79243,6 +80618,25 @@ function moduleUnit(key3, manifests, scope, targetOf) {
     imports,
     checked: true
   };
+}
+function applicationsOf(declarations, resolve2, scope) {
+  const out = [];
+  const visit4 = (manifest, type, holders) => {
+    const name2 = manifest.metadata?.name;
+    const place2 = [...holders, name2];
+    if (type !== void 0 && scope.runsApplication?.(type) === true) out.push(place2);
+    if (type === void 0 || !scope.referenceSites) return;
+    const view = manifest.kind === type ? manifest : { ...manifest, kind: type };
+    for (const site of scope.referenceSites(view)) {
+      if (site.scopes.length === 0 || !Array.isArray(site.data)) continue;
+      for (const entry2 of site.data) {
+        if (!isScopeMember(entry2)) continue;
+        visit4(entry2, resolve2(entry2.kind), place2);
+      }
+    }
+  };
+  for (const declaration of declarations) visit4(declaration.manifest, declaration.type, []);
+  return out;
 }
 function referenceTarget(value2) {
   if (isRefSentinel(value2)) {
@@ -79691,7 +81085,7 @@ function presenceEnvNames(entry2) {
   return [...(required.length > 0 ? required : fields).map((field) => field.env), ...hostValuesOf(entry2)];
 }
 function requirementDimensions(requirements, root, environment2) {
-  const moduleDoc2 = root ?? {};
+  const moduleDoc3 = root ?? {};
   return requirements.dimensions.map((dimension) => {
     let env = [];
     if (dimension.input === "resources") {
@@ -79700,7 +81094,7 @@ function requirementDimensions(requirements, root, environment2) {
         env = dimension.projection === "member" ? [entry2.fields?.[dimension.field]?.env].filter((name2) => typeof name2 === "string") : presenceEnvNames(entry2);
       }
     } else {
-      const declared = moduleDoc2[dimension.input]?.[dimension.name];
+      const declared = moduleDoc3[dimension.input]?.[dimension.name];
       if (typeof declared?.env === "string") env = [declared.env];
     }
     return {
@@ -79825,7 +81219,7 @@ function chainOf2(node) {
   }
   return void 0;
 }
-function collectRefs3(value2, refs, moduleDoc2, key3) {
+function collectRefs3(value2, refs, moduleDoc3, key3) {
   if (value2 === null || typeof value2 !== "object") return;
   const target = refSentinelTarget2(value2);
   if (target) {
@@ -79843,7 +81237,7 @@ function collectRefs3(value2, refs, moduleDoc2, key3) {
     return;
   }
   for (const [k, v] of Object.entries(value2)) {
-    if (moduleDoc2 && (k === "imports" || k === "needs")) continue;
+    if (moduleDoc3 && (k === "imports" || k === "needs")) continue;
     if (k === "needs" && key3 === void 0 && value2.kind === "Telo.Import") continue;
     collectRefs3(v, refs, false, k);
   }
@@ -79859,11 +81253,11 @@ var SCALAR_TYPES = /* @__PURE__ */ new Set(["string", "integer", "number", "bool
 function isRecord2(value2) {
   return value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 }
-function readApplicationArguments(moduleDoc2) {
+function readApplicationArguments(moduleDoc3) {
   const bindings = [];
   const issues = [];
-  if (!isRecord2(moduleDoc2)) return { bindings, issues };
-  const secrets = moduleDoc2.secrets;
+  if (!isRecord2(moduleDoc3)) return { bindings, issues };
+  const secrets = moduleDoc3.secrets;
   if (isRecord2(secrets)) {
     for (const [name2, entry2] of Object.entries(secrets)) {
       if (isRecord2(entry2) && "arg" in entry2) {
@@ -79876,7 +81270,7 @@ function readApplicationArguments(moduleDoc2) {
     }
   }
   for (const block of ["variables", "ports"]) {
-    const entries = moduleDoc2[block];
+    const entries = moduleDoc3[block];
     if (!isRecord2(entries)) continue;
     for (const [name2, entry2] of Object.entries(entries)) {
       if (!isRecord2(entry2) || !("arg" in entry2)) continue;
@@ -80000,8 +81394,8 @@ function checkPositions(bindings, issues) {
   });
   return ordered;
 }
-function factsOf(moduleDoc2, binding) {
-  const block = isRecord2(moduleDoc2) ? moduleDoc2[binding.block] : void 0;
+function factsOf(moduleDoc3, binding) {
+  const block = isRecord2(moduleDoc3) ? moduleDoc3[binding.block] : void 0;
   const entry2 = isRecord2(block) ? block[binding.name] : void 0;
   return isRecord2(entry2) ? entry2 : {};
 }
@@ -80022,11 +81416,11 @@ function synopsisItem(binding, facts) {
   const bracketed = optional2 ? `[${item}]` : item;
   return binding.repeated ? `${bracketed}...` : bracketed;
 }
-function argumentSynopsisOf(moduleDoc2, block, name2) {
-  const binding = readApplicationArguments(moduleDoc2).bindings.find(
+function argumentSynopsisOf(moduleDoc3, block, name2) {
+  const binding = readApplicationArguments(moduleDoc3).bindings.find(
     (b) => b.block === block && b.name === name2
   );
-  return binding ? synopsisItem(binding, factsOf(moduleDoc2, binding)) : void 0;
+  return binding ? synopsisItem(binding, factsOf(moduleDoc3, binding)) : void 0;
 }
 
 // ../../analyzer/nodejs/src/application-contract.ts
@@ -80034,8 +81428,8 @@ var BINDING_KEYS = /* @__PURE__ */ new Set(["description", "default", "env", "ar
 function isRecord3(value2) {
   return value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 }
-function entriesOf2(moduleDoc2, block) {
-  const entries = moduleDoc2[block];
+function entriesOf2(moduleDoc3, block) {
+  const entries = moduleDoc3[block];
   if (!isRecord3(entries)) return [];
   return Object.entries(entries).filter(
     (entry2) => isRecord3(entry2[1])
@@ -80058,25 +81452,25 @@ function argOf(binding) {
   if (!binding) return null;
   return binding.form === "flag" ? { form: "flag", flag: binding.flag, short: binding.short ?? "" } : { form: "position", position: binding.position };
 }
-function readApplicationContract(moduleDoc2, requirements) {
-  if (!isRecord3(moduleDoc2) || moduleDoc2.kind !== "Telo.Application") return null;
-  const { bindings } = readApplicationArguments(moduleDoc2);
+function readApplicationContract(moduleDoc3, requirements) {
+  if (!isRecord3(moduleDoc3) || moduleDoc3.kind !== "Telo.Application") return null;
+  const { bindings } = readApplicationArguments(moduleDoc3);
   const bindingOf3 = (block, name2) => bindings.find((binding) => binding.block === block && binding.name === name2);
   return {
-    variables: entriesOf2(moduleDoc2, "variables").map(([name2, entry2]) => ({
+    variables: entriesOf2(moduleDoc3, "variables").map(([name2, entry2]) => ({
       ...inputOf("variables", name2, entry2, requirements),
       ...declaredDefault(entry2),
       arg: argOf(bindingOf3("variables", name2)),
       schema: Object.fromEntries(Object.entries(entry2).filter(([key3]) => !BINDING_KEYS.has(key3)))
     })),
-    secrets: entriesOf2(moduleDoc2, "secrets").map(([name2, entry2]) => ({
+    secrets: entriesOf2(moduleDoc3, "secrets").map(([name2, entry2]) => ({
       ...inputOf("secrets", name2, entry2, requirements),
       schema: {
         ...entry2.type !== void 0 ? { type: entry2.type } : {},
         ...entry2["x-telo-type"] !== void 0 ? { "x-telo-type": entry2["x-telo-type"] } : {}
       }
     })),
-    ports: entriesOf2(moduleDoc2, "ports").map(([name2, entry2]) => ({
+    ports: entriesOf2(moduleDoc3, "ports").map(([name2, entry2]) => ({
       ...inputOf("ports", name2, entry2, requirements),
       ...declaredDefault(entry2),
       arg: argOf(bindingOf3("ports", name2)),
@@ -82511,7 +83905,7 @@ var AnalysisRegistry = class _AnalysisRegistry {
 };
 
 // ../../analyzer/nodejs/src/validate-scoped-imports.ts
-var SOURCE6 = "telo-analyzer";
+var SOURCE7 = "telo-analyzer";
 function scopedImportNameCollisions(manifests, rootModules) {
   const out = [];
   const moduleNames = /* @__PURE__ */ new Map();
@@ -82538,7 +83932,7 @@ function scopedImportNameCollisions(manifests, rootModules) {
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: "DUPLICATE_RESOURCE_NAME",
-      source: SOURCE6,
+      source: SOURCE7,
       message: `Telo.Import/${place2.alias}: the import declared in the \`${place2.field}:\` scope of '${place2.holder}' is named like ${collides} of module '${module}', so \`!ref ${place2.alias}.<name>\` inside that scope would read one and mean the other. Rename the scoped import.`,
       data: { filePath: anchor.filePath, resource: anchor.resource, path: `${anchor.path}.metadata.name` }
     });
@@ -82562,7 +83956,7 @@ function scopedImportNameCollisions(manifests, rootModules) {
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "DUPLICATE_RESOURCE_NAME",
-          source: SOURCE6,
+          source: SOURCE7,
           message: `${holder.kind}/${holder.metadata?.name}: '${name2}' is declared in its \`${first}:\` scope and again in its \`${scope.path}:\` scope; a member is named by its holder and its name, so the two cannot be told apart. Rename one of them.`,
           data: {
             filePath: holder.metadata?.source,
@@ -83416,7 +84810,7 @@ function textAnnotationProblems(site) {
   if (site.role === "params") return paramsValuesForProblems(site.value);
   const root = site.value;
   const paired = /* @__PURE__ */ new Map();
-  const check2 = (node, path, enclosing) => {
+  const check = (node, path, enclosing) => {
     if (site.role === "data" && TEXT_CONTEXT_ANNOTATION in node) {
       const problem = shapeProblem(TEXT_CONTEXT_ANNOTATION, node[TEXT_CONTEXT_ANNOTATION], path);
       if (problem) problems.push(problem);
@@ -83456,7 +84850,7 @@ function textAnnotationProblems(site) {
   for (const { node, path } of schemaNodes(root)) {
     const parentPath2 = path.length >= 2 && path[path.length - 2] === "properties" ? path.slice(0, -2) : void 0;
     const enclosing = parentPath2 ? nodeAt(root, parentPath2) : void 0;
-    check2(node, path, enclosing);
+    check(node, path, enclosing);
   }
   return problems;
 }
@@ -83540,7 +84934,7 @@ function textContextNodes(value2, path = []) {
 }
 
 // ../../analyzer/nodejs/src/validate-module-calls.ts
-var SOURCE7 = "telo-analyzer";
+var SOURCE8 = "telo-analyzer";
 function moduleCallDiagnostics(site, index) {
   if (!index.isOwned(site.manifest)) return [];
   const out = [];
@@ -83549,7 +84943,7 @@ function moduleCallDiagnostics(site, index) {
   const push4 = (code, message) => out.push({
     severity: DiagnosticSeverity2.Error,
     code,
-    source: SOURCE7,
+    source: SOURCE8,
     message,
     data: { resource, filePath, path }
   });
@@ -83607,7 +85001,7 @@ function moduleCallDiagnostics(site, index) {
     out.push(...textArgumentDiagnostics(call, params, site.lang ?? null, (code, message) => ({
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE7,
+      source: SOURCE8,
       message: `${prefix} '${call.name}' ${message}`,
       data: { resource, filePath, path }
     })));
@@ -83698,7 +85092,7 @@ function unboundSourceDiagnostics(manifest, filePath, sources, moduleNames, inde
         {
           severity: DiagnosticSeverity2.Error,
           code: "FUNCTION_CALL_UNBOUND",
-          source: SOURCE7,
+          source: SOURCE8,
           message: unboundCallMessage(`${resource.kind}/${resource.name}: CEL at '${path}' calls`, call, reason),
           data: { resource, filePath, path }
         },
@@ -83839,11 +85233,11 @@ function isSchema7(value2) {
 }
 
 // ../../analyzer/nodejs/src/referrer-rule.ts
-function isObject12(value2) {
+function isObject13(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function readRawReferrerRules(schema4) {
-  if (!isObject12(schema4)) return void 0;
+  if (!isObject13(schema4)) return void 0;
   return schema4[REFERRER_RULES_ANNOTATION];
 }
 function readReferrerRules(schema4) {
@@ -83851,7 +85245,7 @@ function readReferrerRules(schema4) {
   if (!Array.isArray(raw)) return [];
   const rules = [];
   raw.forEach((entry2, index) => {
-    if (!isObject12(entry2)) return;
+    if (!isObject13(entry2)) return;
     const condition = celSourceOf(entry2.condition);
     const { code, message, referrer, peers, coReferrers } = entry2;
     if (!condition || typeof code !== "string" || typeof message !== "string") return;
@@ -83899,7 +85293,7 @@ function rewriteReferrerRuleKinds(node, rewrite) {
   const raw = node[REFERRER_RULES_ANNOTATION];
   if (!Array.isArray(raw)) return;
   for (const entry2 of raw) {
-    if (!isObject12(entry2) || typeof entry2.referrer !== "string") continue;
+    if (!isObject13(entry2) || typeof entry2.referrer !== "string") continue;
     const rewritten = rewrite(entry2.referrer);
     if (rewritten !== void 0) entry2.referrer = rewritten;
   }
@@ -84042,7 +85436,7 @@ function resourceInputBinding(manifests, lookup, aliases, aliasesByModule) {
 }
 
 // ../../analyzer/nodejs/src/resolve-zone-requirements.ts
-var SOURCE8 = "telo-analyzer";
+var SOURCE9 = "telo-analyzer";
 function definitionResolver(defs, aliases, aliasesByModule) {
   return (kind, module) => {
     const scope = moduleAliasScope({ module }, aliases, aliasesByModule);
@@ -84096,7 +85490,7 @@ function resolveStaticKey(start, pointers, resolveName) {
     let manifest = start.manifest;
     let context = start;
     let value2 = void 0;
-    let failed = false;
+    let failed2 = false;
     const segments = pointer.slice(1).split("/");
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i].replace(/~1/g, "/").replace(/~0/g, "~");
@@ -84104,7 +85498,7 @@ function resolveStaticKey(start, pointers, resolveName) {
         const name2 = refName2(value2);
         const target2 = name2 ? resolveName(name2, context) : void 0;
         if (!target2) {
-          failed = true;
+          failed2 = true;
           break;
         }
         manifest = target2.manifest;
@@ -84112,11 +85506,11 @@ function resolveStaticKey(start, pointers, resolveName) {
       }
       value2 = manifest?.[segment];
       if (value2 === void 0 || value2 === null) {
-        failed = true;
+        failed2 = true;
         break;
       }
     }
-    if (failed) continue;
+    if (failed2) continue;
     const terminalName = refName2(value2);
     const target = terminalName ? resolveName(terminalName, context) : void 0;
     if (target) return target;
@@ -84211,7 +85605,7 @@ function projectZoneRequirements(args) {
     diagnostics.push({
       severity,
       code,
-      source: SOURCE8,
+      source: SOURCE9,
       message: `${req.origin} requires ${wanted}, and the path ${path} ${why}.${reason}`,
       data: {
         resource: { kind: caller.kind, name: caller.name },
@@ -84554,7 +85948,7 @@ function runZoneAnalysis(args) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "ZONE_EXPORT_UNSATISFIABLE",
-          source: SOURCE8,
+          source: SOURCE9,
           message: `exported resource '${exportName}' carries an open requirement: ${spec.origin} requires a ${spec.zone} zone on ${spec.correlationLabel}, which this library does not export \u2014 no importer can satisfy it. Export '${spec.correlationName}' too (importers wrap '${exportName}' in their own zone on it), or export a resource that goes through the provider instead of '${exportName}' directly.` + (spec.reason ? ` ${spec.reason}.` : ""),
           data: {
             resource: { kind: node.kind, name: node.name },
@@ -84753,7 +86147,7 @@ function serializableAnnotationProblems(kindSchema) {
 }
 
 // ../../analyzer/nodejs/src/validate-durable-regions.ts
-var SOURCE9 = "telo";
+var SOURCE10 = "telo";
 function impureCalls(source, moduleNames, moduleCallFlags) {
   const env = moduleNamesEnvironment(CEL_ENV, moduleNames);
   const parsed = env.parse(source);
@@ -84807,7 +86201,7 @@ function checkNondeterminism(region, graph, reportModules, moduleCallNames3, mod
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "DURABLE_NONDETERMINISM",
-          source: SOURCE9,
+          source: SOURCE10,
           message: `'${fn}' is evaluated inside a region declared idempotent by ${region.provider.kind} '${region.provider.name}' \u2014 "${region.reason}". A region with that claim re-runs on a resume with its earlier effects intact, so an expression that produces a different value each time makes the re-run something other than a no-op and the claim false. Pin the value once for the region instead of computing it per pass. A native function counts as deterministic only where its kind declares \`deterministic: true\`.`,
           data: {
             resource: { kind: manifest.kind, name: manifest.metadata?.name },
@@ -84827,7 +86221,7 @@ function checkDetach(region, reportModules, diagnostics) {
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "DURABLE_DETACH_FORBIDDEN",
-      source: SOURCE9,
+      source: SOURCE10,
       message: `${boundary.from.kind} '${boundary.from.name}' dispatches '${boundary.edge.slot}' detached inside a durable region (${region.provider.kind} '${region.provider.name}'). Progress is recorded when a step COMPLETES, so a detached dispatch would be recorded as done while its work was still running \u2014 a resume would skip it and a crash would lose it, which is the opposite of what durability provides. Start a nested durable run instead and let the step record its run id: the work keeps its own identity and its own recovery, and nothing is awaited.`,
       data: {
         resource: { kind: boundary.from.kind, name: boundary.from.name },
@@ -84855,7 +86249,7 @@ function checkUnjournalableResults(region, resolveDef, graph, reportModules, dia
       diagnostics.push({
         severity: DiagnosticSeverity2.Warning,
         code: "DURABLE_UNJOURNALABLE_RESULT",
-        source: SOURCE9,
+        source: SOURCE10,
         message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', whose declared output holds a live value, inside a durable region (${region.provider.kind} '${region.provider.name}'). A live handle is produced by consuming it, so it cannot be recorded and replayed \u2014 the run will fail at this step with ERR_DURABLE_UNJOURNALABLE_VALUE. Collect what you need from it into a plain value inside the step, or move the streaming work outside the durable body.`,
         data: {
           resource: { kind: manifest.kind, name: manifest.metadata?.name },
@@ -84908,7 +86302,7 @@ function validateDurableRegions(args) {
 }
 
 // ../../analyzer/nodejs/src/validate-zone-violations.ts
-var SOURCE10 = "telo";
+var SOURCE11 = "telo";
 function validateZoneViolations(args) {
   const { graph, resolveDef, reportModules } = args;
   const diagnostics = [];
@@ -84937,7 +86331,7 @@ function validateZoneViolations(args) {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "ZONE_ATTRIBUTE_VIOLATED",
-                source: SOURCE10,
+                source: SOURCE11,
                 message: `Step '${contained.node.name ?? contained.node.path}' declares a retry whose last backoff reaches ${SUSPENDING_BACKOFF_MS}ms, at which point a re-attempt waits by PARKING the run rather than by sleeping \u2014 but it is inside a ${region.provider.kind} ${labelled(region.provider)} region that declares 'noSuspend' (${region.reason}). Shorten the backoff, or move the retry outside the region so it re-attempts the region as a whole.`,
                 data: {
                   resource: { kind: owner.kind, name: owner.name },
@@ -84961,7 +86355,7 @@ function validateZoneViolations(args) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "ZONE_ATTRIBUTE_VIOLATED",
-          source: SOURCE10,
+          source: SOURCE11,
           message: `${labelled(contained.node)} is inside a ${labelled(region.provider)} region that declares '${attribute}' (${region.reason}), but ${contained.node.kind} cannot honour it: ${rebuttal}. Reached by ${path}. Move it outside the region, or use a region that does not make that promise.`,
           data: {
             resource: { kind: contained.node.kind, name: contained.node.name },
@@ -85195,7 +86589,7 @@ function validateZoneSlotDeclarations(definition) {
 
 // ../../analyzer/nodejs/src/validate-schema-projection.ts
 var PROJECTION = "x-telo-schema-projection";
-function isObject13(value2) {
+function isObject14(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 var PROJECTION_FROM2 = "x-telo-schema-projection-from";
@@ -85218,7 +86612,7 @@ function derivationIssues(manifest, kindDocument) {
       node.forEach((item, index) => visit4(item, `${path}[${index}]`, [...segments, index]));
       return;
     }
-    if (!isObject13(node)) return;
+    if (!isObject14(node)) return;
     for (const [key3, value2] of Object.entries(node)) {
       const at3 = path === "" ? key3 : `${path}.${key3}`;
       if (key3 === PROJECTION_FROM2) {
@@ -85250,7 +86644,7 @@ function projectionIssues(manifest) {
       )
     );
   }
-  if (!isObject13(raw)) {
+  if (!isObject14(raw)) {
     return [
       ...issues,
       issue(
@@ -85300,7 +86694,7 @@ function projectionIssues(manifest) {
   }
   const reference = raw.reference;
   if (reference !== void 0) {
-    if (!isObject13(reference)) {
+    if (!isObject14(reference)) {
       issues.push(
         issue(
           "SCHEMA_PROJECTION_INVALID",
@@ -85375,18 +86769,18 @@ function modifierDefaultProblems(schema4, projection) {
     }
     for (const site of sites) {
       if (site.kind !== "conditional") continue;
-      const check2 = compileDefaultCondition(site.condition);
-      if (typeof check2 === "function") continue;
+      const check = compileDefaultCondition(site.condition);
+      if (typeof check === "function") continue;
       problems.push([
         modifier,
-        `the conditional at '${site.path}' decides the default of '${field}', but it does not compile as JSON Schema: ${check2.error}`
+        `the conditional at '${site.path}' decides the default of '${field}', but it does not compile as JSON Schema: ${check.error}`
       ]);
     }
   }
   return problems;
 }
 function isArrayCollection(collection) {
-  return !!collection && isObject13(collection.items) && !isObject13(collection.additionalProperties);
+  return !!collection && isObject14(collection.items) && !isObject14(collection.additionalProperties);
 }
 function nestedProblem(nested, schema4, projection) {
   if (nested === void 0) return void 0;
@@ -85420,7 +86814,7 @@ function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
 }
 
 // ../../analyzer/nodejs/src/validate-referrer-rules.ts
-function isObject14(value2) {
+function isObject15(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function validateReferrerRuleDeclarations(manifest, context = {}) {
@@ -85439,7 +86833,7 @@ function validateReferrerRuleDeclarations(manifest, context = {}) {
   const seen = /* @__PURE__ */ new Map();
   raw.forEach((entry2, index) => {
     const at3 = `${base}[${index}]`;
-    if (!isObject14(entry2)) {
+    if (!isObject15(entry2)) {
       issue(at3, "A rule must be an object with 'condition', 'code' and 'message'.");
       return;
     }
@@ -85512,7 +86906,7 @@ function referrerRuleCallIssues(manifest, moduleNames, flagsOf) {
   if (!Array.isArray(raw)) return [];
   const issues = [];
   raw.forEach((entry2, index) => {
-    const condition = isObject14(entry2) ? celSourceOf(entry2.condition) : void 0;
+    const condition = isObject15(entry2) ? celSourceOf(entry2.condition) : void 0;
     if (!condition) return;
     for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
       issues.push({
@@ -86469,6 +87863,19 @@ function checkNode(node, manifest, path, issues) {
       });
       continue;
     }
+    if (parameter?.hostMediaType) {
+      const token = slot.args[argument];
+      const mediaTypes = Object.keys(parameter.signatures ?? {});
+      if (typeof token === "string" && mediaTypes.includes(token)) continue;
+      const suggestion = typeof token === "string" ? suggestToken(token, mediaTypes) : void 0;
+      issues.push({
+        code: "X_TELO_TYPE_ARGUMENT_INVALID",
+        manifest,
+        path,
+        message: `'${slot.entry.name}' parameter '${argument}' takes a media type it knows the signature of (${mediaTypes.join(", ")}), not ${JSON.stringify(token)}.` + (suggestion ? ` Did you mean '${suggestion}'?` : "")
+      });
+      continue;
+    }
     if (declared.has(argument)) continue;
     issues.push({
       code: "X_TELO_TYPE_ARGUMENT_UNKNOWN",
@@ -86672,7 +88079,7 @@ function validateSensitiveSlots(manifests, rootModules, capabilityOf) {
 }
 
 // ../../analyzer/nodejs/src/validate-sink-attachment.ts
-var SOURCE11 = "telo-analyzer";
+var SOURCE12 = "telo-analyzer";
 function validateSinkAttachment(manifests, graph, registry, aliases, aliasesByModule, rootModules, scopedOnly = false, analysisOnly = () => false) {
   const ownerOf = (id) => {
     const node = graph.nodes.get(id);
@@ -86715,7 +88122,7 @@ function sinkUnattachedDiagnostic(m, scoped) {
   return {
     severity: DiagnosticSeverity2.Warning,
     code: "SINK_UNATTACHED",
-    source: SOURCE11,
+    source: SOURCE12,
     message: `${m.kind}/${name2} is a sink nothing attaches: the runtime attaches only the sinks the root Application lists in \`logging.sinks\` / \`tracing.sinks\`, so this one receives ` + (scoped ? `nothing, and a list cannot name a resource declared in a scope. Declare it at the module's top level and list it there, or remove it.` : `nothing. List it there (\`- !ref ${name2}\`), or remove it.`),
     data: {
       resource: { kind: m.kind, name: name2 },
@@ -86725,7 +88132,7 @@ function sinkUnattachedDiagnostic(m, scoped) {
 }
 
 // ../../analyzer/nodejs/src/validate-needs.ts
-var SOURCE12 = "telo-analyzer";
+var SOURCE13 = "telo-analyzer";
 var NEED_TABLE_MARK = "needTable";
 function needTableDiagnostics(manifests, rootModules, resolveKind, resolveDefinition, libraries = [], referenceSites, applicationNeedsFeed, presentNeeds) {
   const built = needGraphFromManifests(
@@ -86751,7 +88158,7 @@ function needTableDiagnostics(manifests, rootModules, resolveKind, resolveDefini
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: p.code,
-        source: SOURCE12,
+        source: SOURCE13,
         message: p.message,
         data: {
           ...p.resource ? { resource: p.resource } : {},
@@ -86770,7 +88177,7 @@ function needTableDiagnostics(manifests, rootModules, resolveKind, resolveDefini
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: p.code,
-      source: SOURCE12,
+      source: SOURCE13,
       message: `Imported library '${p.module}', reached through import '${via.alias}': ${p.message} The repair is the library's \u2014 import a version of it that resolves this.`,
       data: {
         ...scopedImportAnchorOf(via.manifest) ?? {
@@ -86914,7 +88321,7 @@ function signatureMismatches(own2, required, halves, resolveRef2) {
 }
 
 // ../../analyzer/nodejs/src/validate-invocation-contract.ts
-var SOURCE13 = "telo-analyzer";
+var SOURCE14 = "telo-analyzer";
 function validateInvocationContract(manifests, registry, aliases, aliasesByModule = /* @__PURE__ */ new Map()) {
   const diagnostics = [];
   const resolveDef = (kind, from) => {
@@ -86940,7 +88347,7 @@ function validateInvocationContract(manifests, registry, aliases, aliasesByModul
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "THROWS_NOT_SUBSTITUTABLE",
-      source: SOURCE13,
+      source: SOURCE14,
       message: throwsNotSubstitutableMessage(def, violation),
       data: {
         resource: { kind: m.kind, name: m.metadata?.name },
@@ -87005,7 +88412,7 @@ function checkRefSlotWiring(m, definition, manifests, resolveDef, resource, file
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
         code: runSite ? "CONTRACT_INPUTS_AT_RUN_SITE" : "CONTRACT_SLOT_INPUTS_UNSATISFIABLE",
-        source: SOURCE13,
+        source: SOURCE14,
         message: runSite ? `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', which starts it with \`run()\` \u2014 a dispatch that passes no arguments \u2014 but its contract requires ${list4(unsatisfiable)}. Nothing can supply them there. Invoke it from a step instead, or drop the requirement.` : `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', where the consumer builds the arguments from the slot's declared kind alone, but its contract requires ${list4(unsatisfiable)} which that kind does not declare. Nothing could supply them.`,
         data: { resource, filePath, path }
       });
@@ -87065,7 +88472,7 @@ function checkContractResolves(m, md, manifests, resource, filePath, diagnostics
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "CONTRACT_TYPE_NOT_FOUND",
-          source: SOURCE13,
+          source: SOURCE14,
           message: `${m.kind}/${resource.name}: '${path}' names the type '${sentinel.source}' with \`!ref\`, and nothing by that name is declared in scope. The contract cannot be enforced, so every call through it would fail at dispatch. Declare a \`Telo.JsonSchema\` with that name, or correct the reference.`,
           data: { resource, filePath, path }
         });
@@ -87077,7 +88484,7 @@ function checkContractResolves(m, md, manifests, resource, filePath, diagnostics
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "CONTRACT_TYPE_NOT_FOUND",
-      source: SOURCE13,
+      source: SOURCE14,
       message: `${m.kind}/${resource.name}: \`${direction}\` names the type '${named}', which is not declared in scope. The contract cannot be enforced, so every call through it would fail at dispatch. Declare a \`Telo.JsonSchema\` with that name, or inline the shape.`,
       data: { resource, filePath, path: direction }
     });
@@ -87109,7 +88516,7 @@ function checkAncestorSubstitutability(m, md, manifests, resource, filePath, res
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "CONTRACT_NOT_SUBSTITUTABLE",
-      source: SOURCE13,
+      source: SOURCE14,
       message: `${m.kind}/${resource.name}: \`${direction}\` replaces the one declared by '${ancestorName}' with a shape that cannot stand in for it \u2014 ${issues.join("; ")}. Contracts replace rather than merge, so nothing re-checks this at dispatch: ${why}. Restate the fields '${ancestorName}' declares, or drop \`${direction}\` to inherit the contract unchanged.`,
       data: { resource, filePath, path: direction }
     });
@@ -87122,7 +88529,7 @@ function checkSignatureSubstitutability(m, md, manifests, resource, filePath, re
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "CONTRACT_NOT_SUBSTITUTABLE",
-      source: SOURCE13,
+      source: SOURCE14,
       message: `${m.kind}/${resource.name}: ${message}`,
       data: { resource, filePath, path }
     });
@@ -87204,7 +88611,7 @@ function checkMappingRequired(m, resource, filePath, resolveDef, diagnostics) {
     diagnostics.push({
       severity: DiagnosticSeverity2.Error,
       code: "CONTRACT_MISSING_MAPPING",
-      source: SOURCE13,
+      source: SOURCE14,
       message: `${m.kind}/${resource.name}: declares its own \`${direction}\` but inherits its controller, and no \`${mappingField}:\` mapping bridges the two. The inherited controller only understands the kind it came from, so without a mapping the declaration would never be applied. Add a \`${mappingField}:\` mapping, or drop \`${direction}\` to inherit the contract unchanged.`,
       data: { resource, filePath, path: direction }
     });
@@ -87219,7 +88626,7 @@ function checkLeftoverInputsSchema(m, definition, md, resource, filePath, diagno
   diagnostics.push({
     severity: DiagnosticSeverity2.Error,
     code: "CONTRACT_INPUTS_SCHEMA_FORM",
-    source: SOURCE13,
+    source: SOURCE14,
     message: `${m.kind}/${resource.name}: \`inputs:\` no longer declares an input contract \u2014 it always means values now. Move the property map to \`inputType:\` (a \`Telo.JsonSchema\` shape, a named type reference, or an inline schema).`,
     data: { resource, filePath, path: "inputs" }
   });
@@ -87283,7 +88690,7 @@ function analyzedTwin2(ctx, def) {
 }
 
 // ../../analyzer/nodejs/src/validate-references.ts
-var SOURCE14 = "telo-analyzer";
+var SOURCE15 = "telo-analyzer";
 function describeNamed(m, name2) {
   if (m.kind === "Telo.Import") return `import alias '${name2}'`;
   if (injectedNeedOf(m)) return `need '${name2}'`;
@@ -87350,7 +88757,7 @@ function duplicateNameDiagnostic(dup, first, name2, resources) {
   return {
     severity: DiagnosticSeverity2.Error,
     code: "DUPLICATE_RESOURCE_NAME",
-    source: SOURCE14,
+    source: SOURCE15,
     message: `${dup.kind}/${name2}: ${describeNamed(dup, name2)} collides with ${describeNamed(first, name2)} declared earlier \u2014 ` + (dupScope ? `the kernel registers both under '${name2}' in the '${dupScope.site.field}' scope of ${dupScope.holder.kind}/${dupScope.holder.metadata?.name}, so opening that scope fails. ` : `the kernel registers both under '${name2}' in one namespace, so boot fails with ERR_DUPLICATE_RESOURCE. `) + `Rename one of them.`,
     ...range && !ownerDoc ? { range } : {},
     data: ownerDoc ? {
@@ -87559,7 +88966,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
               withQuotedPath({
                 severity: DiagnosticSeverity2.Error,
                 code: "UNRESOLVED_REFERENCE",
-                source: SOURCE14,
+                source: SOURCE15,
                 message: `${resourceLabel}: reference at '${concretePath2}' \u2192 '${refName3}' is not exported by module '${module ?? aliasPrefix}' (add it to exports.resources)`,
                 data: { resource: resourceData, filePath, path: concretePath2 }
               }, concretePath2)
@@ -87574,7 +88981,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
               withQuotedPath({
                 severity: DiagnosticSeverity2.Error,
                 code: "UNRESOLVED_REFERENCE",
-                source: SOURCE14,
+                source: SOURCE15,
                 message: `${resourceLabel}: reference at '${concretePath2}' \u2192 resource '${localName2}' not found`,
                 data: { resource: resourceData, filePath, path: concretePath2 }
               }, concretePath2)
@@ -87593,7 +89000,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
               withQuotedPath({
                 severity: DiagnosticSeverity2.Error,
                 code: "REFERENCE_KIND_MISMATCH",
-                source: SOURCE14,
+                source: SOURCE15,
                 message: `${resourceLabel}: reference at '${concretePath2}' \u2192 ${kindErrors2.join("; ")}`,
                 data: { resource: resourceData, filePath, path: concretePath2 }
               }, concretePath2)
@@ -87614,7 +89021,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
             withQuotedPath({
               severity: DiagnosticSeverity2.Error,
               code: "INVALID_REFERENCE",
-              source: SOURCE14,
+              source: SOURCE15,
               message: `${resourceLabel}: the value at '${concretePath2}' is not one this slot accepts. It takes ` + acceptedAtSlot(
                 entry2,
                 acceptsInline(r.kind, entry2),
@@ -87640,7 +89047,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
             withQuotedPath({
               severity: DiagnosticSeverity2.Error,
               code: "REFERENCE_KIND_MISMATCH",
-              source: SOURCE14,
+              source: SOURCE15,
               message: `${resourceLabel}: reference at '${concretePath2}' \u2192 ${kindErrors.join("; ")}`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             }, concretePath2)
@@ -87658,7 +89065,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
             withQuotedPath({
               severity: DiagnosticSeverity2.Error,
               code: "UNRESOLVED_REFERENCE",
-              source: SOURCE14,
+              source: SOURCE15,
               message: `${resourceLabel}: reference at '${concretePath2}' \u2192 resource '${refVal.name}' not found`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             }, concretePath2)
@@ -87681,7 +89088,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
             withQuotedPath({
               severity: DiagnosticSeverity2.Error,
               code: "SCOPE_ENTRY_NOT_INLINE",
-              source: SOURCE14,
+              source: SOURCE15,
               message: `${resourceLabel}: scope entry at '${concretePath2}' is a reference (\`!ref ${refName3}\`), but a scope declares inline resource definitions (a \`kind:\` with its config). Declare the resource inline under '${scopeField}:', or reference an outer resource from a sibling field such as 'targets:'.`,
               data: { resource: resourceData, filePath, path: concretePath2 }
             }, concretePath2)
@@ -87721,7 +89128,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
         {
           severity: DiagnosticSeverity2.Error,
           code: failure.code,
-          source: SOURCE14,
+          source: SOURCE15,
           message: failure.message,
           data: {
             resource: { kind: r.kind, name: r.metadata.name },
@@ -87780,7 +89187,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
                   {
                     severity: DiagnosticSeverity2.Error,
                     code: valueTypeRefusalCode(issue) ?? "DEPENDENT_SCHEMA_MISMATCH",
-                    source: SOURCE14,
+                    source: SOURCE15,
                     message: `${resourceLabel}: '${site.path}' does not match ${against}: ${issue.message}`,
                     data: { resource: resourceData, filePath, path: site.path }
                   },
@@ -87794,7 +89201,7 @@ function validateReferences(resources, context, shared, moduleDuplicatesJudged =
             diagnostics.push(withQuotedPath({
               severity: DiagnosticSeverity2.Error,
               code: valueTypeRefusalCode(issue) ?? "DEPENDENT_SCHEMA_MISMATCH",
-              source: SOURCE14,
+              source: SOURCE15,
               message: `${resourceLabel}: '${site.path}' does not match schema from '${site.source}': ${issue.message}`,
               data: {
                 resource: resourceData,
@@ -87818,7 +89225,7 @@ function carriesDeclaredBranchKeys(value2, branches) {
 }
 
 // ../../analyzer/nodejs/src/validate-unused-declarations.ts
-var SOURCE15 = "telo-analyzer";
+var SOURCE16 = "telo-analyzer";
 var NAMESPACES = ["variables", "secrets", "ports"];
 function validateUnusedDeclarations(manifests) {
   const moduleManifest = manifests.find((m) => m.kind === "Telo.Application");
@@ -87862,7 +89269,7 @@ function validateUnusedDeclarations(manifests) {
       diagnostics.push({
         severity: DiagnosticSeverity2.Warning,
         code: "UNUSED_DECLARATION",
-        source: SOURCE15,
+        source: SOURCE16,
         message: `${ns}.${name2} is declared but never referenced in any CEL expression.`,
         data: { filePath, path: `${ns}.${name2}` }
       });
@@ -88438,7 +89845,7 @@ function merged(base, branch) {
 }
 
 // ../../analyzer/nodejs/src/validate-schema-type-refs.ts
-var SOURCE16 = "telo-analyzer";
+var SOURCE17 = "telo-analyzer";
 var SCHEMA_FIELDS3 = ["schema", "inputType", "outputType", "params", "returns"];
 function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, rootModules) {
   const diagnostics = [];
@@ -88464,7 +89871,7 @@ function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, r
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCHEMA_TYPE_REF_UNKNOWN_ALIAS",
-            source: SOURCE16,
+            source: SOURCE17,
             message: `${label2}: schema $ref '${obj.$ref}' \u2014 '${parsed.authority}' is not 'Self' or a Telo.Import in this module. Declare the import or correct the authority.`,
             data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
           });
@@ -88472,7 +89879,7 @@ function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, r
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "SCHEMA_TYPE_REF_UNRESOLVED",
-            source: SOURCE16,
+            source: SOURCE17,
             message: `${label2}: schema $ref '${obj.$ref}' resolves to module '${module}', which declares no Telo.Type named '${parsed.typeName}'.`,
             data: { resource: { kind: m.kind, name: name2 }, filePath, path: `${path}/$ref` }
           });
@@ -88489,7 +89896,7 @@ function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, r
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "SCHEMA_TYPE_REF_UNRESOLVED",
-          source: SOURCE16,
+          source: SOURCE17,
           message: `${label2}: '${path}' names the type '${sentinel.source}' with \`!ref\`, and nothing by that name is declared in scope, so nothing beneath it is validated. Declare a \`Telo.JsonSchema\` with that name, or correct the reference.`,
           data: { resource: { kind: m.kind, name: name2 }, filePath, path }
         });
@@ -88966,7 +90373,7 @@ var RuleDeclarationViews = class {
 };
 
 // ../../analyzer/nodejs/src/resource-rule-relation.ts
-var SOURCE17 = "telo-analyzer";
+var SOURCE18 = "telo-analyzer";
 var RESOURCE_RULE_REPORT = "RESOURCE_RULE_REPORT";
 var SEVERITY = {
   error: DiagnosticSeverity2.Error,
@@ -89024,11 +90431,11 @@ function coReferrerGroups(door, declarer, ruleDef) {
     const known = judged.get(key3);
     if (known !== void 0) return known;
     const declared = door.declared({ identityOnly: true, kind: m.kind, metadata: m.metadata ?? {} });
-    const holds = declared.status === "ok" && declaredResourceRules(declared.definition, ruleDef).some(
+    const holds2 = declared.status === "ok" && declaredResourceRules(declared.definition, ruleDef).some(
       (group) => kindOf(group.declarer) === declaring4 && group.rules.some((each) => each.code === rule.code)
     );
-    judged.set(key3, holds);
-    return holds;
+    judged.set(key3, holds2);
+    return holds2;
   };
   return (rule, self, target, slot) => {
     const key3 = `${declaring4}#${rule.code}\0${slot}\0${nodeIdFor(target)}`;
@@ -89051,7 +90458,7 @@ function carrier(subject, report) {
   return {
     severity: DiagnosticSeverity2.Hint,
     code: RESOURCE_RULE_REPORT,
-    source: SOURCE17,
+    source: SOURCE18,
     message: "",
     data: {
       resource: { kind: subject.kind, name: subject.metadata?.name },
@@ -89064,7 +90471,7 @@ function ruleDiagnostic(report) {
   const diagnostic2 = {
     severity: SEVERITY[report.severity],
     code: report.code,
-    source: SOURCE17,
+    source: SOURCE18,
     message: report.message,
     data: {
       resource: { kind: report.manifest.kind, name: report.manifest.metadata?.name },
@@ -89185,7 +90592,7 @@ var ResourceRuleReports = class {
         anchor ? {
           severity: SEVERITY[found.report.severity],
           code: found.report.code,
-          source: SOURCE17,
+          source: SOURCE18,
           message: found.report.message,
           data: { filePath: anchor.filePath, path: anchor.path, rule: found.rule }
         } : this.at(found)
@@ -89202,7 +90609,7 @@ var ResourceRuleReports = class {
     const diagnostic2 = {
       severity: SEVERITY[report.severity],
       code: report.code,
-      source: SOURCE17,
+      source: SOURCE18,
       message: report.message,
       data: {
         resource: { kind: report.definition.kind, name: report.definition.name },
@@ -89212,16 +90619,6 @@ var ResourceRuleReports = class {
       }
     };
     return report.path === void 0 ? diagnostic2 : withQuotedPath(diagnostic2, report.path);
-  }
-};
-
-// ../../analyzer/nodejs/src/artifact-axes.ts
-var PLATFORM_AXES = ["os", "arch", "libc", "abi"];
-var AXIS_VALUE_FORMS = {
-  abi: {
-    pattern: new RegExp("^[a-z][a-z0-9_]*-[0-9]+(\\.[0-9]+)*$"),
-    form: "<family>-<version>",
-    examples: ["node-137", "telo-3"]
   }
 };
 
@@ -89456,115 +90853,9 @@ var browserExportReads = ({ value: value2, at: at3 }) => {
   return typeof entry2 === "string" ? [{ kind: "value", keys: placeAt(enclosingKeys(at3), entry2) }] : [];
 };
 
-// ../../analyzer/nodejs/src/artifact-selector.ts
-var LAYER_ROLES = [
-  "controller",
-  "library",
-  "native",
-  "browser",
-  "assets",
-  "common"
-];
-function isLayerRole(value2) {
-  return typeof value2 === "string" && LAYER_ROLES.includes(value2);
-}
-var CODE_LAYER_ROLES = ["controller", "library"];
-var SELECTOR_LAYER_ROLES = [...CODE_LAYER_ROLES, "native", "browser"];
-function roleCarriesSelector(role) {
-  return SELECTOR_LAYER_ROLES.includes(role);
-}
-var ArtifactSelectorError = class extends Error {
-  code = "INVALID_ARTIFACT_SELECTOR";
-  constructor(detail) {
-    super(detail);
-    this.name = "ArtifactSelectorError";
-  }
-};
-var TOKEN2 = /^[a-z0-9][a-z0-9_.-]*$/;
-function normalizeAxisValue(axis, raw, describe7) {
-  if (typeof raw !== "string") {
-    throw new ArtifactSelectorError(
-      `${describe7}: ${axis} must be a string, got ${raw === null ? "null" : typeof raw}.`
-    );
-  }
-  const value2 = raw.trim().toLowerCase();
-  if (!TOKEN2.test(value2)) {
-    throw new ArtifactSelectorError(
-      `${describe7}: ${axis} value '${raw}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
-    );
-  }
-  const valueForm = AXIS_VALUE_FORMS[axis];
-  if (valueForm && !valueForm.pattern.test(value2)) {
-    throw new ArtifactSelectorError(
-      `${describe7}: ${axis} value '${raw}' must have the form ${valueForm.form}, e.g. ${valueForm.examples.map((e) => `'${e}'`).join(" or ")}.`
-    );
-  }
-  return value2;
-}
-function selectorFromQualifiers(format2, qualifiers, describe7 = "controller selector") {
-  const selector = {
-    format: normalizeAxisValue("format", format2, describe7)
-  };
-  for (const axis of PLATFORM_AXES) {
-    const raw = qualifiers?.[axis];
-    if (raw === void 0 || raw === "") continue;
-    selector[axis] = normalizeAxisValue(axis, raw, describe7);
-  }
-  return selector;
-}
-function normalizeSelector(value2, describe7 = "layer selector") {
-  if (typeof value2 !== "object" || value2 === null || Array.isArray(value2)) {
-    throw new ArtifactSelectorError(`${describe7}: expected an object of selector axes.`);
-  }
-  const record = value2;
-  const selector = selectorFromQualifiers(record.format, record, describe7);
-  const carriesUnknownAxis = Object.keys(record).some(
-    (k) => k !== "format" && !PLATFORM_AXES.includes(k)
-  );
-  return carriesUnknownAxis ? void 0 : selector;
-}
-function selectorKey(selector) {
-  let key3 = selectorKeys.get(selector);
-  if (key3 === void 0) {
-    const pairs2 = [`format=${selector.format}`];
-    for (const axis of PLATFORM_AXES) {
-      const value2 = selector[axis];
-      if (value2 !== void 0) pairs2.push(`${axis}=${value2}`);
-    }
-    key3 = pairs2.sort().join(";");
-    selectorKeys.set(selector, key3);
-  }
-  return key3;
-}
-var selectorKeys = /* @__PURE__ */ new WeakMap();
-function describeSelector(selector) {
-  const platform = PLATFORM_AXES.map((axis) => selector[axis]).filter(
-    (v) => v !== void 0
-  );
-  return platform.length === 0 ? selector.format : `${selector.format} (${platform.join("/")})`;
-}
-function selectorContradictions(selector) {
-  const out = [];
-  if (selector.format === "napi" && selector.abi !== void 0) {
-    out.push({
-      rule: "NAPI_ABI_FORBIDDEN",
-      axis: "abi",
-      detail: `an N-API addon is ABI-stable across runtime releases and states no abi \u2014 remove abi ${selector.abi}, which would keep it from loading anywhere else.`
-    });
-  }
-  if (selector.libc !== void 0 && selector.os !== void 0 && selector.os !== "linux") {
-    out.push({
-      rule: "LIBC_OFF_LINUX",
-      axis: "libc",
-      detail: `libc is only determined on linux, so a selector for os '${selector.os}' that states libc ${selector.libc} could never match a host. Remove libc.`
-    });
-  }
-  return out;
-}
-
 // ../../analyzer/nodejs/src/module-browser.ts
 var BROWSER_FORMAT = "esm";
-var KNOWN_KEYS = /* @__PURE__ */ new Set(["specifier", "path", "source", "abi", "external", "exports"]);
+var KNOWN_KEYS2 = /* @__PURE__ */ new Set(["specifier", "path", "source", "abi", "external", "exports"]);
 function normalizeRelative(value2) {
   return value2.replace(/^\.\//, "").replace(/\\/g, "/");
 }
@@ -89618,10 +90909,10 @@ function readBrowserEntries(ownerJson) {
       );
       return;
     }
-    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS.has(key3));
+    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS2.has(key3));
     if (unknown.length > 0) {
       refuse3(
-        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS].join(", ")}.`
+        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS2].join(", ")}.`
       );
       return;
     }
@@ -89686,7 +90977,7 @@ function readBrowserEntries(ownerJson) {
 }
 
 // ../../analyzer/nodejs/src/validate-rethrow-placement.ts
-var SOURCE18 = "telo-analyzer";
+var SOURCE19 = "telo-analyzer";
 function validateRethrowPlacement(registry, aliases, rootModules, graph, scopes) {
   const out = [];
   const resolveDef = moduleScopedDefResolver(registry, aliases, scopes);
@@ -89712,7 +91003,7 @@ function validateRethrowPlacement(registry, aliases, rootModules, graph, scopes)
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: "RETHROW_WITHOUT_CAUGHT_ERROR",
-      source: SOURCE18,
+      source: SOURCE19,
       message: `${owner.kind}/${owner.name}: ` + (error ? `Step '${node.name ?? node.path}' re-raises a caught failure where the failure may be absent: in a finally: branch nothing has failed when the try succeeded. Move the rethrow into a catch: branch.` : `Step '${node.name ?? node.path}' re-raises a caught failure outside every catch: branch, where there is none to re-raise. Move it into a catch: branch, or throw a new error with throw:.`),
       data: {
         resource: { kind: owner.kind, name: owner.name },
@@ -89734,7 +91025,7 @@ function admitsNull2(schema4) {
 }
 
 // ../../analyzer/nodejs/src/validate-extends.ts
-var SOURCE19 = "telo-analyzer";
+var SOURCE20 = "telo-analyzer";
 var EXTENDS_ALIAS_RE = /^[A-Z][A-Za-z0-9_]*\.[A-Z][A-Za-z0-9_]*$/;
 var TELO_BUILTIN_ALIAS = "Telo";
 function validateExtends(manifests, registry, aliases) {
@@ -89764,7 +91055,7 @@ function validateExtends(manifests, registry, aliases) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "BASE_WITH_TEMPLATE_BODY",
-          source: SOURCE19,
+          source: SOURCE20,
           message: `${label2}: 'base:' maps this kind's config onto the inherited controller of '${typeof extendsOf(m) === "string" ? extendsOf(m) : "<no extends>"}', so the definition may not also declare '${bodyKey}:'. With '${bodyKey}:' the kind is a template and 'base:' is never evaluated. Either drop 'base:' and dispatch to a 'resources:' entry with '!ref', or drop '${bodyKey}:' and build the parent's config in 'base:' alone.`,
           data: { resource, filePath, path: bodyKey }
         });
@@ -89776,7 +91067,7 @@ function validateExtends(manifests, registry, aliases) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "EXTENDS_MALFORMED",
-          source: SOURCE19,
+          source: SOURCE20,
           message: `${label2}: 'extends' must be a string in alias form "<Alias>.<Name>"`,
           data: { resource, filePath, path: "extends" }
         });
@@ -89784,7 +91075,7 @@ function validateExtends(manifests, registry, aliases) {
         diagnostics.push({
           severity: DiagnosticSeverity2.Error,
           code: "EXTENDS_MALFORMED",
-          source: SOURCE19,
+          source: SOURCE20,
           message: `${label2}: 'extends: ${extendsValue}' must be in alias form "<Alias>.<Name>" (e.g. "Ai.Model"), resolved via this file's Telo.Import declarations.`,
           data: { resource, filePath, path: "extends" }
         });
@@ -89794,7 +91085,7 @@ function validateExtends(manifests, registry, aliases) {
           diagnostics.push({
             severity: DiagnosticSeverity2.Error,
             code: "EXTENDS_MALFORMED",
-            source: SOURCE19,
+            source: SOURCE20,
             message: `${label2}: 'extends: ${extendsValue}' \u2014 alias '${prefix}' is not a Telo.Import in this file's scope. Declare the import or correct the alias.`,
             data: { resource, filePath, path: "extends" }
           });
@@ -89804,7 +91095,7 @@ function validateExtends(manifests, registry, aliases) {
             diagnostics.push({
               severity: DiagnosticSeverity2.Error,
               code: "EXTENDS_UNKNOWN_TARGET",
-              source: SOURCE19,
+              source: SOURCE20,
               message: `${label2}: 'extends' target '${extendsValue}' is not an exported kind of alias '${prefix}'.`,
               data: { resource, filePath, path: "extends" }
             });
@@ -89814,7 +91105,7 @@ function validateExtends(manifests, registry, aliases) {
               diagnostics.push({
                 severity: DiagnosticSeverity2.Error,
                 code: "EXTENDS_UNKNOWN_TARGET",
-                source: SOURCE19,
+                source: SOURCE20,
                 message: `${label2}: 'extends' target '${extendsValue}' (resolved: '${canonical}') is not a registered definition.`,
                 data: { resource, filePath, path: "extends" }
               });
@@ -89827,7 +91118,7 @@ function validateExtends(manifests, registry, aliases) {
                 diagnostics.push({
                   severity: DiagnosticSeverity2.Error,
                   code: "EXTENDS_CAPABILITY_MISMATCH",
-                  source: SOURCE19,
+                  source: SOURCE20,
                   message: `${label2}: declares 'capability: ${ownCap}' but extends '${extendsValue}' whose inherited capability is '${ancestorCap}'. Capability is inherited and immutable \u2014 omit 'capability' or restate it identically.`,
                   data: { resource, filePath, path: "capability" }
                 });
@@ -89844,7 +91135,7 @@ function validateExtends(manifests, registry, aliases) {
                     diagnostics.push({
                       severity: DiagnosticSeverity2.Error,
                       code: "EXTENDS_CLOSED_PARENT_ADDS_FIELD",
-                      source: SOURCE19,
+                      source: SOURCE20,
                       message: `${label2}: declares '${prop}', but '${ancestorKind}' closes its schema (additionalProperties: false) and a child without 'base:' forwards its whole config as that kind's config \u2014 so '${prop}' is rejected when the resource is created. Add a 'base:' mapping, which makes this kind's fields construction inputs and builds the parent's config explicitly.`,
                       data: {
                         resource,
@@ -89955,7 +91246,7 @@ function parseBracket(path, open, segments) {
 }
 
 // ../../analyzer/nodejs/src/validate-logging.ts
-var SOURCE20 = "telo-analyzer";
+var SOURCE21 = "telo-analyzer";
 function validateLogging(manifests, registry, aliases, aliasesByModule) {
   const diagnostics = [];
   for (const manifest of manifests) {
@@ -89985,7 +91276,7 @@ function validateRedactPaths(manifest, out) {
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "INVALID_REDACTION_PATH",
-          source: SOURCE20,
+          source: SOURCE21,
           message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
           data: { resource, filePath, path: `${prefix}redact.paths[${index}]` }
         });
@@ -90001,7 +91292,7 @@ function validateOnFull(manifest, out) {
   out.push({
     severity: DiagnosticSeverity2.Error,
     code: "LOG_SINK_ON_FULL_UNSUPPORTED",
-    source: SOURCE20,
+    source: SOURCE21,
     message: `${manifest.kind}/${name2 ?? "(unnamed)"}: on_full: block is not supported on a single-threaded runtime \u2014 blocking the producer would stall the writer. Use drop_new or drop_old.`,
     data: { resource: { kind: manifest.kind, name: name2 }, filePath, path: "on_full" }
   });
@@ -90009,13 +91300,13 @@ function validateOnFull(manifest, out) {
 function loggingBlocks(manifest) {
   const blocks = [];
   const root = manifest.logging;
-  if (isObject15(root)) blocks.push({ block: root, prefix: "logging." });
+  if (isObject16(root)) blocks.push({ block: root, prefix: "logging." });
   const imports = manifest.imports;
-  if (isObject15(imports)) {
+  if (isObject16(imports)) {
     for (const [alias, entry2] of Object.entries(imports)) {
-      if (!isObject15(entry2)) continue;
+      if (!isObject16(entry2)) continue;
       const block = entry2.logging;
-      if (isObject15(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
+      if (isObject16(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
     }
   }
   return blocks;
@@ -90027,7 +91318,7 @@ function isSinkKind(manifest, registry, aliases, aliasesByModule) {
   const canonical = resolver.resolveKind(manifest.kind) ?? manifest.kind;
   return registry.resolve(canonical)?.capability === "Telo.Sink";
 }
-function isObject15(value2) {
+function isObject16(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 
@@ -90041,27 +91332,27 @@ var LayerIndexError = class extends Error {
     this.name = "LayerIndexError";
   }
 };
-function digest(field, raw, describe7) {
+function digest(field, raw, describe8) {
   if (typeof raw !== "string" || raw === "") {
-    throw new LayerIndexError(`${describe7}: ${field} is required and must be a string.`);
+    throw new LayerIndexError(`${describe8}: ${field} is required and must be a string.`);
   }
   const pattern2 = field === "blob" ? BLOB_DIGEST : CONTENT_DIGEST;
   if (!pattern2.test(raw)) {
     throw new LayerIndexError(
-      field === "blob" ? `${describe7}: blob '${raw}' is not an OCI digest (expected 'sha256:' + 64 hex characters).` : `${describe7}: integrity '${raw}' is not a content digest (expected 'sha256-' + 43 base64url characters).`
+      field === "blob" ? `${describe8}: blob '${raw}' is not an OCI digest (expected 'sha256:' + 64 hex characters).` : `${describe8}: integrity '${raw}' is not a content digest (expected 'sha256-' + 43 base64url characters).`
     );
   }
   return raw;
 }
-function parseLayerIndex(value2, describe7 = "layers") {
+function parseLayerIndex(value2, describe8 = "layers") {
   if (!Array.isArray(value2)) {
-    throw new LayerIndexError(`${describe7}: expected an array of layer entries.`);
+    throw new LayerIndexError(`${describe8}: expected an array of layer entries.`);
   }
   const layers = [];
   const seenSelectors = /* @__PURE__ */ new Set();
   const seenSingletons = /* @__PURE__ */ new Set();
   value2.forEach((raw, index) => {
-    const where = `${describe7}[${index}]`;
+    const where = `${describe8}[${index}]`;
     if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
       throw new LayerIndexError(`${where}: expected an object.`);
     }
@@ -90111,7 +91402,7 @@ function parseLayerIndex(value2, describe7 = "layers") {
 }
 
 // ../../analyzer/nodejs/src/module-library.ts
-var KNOWN_KEYS2 = /* @__PURE__ */ new Set(["specifier", "path", "source", "format", ...PLATFORM_AXES]);
+var KNOWN_KEYS3 = /* @__PURE__ */ new Set(["specifier", "path", "source", "format", ...PLATFORM_AXES]);
 function normalizeRelative2(value2) {
   return value2.replace(/^\.\//, "").replace(/\\/g, "/");
 }
@@ -90140,11 +91431,11 @@ function readLibraryCandidates(ownerJson) {
       return;
     }
     const entry2 = raw;
-    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS2.has(key3));
+    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS3.has(key3));
     if (unknown.length > 0) {
       problems.push({
         origin,
-        detail: `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS2].join(", ")}.`
+        detail: `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS3].join(", ")}.`
       });
       return;
     }
@@ -90193,7 +91484,7 @@ function readLibraryCandidates(ownerJson) {
 }
 
 // ../../analyzer/nodejs/src/validate-module-artifact.ts
-var SOURCE21 = "telo-analyzer";
+var SOURCE22 = "telo-analyzer";
 function validateModuleArtifact(manifests) {
   const out = [];
   for (const manifest of manifests) {
@@ -90213,7 +91504,7 @@ function validateLibraryCandidates(manifest, out) {
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: "LIBRARY_CANDIDATE_INVALID",
-      source: SOURCE21,
+      source: SOURCE22,
       message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
       data: { resource, filePath: metadata?.source, path: "exports/code" }
     });
@@ -90224,7 +91515,7 @@ function validateLibraryCandidates(manifest, out) {
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: `LIBRARY_${contradiction.rule}`,
-        source: SOURCE21,
+        source: SOURCE22,
         message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${candidate.origin}: ${contradiction.detail}`,
         data: { resource, filePath: metadata?.source, path: "exports/code" }
       });
@@ -90235,7 +91526,7 @@ function validateLibraryCandidates(manifest, out) {
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "LIBRARY_CANDIDATE_DUPLICATE",
-        source: SOURCE21,
+        source: SOURCE22,
         message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: two 'exports.code' entries declare the selector ${key3} ('${first.specifier}' and '${candidate.specifier}'). A module has one entry point per format \u2014 which is what makes "one specifier, one module scope" true.`,
         data: { resource, filePath: metadata?.source, path: "exports/code" }
       });
@@ -90261,7 +91552,7 @@ function validateBrowserEntries(manifest, out) {
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: "BROWSER_ENTRY_INVALID",
-      source: SOURCE21,
+      source: SOURCE22,
       message: `Telo.Library/${metadata?.name ?? "(unnamed)"}: ${problem.origin}: ${problem.detail}`,
       data: {
         resource: { kind: manifest.kind, name: metadata?.name },
@@ -90304,7 +91595,7 @@ function validateControllerSelectors(manifest, out) {
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "CONTROLLER_UNKNOWN_QUALIFIER",
-        source: SOURCE21,
+        source: SOURCE22,
         message: `${manifest.kind}/${name2 ?? "(unnamed)"}: bundled controller qualifier '${key3}' is not recognized. Known qualifiers: ${[...KNOWN_QUALIFIERS].sort().join(", ")}. An unrecognized platform axis is ignored, which would make this candidate platform-neutral and offer a single-platform binary to every host.`,
         data: { resource, filePath, path: `${at3}?${key3}` }
       });
@@ -90315,7 +91606,7 @@ function validateControllerSelectors(manifest, out) {
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: `CONTROLLER_${contradiction.rule}`,
-          source: SOURCE21,
+          source: SOURCE22,
           message: `${manifest.kind}/${name2 ?? "(unnamed)"}: controller candidate "${candidate}": ` + contradiction.detail,
           data: { resource, filePath, path: `${at3}?${contradiction.axis}` }
         });
@@ -90324,7 +91615,7 @@ function validateControllerSelectors(manifest, out) {
         out.push({
           severity: DiagnosticSeverity2.Error,
           code: "CONTROLLER_DYLIB_ABI_MISSING",
-          source: SOURCE21,
+          source: SOURCE22,
           message: `${manifest.kind}/${name2 ?? "(unnamed)"}: dylib candidate "${candidate}" ` + (selector.abi === void 0 ? `states no abi. ` : `states abi=${selector.abi}, which is not a Rust controller ABI. `) + `A dylib is built against one version of the Rust controller ABI and must say which \u2014 add abi=telo-<version>, e.g. abi=telo-3. Without it the Rust kernel downloads the library on every host and refuses it only when it opens it.`,
           data: { resource, filePath, path: at3 }
         });
@@ -90334,7 +91625,7 @@ function validateControllerSelectors(manifest, out) {
       out.push({
         severity: DiagnosticSeverity2.Error,
         code: "CONTROLLER_INVALID_SELECTOR",
-        source: SOURCE21,
+        source: SOURCE22,
         message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
         data: { resource, filePath, path: at3 }
       });
@@ -90354,7 +91645,7 @@ function validateLayerIndex(manifest, out) {
     out.push({
       severity: DiagnosticSeverity2.Error,
       code: "INVALID_LAYER_INDEX",
-      source: SOURCE21,
+      source: SOURCE22,
       message: `${manifest.kind}/${name2 ?? "(unnamed)"}: ${err.message}`,
       data: {
         resource: { kind: manifest.kind, name: name2 },
@@ -90478,318 +91769,8 @@ function collectDocumentFileClaims(docs, registry = defaultRegistry()) {
   return claims;
 }
 
-// ../glob/nodejs/src/glob-select.ts
-var HARD_IGNORE = ["node_modules/", ".git/", ".telo/"];
-var DEFAULT_IGNORE = [".telobundle.*"];
-var GLOB_PRUNE_DIRS = /* @__PURE__ */ new Set(["node_modules", ".git", ".telo"]);
-var REGEX_META = /[.^$+|()[\]{}\\]/;
-function normalize(patterns) {
-  return patterns.map((p) => p.replace(/\\/g, "/").replace(/^\.\//, ""));
-}
-function bodyToRegExp(glob, anchored) {
-  let re2 = anchored ? "" : "(?:.*/)?";
-  let i = 0;
-  while (i < glob.length) {
-    const c = glob[i];
-    if (c === "*") {
-      if (glob[i + 1] === "*") {
-        i += 2;
-        if (glob[i] === "/") {
-          re2 += "(?:.*/)?";
-          i++;
-        } else {
-          re2 += ".*";
-        }
-      } else {
-        re2 += "[^/]*";
-        i++;
-      }
-    } else if (c === "?") {
-      re2 += "[^/]";
-      i++;
-    } else {
-      re2 += REGEX_META.test(c) ? "\\" + c : c;
-      i++;
-    }
-  }
-  return new RegExp("^" + re2 + "$");
-}
-function compile(pattern2) {
-  let body2 = pattern2;
-  let negated = false;
-  if (body2.startsWith("!")) {
-    negated = true;
-    body2 = body2.slice(1);
-  }
-  body2 = body2.replace(/^\.\//, "");
-  let anchored = false;
-  if (body2.startsWith("/")) {
-    anchored = true;
-    body2 = body2.slice(1);
-  }
-  const withoutTrailing = body2.endsWith("/") ? body2.slice(0, -1) : body2;
-  anchored = anchored || withoutTrailing.includes("/");
-  if (body2.endsWith("/")) body2 += "**";
-  return { negated, re: bodyToRegExp(body2, anchored) };
-}
-function decide(rel, compiled2) {
-  let selected = false;
-  for (const { negated, re: re2 } of compiled2) {
-    if (re2.test(rel)) selected = !negated;
-  }
-  return selected;
-}
-function lastMatchIndex(rel, patterns) {
-  const compiled2 = normalize([...patterns]).map(compile);
-  let index = -1;
-  for (let i = 0; i < compiled2.length; i++) {
-    if (compiled2[i].re.test(rel)) index = i;
-  }
-  return index;
-}
-function selectByPatterns(relPaths, patterns, opts = {}) {
-  if (patterns.length === 0) return [];
-  const select = normalize(patterns).map(compile);
-  const hard = HARD_IGNORE.map(compile);
-  const soft = opts.applyDefaultIgnore === false ? [] : DEFAULT_IGNORE.map(compile);
-  const exclude = opts.exclude?.length ? normalize(opts.exclude).map(compile) : [];
-  const matched = relPaths.filter((rel) => {
-    if (!rel || !decide(rel, select)) return false;
-    if (decide(rel, hard)) return false;
-    if (soft.length && decide(rel, soft)) return false;
-    if (exclude.length && decide(rel, exclude)) return false;
-    return true;
-  });
-  matched.sort();
-  return matched;
-}
-
-// ../../analyzer/nodejs/src/module-named-files.ts
-var CLAIM_LABEL = {
-  controller: "the controller candidate",
-  library: "the exports.code entry",
-  browser: "the exports.browser entry",
-  assets: "the embed"
-};
-function describeClaim(located) {
-  const { claim, where } = located;
-  return `${CLAIM_LABEL[claim.role]} ${claim.origin}${where === void 0 ? "" : ` on ${where}`}`;
-}
-function nativeClaimConflicts(native, claims) {
-  const out = [];
-  for (const entry2 of native) {
-    for (const claim of claims) {
-      if (claim.claim.path === entry2.path) out.push({ entry: entry2, claim });
-    }
-  }
-  return out;
-}
-function readAssetPatterns(owner) {
-  const assets = owner?.assets;
-  return Array.isArray(assets) ? assets.filter((p) => typeof p === "string") : [];
-}
-function stageableFiles(native, claims, assets) {
-  const out = /* @__PURE__ */ new Map();
-  for (const entry2 of native) {
-    if (out.has(entry2.path)) continue;
-    out.set(entry2.path, {
-      path: entry2.path,
-      label: `${entry2.origin} for ${describeSelector(entry2.selector)}`,
-      layer: `native ${describeSelector(entry2.selector)}`,
-      built: false
-    });
-  }
-  for (const { claim } of claims) {
-    if (claim.role !== "controller") continue;
-    if (!PLATFORM_AXES.some((axis) => claim.selector[axis] !== void 0)) continue;
-    const existing = out.get(claim.path);
-    if (existing) {
-      if (claim.localPath && !existing.built) out.set(claim.path, { ...existing, built: true });
-      continue;
-    }
-    out.set(claim.path, {
-      path: claim.path,
-      label: `controller candidate ${claim.origin}`,
-      layer: `controller ${describeSelector(claim.selector)}`,
-      built: claim.localPath !== void 0
-    });
-  }
-  const patterns = [...assets?.patterns ?? []];
-  for (const source of assets?.sources ?? []) {
-    for (const entry2 of source.entries) {
-      if (out.has(entry2.path)) continue;
-      if (selectByPatterns([entry2.path], patterns, { applyDefaultIgnore: false }).length === 0) continue;
-      out.set(entry2.path, {
-        path: entry2.path,
-        label: `assets: pattern '${patterns[lastMatchIndex(entry2.path, patterns)]}'`,
-        layer: "assets",
-        built: false
-      });
-    }
-  }
-  return out;
-}
-function stagedModuleFiles(native, assets) {
-  const stageable = stageableFiles(native, [], assets);
-  return assets.sources.flatMap(
-    (source) => source.entries.filter((e) => stageable.get(e.path)?.layer === "assets" || source.notices.includes(e.path)).map((e) => e.path)
-  );
-}
-function pathsAtOrBeneath(paths, location) {
-  return paths.filter((p) => p === location || p.startsWith(`${location}/`));
-}
-function unclaimedSourceEntries(sources, stageable, alsoNamed = /* @__PURE__ */ new Set()) {
-  const out = [];
-  for (const source of sources) {
-    for (const entry2 of source.entries) {
-      if (stageable.has(entry2.path) || source.notices.includes(entry2.path)) continue;
-      if (alsoNamed.has(entry2.path)) continue;
-      out.push({ source, entry: entry2 });
-    }
-  }
-  return out;
-}
-function crossLayerSourceLinks(sources, stageable) {
-  const layerOf = (source, path) => stageable.get(path)?.layer ?? (source.notices.includes(path) ? "common" : void 0);
-  const out = [];
-  for (const source of sources) {
-    for (const entry2 of source.entries) {
-      if (entry2.kind !== "link") continue;
-      const layer = layerOf(source, entry2.path);
-      const targetLayer = layerOf(source, entry2.resolved);
-      if (layer !== void 0 && targetLayer !== void 0 && layer !== targetLayer) {
-        out.push({ source, entry: entry2, layer, targetLayer });
-      }
-    }
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/native-entries.ts
-var KNOWN_KEYS3 = /* @__PURE__ */ new Set(["name", "format", "path", ...PLATFORM_AXES]);
-var REQUIRED_AXES = ["os", "arch"];
-var NAME_TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
-var GLOB_CHARS2 = /[*?[\]{}]/;
-var URI_SCHEME2 = /^[a-z][a-z0-9+.-]*:/i;
-function normalizeNativePath(raw) {
-  if (URI_SCHEME2.test(raw) || raw.startsWith("/") || raw.startsWith("\\")) {
-    return {
-      kind: "escape",
-      detail: `path '${raw}' is not relative to the module root. A native file ships inside the module artifact, so name it relative to the directory holding telo.yaml.`
-    };
-  }
-  if (GLOB_CHARS2.test(raw)) {
-    return {
-      kind: "invalid",
-      detail: `path '${raw}' looks like a pattern. A native entry names exactly one file.`
-    };
-  }
-  const out = [];
-  for (const segment of raw.split(/[/\\]+/)) {
-    if (segment === "" || segment === ".") continue;
-    if (segment !== "..") {
-      out.push(segment);
-      continue;
-    }
-    if (out.length === 0) {
-      return {
-        kind: "escape",
-        detail: `path '${raw}' points above the module root. A native file must ship inside the module directory.`
-      };
-    }
-    out.pop();
-  }
-  if (out.length === 0) {
-    return { kind: "invalid", detail: `path '${raw}' resolves to the module root, not to a file.` };
-  }
-  return { path: out.join("/") };
-}
-function readNativeEntries(ownerJson) {
-  const declared = ownerJson?.native;
-  const entries = [];
-  const problems = [];
-  if (declared === void 0) return { entries, problems };
-  if (!Array.isArray(declared)) {
-    problems.push({
-      kind: "shape",
-      origin: "native",
-      path: "native",
-      message: "native: expected a list of entries."
-    });
-    return { entries, problems };
-  }
-  declared.forEach((raw, index) => {
-    const at3 = `native[${index}]`;
-    const shape = (detail) => problems.push({ kind: "shape", index, origin: at3, path: at3, message: `${at3}: ${detail}` });
-    if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
-      shape("expected an object.");
-      return;
-    }
-    const entry2 = raw;
-    const unknown = Object.keys(entry2).filter((key3) => !KNOWN_KEYS3.has(key3));
-    if (unknown.length > 0) {
-      shape(
-        `unknown ${unknown.length === 1 ? "key" : "keys"} ${unknown.map((k) => `'${k}'`).join(", ")}. Known: ${[...KNOWN_KEYS3].join(", ")}.`
-      );
-      return;
-    }
-    const requiredKeys = ["name", "format", ...REQUIRED_AXES, "path"];
-    const missing = requiredKeys.filter((key3) => typeof entry2[key3] !== "string");
-    if (missing.length > 0) {
-      shape(`${missing.map((k) => `'${k}'`).join(", ")} must be strings.`);
-      return;
-    }
-    const blank = requiredKeys.filter((key3) => entry2[key3].trim() === "");
-    if (blank.length > 0) {
-      for (const key3 of blank) {
-        problems.push({
-          kind: "invalid",
-          index,
-          origin: at3,
-          path: `${at3}.${key3}`,
-          message: `${at3}: '${key3}' must not be empty.`
-        });
-      }
-      return;
-    }
-    const name2 = entry2.name;
-    const origin = `${at3} ('${name2}')`;
-    if (!NAME_TOKEN.test(name2)) {
-      problems.push({
-        kind: "invalid",
-        index,
-        origin,
-        path: `${at3}.name`,
-        message: `${origin}: name '${name2}' is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
-      });
-      return;
-    }
-    let selector;
-    try {
-      selector = selectorFromQualifiers(entry2.format, entry2, origin);
-    } catch (err) {
-      if (!(err instanceof ArtifactSelectorError)) throw err;
-      problems.push({ kind: "invalid", index, origin, path: at3, message: err.message });
-      return;
-    }
-    const verdict = normalizeNativePath(entry2.path.trim());
-    if (!("path" in verdict)) {
-      problems.push({
-        kind: verdict.kind,
-        index,
-        origin,
-        path: `${at3}.path`,
-        message: `${origin}: ${verdict.detail}`
-      });
-      return;
-    }
-    entries.push({ name: name2, selector, path: verdict.path, index, origin });
-  });
-  return { entries, problems };
-}
-
 // ../../analyzer/nodejs/src/validate-native-entries.ts
-var SOURCE22 = "telo-analyzer";
+var SOURCE23 = "telo-analyzer";
 function validateNativeEntries(manifests, entryModules) {
   const out = [];
   for (const manifest of manifests) {
@@ -90802,7 +91783,7 @@ function validateNativeEntries(manifests, entryModules) {
     const report = (code, path, message) => out.push({
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE22,
+      source: SOURCE23,
       message: `${label2}: ${message}`,
       data: {
         resource: { kind: manifest.kind, name: name2 },
@@ -90886,312 +91867,8 @@ function validateNativeEntries(manifests, entryModules) {
   return out;
 }
 
-// ../../analyzer/nodejs/src/source-entries.ts
-var SOURCE_NAME_TOKEN = /^[a-z0-9][a-z0-9_.-]*$/;
-var SHA256_HEX = /^[0-9a-f]{64}$/;
-var INPUTS_DIGEST = /^sha256-[A-Za-z0-9_-]{43}$/;
-var SOURCE_KEYS = ["version", "url", "archive", "notices", "entries", "build"];
-var BUILD_KEYS = ["cargo", "inputs"];
-var URL_PLACEHOLDERS = /* @__PURE__ */ new Set(["version", "upstream"]);
-var FILE_KEYS = ["upstream", "member", "sha256", "executable"];
-var URL_ORIGIN = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i;
-var LOOPBACK_HOST = /^(localhost|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|\[::1\])$/i;
-var SOURCE_ARCHIVE_FORMATS = ["tar.gz"];
-var isObject16 = (value2) => typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
-function resolveLinkTarget(linkPath, target) {
-  const dir = linkPath.includes("/") ? linkPath.slice(0, linkPath.lastIndexOf("/")) : "";
-  if (target.startsWith("/") || target.startsWith("\\")) return void 0;
-  const verdict = normalizeNativePath(dir === "" ? target : `${dir}/${target}`);
-  return "path" in verdict ? verdict.path : void 0;
-}
-function sourceUrlProblem(url) {
-  const origin = URL_ORIGIN.exec(url);
-  if (!origin) {
-    return {
-      code: "SOURCE_INVALID",
-      detail: `url '${url}' is not an absolute URL. Write an https:// URL template.`
-    };
-  }
-  const scheme = origin[1].toLowerCase();
-  if (scheme === "https") return void 0;
-  const authority = origin[2];
-  const hostPort = authority.slice(authority.lastIndexOf("@") + 1);
-  const host = hostPort.startsWith("[") ? hostPort.slice(0, hostPort.indexOf("]") + 1) : hostPort.split(":")[0];
-  if (scheme === "http" && LOOPBACK_HOST.test(host)) return void 0;
-  return {
-    code: "SOURCE_URL_INSECURE",
-    detail: `url '${url}' is fetched over ${scheme}, where the archive could be altered on the way. Use https; plain http is accepted only for a loopback host (localhost, 127.0.0.0/8, [::1]).`
-  };
-}
-function runsThrough(path, parent) {
-  return path.startsWith(`${parent}/`);
-}
-function readModuleSources(ownerJson, options = {}) {
-  const ignorePins = options.ignorePins === true;
-  const declared = ownerJson?.sources;
-  const sources = [];
-  const problems = [];
-  if (declared === void 0) return { sources, problems };
-  const problem = (code, path, message) => problems.push({ code, path, message });
-  if (!isObject16(declared)) {
-    problem("SHAPE", "sources", "sources: expected a map of source name to source.");
-    return { sources, problems };
-  }
-  const producers = /* @__PURE__ */ new Map();
-  for (const [name2, raw] of Object.entries(declared)) {
-    const at3 = `sources.${name2}`;
-    const label2 = `source '${name2}'`;
-    if (!isObject16(raw)) {
-      problem("SHAPE", at3, `${label2}: expected an object.`);
-      continue;
-    }
-    const build = raw.build;
-    if (typeof raw.version !== "string" || typeof raw.url !== "string" || !SOURCE_ARCHIVE_FORMATS.includes(raw.archive) || !Array.isArray(raw.notices) || raw.notices.length === 0 || raw.notices.some((notice) => typeof notice !== "string") || !isObject16(raw.entries) || build !== void 0 && (!isObject16(build) || typeof build.cargo !== "string" || !ignorePins && "inputs" in build && typeof build.inputs !== "string" || Object.keys(build).some((key3) => !BUILD_KEYS.includes(key3))) || Object.keys(raw).some((key3) => !SOURCE_KEYS.includes(key3))) {
-      problem(
-        "SHAPE",
-        at3,
-        `${label2}: a source is { version, url, archive (${SOURCE_ARCHIVE_FORMATS.join(" | ")}), notices (non-empty list), entries, build? { cargo, inputs? } } and nothing else.`
-      );
-      continue;
-    }
-    let valid = true;
-    if (!SOURCE_NAME_TOKEN.test(name2)) {
-      problem(
-        "SOURCE_INVALID",
-        `${at3}`,
-        `${label2}: the name is not a canonical token. Use lowercase letters, digits, '.', '-' or '_', starting with a letter or digit.`
-      );
-      valid = false;
-    }
-    for (const key3 of ["version", "url"]) {
-      if (raw[key3].trim() === "") {
-        problem("SOURCE_INVALID", `${at3}.${key3}`, `${label2}: '${key3}' must not be empty.`);
-        valid = false;
-      }
-    }
-    const url = raw.url;
-    for (const match of url.matchAll(/\{([^{}]*)\}/g)) {
-      if (URL_PLACEHOLDERS.has(match[1])) continue;
-      problem(
-        "SOURCE_URL_PLACEHOLDER_UNKNOWN",
-        `${at3}.url`,
-        `${label2}: the url placeholder '{${match[1]}}' is not recognized. A url template may use only {version} (the source's version) and {upstream} (each entry's upstream).`
-      );
-      valid = false;
-    }
-    const insecure = url.trim() === "" ? void 0 : sourceUrlProblem(url);
-    if (insecure) {
-      problem(insecure.code, `${at3}.url`, `${label2}: ${insecure.detail}`);
-      valid = false;
-    }
-    const notices = [];
-    raw.notices.forEach((notice, index) => {
-      const verdict = normalizeNativePath(notice.trim());
-      if ("path" in verdict) {
-        notices.push(verdict.path);
-        return;
-      }
-      problem("SOURCE_INVALID", `${at3}.notices[${index}]`, `${label2}: notice ${verdict.detail}`);
-      valid = false;
-    });
-    let readBuild;
-    if (isObject16(build)) {
-      const written = build.cargo.trim();
-      const verdict = /^\.?\/?$/.test(written) ? { path: "" } : normalizeNativePath(written);
-      const inputs = ignorePins ? void 0 : build.inputs;
-      if (!("path" in verdict)) {
-        problem(
-          "SOURCE_INVALID",
-          `${at3}.build.cargo`,
-          verdict.kind === "escape" ? `${label2}: build.cargo '${written}' is not a directory inside the module. Name the crate relative to the directory holding telo.yaml; code outside the module reaches its digest as a path dependency of that crate.` : `${label2}: build.cargo '${written}' does not name one module-relative directory.`
-        );
-        valid = false;
-      } else if (inputs !== void 0 && !INPUTS_DIGEST.test(inputs)) {
-        problem(
-          "SOURCE_INVALID",
-          `${at3}.build.inputs`,
-          `${label2}: build.inputs must be a digest of the form sha256-<43 base64url characters> \u2014 run \`telo release stage --pin\` to write it.`
-        );
-        valid = false;
-      } else {
-        readBuild = { cargo: verdict.path, ...inputs !== void 0 ? { inputs } : {} };
-      }
-    }
-    const entries = [];
-    const rawEntries = raw.entries;
-    const entryPaths = /* @__PURE__ */ new Map();
-    const links = [];
-    const pathOfKey = /* @__PURE__ */ new Map();
-    for (const key3 of Object.keys(rawEntries)) {
-      const entryAt = `${at3}.entries.${key3}`;
-      const verdict = normalizeNativePath(key3.trim());
-      if (!("path" in verdict)) {
-        problem("SOURCE_ENTRY_INVALID", entryAt, `${label2} entry '${key3}': ${verdict.detail}`);
-        valid = false;
-        continue;
-      }
-      if (entryPaths.has(verdict.path)) {
-        problem(
-          "SOURCE_ENTRY_DUPLICATE",
-          entryAt,
-          `${label2} entry '${key3}': path '${verdict.path}' is also produced by entry '${entryPaths.get(verdict.path)}'.`
-        );
-        valid = false;
-        continue;
-      }
-      entryPaths.set(verdict.path, key3);
-      pathOfKey.set(key3, verdict.path);
-    }
-    for (const [key3, value2] of Object.entries(rawEntries)) {
-      const entryAt = `${at3}.entries.${key3}`;
-      const entryLabel = `${label2} entry '${key3}'`;
-      const path = pathOfKey.get(key3);
-      if (path === void 0) continue;
-      if (!isObject16(value2)) {
-        problem("SHAPE", entryAt, `${entryLabel}: expected an object.`);
-        valid = false;
-        continue;
-      }
-      const fileKeys = FILE_KEYS.filter((k) => k in value2);
-      const isLink = "target" in value2;
-      if (isLink && fileKeys.length > 0) {
-        problem(
-          "SOURCE_ENTRY_INVALID",
-          entryAt,
-          `${entryLabel}: an entry is either a link (target) or a file (upstream, member, sha256, executable) \u2014 remove ${fileKeys.map((k) => `'${k}'`).join(", ")} or 'target'.`
-        );
-        valid = false;
-        continue;
-      }
-      const strings = isLink ? ["target"] : ["upstream", "member"];
-      if (strings.some((k) => typeof value2[k] !== "string") || !ignorePins && "sha256" in value2 && typeof value2.sha256 !== "string" || !ignorePins && "executable" in value2 && typeof value2.executable !== "boolean") {
-        problem("SHAPE", entryAt, `${entryLabel}: expected a file or a link entry.`);
-        valid = false;
-        continue;
-      }
-      const blank = strings.filter((k) => value2[k].trim() === "");
-      if (blank.length > 0) {
-        for (const k of blank) {
-          problem("SOURCE_ENTRY_INVALID", `${entryAt}.${k}`, `${entryLabel}: '${k}' must not be empty.`);
-        }
-        valid = false;
-        continue;
-      }
-      if (isLink) {
-        links.push({ key: key3, path, target: value2.target });
-        continue;
-      }
-      const sha256 = ignorePins ? void 0 : value2.sha256;
-      const executable = ignorePins ? void 0 : value2.executable;
-      if (sha256 !== void 0 && !SHA256_HEX.test(sha256)) {
-        problem(
-          "SOURCE_ENTRY_INVALID",
-          `${entryAt}.sha256`,
-          `${entryLabel}: sha256 must be 64 lowercase hex characters \u2014 run \`telo release stage --pin\` to write it.`
-        );
-        valid = false;
-        continue;
-      }
-      if (sha256 === void 0 !== (executable === void 0)) {
-        problem(
-          "SOURCE_ENTRY_INVALID",
-          entryAt,
-          `${entryLabel}: a pin is sha256 and executable together \u2014 run \`telo release stage --pin\` to write both.`
-        );
-        valid = false;
-        continue;
-      }
-      entries.push({
-        kind: "file",
-        key: key3,
-        path,
-        upstream: value2.upstream,
-        member: value2.member,
-        ...sha256 !== void 0 ? { pin: { sha256, executable } } : {}
-      });
-    }
-    const linkTargets = /* @__PURE__ */ new Map();
-    for (const link of links) {
-      const resolved = resolveLinkTarget(link.path, link.target);
-      const targetAt = `${at3}.entries.${link.key}.target`;
-      if (resolved === link.path) {
-        problem(
-          "SOURCE_LINK_CYCLE",
-          targetAt,
-          `${label2} entry '${link.key}': link target '${link.target}' resolves to the link itself.`
-        );
-        valid = false;
-        continue;
-      }
-      if (resolved === void 0 || !entryPaths.has(resolved)) {
-        problem(
-          "SOURCE_LINK_TARGET_UNRESOLVED",
-          targetAt,
-          `${label2} entry '${link.key}': link target '${link.target}' resolves, relative to the link's directory, to ${resolved === void 0 ? "a path outside the module" : `'${resolved}'`}, which is not another entry of this source.`
-        );
-        valid = false;
-        continue;
-      }
-      linkTargets.set(link.path, resolved);
-      entries.push({ kind: "link", key: link.key, path: link.path, target: link.target, resolved });
-    }
-    for (const link of links) {
-      if (!linkTargets.has(link.path)) continue;
-      const chain = [link.path];
-      for (let next = linkTargets.get(link.path); next !== void 0; next = linkTargets.get(next)) {
-        if (!chain.includes(next)) {
-          chain.push(next);
-          continue;
-        }
-        problem(
-          "SOURCE_LINK_CYCLE",
-          `${at3}.entries.${link.key}.target`,
-          `${label2} entry '${link.key}': the link never reaches a file \u2014 it cycles through ${chain.map((p) => `'${p}'`).join(" \u2192 ")} \u2192 '${next}'. A link chain must end at a file entry.`
-        );
-        valid = false;
-        break;
-      }
-    }
-    for (const entry2 of entries) {
-      const other = producers.get(entry2.path);
-      if (other !== void 0) {
-        problem(
-          "SOURCE_ENTRY_DUPLICATE",
-          `${at3}.entries.${entry2.key}`,
-          `${label2} entry '${entry2.key}': path '${entry2.path}' is also produced by source '${other.source}'. Each staged file has exactly one source.`
-        );
-        valid = false;
-        continue;
-      }
-      for (const [path, producer] of producers) {
-        const relation = runsThrough(entry2.path, path) ? `runs through '${path}' as a directory` : runsThrough(path, entry2.path) ? `is a directory that '${path}' runs through` : void 0;
-        if (relation === void 0) continue;
-        problem(
-          "SOURCE_ENTRY_NESTED",
-          `${at3}.entries.${entry2.key}`,
-          `${label2} entry '${entry2.key}': path '${entry2.path}' ${relation}, and source '${producer.source}' entry '${producer.key}' produces '${path}'. A staged path cannot be both a file and a directory \u2014 give each entry its own path.`
-        );
-        valid = false;
-        break;
-      }
-      producers.set(entry2.path, { source: name2, key: entry2.key });
-    }
-    if (!valid) continue;
-    sources.push({
-      name: name2,
-      version: raw.version,
-      url,
-      archive: raw.archive,
-      notices,
-      entries,
-      ...readBuild !== void 0 ? { build: readBuild } : {}
-    });
-  }
-  return { sources, problems };
-}
-
 // ../../analyzer/nodejs/src/validate-source-entries.ts
-var SOURCE23 = "telo-analyzer";
+var SOURCE24 = "telo-analyzer";
 function validateSourceEntries(manifests, entryModules) {
   const out = [];
   for (const manifest of manifests) {
@@ -91204,7 +91881,7 @@ function validateSourceEntries(manifests, entryModules) {
     const report = (code, path, message) => out.push({
       severity: DiagnosticSeverity2.Error,
       code,
-      source: SOURCE23,
+      source: SOURCE24,
       message: `${label2}: ${message}`,
       data: {
         resource: { kind: manifest.kind, name: name2 },
@@ -91262,41 +91939,6 @@ function validateSourceEntries(manifests, entryModules) {
         `source '${source.name}' entry '${entry2.key}': nothing in the module names '${entry2.path}' \u2014 no native: entry's path, no platform-qualified controller candidate's path=, no assets: pattern, and none of the source's notices. Name the file where it is used, or remove the entry.`
       );
     }
-  }
-  return out;
-}
-
-// ../../analyzer/nodejs/src/validate-include-placement.ts
-var SOURCE24 = "telo-analyzer";
-var NEVER_INSTANTIATED = /* @__PURE__ */ new Set([
-  "Telo.Application",
-  "Telo.Library",
-  "Telo.Import"
-]);
-function isNeverInstantiated(kind) {
-  return NEVER_INSTANTIATED.has(kind);
-}
-function validateIncludePlacement(manifests) {
-  const out = [];
-  for (const manifest of manifests) {
-    if (!NEVER_INSTANTIATED.has(manifest.kind)) continue;
-    const name2 = manifest.metadata?.name;
-    const filePath = manifest.metadata?.source;
-    walkCelExpressions(manifest, "", (source, path, engineName) => {
-      if (!MODULE_FILE_ENGINE_NAMES.has(engineName)) return;
-      const embed = INCLUDE_ENGINE_NAMES.has(engineName);
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code: embed ? "INCLUDE_OUTSIDE_RESOURCE" : "MODULE_PATH_OUTSIDE_RESOURCE",
-        source: SOURCE24,
-        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engineName} ${source}\` at '${path}' is never read \u2014 a ${manifest.kind} doc is not instantiated, and ` + (embed ? `a file embed is resolved when the resource holding it is created. Move it onto the resource that needs the file, or read the file at runtime with Fs.File.` : `a module path is resolved when the resource holding it is created. Move it onto the resource that needs the location.`),
-        data: {
-          resource: { kind: manifest.kind, name: name2 ?? "" },
-          filePath,
-          path
-        }
-      });
-    });
   }
   return out;
 }
@@ -91620,6 +92262,17 @@ function validateImportHostPaths(manifests, rootModules, kernelGlobals) {
             message: `Telo.Import/${String(metadata.name ?? "")}: '${input}' is the path of ${describeHostEntry(declared.entry)} in the imported library, but '${chain}' is declared to name ${describeHostEntry(named)} (entry: ${named}).`,
             data: { ...where, path: input }
           });
+          continue;
+        }
+        const media = hostMediaTypeAt(source);
+        if (declared.mediaType !== void 0 && media !== void 0 && media !== declared.mediaType) {
+          out.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "HOST_PATH_CONTENT_MISMATCH",
+            source: SOURCE29,
+            message: `Telo.Import/${String(metadata.name ?? "")}: '${input}' is the path of a file of ${declared.mediaType} in the imported library, but '${chain}' is declared to hold ${media} (mediaType: ${media}).`,
+            data: { ...where, path: input }
+          });
         }
         continue;
       }
@@ -91636,147 +92289,12 @@ function validateImportHostPaths(manifests, rootModules, kernelGlobals) {
   return out;
 }
 
-// ../../analyzer/nodejs/src/sources/integrity.ts
-var INTEGRITY_FRAGMENT = /#(sha256-[A-Za-z0-9_+/=-]+)$/;
-var CANONICAL_INTEGRITY = /^sha256-[A-Za-z0-9_-]{43}$/;
-function splitIntegrity(ref) {
-  const match = ref.match(INTEGRITY_FRAGMENT);
-  if (!match) return { base: ref };
-  return { base: ref.slice(0, match.index), integrity: match[1] };
-}
-function foldIntegrity(source, integrity) {
-  return typeof integrity === "string" && !source.includes("#") ? `${source}#${integrity}` : source;
-}
-function isCanonicalIntegrity(value2) {
-  return typeof value2 === "string" && CANONICAL_INTEGRITY.test(value2);
-}
-
-// ../../analyzer/nodejs/src/sources/oci-ref.ts
-var OCI_SCHEME = "oci://";
-function isOciRef(ref) {
-  return splitIntegrity(ref).base.startsWith(OCI_SCHEME);
-}
-
-// ../../analyzer/nodejs/src/module-file-existence.ts
-async function collectLocalModuleFileDiagnostics(entry2, modules, importEdges, sourceFor) {
-  const out = [];
-  const seen = /* @__PURE__ */ new Set([entry2.owner.source]);
-  const queue = [entry2];
-  for (let next = queue.shift(); next; next = queue.shift()) {
-    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
-    for (const file of [next.owner, ...next.partials]) {
-      for (const edge of importEdges.get(file.source)?.values() ?? []) {
-        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
-        seen.add(edge.targetSource);
-        const target = modules.get(edge.targetSource);
-        if (target && !isOciRef(target.owner.requestedUrl)) queue.push(target);
-      }
-    }
-  }
-  return out;
-}
-function isPathImport(ref) {
-  return ref.startsWith(".") || ref.startsWith("/");
-}
-var FOUND_ENTRY = "foundEntry";
-function foundEntryOf(value2) {
-  if (!isTaggedSentinel(value2)) return void 0;
-  const found = value2[FOUND_ENTRY];
-  return found === "file" || found === "directory" ? found : void 0;
-}
-function walkSentinels(value2, path, cb) {
-  if (isTaggedSentinel(value2)) {
-    cb(value2, path);
-    return;
-  }
-  if (Array.isArray(value2)) {
-    value2.forEach((v, i) => walkSentinels(v, `${path}[${i}]`, cb));
-    return;
-  }
-  if (value2 !== null && typeof value2 === "object" && !value2.__compiled) {
-    for (const [k, v] of Object.entries(value2)) walkSentinels(v, path ? `${path}.${k}` : k, cb);
-  }
-}
-function stagedEntry(staged, relative) {
-  const beneath = pathsAtOrBeneath(staged, relative);
-  if (beneath.length === 0) return void 0;
-  return beneath.includes(relative.replace(/^\.\//, "")) ? "file" : "directory";
-}
-async function collectModuleFileDiagnostics(module, source) {
-  if (!source?.entryAt) return [];
-  const registry = defaultRegistry();
-  const out = [];
-  const ownerSource = module.owner.source;
-  let staged;
-  for (const file of [module.owner, ...module.partials]) {
-    const found = [];
-    file.manifests.forEach((manifest, index) => {
-      if (!manifest || isNeverInstantiated(manifest.kind)) return;
-      walkSentinels(manifest, "", (sentinel, at3) => {
-        const claims = registry.get(sentinel.engine)?.fileClaims?.(sentinel.source) ?? [];
-        for (const claim of claims) {
-          found.push({ index, at: at3, sentinel, claims: claims.length, relative: claim.path, code: claim.notFoundCode });
-        }
-      });
-    });
-    for (const { index, at: at3, sentinel, claims, relative, code } of found) {
-      staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
-      const entry2 = stagedEntry(staged, relative) ?? await source.entryAt(ownerSource, relative);
-      if (entry2 !== void 0) {
-        if (claims === 1) sentinel[FOUND_ENTRY] = entry2;
-        continue;
-      }
-      const written = sentinel.source;
-      const engine = sentinel.engine;
-      const manifest = file.manifests[index];
-      const name2 = manifest.metadata?.name;
-      const range = file.positions[index]?.positionIndex?.get(at3);
-      const absolute = source.locate?.(ownerSource, relative);
-      const hint = await nearMiss(source, ownerSource, relative, written);
-      out.push({
-        severity: DiagnosticSeverity2.Error,
-        code,
-        source: "telo-analyzer",
-        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
-        data: {
-          resource: { kind: manifest.kind, name: name2 ?? "" },
-          filePath: file.source,
-          path: at3,
-          ...hint?.replacement ? { fix: { replacement: hint.replacement } } : {}
-        },
-        ...range ? { range } : {}
-      });
-    }
-  }
-  return out;
-}
-async function nearMiss(source, ownerSource, relative, written) {
-  if (!source.listDirectory) return void 0;
-  const slash = relative.lastIndexOf("/");
-  const directory = slash === -1 ? "" : relative.slice(0, slash);
-  const entries = await source.listDirectory(ownerSource, directory || ".");
-  if (!entries) return { text: `The directory '${directory}/' does not exist.` };
-  const meant = nearestName(relative.slice(slash + 1), entries);
-  if (!meant) return void 0;
-  const path = directory ? `${directory}/${meant}` : meant;
-  const replacement = written.trim().startsWith("./") ? `./${path}` : path;
-  return { text: `Did you mean '${replacement}'?`, replacement };
-}
-function stagedFilesOf(owner) {
-  const { sources, problems } = readModuleSources(owner);
-  if (problems.length > 0) return [];
-  return stagedModuleFiles(readNativeEntries(owner).entries, {
-    patterns: readAssetPatterns(owner),
-    sources
-  });
-}
-
 // ../../analyzer/nodejs/src/validate-host-path-entries.ts
 var SOURCE30 = "telo-analyzer";
 function foundEntries(value2, path, out) {
   if (isTaggedSentinel(value2)) {
     const found = foundEntryOf(value2);
-    if (found) out.push({ path, source: value2.source, engine: value2.engine, found });
+    if (found) out.push({ path, source: value2.source, engine: value2.engine, found, head: foundHeadOf(value2) });
     return;
   }
   if (Array.isArray(value2)) {
@@ -91799,13 +92317,31 @@ function moduleFileEntryMismatches(manifest, slotAt) {
   const filePath = manifest.metadata?.source;
   const out = [];
   for (const site of found) {
-    const wanted = hostEntryAt(slotAt(site.path));
-    if (wanted === void 0 || wanted === site.found) continue;
+    const slot = slotAt(site.path);
+    const wanted = hostEntryAt(slot);
+    if (wanted !== void 0 && wanted !== site.found) {
+      out.push({
+        severity: DiagnosticSeverity2.Error,
+        code: "HOST_PATH_ENTRY_MISMATCH",
+        source: SOURCE30,
+        message: `${resource.kind}/${resource.name}: '${site.path}' takes the path of ${describeHostEntry(wanted)}, but \`!${site.engine} ${site.source}\` names ${describeHostEntry(site.found)}.`,
+        data: { resource, filePath, path: site.path }
+      });
+      continue;
+    }
+    const declared = hostMediaTypeAt(slot);
+    if (declared === void 0) continue;
+    const mismatch = site.found === "directory" ? "directory" : site.head ? hostMediaTypeMismatchAt(slot, site.head) : void 0;
+    if (!mismatch) continue;
     out.push({
       severity: DiagnosticSeverity2.Error,
-      code: "HOST_PATH_ENTRY_MISMATCH",
+      code: "HOST_PATH_CONTENT_MISMATCH",
       source: SOURCE30,
-      message: `${resource.kind}/${resource.name}: '${site.path}' takes the path of ${describeHostEntry(wanted)}, but \`!${site.engine} ${site.source}\` names ${describeHostEntry(site.found)}.`,
+      message: `${resource.kind}/${resource.name}: ` + hostMediaTypeFinding(
+        `${site.path}: '${site.source.trim()}'`,
+        mismatch === "directory" ? mismatch : { mediaType: mismatch.found },
+        declared
+      ) + ".",
       data: { resource, filePath, path: site.path }
     });
   }
@@ -92394,55 +92930,91 @@ function validateDeprecation(metadata, isModuleDoc, ctx, registry, aliases, out)
 var KNOWN_HOST_AXES = ["node"];
 var KNOWN_AXES = ["telo", "host"];
 var EMPTY2 = { host: {} };
+var UNRELEASED_FLOOR = ">=unreleased";
 function readRequires(doc) {
   const raw = doc?.requires;
   if (raw === void 0) return { declared: false, block: EMPTY2, issues: [] };
+  const { block, issues } = readRequirementMap(raw, "requires", "module");
+  return { declared: true, block, issues };
+}
+function readRequirementMap(raw, path, place2) {
   const issues = [];
   const block = { host: {} };
   if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
     issues.push({
-      path: "requires",
-      message: `'requires' must be a mapping of axes, got ${describe6(raw)}.`
+      path,
+      message: `'${path}' must be a mapping of axes, got ${describe6(raw)}.`
     });
-    return { declared: true, block, issues };
+    return { block, issues };
   }
   const entries = raw;
   for (const key3 of Object.keys(entries)) {
     if (!KNOWN_AXES.includes(key3)) {
       issues.push({
-        path: `requires.${key3}`,
-        message: `'requires.${key3}' is not a known axis. This runtime knows ${KNOWN_AXES.map((a) => `'${a}'`).join(" and ")}; host requirements go under 'host'.`,
+        path: `${path}.${key3}`,
+        message: `'${path}.${key3}' is not a known axis. This runtime knows ${KNOWN_AXES.map((a) => `'${a}'`).join(" and ")}; host requirements go under 'host'.`,
         unknownAxis: true
       });
     }
   }
   if (entries.telo !== void 0) {
-    const range = parseRangeAt(entries.telo, "requires.telo", issues);
+    const range = parseTeloAt(entries.telo, `${path}.telo`, place2, issues);
     if (range) block.telo = range;
   }
   if (entries.host !== void 0) {
     const host = entries.host;
     if (host === null || typeof host !== "object" || Array.isArray(host)) {
       issues.push({
-        path: "requires.host",
-        message: `'requires.host' must be a mapping of host axes, got ${describe6(host)}.`
+        path: `${path}.host`,
+        message: `'${path}.host' must be a mapping of host axes, got ${describe6(host)}.`
       });
     } else {
       for (const [axis, value2] of Object.entries(host)) {
+        const at3 = `${path}.host.${axis}`;
         if (!KNOWN_HOST_AXES.includes(axis)) {
           issues.push({
-            path: `requires.host.${axis}`,
-            message: `'requires.host.${axis}' is not a known host axis. This runtime knows ${KNOWN_HOST_AXES.map((a) => `'${a}'`).join(", ")}.`,
+            path: at3,
+            message: `'${at3}' is not a known host axis. This runtime knows ${KNOWN_HOST_AXES.map((a) => `'${a}'`).join(", ")}.`,
             unknownAxis: true
           });
           continue;
         }
-        const range = parseRangeAt(value2, `requires.host.${axis}`, issues);
+        if (namesUnreleased(value2)) {
+          issues.push({
+            path: at3,
+            message: `${at3} '${value2.trim()}': unreleased names a telo release and is allowed only as a telo floor.`
+          });
+          continue;
+        }
+        const range = parseRangeAt(value2, at3, issues);
         if (range) block.host[axis] = range;
       }
     }
   }
-  return { declared: true, block, issues };
+  return { block, issues };
+}
+function namesUnreleased(value2) {
+  return typeof value2 === "string" && /\bunreleased\b/.test(value2);
+}
+function parseTeloAt(value2, path, place2, issues) {
+  if (namesUnreleased(value2)) {
+    const text3 = value2.trim();
+    if (text3 === UNRELEASED_FLOOR) return { raw: text3, comparators: [], unreleased: true };
+    issues.push({
+      path,
+      message: `${path} '${text3}': unreleased is allowed only as the whole range '${UNRELEASED_FLOOR}'.`
+    });
+    return void 0;
+  }
+  const range = parseRangeAt(value2, path, issues);
+  if (range && place2 === "module" && upperBound(range)) {
+    issues.push({
+      path,
+      ceiling: true,
+      message: `${path} '${range.raw}' declares an upper bound; requires.telo is a floor only. Write the ceiling as a restrictions: entry without versions, which covers this version.`
+    });
+  }
+  return range;
 }
 function parseRangeAt(value2, path, issues) {
   const result = parseVersionRange(value2);
@@ -92459,70 +93031,376 @@ function parseRangeAt(value2, path, issues) {
   }
   return result.range;
 }
-function evaluateRequires(block, running, host = {}) {
-  const telo = check("telo", block.telo, running);
-  if (telo) return telo;
-  for (const axis of KNOWN_HOST_AXES) {
-    const verdict = check(axis, block.host[axis], host[axis]);
-    if (verdict) return verdict;
-  }
-  return { satisfied: true };
-}
-function check(axis, declared, running) {
-  if (!declared || !running) return void 0;
-  if (!parseModuleVersion(running)) return void 0;
-  if (rangeAccepts(declared, running)) return void 0;
-  return { satisfied: false, axis, declared, running };
-}
 function describe6(value2) {
   if (value2 === null) return "null";
   if (Array.isArray(value2)) return "an array";
   return typeof value2;
 }
 
+// ../../analyzer/nodejs/src/restrictions.ts
+var ENTRY_KEYS4 = ["versions", "requires", "reason"];
+function readRestrictions(doc) {
+  const raw = doc?.restrictions;
+  if (raw === void 0) return { declared: false, entries: [], issues: [] };
+  const issues = [];
+  if (!Array.isArray(raw)) {
+    issues.push({
+      path: "restrictions",
+      message: `'restrictions' must be a list of entries, got ${describe7(raw)}.`
+    });
+    return { declared: true, entries: [], issues };
+  }
+  const declaring4 = declaringVersion(doc);
+  const entries = [];
+  raw.forEach((item, index) => {
+    const entry2 = readEntry3(item, index, declaring4);
+    issues.push(...entry2.issues);
+    if (entry2.restriction) entries.push(entry2.restriction);
+  });
+  return { declared: true, entries, issues };
+}
+function readEntry3(item, index, declaring4) {
+  const path = `restrictions[${index}]`;
+  const issues = [];
+  if (item === null || typeof item !== "object" || Array.isArray(item)) {
+    issues.push({
+      path,
+      message: `${path} must be a mapping of ${ENTRY_KEYS4.map((k) => `'${k}'`).join(", ")}, got ${describe7(item)}.`
+    });
+    return { issues };
+  }
+  const entry2 = item;
+  for (const key3 of Object.keys(entry2)) {
+    if (!ENTRY_KEYS4.includes(key3)) {
+      issues.push({
+        path: `${path}.${key3}`,
+        message: `'${path}.${key3}' is not a restriction key; an entry holds ${ENTRY_KEYS4.map((k) => `'${k}'`).join(", ")}.`
+      });
+    }
+  }
+  let versions;
+  if (entry2.versions !== void 0) {
+    const at3 = `${path}.versions`;
+    const parsed = parseVersionRange(entry2.versions);
+    if (!parsed.ok) {
+      issues.push({ path: at3, message: `'${at3}': ${parsed.error.message}.`, hint: parsed.error.hint });
+    } else if (declaring4 === void 0) {
+      issues.push({
+        path: at3,
+        message: `${at3} needs this module's metadata.version as a three-part version, which closes the range at this version.`
+      });
+    } else {
+      const upper = upperBound(parsed.range);
+      if (upper && (compareModuleVersions(upper.raw, declaring4) ?? 0) > 0) {
+        issues.push({
+          path: at3,
+          message: `${at3} '${parsed.range.raw}' reaches past this module's version ${declaring4}; an entry covers only this version and earlier ones. Leave the upper bound off to cover through this version.`
+        });
+      } else {
+        versions = parsed.range;
+      }
+    }
+  }
+  let requires;
+  if (entry2.requires === void 0) {
+    issues.push({
+      path,
+      message: `${path} has no requires; name the runtime range the covered versions are restricted to.`
+    });
+  } else {
+    const at3 = `${path}.requires`;
+    const read = readRequirementMap(entry2.requires, at3, "restriction");
+    issues.push(...read.issues);
+    if (read.issues.length === 0) {
+      if (read.block.telo === void 0 && Object.keys(read.block.host).length === 0) {
+        issues.push({ path: at3, message: `${at3} states no bound.` });
+      } else {
+        requires = read.block;
+      }
+    }
+  }
+  const reason = entry2.reason;
+  if (typeof reason !== "string" || reason.trim() === "") {
+    issues.push({
+      path,
+      message: `${path} has no reason; say what breaks, so whoever is held back knows why.`
+    });
+  }
+  if (issues.length > 0 || !requires || typeof reason !== "string") return { issues };
+  return {
+    restriction: { index, ...versions ? { versions } : {}, requires, reason: reason.trim() },
+    issues
+  };
+}
+function restrictionCovers(entry2, declaring4, version2) {
+  if (!entry2.versions) {
+    if (version2 === declaring4) return true;
+    return version2 !== void 0 && declaring4 !== void 0 && compareModuleVersions(version2, declaring4) === 0;
+  }
+  if (version2 === void 0 || declaring4 === void 0) return false;
+  const order = compareModuleVersions(version2, declaring4);
+  return order !== null && order <= 0 && rangeAccepts(entry2.versions, version2);
+}
+function declaringVersion(doc) {
+  const version2 = doc?.metadata?.version;
+  return typeof version2 === "string" && parseModuleVersion(version2) ? version2 : void 0;
+}
+function describe7(value2) {
+  if (value2 === null) return "null";
+  if (Array.isArray(value2)) return "an array";
+  return typeof value2;
+}
+
+// ../../analyzer/nodejs/src/runtime-range.ts
+var REQUIREMENT_KEYS = ["telo", ...KNOWN_HOST_AXES];
+function readModuleRequirements(doc, addressedAs) {
+  return {
+    version: declaringVersion(doc) ?? addressedAs,
+    requires: readRequires(doc),
+    restrictions: readRestrictions(doc)
+  };
+}
+function loadRange(module, options = {}) {
+  const out = blockConstraints(module.requires.block, { from: "requires" }, options.ownCeiling !== false);
+  for (const entry2 of module.restrictions.entries) {
+    if (!restrictionCovers(entry2, module.version, module.version)) continue;
+    out.push(...entryConstraints(entry2, module.version));
+  }
+  return out;
+}
+function selectionRange(candidate, newer) {
+  const out = loadRange(candidate);
+  const target = candidate.version;
+  if (target === void 0) return out;
+  const later = newer.filter((m) => m.version !== void 0 && (compareModuleVersions(m.version, target) ?? 0) > 0);
+  for (const key3 of REQUIREMENT_KEYS) {
+    const speaking = later.map((m) => ({
+      module: m,
+      entries: m.restrictions.entries.filter(
+        (e) => restrictionCovers(e, m.version, target) && rangeOf(e.requires, key3) !== void 0
+      )
+    })).filter((s) => s.entries.length > 0);
+    const releases = speaking.filter((s) => parseModuleVersion(s.module.version)?.pre === null);
+    const speaker = newest(releases.length > 0 ? releases : speaking);
+    if (!speaker) continue;
+    for (const entry2 of speaker.entries) {
+      out.push({ key: key3, range: rangeOf(entry2.requires, key3), source: restrictionSource(entry2, speaker.module.version) });
+    }
+  }
+  return out;
+}
+function evaluateRange(constraints, teloVersion, host = {}) {
+  for (const key3 of REQUIREMENT_KEYS) {
+    const running = key3 === "telo" ? teloVersion : host[key3];
+    if (!running) continue;
+    const { core, unreleased } = splitBuildMetadata(running);
+    const parsed = parseModuleVersion(core);
+    if (!parsed) continue;
+    const onKey = constraints.filter((c) => c.key === key3);
+    for (const c of onKey) {
+      if (c.range.unreleased && !unreleased) {
+        return { satisfied: false, direction: "newer", key: key3, bound: c.range.raw, running, source: c.source };
+      }
+      const floor = c.range.comparators.find((cmp) => (cmp.operator === ">=" || cmp.operator === ">") && !holds(cmp, core));
+      if (floor) return failed("newer", key3, floor, running, c.source);
+    }
+    for (const c of onKey) {
+      const ceiling = c.range.comparators.find((cmp) => (cmp.operator === "<=" || cmp.operator === "<") && !holds(cmp, core));
+      if (ceiling) return failed("older", key3, ceiling, running, c.source);
+    }
+  }
+  return { satisfied: true };
+}
+function rangesOverlap(ranges) {
+  const comparators = ranges.flatMap((r) => r.comparators);
+  if (ranges.some((r) => r.unreleased) && comparators.some((c) => c.operator === "<" || c.operator === "<=")) {
+    return false;
+  }
+  if (comparators.length === 0) return true;
+  return !isUnsatisfiable({ raw: "", comparators });
+}
+function rangeOf(block, key3) {
+  return key3 === "telo" ? block.telo : block.host[key3];
+}
+function floorOf(range) {
+  if (range.unreleased) return range;
+  const comparators = range.comparators.filter((c) => c.operator === ">=" || c.operator === ">");
+  if (comparators.length === 0) return void 0;
+  return { raw: comparators.map((c) => `${c.operator}${c.raw}`).join(" "), comparators };
+}
+function blockConstraints(block, source, ownCeiling) {
+  const out = [];
+  for (const key3 of REQUIREMENT_KEYS) {
+    let range = rangeOf(block, key3);
+    if (range && key3 === "telo" && !ownCeiling) range = floorOf(range);
+    if (range) out.push({ key: key3, range, source });
+  }
+  return out;
+}
+function entryConstraints(entry2, version2) {
+  const source = restrictionSource(entry2, version2);
+  return REQUIREMENT_KEYS.flatMap((key3) => {
+    const range = rangeOf(entry2.requires, key3);
+    return range ? [{ key: key3, range, source }] : [];
+  });
+}
+function restrictionSource(entry2, version2) {
+  return { from: "restriction", version: version2, index: entry2.index, reason: entry2.reason };
+}
+function newest(list5) {
+  return list5.reduce(
+    (best, s) => best === void 0 || (compareModuleVersions(s.module.version, best.module.version) ?? 0) > 0 ? s : best,
+    void 0
+  );
+}
+function holds(cmp, core) {
+  return rangeAccepts({ raw: cmp.raw, comparators: [cmp] }, core);
+}
+function failed(direction, key3, comparator, running, source) {
+  return {
+    satisfied: false,
+    direction,
+    key: key3,
+    bound: `${comparator.operator}${comparator.raw}`,
+    comparator,
+    running,
+    source
+  };
+}
+
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.132.0";
+var TELO_SURFACE_VERSION = "0.133.0";
+var TELO_RUNNING_SURFACE = "0.133.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE35 = "telo-analyzer";
+var RUNTIME_GATE_CODES = /* @__PURE__ */ new Set([
+  "MODULE_REQUIRES_NEWER_RUNTIME",
+  "MODULE_REQUIRES_OLDER_RUNTIME"
+]);
 function validateRequires(manifests, options = {}) {
-  const running = TELO_SURFACE_VERSION;
   const out = [];
   for (const manifest of manifests) {
     if (manifest.kind !== "Telo.Application" && manifest.kind !== "Telo.Library") continue;
     const doc = manifest;
-    const { declared, block, issues } = readRequires(doc);
-    if (!declared) continue;
+    const module = readModuleRequirements(doc);
+    if (!module.requires.declared && !module.restrictions.declared) continue;
     const metadata = manifest.metadata ?? {};
     const name2 = typeof metadata.name === "string" ? metadata.name : void 0;
     const filePath = typeof metadata.source === "string" ? metadata.source : void 0;
     const label2 = `${manifest.kind}/${name2 ?? "(unnamed)"}`;
     const resource = { kind: manifest.kind, name: name2 };
-    const verdict = evaluateRequires(block, running, options.hostVersions);
+    const at3 = (path) => ({ resource, filePath, path });
+    const owned3 = options.entryModules === void 0 || (typeof metadata.module === "string" ? options.entryModules.has(metadata.module) : name2 === void 0 || options.entryModules.has(name2));
+    const ownCeiling = !(owned3 && module.requires.issues.some((i) => i.ceiling));
+    const unusable = owned3 ? unusableEntries(module, ownCeiling) : [];
+    const enforced = {
+      ...module,
+      restrictions: {
+        ...module.restrictions,
+        entries: module.restrictions.entries.filter((e) => !unusable.some((u) => u.index === e.index))
+      }
+    };
+    const verdict = evaluateRange(loadRange(enforced, { ownCeiling }), TELO_RUNNING_SURFACE, options.hostVersions);
     if (!verdict.satisfied) {
-      const axis = verdict.axis === "telo" ? "telo" : `host.${verdict.axis}`;
-      const remedy = verdict.axis === "telo" ? `Upgrade telo, or pin ${name2 ?? "this module"} to a version whose range accepts ${verdict.running}.` : `Upgrade ${verdict.axis}, or pin ${name2 ?? "this module"} to a version whose range accepts ${verdict.running}.`;
       out.push({
         severity: DiagnosticSeverity2.Error,
-        code: "MODULE_REQUIRES_NEWER_RUNTIME",
+        code: verdict.direction === "newer" ? "MODULE_REQUIRES_NEWER_RUNTIME" : "MODULE_REQUIRES_OLDER_RUNTIME",
         source: SOURCE35,
-        message: `${label2} requires ${axis} '${verdict.declared.raw}'; this runtime reports ${verdict.running}. ${remedy}`,
-        data: { resource, filePath, path: `requires.${axis}` }
+        message: gateMessage(verdict, name2, filePath),
+        data: at3(sourcePath(verdict))
       });
     }
-    const owned3 = options.entryModules === void 0 || (typeof metadata.module === "string" ? options.entryModules.has(metadata.module) : name2 === void 0 || options.entryModules.has(name2));
-    for (const issue of issues) {
-      if (issue.unknownAxis && !verdict.satisfied) continue;
+    const report = (code, issue, unenforced) => {
+      if (issue.unknownAxis && !verdict.satisfied) return;
       out.push({
         severity: owned3 ? DiagnosticSeverity2.Error : DiagnosticSeverity2.Warning,
-        code: "REQUIRES_INVALID",
+        code,
         source: SOURCE35,
-        message: owned3 ? `${label2}: ${issue.message}` + (issue.hint ? ` Write '${issue.hint}' instead.` : "") : `${label2}: ${issue.message} Its declared requirement cannot be read, so it is not enforced here and \`telo upgrade\` will not select this version. Only the module's publisher can fix it.`,
-        data: { resource, filePath, path: issue.path }
+        message: owned3 ? issue.message + (issue.hint ? ` Write '${issue.hint}' instead.` : "") : `${label2}: ${issue.message} ${unenforced} Only the module's publisher can fix it.`,
+        data: at3(issue.path)
       });
+    };
+    for (const issue of module.requires.issues) {
+      if (issue.ceiling && !owned3) continue;
+      report(
+        "REQUIRES_INVALID",
+        issue,
+        "Its declared requirement cannot be read, so it is not enforced here and `telo upgrade` will not select this version."
+      );
+    }
+    const entryIssues = [...module.restrictions.issues, ...unusable.map((u) => u.issue)];
+    for (const issue of entryIssues.sort((a, b) => entryOrder(a.path) - entryOrder(b.path))) {
+      report(
+        "RESTRICTIONS_INVALID",
+        issue,
+        "The entry cannot be read, so it is not enforced here and `telo upgrade` will not select this version."
+      );
     }
   }
   return out;
+}
+function unusableEntries(module, ownCeiling) {
+  const applying = /* @__PURE__ */ new Map();
+  for (const key3 of REQUIREMENT_KEYS) {
+    let own2 = rangeOf(module.requires.block, key3);
+    if (own2 && key3 === "telo" && !ownCeiling) own2 = floorOf(own2);
+    applying.set(key3, own2 ? [{ label: `${keyPath("requires", key3)} `, range: own2 }] : []);
+  }
+  const out = [];
+  for (const entry2 of module.restrictions.entries) {
+    if (!restrictionCovers(entry2, module.version, module.version)) continue;
+    const path = `restrictions[${entry2.index}]`;
+    const conflict = REQUIREMENT_KEYS.find((key3) => {
+      const range = rangeOf(entry2.requires, key3);
+      return range !== void 0 && !rangesOverlap([...applying.get(key3).map((a) => a.range), range]);
+    });
+    if (conflict) {
+      const range = rangeOf(entry2.requires, conflict);
+      const parts = [...applying.get(conflict), { label: "", range }].map((p) => `${p.label}'${p.range.raw}'`);
+      out.push({
+        index: entry2.index,
+        issue: {
+          path,
+          message: `${path} leaves ${module.version ?? "this version"} usable by no ${runtimeName(conflict)}: ${joinAnd(parts)} do not overlap. Deprecate the module instead.`
+        }
+      });
+      continue;
+    }
+    for (const key3 of REQUIREMENT_KEYS) {
+      const range = rangeOf(entry2.requires, key3);
+      if (range) applying.get(key3).push({ label: `${path} `, range });
+    }
+  }
+  return out;
+}
+function gateMessage(verdict, name2, source) {
+  const reason = verdict.source.from === "restriction" ? `Reason: ${sentence(verdict.source.reason)} ` : "";
+  const axis = verdict.key === "telo" ? "telo" : `host.${verdict.key}`;
+  if (verdict.direction === "newer") {
+    return `${name2 ?? "This module"} requires ${axis} '${verdict.bound}'; this runtime reports ${verdict.running}. ${reason}Upgrade ${runtimeName(verdict.key)}.`;
+  }
+  const limit = verdict.comparator;
+  return `${source ?? name2 ?? "This module"} is restricted to ${axis} '${verdict.bound}'; this runtime reports ${verdict.running}. ${reason}Use ${runtimeName(verdict.key)} ${limit.operator === "<=" ? "at or below" : "below"} ${limit.raw}, or another version of ${name2 ?? "this module"}.`;
+}
+function sourcePath(verdict) {
+  return verdict.source.from === "restriction" ? keyPath(`restrictions[${verdict.source.index}].requires`, verdict.key) : keyPath("requires", verdict.key);
+}
+function entryOrder(path) {
+  const match = /^restrictions\[(\d+)\]/.exec(path);
+  return match ? Number(match[1]) : -1;
+}
+function keyPath(prefix, key3) {
+  return key3 === "telo" ? `${prefix}.telo` : `${prefix}.host.${key3}`;
+}
+function runtimeName(key3) {
+  return key3 === "telo" ? "telo" : "Node.js";
+}
+function sentence(text3) {
+  return /[.!?]$/.test(text3) ? text3 : `${text3}.`;
+}
+function joinAnd(parts) {
+  return parts.length <= 1 ? parts.join("") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
 // ../../analyzer/nodejs/src/validate-base-mapping.ts
@@ -97271,10 +98149,10 @@ function readTemplateDefinitions(inputs) {
     });
     const refuse3 = (keys) => refused2.push({ holder: definition, path: pathText(keys) });
     const moduleNames = moduleCallNamesOf(callNames, definition);
-    const moduleDoc2 = manifests.find(
+    const moduleDoc3 = manifests.find(
       (m) => (m.kind === "Telo.Application" || m.kind === "Telo.Library") && (metadata?.module === void 0 || m.metadata?.name === metadata.module)
     );
-    const moduleMetadata = moduleDoc2?.metadata ?? {};
+    const moduleMetadata = moduleDoc3?.metadata ?? {};
     const live = sites.filter((site) => site.refusal === void 0);
     const positions = new Map(live.map((site) => [site.value, site]));
     const keysOf2 = (site) => parseKeys(site.path);
@@ -97962,21 +98840,21 @@ function readTemplateDefinitions(inputs) {
         structural: structural2,
         dimensions: [...keysRead],
         decide: (assignment) => {
-          let failed = false;
+          let failed2 = false;
           const value2 = evaluateShape(shape, (leaf) => {
             if (leafReads.get(leaf.source).open) {
               const atom = assignment[leaf.canonical];
-              if (atom === void 0) failed = true;
+              if (atom === void 0) failed2 = true;
               return atom === true;
             }
             const closed = evaluateClosed(leaf.source, assignment, inScope);
             if (closed === void 0 || typeof closed.value !== "boolean") {
-              failed = true;
+              failed2 = true;
               return false;
             }
             return leaf.negated ? !closed.value : closed.value;
           });
-          return failed ? void 0 : branchForValue(sentinel, tag, value2);
+          return failed2 ? void 0 : branchForValue(sentinel, tag, value2);
         }
       };
     }
@@ -98006,7 +98884,7 @@ function readTemplateDefinitions(inputs) {
             out.open = true;
             continue;
           }
-          const entry2 = moduleDoc2?.[r.input]?.[r.name];
+          const entry2 = moduleDoc3?.[r.input]?.[r.name];
           const absent = entry2 ? admitsAbsence(entry2) : false;
           const domain = !entry2 ? void 0 : r.projection === "whole" ? wholeDomain(r.input, entry2) : r.projection === "member" ? memberDomain(entry2, r.member) : ["present"];
           if (!domain || r.projection === "presence" && !absent) {
@@ -98504,7 +99382,7 @@ function createConsumerExpander(env) {
     const lift = env.lift;
     const space = lift?.space;
     const both = (a, b) => meet(space, a, b);
-    const holds = (h) => h.condition !== FALSE;
+    const holds2 = (h) => h.condition !== FALSE;
     const navigate2 = (start, at3, segments, within4 = EVERYWHERE) => {
       const out = [];
       const step = (state, i) => {
@@ -98512,7 +99390,7 @@ function createConsumerExpander(env) {
         if (isAlternatives(node)) {
           for (const option of node.options) {
             const h = both(holding2, holdingOf(option));
-            if (!holds(h)) continue;
+            if (!holds2(h)) continue;
             const value2 = option.present ? option.value : i > 0 ? defaultAt(holder, keys) : void 0;
             step({ node: value2, holder, keys, written: option.present && option.moved ? [...option.at] : written2, holding: h }, i);
           }
@@ -98532,7 +99410,7 @@ function createConsumerExpander(env) {
           if (crossings) {
             for (const crossed of crossings) {
               const h = both(holding2, crossed.holding);
-              if (!holds(h)) continue;
+              if (!holds2(h)) continue;
               if (!crossed.declaration) {
                 out.push({ resolved: { kind: "open", at: { holder, keys }, reason: `the reference names nothing` }, holding: h });
                 continue;
@@ -98591,7 +99469,7 @@ function createConsumerExpander(env) {
               if (outcomes) {
                 for (const outcome of outcomes) {
                   const h = both(holding2, outcome.holding);
-                  if (holds(h)) out.push({ resolved: { kind: "value", value: outcome.value, at: location }, holding: h });
+                  if (holds2(h)) out.push({ resolved: { kind: "value", value: outcome.value, at: location }, holding: h });
                 }
                 return;
               }
@@ -98642,7 +99520,7 @@ function createConsumerExpander(env) {
         for (const { activation, holding: holding2 } of activations) {
           for (const outcome of outcomes) {
             const h = both(holding2, outcome.holding);
-            if (!holds(h)) continue;
+            if (!holds2(h)) continue;
             if (outcome.open) {
               opens.push({ resolved: outcome.open, holding: h });
               continue;
@@ -98771,7 +99649,7 @@ function createConsumerExpander(env) {
         for (const state of states) {
           for (const { option, holding: own2 } of options) {
             const h = both(state.holding, own2);
-            if (!holds(h)) continue;
+            if (!holds2(h)) continue;
             if (option && !option.present) {
               next.push({ index: state.index, holding: h });
               continue;
@@ -101253,10 +102131,10 @@ function solveCelSites(input) {
     const w = wit.assignment;
     const decided = narrowingAt(choices, wit)(module, importPath);
     const prefix = name2 === void 0 ? `${block}.` : `${block}.${name2}`;
-    const holds = (chain) => chain === prefix || chain.startsWith(name2 === void 0 ? prefix : `${prefix}.`);
+    const holds2 = (chain) => chain === prefix || chain.startsWith(name2 === void 0 ? prefix : `${prefix}.`);
     const parts = [];
-    for (const [chain, value2] of decided?.chains ?? []) if (holds(chain)) parts.push([chain, value2]);
-    for (const chain of decided?.present ?? []) if (holds(chain)) parts.push([chain, true]);
+    for (const [chain, value2] of decided?.chains ?? []) if (holds2(chain)) parts.push([chain, value2]);
+    for (const chain of decided?.present ?? []) if (holds2(chain)) parts.push([chain, true]);
     let condition = TRUE;
     for (const dimension of choices.inputDimensions(module, importPath, block, name2)) {
       condition = space.and(condition, space.literal(dimension.key, [w[dimension.key]]));
@@ -102982,9 +103860,9 @@ function missingTranslations(input) {
 }
 
 // ../../analyzer/nodejs/src/module-lang.ts
-function moduleLangOf(moduleDoc2) {
-  if (!moduleDoc2 || typeof moduleDoc2 !== "object") return null;
-  const lang = moduleDoc2.lang;
+function moduleLangOf(moduleDoc3) {
+  if (!moduleDoc3 || typeof moduleDoc3 !== "object") return null;
+  const lang = moduleDoc3.lang;
   return typeof lang === "string" && lang !== "" ? lang : null;
 }
 function recordLangOf(lang) {
@@ -105085,6 +105963,17 @@ function slotFinding(slot, facts, expression, namedShape) {
         data
       };
     }
+    const wantedMedia = hostMediaTypeAt(target);
+    const declaredMedia = hostMediaTypeAt(produced2);
+    if (wantedMedia !== void 0 && declaredMedia !== void 0 && wantedMedia !== declaredMedia) {
+      return {
+        severity: DiagnosticSeverity2.Error,
+        code: "HOST_PATH_CONTENT_MISMATCH",
+        source: SOURCE53,
+        message: `${slot.resource.kind}/${slot.resource.name}: '${slot.path}' takes a file of ${wantedMedia}, but '${expression.trim()}' is declared to hold ${declaredMedia} (mediaType: ${declaredMedia}).`,
+        data
+      };
+    }
   }
   const { compatible, issues, conflicts } = checkSchemaCompatibility(
     produced2,
@@ -105960,7 +106849,7 @@ function filesOfUnreadableModules(manifests, requiresDiagnostics) {
   const files = /* @__PURE__ */ new Set();
   const gatedNames = /* @__PURE__ */ new Set();
   for (const d of requiresDiagnostics) {
-    if (d.code !== "MODULE_REQUIRES_NEWER_RUNTIME") continue;
+    if (!RUNTIME_GATE_CODES.has(String(d.code))) continue;
     const data = d.data;
     if (typeof data?.filePath === "string" && data.filePath) files.add(data.filePath);
     const name2 = data?.resource?.name;
@@ -105984,10 +106873,22 @@ function filesOfUnreadableModules(manifests, requiresDiagnostics) {
   }
   return files;
 }
+function requiresGateInput(manifests, moduleDocuments) {
+  if (!moduleDocuments || moduleDocuments.length === 0) return [...manifests];
+  const reached = /* @__PURE__ */ new Set();
+  for (const m of manifests) {
+    const source = m.metadata?.source;
+    if (typeof source === "string") reached.add(source);
+  }
+  const libraries = moduleDocuments.flatMap(
+    (docs) => docs.reached ?? docs.manifests.some((m) => reached.has(m.metadata?.source ?? "")) ? docs.manifests.filter((m) => isModuleKind(m.kind)) : []
+  );
+  return [...manifests, ...libraries];
+}
 function suppressUnreadableModuleDiagnostics(diagnostics, unreadableFiles) {
   if (unreadableFiles.size === 0) return diagnostics;
   return diagnostics.filter((d) => {
-    if (d.code === "MODULE_REQUIRES_NEWER_RUNTIME") return true;
+    if (RUNTIME_GATE_CODES.has(String(d.code))) return true;
     const filePath = d.data?.filePath;
     return typeof filePath !== "string" || !unreadableFiles.has(filePath);
   });
@@ -107081,7 +107982,10 @@ var StaticAnalyzer = class {
       ...(forwardViews?.consumers() ?? []).map(([view, root]) => ({ view, root })),
       ...viewEntries.map((entry2) => ({ view: entry2.manifests[0], root: entry2.root, rootOrigin: entry2.rootOrigin }))
     ];
-    const requiresRead = whole ? allManifests : [...allManifests.filter((m) => !isModuleKind(m.kind)), ...moduleDocuments];
+    const requiresRead = requiresGateInput(
+      whole ? allManifests : [...allManifests.filter((m) => !isModuleKind(m.kind)), ...moduleDocuments],
+      options?.moduleDocuments
+    );
     const unreadableFiles = filesOfUnreadableModules(
       allManifests,
       validateRequires(requiresRead, {
@@ -108885,7 +109789,7 @@ var StaticAnalyzer = class {
         });
       }
     }
-    const requiresDiagnostics = validateRequires(allManifests, {
+    const requiresDiagnostics = validateRequires(requiresGateInput(allManifests, options?.moduleDocuments), {
       hostVersions: options?.hostVersions,
       entryModules: rootModules
     });
@@ -110784,7 +111688,7 @@ var OPERATION_KEYS = {
   "add-key": ["key", "value"],
   "remove-entry": []
 };
-var ENTRY_KEYS4 = ["id", "code", "severity", "reason", "rules", "$comment"];
+var ENTRY_KEYS5 = ["id", "code", "severity", "reason", "rules", "$comment"];
 function isScalar2(value2) {
   return value2 === null || typeof value2 === "string" || typeof value2 === "number" && Number.isFinite(value2) || typeof value2 === "boolean";
 }
@@ -110905,10 +111809,10 @@ function parseMigrationEntry(file, data, surface = "core") {
     throw new MigrationEntryError(file, "an entry must be a mapping");
   }
   for (const key3 of Object.keys(data)) {
-    if (!ENTRY_KEYS4.includes(key3)) {
+    if (!ENTRY_KEYS5.includes(key3)) {
       throw new MigrationEntryError(
         file,
-        `an entry has no key '${key3}'. Known keys: ${ENTRY_KEYS4.join(", ")}.`
+        `an entry has no key '${key3}'. Known keys: ${ENTRY_KEYS5.join(", ")}.`
       );
     }
   }
@@ -111540,24 +112444,45 @@ function assembleGraphDiagnostics(graph, analysisDiagnostics) {
 }
 
 // ../../analyzer/nodejs/src/module-compatibility.ts
-function manifestCompatibility(manifestText, teloVersion, host = {}) {
-  let doc;
+function readModuleVersion(manifest) {
+  const doc = moduleDoc(manifest.text);
+  return {
+    version: manifest.version,
+    requirements: doc ? readModuleRequirements(doc, manifest.version) : "unknown"
+  };
+}
+function selectionCompatibility(candidate, newer, teloVersion, host = {}) {
+  const own2 = asRequirements(candidate).requirements;
+  if (own2 === "unknown") return { compatibility: "unknown" };
+  const malformed = [...own2.requires.issues, ...own2.restrictions.issues].some(
+    (i) => !i.unknownAxis && !i.ceiling
+  );
+  if (malformed) return { compatibility: "unreadable" };
+  const speaking = newer.map((m) => asRequirements(m).requirements).filter((r) => r !== "unknown");
+  const verdict = evaluateRange(selectionRange(own2, speaking), teloVersion, host);
+  if (verdict.satisfied) return { compatibility: "yes" };
+  return {
+    compatibility: verdict.direction === "newer" ? "too-new" : "too-old",
+    key: verdict.key,
+    bound: verdict.bound,
+    running: verdict.running,
+    source: verdict.source
+  };
+}
+function asRequirements(manifest) {
+  return "requirements" in manifest ? manifest : readModuleVersion(manifest);
+}
+function moduleDoc(text3) {
   try {
-    for (const parsed of parseAllDocuments(manifestText, { customTags: defaultCustomTags() })) {
+    for (const parsed of parseAllDocuments(text3, { customTags: defaultCustomTags() })) {
       const value2 = parsed.toJS();
       const kind = value2?.kind;
-      if (typeof kind === "string" && isModuleKind(kind)) {
-        doc = value2;
-        break;
-      }
+      if (typeof kind === "string" && isModuleKind(kind)) return value2;
     }
   } catch {
-    return "unknown";
+    return void 0;
   }
-  if (!doc) return "unknown";
-  const { block, issues } = readRequires(doc);
-  if (issues.some((i) => !i.unknownAxis)) return "unreadable";
-  return evaluateRequires(block, teloVersion, host).satisfied ? "yes" : "too-new";
+  return void 0;
 }
 
 // ../../analyzer/nodejs/src/inline-imports.ts
@@ -111662,7 +112587,7 @@ function loaderExpansionRefusals(text3, documents, manifests, positions) {
         ...range ? { range } : {}
       });
     };
-    const check2 = (value2, path, reads) => {
+    const check = (value2, path, reads) => {
       const tag = expansionTagOf(value2);
       if (tag) refuse3(path, `'!${tag}'`, tag === "for-each" ? REPEAT : BRANCH, reads);
     };
@@ -111671,26 +112596,26 @@ function loaderExpansionRefusals(text3, documents, manifests, positions) {
         refuse3(`${path}.${SPLICE_KEY}`, `A '${SPLICE_KEY}' splice`, REPEAT, reads);
       }
     };
-    check2(doc.metadata, "metadata", "the module's name");
+    check(doc.metadata, "metadata", "the module's name");
     checkSplice(doc.metadata, "metadata", "the module's name");
     if (doc.metadata && typeof doc.metadata === "object" && !isExpansionSentinel(doc.metadata)) {
-      check2(doc.metadata.name, "metadata.name", "the module's name");
+      check(doc.metadata.name, "metadata.name", "the module's name");
     }
-    check2(doc.imports, "imports", "every import");
+    check(doc.imports, "imports", "every import");
     checkSplice(doc.imports, "imports", "every import");
     if (doc.imports && typeof doc.imports === "object" && !Array.isArray(doc.imports) && !isExpansionSentinel(doc.imports)) {
       for (const [alias, entry2] of Object.entries(doc.imports)) {
         if (alias === SPLICE_KEY) continue;
         const path = `imports.${alias}`;
-        check2(entry2, path, "every import");
+        check(entry2, path, "every import");
         if (entry2 && typeof entry2 === "object" && !Array.isArray(entry2) && !isExpansionSentinel(entry2)) {
-          check2(entry2.source, `${path}.source`, "every import's source");
+          check(entry2.source, `${path}.source`, "every import's source");
         }
       }
     }
-    check2(doc.include, "include", "the files it includes");
+    check(doc.include, "include", "the files it includes");
     if (Array.isArray(doc.include)) {
-      doc.include.forEach((entry2, i) => check2(entry2, `include[${i}]`, "the files it includes"));
+      doc.include.forEach((entry2, i) => check(entry2, `include[${i}]`, "the files it includes"));
     }
   });
   return errors;
@@ -112655,7 +113580,7 @@ var Loader = class {
       return failure(url, err);
     }
     const manifests = graph.entry.owner.manifests;
-    const moduleDoc2 = manifests.find((m) => m && isModuleKind(m.kind));
+    const moduleDoc3 = manifests.find((m) => m && isModuleKind(m.kind));
     if (isBuiltinVocabularyRoot(manifests[0])) {
       return failure(
         graph.rootSource,
@@ -112663,11 +113588,11 @@ var Loader = class {
         "unusable-target"
       );
     }
-    if (moduleDoc2?.kind !== "Telo.Application") {
+    if (moduleDoc3?.kind !== "Telo.Application") {
       return failure(
         graph.rootSource,
         new Error(
-          moduleDoc2 ? `it is a ${moduleDoc2.kind}, which is imported, never run. Name the source of a Telo.Application.` : `it holds no Telo.Application document. Fetched from: ${graph.rootSource}.`
+          moduleDoc3 ? `it is a ${moduleDoc3.kind}, which is imported, never run. Name the source of a Telo.Application.` : `it holds no Telo.Application document. Fetched from: ${graph.rootSource}.`
         ),
         "unusable-target"
       );
@@ -115642,12 +116567,12 @@ function moduleDocIndex(mod) {
     (m) => MODULE_DOC_KINDS.has(m?.kind ?? "")
   );
 }
-function moduleDoc(mod) {
+function moduleDoc2(mod) {
   const index = moduleDocIndex(mod);
   return index < 0 ? void 0 : mod.owner.manifests[index] ?? void 0;
 }
 function moduleName(mod) {
-  return moduleDoc(mod)?.metadata?.name;
+  return moduleDoc2(mod)?.metadata?.name;
 }
 function locateModuleDocKey(mod, path) {
   const index = moduleDocIndex(mod);
@@ -115661,7 +116586,7 @@ function locateImport(mod, alias) {
 
 // ../ide-support/src/definition/resolve-export-chain.ts
 function exportList(mod, block) {
-  const exports = moduleDoc(mod)?.exports;
+  const exports = moduleDoc2(mod)?.exports;
   const list5 = exports?.[block];
   if (!Array.isArray(list5)) return void 0;
   return list5.filter((e) => typeof e === "string");
@@ -116075,7 +117000,7 @@ function nameLevelOf(symbol, mod, analysis) {
   return declaration ? analysis.nameLevel(declaration) : "value";
 }
 function ownReceivers(mod) {
-  const name2 = moduleDoc(mod)?.metadata?.name;
+  const name2 = moduleDoc2(mod)?.metadata?.name;
   return new Set(typeof name2 === "string" && name2 ? ["Self", name2] : ["Self"]);
 }
 var DECLARATION_BLOCKS = /* @__PURE__ */ new Set(["variables", "secrets", "ports"]);
@@ -116193,7 +117118,7 @@ function surfaceLabel(symbol) {
   return `${symbol.block === "ports" ? "port" : symbol.block === "secrets" ? "secret" : "variable"} name`;
 }
 function refuse2(symbol, mod, currentFilePath, text3, astDocs) {
-  const doc = moduleDoc(mod);
+  const doc = moduleDoc2(mod);
   if (symbol.kind === "resource") {
     const exported = Array.isArray(doc?.exports?.resources) ? doc.exports.resources.filter((e) => typeof e === "string") : [];
     if (exported.some((e) => e === symbol.name)) {
@@ -116410,14 +117335,14 @@ function findImportEntries(text3, docs, lineOffsets) {
       entries: importsPair.value.entries.flatMap((pair) => {
         const alias = scalarString2(pair.key);
         if (alias === void 0 || !pair.value) return [];
-        const entry2 = readEntry3(alias, pair.key, pair.value, text3, lineOffsets);
+        const entry2 = readEntry4(alias, pair.key, pair.value, text3, lineOffsets);
         return entry2 ? [entry2] : [];
       })
     };
   }
   return void 0;
 }
-function readEntry3(alias, keyNode, valueNode, text3, lineOffsets) {
+function readEntry4(alias, keyNode, valueNode, text3, lineOffsets) {
   const keyRange2 = toRange(keyNode, lineOffsets);
   if (valueNode.kind === "scalar") {
     const source2 = scalarString2(valueNode);
@@ -116479,35 +117404,57 @@ function scalarString2(node) {
 }
 
 // ../ide-support/src/import-upgrades/version-compatibility.ts
-function createVersionCompatibility(read, teloVersion = TELO_SURFACE_VERSION) {
+function createVersionCompatibility(read, teloVersion = TELO_RUNNING_SURFACE) {
   const cache = /* @__PURE__ */ new Map();
-  return (baseRef, version2) => {
+  const requirementsOf2 = (baseRef, version2) => {
     const key3 = `${baseRef}@${version2}`;
     const cached = cache.get(key3);
     if (cached) return cached;
-    const pending = read(baseRef, version2).then((text3) => text3 ? manifestCompatibility(text3, teloVersion) : "unknown").catch(() => "unknown");
+    const pending = read(baseRef, version2).then((text3) => text3 ? readModuleVersion({ version: version2, text: text3 }) : unknownVersion(version2)).catch(() => unknownVersion(version2));
     cache.set(key3, pending);
-    void pending.then((verdict) => {
-      if (verdict === "unknown" && cache.get(key3) === pending) cache.delete(key3);
+    void pending.then((reading) => {
+      if (reading.requirements === "unknown" && cache.get(key3) === pending) cache.delete(key3);
     });
     return pending;
   };
+  return async (baseRef, version2, published = []) => {
+    const candidate = await requirementsOf2(baseRef, version2);
+    if (candidate.requirements === "unknown") return { compatibility: "unknown" };
+    const newer = await Promise.all(
+      published.filter((v) => (compareModuleVersions(v, version2) ?? 0) > 0).map((v) => requirementsOf2(baseRef, v))
+    );
+    return selectionCompatibility(candidate, newer, teloVersion);
+  };
+}
+function unknownVersion(version2) {
+  return { version: version2, requirements: "unknown" };
 }
 async function selectCompatibleVersion(baseRef, versions, currentVersion, isCompatible, options = {}) {
   const candidates = upgradeCandidates(versions, currentVersion, options);
   if (candidates.length === 0) return { best: null, heldBack: null };
-  const newest = candidates[0];
-  let firstReason = null;
+  const published = versions.map((v) => v.version);
+  const newest2 = candidates[0];
+  let first = null;
   for (const candidate of candidates) {
-    const verdict = await isCompatible(baseRef, candidate.version);
-    if (verdict === "too-new" || verdict === "unreadable") {
-      firstReason ??= verdict;
-      continue;
+    const verdict = await isCompatible(baseRef, candidate.version, published);
+    if (verdict.compatibility === "yes" || verdict.compatibility === "unknown") {
+      return { best: candidate, heldBack: candidate === newest2 ? null : first };
     }
-    const held = candidate === newest ? null : { version: newest.version, reason: firstReason };
-    return { best: candidate, heldBack: held };
+    first ??= { version: newest2.version, reason: verdict.compatibility, ...heldDetail(verdict) };
   }
-  return { best: null, heldBack: { version: newest.version, reason: firstReason } };
+  return { best: null, heldBack: first };
+}
+function describeHold(verdict) {
+  if (verdict.compatibility !== "too-new" && verdict.compatibility !== "too-old") return void 0;
+  const bound = `${verdict.key === "telo" ? "telo" : `${verdict.key}`} '${verdict.bound}'`;
+  const source = verdict.source;
+  if (source.from === "requires") return `requires ${bound}; this runtime reports ${verdict.running}`;
+  const by = source.version ? ` in ${source.version}` : "";
+  return `restricted to ${bound} by an entry${by}: ${source.reason}`;
+}
+function heldDetail(verdict) {
+  const detail = describeHold(verdict);
+  return detail ? { detail } : {};
 }
 function upgradeCandidates(versions, currentVersion, options) {
   return versions.filter((v) => {
@@ -116540,11 +117487,11 @@ async function buildImportUpgrades(text3, env, docs) {
   for (const { entry: entry2, ref } of candidates) {
     const versions = known.get(ref.baseRef);
     if (!versions) continue;
-    const newest = newestModuleVersion(versions.map((v) => v.version), {
+    const newest2 = newestModuleVersion(versions.map((v) => v.version), {
       includePrerelease: env.includePrerelease
     });
-    if (!newest) continue;
-    if (!isNewerModuleVersion(newest, ref.version)) {
+    if (!newest2) continue;
+    if (!isNewerModuleVersion(newest2, ref.version)) {
       const pin = pinInPlace(entry2, ref.version, ref.integrity, versions);
       if (pin) pins.push(pin);
       continue;
@@ -116561,11 +117508,11 @@ async function buildImportUpgrades(text3, env, docs) {
       skipped.push({
         alias: entry2.alias,
         currentVersion: ref.version,
-        latestVersion: newest,
+        latestVersion: newest2,
         keyRange: entry2.keyRange,
         code: "incompatible",
         reason: heldBack.reason,
-        message: `'${entry2.alias}' has newer versions (up to ${newest}), but none runs on telo ${TELO_SURFACE_VERSION} \u2014 ${describeReason(heldBack.reason)}. ` + describeRemedy(heldBack.reason)
+        message: `'${entry2.alias}' has newer versions (up to ${newest2}), but none runs on telo ${TELO_SURFACE_VERSION} \u2014 ${heldBack.detail ?? describeReason(heldBack.reason)}. ` + describeRemedy(heldBack.reason)
       });
       continue;
     }
@@ -116599,10 +117546,12 @@ async function buildImportUpgrades(text3, env, docs) {
   return { importsKeyRange: block.keyRange, upgrades, pins, skipped, failures };
 }
 function describeReason(reason) {
-  return reason === "unreadable" ? "its declared requirement cannot be read" : "it requires a newer telo";
+  if (reason === "unreadable") return "its declared requirement cannot be read";
+  return reason === "too-old" ? "it is restricted to an older telo" : "it requires a newer telo";
 }
 function describeRemedy(reason) {
-  return reason === "unreadable" ? "Only the module's author can fix that." : "Update telo to upgrade it.";
+  if (reason === "unreadable") return "Only the module's author can fix that.";
+  return reason === "too-old" ? "Use an older telo to upgrade it, or stay on this version." : "Update telo to upgrade it.";
 }
 function buildEdits(entry2, newSource, integrity) {
   if (!entry2.integrity) {
@@ -116749,9 +117698,9 @@ function normalize2(diagnostic2, doc, text3) {
   );
 }
 function make(code, message, path, doc, text3, severity) {
-  return { range: rangeOf(doc, text3, path), severity, code, source: SOURCE55, message };
+  return { range: rangeOf2(doc, text3, path), severity, code, source: SOURCE55, message };
 }
-function rangeOf(doc, text3, path) {
+function rangeOf2(doc, text3, path) {
   const span2 = offsetsOf(doc, path);
   return span2 ? { start: positionAt2(text3, span2[0]), end: positionAt2(text3, span2[1]) } : { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
 }
@@ -116993,8 +117942,8 @@ function referenceSitesOf(registry, module) {
     const { kind, metadata, ...fields } = doc;
     return [{ kind, metadata: { name: name2 }, ...fields }];
   });
-  const moduleDoc2 = docs.find((doc) => typeof doc.kind === "string" && isModuleKind(doc.kind));
-  if (moduleDoc2) resources.push(moduleRootResource(moduleDoc2));
+  const moduleDoc3 = docs.find((doc) => typeof doc.kind === "string" && isModuleKind(doc.kind));
+  if (moduleDoc3) resources.push(moduleRootResource(moduleDoc3));
   const out = [];
   registry.visitManifest(
     resources,
@@ -117072,10 +118021,10 @@ function templateGraphOf(analysis, registry, kindId, uriOfSource2, outputSlots) 
   );
   if (!definition) return null;
   const module = definition.metadata?.module;
-  const moduleDoc2 = analysis.manifests.find(
+  const moduleDoc3 = analysis.manifests.find(
     (m) => isModuleKind(m.kind) && (!module || m.metadata?.name === module)
   );
-  const body2 = templateModule(definition, moduleDoc2, analysis.manifests);
+  const body2 = templateModule(definition, moduleDoc3, analysis.manifests);
   const manifests = [...body2.resources, body2.root];
   const bodyAnalysis = registry.analysisOf(manifests);
   const graph = bodyAnalysis.moduleGraph(registry.moduleGraphDeps(manifests, body2.options), body2.options);
@@ -117473,7 +118422,8 @@ function candidateReader(host) {
 }
 function skipAction(skip) {
   if (skip.code !== "incompatible") return "run `telo upgrade`";
-  return skip.reason === "unreadable" ? "its declared requirement cannot be read" : "update telo to upgrade";
+  if (skip.reason === "unreadable") return "its declared requirement cannot be read";
+  return skip.reason === "too-old" ? "restricted to an older telo" : "update telo to upgrade";
 }
 function summaryTitle(outdated, unpinned) {
   const parts = [];
@@ -117524,7 +118474,7 @@ function registerImportUpgrades({
     const argument = (aliases) => ({ uri, aliases });
     const lenses = set2.upgrades.map((u) => {
       const pinNote = u.repinned ? `Upgrade ${u.alias} to ${u.latestVersion} and re-pin its integrity hash` : `Upgrade ${u.alias} to ${u.latestVersion} (the hub publishes no integrity pin for it)`;
-      const heldNote = u.heldBack ? ` \xB7 ${u.heldBack.version} held back: ${describeReason(u.heldBack.reason)}` : "";
+      const heldNote = u.heldBack ? ` \xB7 ${u.heldBack.version} held back: ${u.heldBack.detail ?? describeReason(u.heldBack.reason)}` : "";
       return {
         range: u.keyRange,
         command: {
@@ -118022,6 +118972,7 @@ var WorkspaceMarkers = class {
 var import_browser8 = __toESM(require_main3(), 1);
 
 // src/requirements.ts
+var UNRELEASED_EDGE = "999999.0.0";
 function requirementsOf(owner, graph) {
   const module = [...graph.modules.values()].find((m) => m.owner.source === owner) ?? graph.entry;
   const ranges = [];
@@ -118029,12 +118980,19 @@ function requirementsOf(owner, graph) {
     if (graph.overrides.has(source)) continue;
     const doc = loaded.owner.manifests.find((m) => m && isModuleKind(m.kind));
     if (!doc) continue;
-    const telo = readRequires(doc).block.telo;
-    if (!telo) continue;
+    const constraints = loadRange(readModuleRequirements(doc), {
+      ownCeiling: loaded.owner.source !== owner
+    }).filter((c) => c.key === "telo");
+    if (constraints.length === 0) continue;
+    const combined = {
+      raw: constraints.map((c) => c.range.raw).join(" "),
+      comparators: constraints.flatMap((c) => c.range.comparators)
+    };
+    const interval = rangeInterval(combined);
     ranges.push({
       module: uriOfSource(loaded.owner.source),
-      text: telo.raw,
-      interval: rangeInterval(telo)
+      text: combined.raw,
+      interval: constraints.some((c) => c.range.unreleased) ? { ...interval, min: { version: UNRELEASED_EDGE, inclusive: true } } : interval
     });
   }
   return {
