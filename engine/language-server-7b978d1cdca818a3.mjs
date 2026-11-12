@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.133.0";
+var TELO_ENGINE_VERSION = "0.135.0";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -27582,10 +27582,14 @@ function dispatchOf(name2, resolution) {
     const host = resolution.resolved.metadata.implementation;
     if (host) return { implementation: host, foreign: true };
     const own2 = implementationOf(resolution.resolved.signature);
-    return own2 ? { implementation: own2, foreign: false } : null;
+    return { implementation: own2 ?? unimplemented(name2, resolution.resolved.signature), foreign: false };
   }
   const equality = equalityFallback(name2);
   return equality ? { implementation: equality, foreign: false } : null;
+}
+function unimplemented(name2, signature) {
+  const message = `unbound function '${name2}' \u2014 ${formatSignature(signature)} is declared and nothing implements it`;
+  return (context) => celError("unbound_function", message, context.range);
 }
 function equalityFallback(name2) {
   if (name2 !== "==" && name2 !== "!=") return null;
@@ -28230,7 +28234,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.133.0";
+var ENGINE_VERSION = "0.135.0";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -32013,22 +32017,20 @@ function civilTimeIn(instant2, zone) {
     second: +parts.second
   };
 }
+function utcInstantOf(fields) {
+  const date = /* @__PURE__ */ new Date(0);
+  date.setUTCFullYear(fields.year, fields.month - 1, fields.day);
+  date.setUTCHours(fields.hour, fields.minute, fields.second, 0);
+  return date.getTime();
+}
 function offsetAt(instant2, zone) {
-  const fields = civilTimeIn(instant2, zone);
-  return Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second) - instant2;
+  return utcInstantOf(civilTimeIn(instant2, zone)) - instant2;
 }
 function sameWallClock(left, right) {
   return left.year === right.year && left.month === right.month && left.day === right.day && left.hour === right.hour && left.minute === right.minute && left.second === right.second;
 }
 function instantOfCivilTime(fields, zone) {
-  const asUtc = Date.UTC(
-    fields.year,
-    fields.month - 1,
-    fields.day,
-    fields.hour,
-    fields.minute,
-    fields.second
-  );
+  const asUtc = utcInstantOf(fields);
   const offsetA = offsetAt(asUtc, zone);
   const candidateA = asUtc - offsetA;
   const offsetB = offsetAt(candidateA, zone);
@@ -32058,9 +32060,7 @@ function isoTextIn(instant2, zone) {
   if (zone === "UTC" || zone === "Z") return new Date(instant2).toISOString();
   const fields = civilTimeIn(instant2, zone);
   const milliseconds = pad2((instant2 % 1e3 + 1e3) % 1e3, 3);
-  const minutes = Math.round(
-    (Date.UTC(fields.year, fields.month - 1, fields.day, fields.hour, fields.minute, fields.second) - instant2) / 6e4
-  );
+  const minutes = Math.round((utcInstantOf(fields) - instant2) / 6e4);
   const offset = minutes === 0 ? "Z" : `${minutes > 0 ? "+" : "-"}${pad2(Math.floor(Math.abs(minutes) / 60), 2)}:${pad2(Math.abs(minutes) % 60, 2)}`;
   const date = `${pad2(fields.year, 4)}-${pad2(fields.month, 2)}-${pad2(fields.day, 2)}`;
   const time = `${pad2(fields.hour, 2)}:${pad2(fields.minute, 2)}:${pad2(fields.second, 2)}`;
@@ -37811,6 +37811,73 @@ var BUILTIN_DOCUMENT_FILES = [
     "capability": "Telo.Type",
     "declarable": true,
     "throwsAllowed": false
+  }],
+  ["Value.json", {
+    "kind": "Telo.Definition",
+    "metadata": {
+      "name": "Value",
+      "description": "Returns a value shaped from its inputs \u2014 mapped fields, a built response body, joined text or a constant \u2014 with optional named intermediate values. Declares the input and result types it is checked against before it runs and at every call."
+    },
+    "capability": "Telo.Invocable",
+    "schema": {
+      "type": "object",
+      "properties": {
+        "inputType": {
+          "title": "Input Type",
+          "description": "The input contract, a named type reference or an inline type definition. Defaults are filled and every call is validated against it; the body reads the inputs as `inputs.<name>`.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "outputType": {
+          "title": "Output Type",
+          "description": "The result contract, a named type reference or an inline type definition. It types the result for callers, is checked against `value` statically and validates the produced value at every call.",
+          "x-telo-ref": {
+            "kind": "Telo.Type",
+            "use": "schema"
+          }
+        },
+        "bindings": {
+          "title": "Bindings",
+          "description": "Named intermediate values, read by bare name by `value` and by each other. Order follows what each one references, and each is computed at most once per call, only if something reads it.",
+          "type": "object",
+          "additionalProperties": true,
+          "propertyNames": {
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "x-telo-context": {
+            "type": "object",
+            "x-telo-bindings-from": "bindings",
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "x-telo-context-from": "inputType"
+              }
+            }
+          }
+        },
+        "value": {
+          "title": "Value",
+          "description": "A `!cel` expression, or a map or list with `!cel` leaves, evaluated at each call over `inputs` and the bindings. The result may be any shape: object, list, scalar or constant.",
+          "x-telo-context": {
+            "type": "object",
+            "x-telo-bindings-from": "bindings",
+            "properties": {
+              "inputs": {
+                "type": "object",
+                "x-telo-context-from": "inputType"
+              }
+            }
+          },
+          "x-telo-value-schema-from": "outputType"
+        }
+      },
+      "required": [
+        "value"
+      ],
+      "additionalProperties": false
+    }
   }]
 ];
 var BUILTIN_FRAGMENT_FILES = [
@@ -42224,9 +42291,15 @@ function extractChain(node, boundVars) {
 }
 var EACH_SEGMENT = "[]";
 var PRESENCE_SEGMENT = "?";
+var ELEMENT_SEGMENT = "[]!";
 function extractReadChains(node) {
   const chains = [];
-  visitReads(node, chains, /* @__PURE__ */ new Map());
+  visitReads(node, chains, /* @__PURE__ */ new Map(), false);
+  return chains;
+}
+function extractValueReadChains(node) {
+  const chains = [];
+  visitReads(node, chains, /* @__PURE__ */ new Map(), true);
   return chains;
 }
 function readChainOf(node, bound) {
@@ -42249,11 +42322,23 @@ function readChainOf(node, bound) {
   }
   return null;
 }
-function visitReads(node, chains, bound) {
+function visitReads(node, chains, bound, valueReads) {
   const chain = readChainOf(node, bound);
   if (chain !== null) {
-    chains.push(chain[chain.length - 1] === EACH_SEGMENT ? chain.slice(0, -1) : chain);
+    if (chain[chain.length - 1] === EACH_SEGMENT) {
+      chains.push(valueReads ? [...chain, ELEMENT_SEGMENT] : chain.slice(0, -1));
+    } else {
+      chains.push(chain);
+    }
     return;
+  }
+  if (valueReads && node.kind === "binary" && node.operator === "in") {
+    const range = readChainOf(node.right, bound);
+    if (range !== null && range[range.length - 1] !== EACH_SEGMENT) {
+      chains.push([...range, EACH_SEGMENT, ELEMENT_SEGMENT]);
+      visitReads(node.left, chains, bound, valueReads);
+      return;
+    }
   }
   const presence = presenceOperand(node);
   if (presence) {
@@ -42265,25 +42350,25 @@ function visitReads(node, chains, bound) {
   }
   const moduleCall = moduleCallOf(node);
   if (moduleCall) {
-    for (const arg of moduleCall.args) visitReads(arg, chains, bound);
+    for (const arg of moduleCall.args) visitReads(arg, chains, bound, valueReads);
     return;
   }
   const bind = bindCall(node);
   if (bind) {
-    visitReads(bind.init, chains, bound);
-    visitReads(bind.body, chains, new Map(bound).set(bind.name, null));
+    visitReads(bind.init, chains, bound, valueReads);
+    visitReads(bind.body, chains, new Map(bound).set(bind.name, null), valueReads);
     return;
   }
   const macro = comprehension(node);
   if (macro) {
     const range = readChainOf(macro.receiver, bound);
     if (range !== null) chains.push([...range, EACH_SEGMENT]);
-    else visitReads(macro.receiver, chains, bound);
+    else visitReads(macro.receiver, chains, bound, valueReads);
     const inner = new Map(bound).set(macro.bound, range);
-    for (const arg of macro.scoped) visitReads(arg, chains, inner);
+    for (const arg of macro.scoped) visitReads(arg, chains, inner, valueReads);
     return;
   }
-  for (const child of childNodes(node)) visitReads(child, chains, bound);
+  for (const child of childNodes(node)) visitReads(child, chains, bound, valueReads);
 }
 function presenceOperand(node) {
   if (node.kind !== "call" || node.name !== "has" || node.args.length !== 1) return void 0;
@@ -56679,6 +56764,7 @@ function compileRuleCondition(condition, moduleNames) {
       // to the member it reads on each element — so an expression in a field of
       // an element the condition never reads does not stop the rule running.
       chains: extractReadChains(parsed.root),
+      reads: extractValueReadChains(parsed.root),
       calls: calledFunctions(parsed.root),
       rootPresence: rootPresenceMembers(parsed.root)
     };
@@ -57063,9 +57149,11 @@ function readNodes(chains, roots) {
       if (segment === EACH_SEGMENT) {
         if (dynamicNode(current, path)) break;
         if (i === chain.length - 1) return;
+        const whole = chain[i + 1] === ELEMENT_SEGMENT;
         if (Array.isArray(current)) {
-          current.forEach((item, index) => walk7(item, chain, i + 1, `${path}[${index}]`));
-        } else if (isObject3(current)) {
+          if (whole) nodes.push({ node: current, path });
+          else current.forEach((item, index) => walk7(item, chain, i + 1, `${path}[${index}]`));
+        } else if (isObject3(current) && !whole) {
           for (const [key3, item] of Object.entries(current)) {
             walk7(item, chain, i + 1, `${path}.${key3}`);
           }
@@ -71764,7 +71852,7 @@ function evaluateResourceRules(manifest, definitionSchema, moduleNames, function
       findings.push({ kind: "failed", rule, path: "", reason: compiled2.reason });
       continue;
     }
-    const { parsed, chains } = compiled2;
+    const { parsed, reads: chains } = compiled2;
     const started = Date.now();
     let unboundReported = false;
     for (const subject of subjects) {
@@ -79221,6 +79309,13 @@ function isCanonicalIntegrity(value2) {
   return typeof value2 === "string" && CANONICAL_INTEGRITY.test(value2);
 }
 
+// ../../analyzer/nodejs/src/sources/http-source.ts
+function httpManifestUrl(ref) {
+  const { base } = splitIntegrity(ref);
+  if (!base.startsWith("http://") && !base.startsWith("https://")) return void 0;
+  return base.includes(".yaml") ? base : `${base}/${DEFAULT_MANIFEST_FILENAME}`;
+}
+
 // ../../analyzer/nodejs/src/sources/oci-ref.ts
 var OCI_SCHEME = "oci://";
 function isOciRef(ref) {
@@ -79233,13 +79328,23 @@ async function collectLocalModuleFileDiagnostics(entry2, modules, importEdges, s
   const seen = /* @__PURE__ */ new Set([entry2.owner.source]);
   const queue = [entry2];
   for (let next = queue.shift(); next; next = queue.shift()) {
-    out.push(...await collectModuleFileDiagnostics(next, sourceFor(next.owner.source)));
+    const remote = httpManifestUrl(next.owner.requestedUrl);
+    out.push(
+      ...await collectModuleFileDiagnostics(
+        next,
+        sourceFor(remote ?? next.owner.source),
+        remote ?? next.owner.source
+      )
+    );
     for (const file of [next.owner, ...next.partials]) {
       for (const edge of importEdges.get(file.source)?.values() ?? []) {
-        if (!isPathImport(edge.targetRef) || seen.has(edge.targetSource)) continue;
-        seen.add(edge.targetSource);
+        if (seen.has(edge.targetSource)) continue;
         const target = modules.get(edge.targetSource);
-        if (target && !isOciRef(target.owner.requestedUrl)) queue.push(target);
+        if (!target) continue;
+        const local = isPathImport(edge.targetRef) && !isOciRef(target.owner.requestedUrl);
+        if (!local && httpManifestUrl(target.owner.requestedUrl) === void 0) continue;
+        seen.add(edge.targetSource);
+        queue.push(target);
       }
     }
   }
@@ -79281,11 +79386,10 @@ function stagedEntry(staged, relative) {
   if (beneath.length === 0) return void 0;
   return beneath.includes(relative.replace(/^\.\//, "")) ? "file" : "directory";
 }
-async function collectModuleFileDiagnostics(module, source) {
+async function collectModuleFileDiagnostics(module, source, base = module.owner.source) {
   if (!source?.entryAt) return [];
   const registry = defaultRegistry();
   const out = [];
-  const ownerSource = module.owner.source;
   let staged;
   for (const file of [module.owner, ...module.partials]) {
     const found = [];
@@ -79294,7 +79398,15 @@ async function collectModuleFileDiagnostics(module, source) {
       const collect4 = (sentinel, at3) => {
         const claims = registry.get(sentinel.engine)?.fileClaims?.(sentinel.source) ?? [];
         for (const claim of claims) {
-          found.push({ index, at: at3, sentinel, claims: claims.length, relative: claim.path, code: claim.notFoundCode });
+          found.push({
+            index,
+            at: at3,
+            sentinel,
+            claims: claims.length,
+            relative: claim.path,
+            code: claim.notFoundCode,
+            directory: claim.directory === true
+          });
         }
       };
       if (isModuleKind(manifest.kind)) {
@@ -79306,30 +79418,52 @@ async function collectModuleFileDiagnostics(module, source) {
       if (isNeverInstantiated(manifest.kind)) return;
       walkSentinels(manifest, "", collect4);
     });
-    for (const { index, at: at3, sentinel, claims, relative, code } of found) {
+    for (const { index, at: at3, sentinel, claims, relative, code, directory } of found) {
       staged ??= stagedFilesOf(module.owner.manifests.find((m) => m && isModuleKind(m.kind)));
-      const entry2 = stagedEntry(staged, relative) ?? await source.entryAt(ownerSource, relative);
-      if (entry2 !== void 0) {
-        if (claims === 1) {
-          const stamped = sentinel;
-          stamped[FOUND_ENTRY] = entry2;
-          const head = entry2 === "file" && HOST_MEDIA_HEAD_LENGTH > 0 ? await source.readHead?.(ownerSource, relative, HOST_MEDIA_HEAD_LENGTH) : void 0;
-          if (head) stamped[FOUND_HEAD] = Array.from(head, (b) => b.toString(16).padStart(2, "0")).join("");
-        }
-        continue;
-      }
       const written = sentinel.source;
       const engine = sentinel.engine;
       const manifest = file.manifests[index];
       const name2 = manifest.metadata?.name;
       const range = file.positions[index]?.positionIndex?.get(at3);
-      const absolute = source.locate?.(ownerSource, relative);
-      const hint = await nearMiss(source, ownerSource, relative, written);
+      const absolute = source.locate?.(base, relative);
+      const remote = absolute !== void 0 && /^https?:\/\//.test(absolute);
+      let entry2;
+      let head;
+      try {
+        entry2 = stagedEntry(staged, relative) ?? await source.entryAt(base, relative);
+        if (entry2 === "file" && claims === 1 && HOST_MEDIA_HEAD_LENGTH > 0) {
+          head = await source.readHead?.(base, relative, HOST_MEDIA_HEAD_LENGTH);
+        }
+      } catch (error) {
+        out.push({
+          severity: DiagnosticSeverity2.Error,
+          code: "MODULE_FILE_UNREADABLE",
+          source: "telo-analyzer",
+          message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and checking it failed${absolute ? ` (${absolute})` : ""}: ${error instanceof Error ? error.message : String(error)}`,
+          data: {
+            resource: { kind: manifest.kind, name: name2 ?? "" },
+            filePath: file.source,
+            path: at3
+          },
+          ...range ? { range } : {}
+        });
+        continue;
+      }
+      if (entry2 !== void 0) {
+        if (claims === 1) {
+          const stamped = sentinel;
+          stamped[FOUND_ENTRY] = entry2;
+          if (head) stamped[FOUND_HEAD] = Array.from(head, (b) => b.toString(16).padStart(2, "0")).join("");
+        }
+        continue;
+      }
+      const hint = await nearMiss(source, base, relative, written);
+      const unverifiable = remote && directory;
       out.push({
-        severity: DiagnosticSeverity2.Error,
+        severity: unverifiable ? DiagnosticSeverity2.Warning : DiagnosticSeverity2.Error,
         code,
         source: "telo-analyzer",
-        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
+        message: `${manifest.kind}${name2 ? `/${name2}` : ""}: \`!${engine} ${written}\` names '${relative}', and there is nothing there${absolute ? ` (${absolute})` : ""}.` + (hint ? ` ${hint.text}` : "") + ` The path is relative to the module root \u2014 the directory holding telo.yaml. ` + (remote ? `A module read over a URL ships the files it names one by one \u2014 a directory cannot be listed${unverifiable ? `, so this cannot be told from a missing file and will not be fetched` : ""}; claim the files inside it individually. ` : "") + `Create it or correct the path; if it exists in your checkout, whatever copied the module here left it out (an ignore file, a COPY step).`,
         data: {
           resource: { kind: manifest.kind, name: name2 ?? "" },
           filePath: file.source,
@@ -86260,6 +86394,49 @@ function checkUnjournalableResults(region, resolveDef, graph, reportModules, dia
     }
   }
 }
+function checkMissingContracts(region, collapsed, resolveDef, graph, reportModules, diagnostics) {
+  for (const { node } of region.contents.values()) {
+    if (node.type !== "step" || collapsed.has(node.id)) continue;
+    for (const edge of graph.edgesFrom(node.id)) {
+      const target = edge.to ? graph.nodes.get(edge.to) : void 0;
+      if (!target || target.type !== "resource") continue;
+      const def = resolveDef(
+        target.kind,
+        target.manifest.metadata?.module
+      );
+      if (!def) continue;
+      const own2 = target.manifest.outputType;
+      if (own2 !== void 0 && own2 !== null) continue;
+      const declared = effectiveContractField(
+        def,
+        (kind, from) => resolveDef(kind, from?.metadata?.module),
+        "outputType"
+      );
+      if (declared !== void 0 && declared !== null) continue;
+      const resolveKind = (kind, from) => resolveDef(kind, from?.metadata?.module);
+      const authorSchema = effectiveAuthorSchema(def, resolveKind);
+      if (valueDerivedContract(target.manifest, authorSchema, "outputType")) continue;
+      const owner = graph.nodes.get(node.owner);
+      const manifest = owner?.type === "resource" ? owner.manifest : target.manifest;
+      if (!owned(manifest, reportModules)) continue;
+      const takesOutputType = Boolean(
+        authorSchema.properties?.outputType
+      );
+      const remedy = takesOutputType ? `Declare an outputType on the target or its kind; a value that cannot be recorded still fails at runtime with ERR_DURABLE_UNJOURNALABLE_VALUE.` : `${target.kind} does not take an outputType, so the value is checked at runtime: a value that cannot be recorded fails with ERR_DURABLE_UNJOURNALABLE_VALUE at the step that produced it.`;
+      diagnostics.push({
+        severity: DiagnosticSeverity2.Warning,
+        code: "DURABLE_CONTRACT_REQUIRED",
+        source: SOURCE10,
+        message: `Step '${node.name ?? node.path}' invokes ${target.kind} '${target.name}', which declares no outputType, inside a durable region (${region.provider.kind} '${region.provider.name}'). The step's result is recorded and replayed, and without a declared output nothing can check statically that it is a value that can be written down. ${remedy}`,
+        data: {
+          resource: { kind: manifest.kind, name: manifest.metadata?.name },
+          filePath: manifest.metadata?.source,
+          path: node.path
+        }
+      });
+    }
+  }
+}
 function isLiveSchema(schema4) {
   if (!schema4 || typeof schema4 !== "object") return false;
   const inner = schema4.schema;
@@ -86278,8 +86455,18 @@ function owned(manifest, reportModules) {
 }
 function validateDurableRegions(args) {
   const diagnostics = [];
+  const idempotent = findZoneRegions(args.graph, args.resolveDef, "idempotent");
+  const collapsed = new Set(idempotent.flatMap((r) => [...r.contents.keys()]));
   for (const region of findZoneRegions(args.graph, args.resolveDef, "replayed")) {
     checkDetach(region, args.reportModules, diagnostics);
+    checkMissingContracts(
+      region,
+      collapsed,
+      args.resolveDef,
+      args.graph,
+      args.reportModules,
+      diagnostics
+    );
     checkUnjournalableResults(
       region,
       args.resolveDef,
@@ -86288,7 +86475,7 @@ function validateDurableRegions(args) {
       diagnostics
     );
   }
-  for (const region of findZoneRegions(args.graph, args.resolveDef, "idempotent")) {
+  for (const region of idempotent) {
     checkNondeterminism(
       region,
       args.graph,
@@ -87039,7 +87226,7 @@ function evaluateReferrerRules(manifest, definitionSchema, referrers, kindMatche
       findings.push({ kind: "failed", rule, reason: compiled2.reason });
       continue;
     }
-    const { parsed, chains } = compiled2;
+    const { parsed, reads: chains } = compiled2;
     const selfView = rule.resolveSelf ? resolvedRuleView(manifest, rule.resolveSelf, context.peerBinder, manifest.kind) : { ok: true, self };
     const seen = /* @__PURE__ */ new Set();
     const started = Date.now();
@@ -93269,8 +93456,8 @@ function failed(direction, key3, comparator, running, source) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.133.0";
-var TELO_RUNNING_SURFACE = "0.133.0";
+var TELO_SURFACE_VERSION = "0.135.0";
+var TELO_RUNNING_SURFACE = "0.135.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE35 = "telo-analyzer";
