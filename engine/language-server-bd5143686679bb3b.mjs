@@ -8564,7 +8564,7 @@ var require_server = __commonJS({
           return value2;
         } else if (Is2.thenable(value2)) {
           return new Promise((resolve2, reject) => {
-            value2.then((resolved) => resolve2(resolved), (error) => reject(error));
+            value2.then((resolved2) => resolve2(resolved2), (error) => reject(error));
           });
         } else {
           return Promise.resolve(value2);
@@ -12790,9 +12790,9 @@ var require_fast_uri = __commonJS({
     }
     function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
-      const resolved = resolveComponent(parse4(baseURI, schemelessOptions), parse4(relativeURI, schemelessOptions), schemelessOptions, true);
+      const resolved2 = resolveComponent(parse4(baseURI, schemelessOptions), parse4(relativeURI, schemelessOptions), schemelessOptions, true);
       schemelessOptions.skipEscape = true;
-      return serialize(resolved, schemelessOptions);
+      return serialize(resolved2, schemelessOptions);
     }
     function resolveComponent(base, relative, options, skipNormalization) {
       const target = {};
@@ -16064,7 +16064,7 @@ var require_objects = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/objects.js"(exports, module) {
     "use strict";
     var { LOOP_SENTINEL } = require_constants();
-    function isObject18(value2) {
+    function isObject19(value2) {
       return value2 !== null && typeof value2 === "object";
     }
     function recursiveFreeze(value_) {
@@ -16102,7 +16102,7 @@ var require_objects = __commonJS({
       return value_;
     }
     module.exports = {
-      isObject: isObject18,
+      isObject: isObject19,
       recursiveFreeze
     };
   }
@@ -16221,7 +16221,7 @@ var require_encode = __commonJS({
       REUSED_SEARCH_PARAMS_KEY,
       REUSED_SEARCH_PARAMS_OFFSET
     } = require_constants();
-    var { isObject: isObject18 } = require_objects();
+    var { isObject: isObject19 } = require_objects();
     var { isNonEmptyString } = require_strings();
     var { encodeURIComponent: encodeURIComponent2 } = globalThis;
     function encodeNamespace(namespace) {
@@ -16237,7 +16237,7 @@ var require_encode = __commonJS({
       return "";
     }
     function encodeQualifiers(qualifiers) {
-      if (isObject18(qualifiers)) {
+      if (isObject19(qualifiers)) {
         const qualifiersKeys = Object.keys(qualifiers).sort();
         const searchParams = new URLSearchParams();
         for (let i = 0, { length } = qualifiersKeys; i < length; i += 1) {
@@ -16303,7 +16303,7 @@ var require_helpers = __commonJS({
 var require_normalize = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/normalize.js"(exports, module) {
     "use strict";
-    var { isObject: isObject18 } = require_objects();
+    var { isObject: isObject19 } = require_objects();
     var { isBlank: isBlank2 } = require_strings();
     function normalizeName(rawName) {
       return typeof rawName === "string" ? rawName.trim() : void 0;
@@ -16363,7 +16363,7 @@ var require_normalize = __commonJS({
       return typeof rawVersion === "string" ? rawVersion.trim() : void 0;
     }
     function qualifiersToEntries(rawQualifiers) {
-      if (isObject18(rawQualifiers)) {
+      if (isObject19(rawQualifiers)) {
         return rawQualifiers instanceof URLSearchParams ? rawQualifiers.entries() : Object.entries(rawQualifiers);
       }
       return typeof rawQualifiers === "string" ? new URLSearchParams(rawQualifiers).entries() : Object.entries({});
@@ -16924,7 +16924,7 @@ var require_package_url = __commonJS({
   "../../node_modules/.pnpm/packageurl-js@2.0.1/node_modules/packageurl-js/src/package-url.js"(exports, module) {
     "use strict";
     var { decodePurlComponent } = require_decode();
-    var { isObject: isObject18, recursiveFreeze } = require_objects();
+    var { isObject: isObject19, recursiveFreeze } = require_objects();
     var { isBlank: isBlank2, isNonEmptyString, trimLeadingSlashes } = require_strings();
     var { PurlComponent } = require_purl_component();
     var { PurlQualifierNames } = require_purl_qualifier_names();
@@ -16943,7 +16943,7 @@ var require_package_url = __commonJS({
         PurlComponent.name.validate(name2, true);
         const version2 = isNonEmptyString(rawVersion) ? PurlComponent.version.normalize(rawVersion) : rawVersion;
         PurlComponent.version.validate(version2, true);
-        const qualifiers = typeof rawQualifiers === "string" || isObject18(rawQualifiers) ? PurlComponent.qualifiers.normalize(rawQualifiers) : rawQualifiers;
+        const qualifiers = typeof rawQualifiers === "string" || isObject19(rawQualifiers) ? PurlComponent.qualifiers.normalize(rawQualifiers) : rawQualifiers;
         PurlComponent.qualifiers.validate(qualifiers, true);
         const subpath = isNonEmptyString(rawSubpath) ? PurlComponent.subpath.normalize(rawSubpath) : rawSubpath;
         PurlComponent.subpath.validate(subpath, true);
@@ -17470,8 +17470,8 @@ function resolveAgainst(base, relative) {
     const withoutPin = base.replace(/#.*$/, "");
     const at3 = withoutPin.lastIndexOf("@");
     const bare = at3 > "oci://".length ? withoutPin.slice(0, at3) : withoutPin;
-    const resolved = new URL(relative, `https://${bare.slice("oci://".length)}/`);
-    return `oci://${resolved.host}${resolved.pathname.replace(/\/+$/, "")}`;
+    const resolved2 = new URL(relative, `https://${bare.slice("oci://".length)}/`);
+    return `oci://${resolved2.host}${resolved2.pathname.replace(/\/+$/, "")}`;
   }
   if (isRemoteSource(base)) {
     const dir = base.endsWith("/") ? base : base.slice(0, base.lastIndexOf("/") + 1);
@@ -17481,7 +17481,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.135.0";
+var TELO_ENGINE_VERSION = "0.136.0";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -17670,14 +17670,14 @@ function resolveNode(node, namespaces) {
   }
 }
 function resolveList(nodes, namespaces) {
-  let resolved;
+  let resolved2;
   for (let at3 = 0; at3 < nodes.length; at3++) {
     const next = resolveNode(nodes[at3], namespaces);
     if (next === nodes[at3]) continue;
-    resolved ??= nodes.slice();
-    resolved[at3] = next;
+    resolved2 ??= nodes.slice();
+    resolved2[at3] = next;
   }
-  return resolved;
+  return resolved2;
 }
 
 // ../../cel/nodejs/src/syntax-diagnostic.ts
@@ -28234,7 +28234,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.135.0";
+var ENGINE_VERSION = "0.136.0";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -29863,8 +29863,8 @@ var Checker = class {
    * evaluation would leave a defect the source states behind a run. The refusal names the
    * call as it was written, which is the one thing a reader needs to find it.
    */
-  checkLiteralArguments(node, resolved) {
-    const check = resolved.metadata.checkArguments;
+  checkLiteralArguments(node, resolved2) {
+    const check = resolved2.metadata.checkArguments;
     if (check === void 0) return;
     const written = node.kind === "receiverCall" ? [node.receiver, ...node.args] : node.args;
     const refusal = check(
@@ -29874,14 +29874,14 @@ var Checker = class {
     const source = this.expression.source.slice(node.range[0], node.range[1]);
     this.report("CEL_INVALID_ARGUMENT", `${refusal} (in \`${source}\`)`, node.range);
   }
-  dispatched(node, form, arity, resolved, returns) {
-    const { metadata } = resolved;
+  dispatched(node, form, arity, resolved2, returns) {
+    const { metadata } = resolved2;
     return {
       name: node.name,
       form,
       arity,
       range: node.range,
-      signature: formatSignature(resolved.signature),
+      signature: formatSignature(resolved2.signature),
       returns: formatType(withoutParameters(returns)),
       deterministic: metadata.deterministic ?? true,
       hostBacked: metadata.hostBacked ?? false,
@@ -30792,8 +30792,8 @@ var CelEnvironment = class _CelEnvironment {
       };
       const unregistered = [];
       const resolver = (named, args) => {
-        const resolved = this.nominalResolver(named, args);
-        if (resolved) return resolved;
+        const resolved2 = this.nominalResolver(named, args);
+        if (resolved2) return resolved2;
         if (!unregistered.includes(named)) unregistered.push(named);
         return DYN;
       };
@@ -37639,10 +37639,13 @@ var BUILTIN_DOCUMENT_FILES = [
         "with": {
           "title": "With",
           "description": "Resources that exist only while the sequence runs; created on entry and torn down when it ends.",
-          "x-telo-scope": [
-            "/steps",
-            "/targets"
-          ]
+          "x-telo-scope": {
+            "regions": [
+              "/steps",
+              "/targets"
+            ],
+            "openedBy": "dispatch"
+          }
         },
         "targets": {
           "title": "Targets",
@@ -41064,8 +41067,8 @@ function resolveLocalRef(schema4, root) {
   if (!schema4) return void 0;
   const ref = schema4.$ref;
   if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
-    const resolved = root.$defs?.[ref.slice("#/$defs/".length)];
-    if (resolved && typeof resolved === "object") return resolved;
+    const resolved2 = root.$defs?.[ref.slice("#/$defs/".length)];
+    if (resolved2 && typeof resolved2 === "object") return resolved2;
   }
   return schema4;
 }
@@ -41086,6 +41089,38 @@ function propertySchemas(schema4) {
     }
   }
   return out;
+}
+
+// ../../analyzer/nodejs/src/schema-reference.ts
+var isSchema = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
+function schemaReferenceParts(ref) {
+  const hash = ref.indexOf("#");
+  if (hash === 0) return { pointer: ref };
+  if (hash < 0) return { shape: ref, pointer: "#" };
+  return { shape: ref.slice(0, hash), pointer: ref.slice(hash) };
+}
+function resolveSchemaReference(ref, document, lookup) {
+  const { shape, pointer } = schemaReferenceParts(ref);
+  if (shape === void 0) {
+    if (!document) return void 0;
+    const node2 = resolveSchemaPointer(document, pointer);
+    return isSchema(node2) ? { node: node2, document } : void 0;
+  }
+  const root = lookup?.(shape);
+  if (!isSchema(root)) return void 0;
+  const node = resolveSchemaPointer(root, pointer);
+  return isSchema(node) ? { node, document: root, shape } : void 0;
+}
+function followSchemaReferences(node, document, lookup) {
+  const seen = /* @__PURE__ */ new Set();
+  let at3 = { node, document };
+  while (typeof at3.node.$ref === "string" && !seen.has(at3.node)) {
+    seen.add(at3.node);
+    const next = resolveSchemaReference(at3.node.$ref, at3.document, lookup);
+    if (!next) break;
+    at3 = { node: next.node, document: next.document };
+  }
+  return at3;
 }
 
 // ../../analyzer/nodejs/src/text-slot.ts
@@ -41121,7 +41156,7 @@ function isTextOrRecordUnion(schema4, root, resolveRef2) {
   for (const branch of branches) {
     let node = branch;
     if (isPlainObject4(node) && typeof node.$ref === "string" && textFragmentOf(node) === void 0 && !isTextRecordSchema(node)) {
-      node = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref)?.schema;
+      node = referenceTarget(node.$ref, root, resolveRef2)?.schema;
     }
     if (textFragmentOf(node) === TEXT_FRAGMENT) text3 = true;
     if (isTextRecordSchema(node)) record = true;
@@ -41129,15 +41164,15 @@ function isTextOrRecordUnion(schema4, root, resolveRef2) {
   return text3 && record;
 }
 function producesTextRecord(schema4, root = isPlainObject4(schema4) ? schema4 : {}, resolveRef2) {
-  const resolved = (node2) => isPlainObject4(node2) && typeof node2.$ref === "string" && !isTextRecordSchema(node2) ? node2.$ref.startsWith("#") ? resolveSchemaPointer(root, node2.$ref) : resolveRef2?.(node2.$ref)?.schema : node2;
-  const node = resolved(schema4);
+  const resolved2 = (node2) => isPlainObject4(node2) && typeof node2.$ref === "string" && !isTextRecordSchema(node2) ? referenceTarget(node2.$ref, root, resolveRef2)?.schema : node2;
+  const node = resolved2(schema4);
   if (isTextRecordSchema(node)) return true;
   if (!isPlainObject4(node)) return false;
   const branches = [...Array.isArray(node.anyOf) ? node.anyOf : [], ...Array.isArray(node.oneOf) ? node.oneOf : []];
   if (branches.length === 0) return false;
   let record = false;
   for (const branch of branches) {
-    const at3 = resolved(branch);
+    const at3 = resolved2(branch);
     if (isTextRecordSchema(at3)) record = true;
     else if (!(isPlainObject4(at3) && at3.type === "null")) return false;
   }
@@ -41150,6 +41185,10 @@ function renderValuePath(path) {
     else out += out === "" ? segment : `.${segment}`;
   }
   return out;
+}
+function referenceTarget(ref, root, resolveRef2) {
+  const target = resolveSchemaReference(ref, root, resolveRef2 && ((id) => resolveRef2(id)?.root));
+  return target ? { schema: target.node, root: target.document } : void 0;
 }
 var isPlainObject4 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
@@ -41172,7 +41211,7 @@ function declaresText(schema4, root = schema4) {
       const ref = node.$ref;
       if (typeof ref === "string") {
         if (!ref.startsWith("#")) return true;
-        if (scan(resolveSchemaPointer(root, ref))) return true;
+        if (scan(referenceTarget(ref, root, void 0)?.schema)) return true;
       }
       return Object.values(node).some(scan);
     };
@@ -41197,12 +41236,8 @@ function fragmentAdmits(fragmentNode, value2, root, resolveRef2) {
     if (!isPlainObject4(node) || seen.has(node)) return false;
     seen.add(node);
     if (typeof node.$ref === "string") {
-      if (node.$ref.startsWith("#")) {
-        if (admits(resolveSchemaPointer(at3, node.$ref), at3)) return true;
-      } else {
-        const named = resolveRef2?.(node.$ref);
-        if (named && admits(named.schema, named.root)) return true;
-      }
+      const target = referenceTarget(node.$ref, at3, resolveRef2);
+      if (target && admits(target.schema, target.root)) return true;
     }
     for (const union2 of ["anyOf", "oneOf"]) {
       if (Array.isArray(node[union2]) && node[union2].some((branch) => admits(branch, at3))) return true;
@@ -41227,7 +41262,7 @@ function branchExcludes(branch, root, value2, path, resolveRef2) {
     ancestry.add(node);
     try {
       if (typeof node.$ref === "string") {
-        const target = node.$ref.startsWith("#") ? { schema: resolveSchemaPointer(at3, node.$ref), root: at3 } : resolveRef2?.(node.$ref);
+        const target = referenceTarget(node.$ref, at3, resolveRef2);
         if (target && excludes(target.schema, target.root)) return true;
       }
       const required = Array.isArray(node.required) ? node.required : [];
@@ -41325,12 +41360,8 @@ function textSites(schema4, data, options, root = schema4) {
     if (typeof declared.$ref === "string") {
       const carried = declaredTextValuesOf(declared) ?? inheritedValues;
       const carriedFrom = declared[TEXT_VALUES_FROM_ANNOTATION] ?? inheritedFrom;
-      if (declared.$ref.startsWith("#")) {
-        walk7(resolveSchemaPointer(root2, declared.$ref), root2, value2, path, holder, carried, carriedFrom);
-      } else {
-        const named = options.resolveRef?.(declared.$ref);
-        if (named) walk7(named.schema, named.root, value2, path, holder, carried, carriedFrom);
-      }
+      const target = referenceTarget(declared.$ref, root2, options.resolveRef);
+      if (target) walk7(target.schema, target.root, value2, path, holder, carried, carriedFrom);
     }
     for (const union2 of ["oneOf", "anyOf", "allOf"]) {
       if (Array.isArray(declared[union2])) {
@@ -41390,12 +41421,8 @@ function reachesTextCatalog(schema4, root, resolveRef2) {
       if (textFragmentOf(node) === TEXT_CATALOG_FRAGMENT) return true;
       const ref = node.$ref;
       if (typeof ref === "string") {
-        if (ref.startsWith("#")) {
-          if (scan(resolveSchemaPointer(at3, ref), at3)) return true;
-        } else {
-          const named = resolveRef2?.(ref);
-          if (named && scan(named.schema, named.root)) return true;
-        }
+        const target = referenceTarget(ref, at3, resolveRef2);
+        if (target && scan(target.schema, target.root)) return true;
       }
       return Object.values(node).some((child) => scan(child, at3));
     };
@@ -41467,15 +41494,7 @@ function fieldPlace(base, field) {
 var READS_WHOLE = () => [{ kind: "value", keys: [] }];
 var READS_IDENTITY = () => [];
 var READS_SLOT_SCOPES = (referrer) => referrer.slots.map((keys) => ({ kind: "scope", keys }));
-var isSchema = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-function localTarget(root, ref) {
-  let node = root;
-  for (const raw of ref.slice(1).split("/").slice(1)) {
-    if (!isSchema(node)) return void 0;
-    node = node[raw.replace(/~1/g, "/").replace(/~0/g, "~")];
-  }
-  return node;
-}
+var isSchema2 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function kindPlaces(referent, holds2) {
   const out = [];
   const add = (keys) => {
@@ -41486,24 +41505,19 @@ function kindPlaces(referent, holds2) {
     }
     out.push(keys);
   };
-  const resolved = (node, document) => {
-    if (typeof node.$ref !== "string") return void 0;
-    if (node.$ref.startsWith("#")) return { node: localTarget(document, node.$ref), document };
-    const shape = referent.shapeOf(node.$ref);
-    return shape ? { node: shape, document: shape } : void 0;
-  };
+  const resolved2 = (node, document) => typeof node.$ref === "string" ? resolveSchemaReference(node.$ref, document, (id) => referent.shapeOf(id)) : void 0;
   const reaching = /* @__PURE__ */ new Map();
   const reaches = (node, document, seen) => {
-    if (!isSchema(node) || seen.has(node)) return false;
+    if (!isSchema2(node) || seen.has(node)) return false;
     const known = reaching.get(node);
     if (known !== void 0) return known;
     seen.add(node);
     let found = holds2(node);
-    const target = found ? void 0 : resolved(node, document);
+    const target = found ? void 0 : resolved2(node, document);
     if (target) found = reaches(target.node, target.document, seen);
     const children = [];
     for (const branch of ["allOf", "anyOf", "oneOf", "prefixItems"]) if (Array.isArray(node[branch])) children.push(...node[branch]);
-    for (const map3 of ["properties", "patternProperties"]) if (isSchema(node[map3])) children.push(...Object.values(node[map3]));
+    for (const map3 of ["properties", "patternProperties"]) if (isSchema2(node[map3])) children.push(...Object.values(node[map3]));
     children.push(node.items, node.additionalProperties);
     for (const child of children) if (!found && reaches(child, document, seen)) found = true;
     seen.delete(node);
@@ -41511,23 +41525,23 @@ function kindPlaces(referent, holds2) {
     return found;
   };
   const walk7 = (node, document, keys, seen) => {
-    if (!isSchema(node) || seen.has(node)) return;
+    if (!isSchema2(node) || seen.has(node)) return;
     const guard = new Set(seen).add(node);
     if (holds2(node)) {
       add(keys);
       return;
     }
-    const target = resolved(node, document);
+    const target = resolved2(node, document);
     if (target) walk7(target.node, target.document, keys, guard);
     for (const branch of ["allOf", "anyOf", "oneOf"]) {
       if (Array.isArray(node[branch])) for (const member of node[branch]) walk7(member, document, keys, guard);
     }
-    if (isSchema(node.properties)) {
+    if (isSchema2(node.properties)) {
       for (const [name2, child] of Object.entries(node.properties)) walk7(child, document, [...keys, name2], guard);
     }
     const open = [node.items, node.additionalProperties];
     if (Array.isArray(node.prefixItems)) open.push(...node.prefixItems);
-    if (isSchema(node.patternProperties)) open.push(...Object.values(node.patternProperties));
+    if (isSchema2(node.patternProperties)) open.push(...Object.values(node.patternProperties));
     if (open.some((child) => reaches(child, document, /* @__PURE__ */ new Set()))) add(keys);
   };
   if (referent.schema) walk7(referent.schema, referent.schema, [], /* @__PURE__ */ new Set());
@@ -41554,12 +41568,12 @@ function pointerPlaces(pointers) {
 }
 
 // ../../analyzer/nodejs/src/text-values.ts
-var isSchema2 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema3 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function declaredValueKinds(declared) {
   return new Map(Object.entries(declared).map(([name2, schema4]) => [name2, schemaValueKind(schema4)]));
 }
 function declaredValueRefusal(name2, schema4) {
-  const type = isSchema2(schema4) ? schema4.type : void 0;
+  const type = isSchema3(schema4) ? schema4.type : void 0;
   if (type === "string" || type === "integer" || type === "number") return void 0;
   return `'${name2}' typed as neither a string nor a number: a message formats only those. Declare it 'type: string', 'integer' or 'number'.`;
 }
@@ -41567,11 +41581,26 @@ function fragmentAt(node, root, resolveRef2) {
   const own2 = textFragmentOf(node);
   if (own2 !== void 0) return own2;
   if (typeof node.$ref !== "string") return void 0;
-  const target = node.$ref.startsWith("#") ? resolveSchemaPointer(root, node.$ref) : resolveRef2?.(node.$ref);
-  return isSchema2(target) ? textFragmentOf(target) : void 0;
+  const target = resolveSchemaReference(node.$ref, root, resolveRef2);
+  return target ? textFragmentOf(target.node) : void 0;
+}
+function holdersAlong(ref) {
+  const segments = schemaReferenceParts(ref).pointer.slice(1).split("/").filter((segment) => segment !== "");
+  let holders = 0;
+  for (let i = 0; i < segments.length; i++) {
+    const segment = segments[i];
+    if (segment === "properties" || segment === "patternProperties") {
+      holders++;
+      i++;
+    } else if (segment === "additionalProperties") holders++;
+    else if (!["items", "then", "else", "allOf", "anyOf", "oneOf"].includes(segment) && !/^\d+$/.test(segment)) {
+      return void 0;
+    }
+  }
+  return holders;
 }
 function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
-  if (!isSchema2(schema4)) return [];
+  if (!isSchema3(schema4)) return [];
   const problems = [];
   const visited = /* @__PURE__ */ new Set();
   const report = (path, shape, inner, reason, annotation = TEXT_VALUES_ANNOTATION) => {
@@ -41579,8 +41608,8 @@ function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
     const place2 = shape ? `'${where}', which reaches '${renderValuePath([...inner, annotation])}' in the named shape '${shape}' it names,` : `'${where}'`;
     problems.push({ path: where, message: `'${kind}' declares ${place2} ${reason}` });
   };
-  const visit4 = (node, root, path, shape, inner) => {
-    if (!isSchema2(node) || visited.has(node)) return;
+  const visit4 = (node, root, path, shape, inner, holders) => {
+    if (!isSchema3(node) || visited.has(node)) return;
     visited.add(node);
     const step = (key3) => shape ? [path, [...inner, ...key3]] : [[...path, ...key3], inner];
     if (TEXT_VALUES_ANNOTATION in node) {
@@ -41588,7 +41617,7 @@ function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
       const fragment = fragmentAt(node, root, resolveRef2);
       if (fragment !== "Text" && fragment !== "Message") {
         report(path, shape, inner, "on a node that is no text: it declares the values a Text or a Message is formatted with, so write it beside the text's `$ref: telo://manifest#/$defs/Text`.");
-      } else if (!isSchema2(declared)) {
+      } else if (!isSchema3(declared)) {
         report(path, shape, inner, "as something other than a map of value names to their schemas. Write `{}` for a text formatted with no values.");
       } else {
         for (const [name2, value2] of Object.entries(declared)) {
@@ -41606,11 +41635,16 @@ function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
         from("as something other than a relative JSON pointer (`0/data` names the sibling `data`).");
       } else if (TEXT_VALUES_ANNOTATION in node) {
         from(`beside ${TEXT_VALUES_ANNOTATION}: a text's values are declared one way. Remove one of the two.`);
+      } else if (holders !== void 0 && relativePointerOf(node[TEXT_VALUES_FROM_ANNOTATION]).up >= holders) {
+        const up = relativePointerOf(node[TEXT_VALUES_FROM_ANNOTATION]).up;
+        from(
+          shape ? `climbing ${up} level${up === 1 ? "" : "s"} from the object holding the text, above the named shape: a relative pointer inside a named shape stays within it.` : `climbing ${up} level${up === 1 ? "" : "s"} from the object holding the text, above the resource.`
+        );
       }
     }
-    if (isSchema2(node.properties)) {
+    if (isSchema3(node.properties)) {
       for (const [key3, child] of Object.entries(node.properties)) {
-        const relative = relativePointerOf(isSchema2(child) ? child[TEXT_VALUES_FROM_ANNOTATION] : void 0);
+        const relative = relativePointerOf(isSchema3(child) ? child[TEXT_VALUES_FROM_ANNOTATION] : void 0);
         if (!relative || relative.up !== 0 || relative.segments.length === 0) continue;
         if (!Object.hasOwn(node.properties, relative.segments[0])) {
           const [p, i] = step(["properties", key3]);
@@ -41618,52 +41652,53 @@ function textValuesProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
         }
       }
       for (const [key3, child] of Object.entries(node.properties)) {
-        const segments = pointerSegments(isSchema2(child) ? child[TEXT_VALUES_FOR_ANNOTATION] : void 0);
+        const segments = pointerSegments(isSchema3(child) ? child[TEXT_VALUES_FOR_ANNOTATION] : void 0);
         if (!segments) continue;
         let target = node;
-        for (const segment of segments) target = isSchema2(target) && isSchema2(target.properties) ? target.properties[segment] : void 0;
-        if (isSchema2(target) && TEXT_VALUES_ANNOTATION in target) {
+        for (const segment of segments) target = isSchema3(target) && isSchema3(target.properties) ? target.properties[segment] : void 0;
+        if (isSchema3(target) && TEXT_VALUES_ANNOTATION in target) {
           const [p, i] = step(["properties", ...segments.flatMap((segment, n) => n === 0 ? [segment] : ["properties", segment])]);
           report(p, shape, i, `on a text '${key3}' already pairs with values through x-telo-text-values-for: the text is formatted with those. Remove one of the two.`);
         }
       }
       for (const [key3, child] of Object.entries(node.properties)) {
         const [p, i] = step(["properties", key3]);
-        visit4(child, root, p, shape, i);
+        visit4(child, root, p, shape, i, holders === void 0 ? void 0 : holders + 1);
       }
     }
     for (const mapKey of ["patternProperties", "$defs", "definitions"]) {
-      if (!isSchema2(node[mapKey])) continue;
+      if (!isSchema3(node[mapKey])) continue;
       for (const [key3, child] of Object.entries(node[mapKey])) {
         const [p, i] = step([mapKey, key3]);
-        visit4(child, root, p, shape, i);
+        visit4(child, root, p, shape, i, mapKey === "patternProperties" && holders !== void 0 ? holders + 1 : void 0);
       }
     }
     for (const single of ["additionalProperties", "items", "then", "else"]) {
-      if (isSchema2(node[single])) {
+      if (isSchema3(node[single])) {
         const [p, i] = step([single]);
-        visit4(node[single], root, p, shape, i);
+        visit4(node[single], root, p, shape, i, single === "additionalProperties" && holders !== void 0 ? holders + 1 : holders);
       }
     }
     for (const union2 of ["oneOf", "anyOf", "allOf"]) {
       if (Array.isArray(node[union2])) {
         node[union2].forEach((branch, index) => {
           const [p, i] = step([union2, index]);
-          visit4(branch, root, p, shape, i);
+          visit4(branch, root, p, shape, i, holders);
         });
       }
     }
     if (typeof node.$ref === "string" && !node.$ref.startsWith("#")) {
-      const named = resolveRef2?.(node.$ref);
-      const name2 = parseCanonicalTypeSchemaId(node.$ref)?.typeName ?? node.$ref;
-      if (named) visit4(named, named, path, shape ?? name2, shape ? inner : []);
+      const named = resolveSchemaReference(node.$ref, root, resolveRef2);
+      const id = named?.shape ?? node.$ref;
+      const name2 = parseCanonicalTypeSchemaId(id)?.typeName ?? id;
+      if (named) visit4(named.node, named.document, path, shape ?? name2, shape ? inner : [], holdersAlong(node.$ref));
     }
   };
-  visit4(schema4, schema4, at3, void 0, []);
+  visit4(schema4, schema4, at3, void 0, [], 0);
   return problems;
 }
 function dataValueKind(schema4) {
-  const type = isSchema2(schema4) ? schema4.type : void 0;
+  const type = isSchema3(schema4) ? schema4.type : void 0;
   const types = Array.isArray(type) ? type : type === void 0 ? [] : [type];
   if (types.length === 0) return { kind: "refused", describe: "a value of no declared type" };
   if (types.every((t) => t === "string")) return { kind: "string", describe: "a string" };
@@ -41674,8 +41709,8 @@ function dataValueKind(schema4) {
   return { kind: "refused", describe: `a value declared ${types.join(" or ")}` };
 }
 function dataTextValues(schema4) {
-  if (!isSchema2(schema4)) return /* @__PURE__ */ new Map();
-  const properties = isSchema2(schema4.properties) ? schema4.properties : {};
+  if (!isSchema3(schema4)) return /* @__PURE__ */ new Map();
+  const properties = isSchema3(schema4.properties) ? schema4.properties : {};
   const required = Array.isArray(schema4.required) ? schema4.required.filter((n) => typeof n === "string") : [];
   return new Map(required.map((name2) => [name2, dataValueKind(properties[name2])]));
 }
@@ -50596,11 +50631,15 @@ function matchForSitesOf(schema4, shapes) {
     pointer: site.pointer
   }));
 }
+function evalModeBranchConflicts(schema4, shapes = NO_NAMED_SHAPES) {
+  if (!schema4 || typeof schema4 !== "object") return [];
+  return collectedOf(schema4, shapes).conflicts.map((found) => ({ ...found, path: evalPathOf(found.path) }));
+}
 function evalPathOf(path) {
   return path.startsWith(".") ? path.slice(1) : path;
 }
 var NO_NAMES2 = { present: [], hidden: [] };
-var emptyCollected = () => ({ eval: [], regions: [], contexts: [], matchFor: [] });
+var emptyCollected = () => ({ eval: [], regions: [], contexts: [], matchFor: [], conflicts: [] });
 var shapeMemos = /* @__PURE__ */ new WeakMap();
 function collectedOf(schema4, shapes) {
   const state = { shapes, resolved: /* @__PURE__ */ new Map() };
@@ -50658,27 +50697,11 @@ function walk2(node, path, document, frames, out, state, inherited, underEval) {
     underEval = true;
   }
   if (typeof schema4.$ref === "string") {
-    const ref = schema4.$ref;
-    const local = ref.startsWith("#");
-    const target = local ? resolveSchemaPointer(document, ref) : state.shapes(ref);
-    if (!local) {
-      state.resolved.set(
-        ref,
-        target && typeof target === "object" && !Array.isArray(target) ? target : void 0
-      );
-    }
-    if (!target || typeof target !== "object" || Array.isArray(target)) return;
-    enter(
-      target,
-      local ? document : target,
-      !local,
-      path,
-      frames,
-      out,
-      state,
-      bindings,
-      underEval
-    );
+    const { shape } = schemaReferenceParts(schema4.$ref);
+    const target = resolveSchemaReference(schema4.$ref, document, state.shapes);
+    if (shape !== void 0) state.resolved.set(shape, target?.document);
+    if (!target) return;
+    enter(target.node, target.document, target.shape, path, frames, out, state, bindings, underEval);
     return;
   }
   if (schema4.properties && typeof schema4.properties === "object") {
@@ -50702,20 +50725,127 @@ function descendBeyondProperties(schema4, path, document, frames, out, state, bi
     walk2(schema4.items, `${path}[*]`, document, frames, out, state, bindings, underEval);
   }
   for (const key3 of ["oneOf", "anyOf", "allOf"]) {
-    if (Array.isArray(schema4[key3])) {
+    if (!Array.isArray(schema4[key3])) continue;
+    if (key3 === "allOf" || underEval) {
       for (const branch of schema4[key3]) {
         walk2(branch, path, document, frames, out, state, bindings, underEval);
       }
+      continue;
+    }
+    const branches = schema4[key3].map((branch) => {
+      const found = emptyCollected();
+      walk2(branch, path, document, frames, found, state, bindings, underEval);
+      return found;
+    });
+    out.conflicts.push(...branchConflicts(schema4, key3, path, document, branches, state.shapes));
+    for (const found of branches) {
+      out.eval.push(...found.eval);
+      out.regions.push(...found.regions);
+      out.contexts.push(...found.contexts);
+      out.matchFor.push(...found.matchFor);
+      out.conflicts.push(...found.conflicts);
     }
   }
 }
-function enter(target, document, isShape, path, frames, out, state, bindings, underEval) {
+function branchConflicts(union2, keyword, path, document, branches, shapes) {
+  if (branches.length < 2) return [];
+  const sitesBySegment = branches.map((found) => {
+    const bySegment = /* @__PURE__ */ new Map();
+    for (const site of found.eval) {
+      const place2 = site.path.slice(path.length);
+      const segment = firstSegment(place2);
+      let sites = bySegment.get(segment);
+      if (!sites) bySegment.set(segment, sites = /* @__PURE__ */ new Map());
+      sites.set(place2, site.mode);
+    }
+    return bySegment;
+  });
+  const declared = union2[keyword].map(
+    (branch) => declaredSegments(branch, document, shapes, /* @__PURE__ */ new Set())
+  );
+  const conflicts = [];
+  const judged = /* @__PURE__ */ new Set();
+  const conflict = (i, j, segment, place2) => {
+    judged.add(segment);
+    const a = sitesBySegment[i].get(segment)?.get(place2);
+    const b = sitesBySegment[j].get(segment)?.get(place2);
+    const [branch, other] = a !== void 0 && b === void 0 ? [i, j] : [j, i];
+    conflicts.push({
+      path,
+      union: union2,
+      document,
+      keyword,
+      branch,
+      other,
+      segment,
+      place: place2,
+      mode: branch === i ? a : b,
+      otherMode: branch === i ? b : a
+    });
+  };
+  for (let i = 0; i < branches.length; i++) {
+    for (let j = i + 1; j < branches.length; j++) {
+      const own2 = sitesBySegment[i].get("")?.get("");
+      const theirs = sitesBySegment[j].get("")?.get("");
+      if (!judged.has("") && own2 !== theirs) conflict(i, j, "", "");
+      for (const segment of declared[i]) {
+        if (segment === "" || judged.has(segment) || !declared[j].has(segment)) continue;
+        const mine = sitesBySegment[i].get(segment) ?? /* @__PURE__ */ new Map();
+        const yours = sitesBySegment[j].get(segment) ?? /* @__PURE__ */ new Map();
+        const differing = [...mine].find(([place2, mode]) => yours.get(place2) !== mode)?.[0] ?? [...yours].find(([place2, mode]) => mine.get(place2) !== mode)?.[0];
+        if (differing !== void 0) conflict(i, j, segment, differing);
+      }
+    }
+  }
+  return conflicts;
+}
+function firstSegment(place2) {
+  let rest = place2;
+  while (rest.startsWith("(")) {
+    let depth = 0;
+    let end = 0;
+    for (; end < rest.length; end++) {
+      if (rest[end] === "(") depth++;
+      else if (rest[end] === ")" && --depth === 0) break;
+    }
+    rest = rest.slice(end + 2);
+  }
+  return /^(\[\*\]|\.[^.[(]+)/.exec(rest)?.[1] ?? "";
+}
+function declaredSegments(node, document, shapes, seen) {
+  const out = /* @__PURE__ */ new Set();
+  if (!node || typeof node !== "object" || Array.isArray(node) || seen.has(node)) return out;
+  seen.add(node);
+  const schema4 = node;
+  if (typeof schema4.$ref === "string") {
+    const target = resolveSchemaReference(schema4.$ref, document, shapes);
+    return target ? declaredSegments(target.node, target.document, shapes, seen) : out;
+  }
+  if (schema4.properties && typeof schema4.properties === "object") {
+    for (const key3 of Object.keys(schema4.properties)) out.add(`.${key3}`);
+  }
+  const mapValues2 = [
+    schema4.additionalProperties,
+    ...Object.values(schema4.patternProperties ?? {})
+  ];
+  if (mapValues2.some((value2) => value2 && typeof value2 === "object")) out.add(".*");
+  if (schema4.items && typeof schema4.items === "object" && !Array.isArray(schema4.items)) out.add("[*]");
+  for (const key3 of ["oneOf", "anyOf", "allOf"]) {
+    if (!Array.isArray(schema4[key3])) continue;
+    for (const branch of schema4[key3]) {
+      for (const segment of declaredSegments(branch, document, shapes, seen)) out.add(segment);
+    }
+  }
+  return out;
+}
+function enter(target, document, shape, path, frames, out, state, bindings, underEval) {
   const openAt = frames.findIndex((frame) => frame.node === target);
   if (openAt !== -1) {
     frames[openAt].loops.push(path.slice(frames[openAt].at.length));
     for (let i = openAt + 1; i < frames.length; i++) frames[i].dirty = true;
     return;
   }
+  const isShape = shape !== void 0;
   const known = isShape && !underEval ? shapeMemos.get(target) : void 0;
   const memo2 = known?.shapes.every(([id, node]) => state.shapes(id) === node) ? known : void 0;
   let loop;
@@ -50735,7 +50865,12 @@ function enter(target, document, isShape, path, frames, out, state, bindings, un
       eval: absolute.eval.map((site) => ({ ...site, path: relative(site.path) })),
       regions: absolute.regions.map(relative),
       contexts: absolute.contexts.map((context) => ({ ...context, path: relative(context.path) })),
-      matchFor: absolute.matchFor.map((site) => ({ ...site, path: relative(site.path) }))
+      matchFor: absolute.matchFor.map((site) => ({ ...site, path: relative(site.path) })),
+      conflicts: absolute.conflicts.map((found) => ({
+        ...found,
+        path: relative(found.path),
+        shape: found.shape ?? shape
+      }))
     };
     if (isShape && !underEval && !frame.dirty) {
       shapeMemos.set(target, {
@@ -50752,6 +50887,7 @@ function enter(target, document, isShape, path, frames, out, state, bindings, un
   for (const region of inside.regions) out.regions.push(at3(region));
   for (const context of inside.contexts) out.contexts.push({ ...context, path: at3(context.path) });
   for (const site of inside.matchFor) out.matchFor.push({ ...site, path: at3(site.path) });
+  for (const found of inside.conflicts) out.conflicts.push({ ...found, path: at3(found.path) });
 }
 function pathMatchesScope(exprPath, scope) {
   return scopeMatchOf(exprPath, scope) !== void 0;
@@ -50957,6 +51093,7 @@ function readRefSlot(node) {
   const uses = /* @__PURE__ */ new Set();
   let useCases;
   let inputs;
+  let completedWhen;
   let throwsThrough = false;
   let outputType;
   let outputTo;
@@ -50972,6 +51109,7 @@ function readRefSlot(node) {
     for (const use of normalizeUses(obj.use)) uses.add(use);
     useCases ??= readUseCases(obj.use);
     if (typeof obj.inputs === "string") inputs ??= obj.inputs;
+    if (typeof obj.completedWhen === "string") completedWhen ??= obj.completedWhen;
     if (obj.throwsThrough === true) throwsThrough = true;
     if (isSchemaObject(obj.outputType)) outputType ??= obj.outputType;
     outputTo ??= readOutputTo(obj.outputTo);
@@ -50988,6 +51126,7 @@ function readRefSlot(node) {
   };
   if (useCases) slot.useCases = useCases;
   if (inputs !== void 0) slot.inputs = inputs;
+  if (completedWhen !== void 0) slot.completedWhen = completedWhen;
   if (throwsThrough) slot.throwsThrough = true;
   if (outputType) slot.outputType = outputType;
   if (outputTo) slot.outputTo = outputTo;
@@ -51009,6 +51148,7 @@ function refSlotAnnotation(slot) {
   else if (slot.uses.length === 1) annotation.use = slot.uses[0];
   else if (slot.uses.length > 1) annotation.use = slot.uses;
   if (slot.inputs !== void 0) annotation.inputs = slot.inputs;
+  if (slot.completedWhen !== void 0) annotation.completedWhen = slot.completedWhen;
   if (slot.throwsThrough) annotation.throwsThrough = true;
   if (slot.outputType) annotation.outputType = slot.outputType;
   if (slot.outputTo) annotation.outputTo = { ...slot.outputTo };
@@ -51045,8 +51185,9 @@ function rewriteCoReferrerKinds(node, map3) {
 var refSlotReads = ({ value: value2, at: at3 }) => {
   const out = [{ kind: "reference", keys: at3, transitive: false, reads: READS_IDENTITY }];
   if (value2 && typeof value2 === "object" && !Array.isArray(value2)) {
-    const { inputs, use } = value2;
+    const { inputs, use, completedWhen } = value2;
     if (typeof inputs === "string") out.push({ kind: "value", keys: placeAt(enclosingKeys(at3), inputs) });
+    if (typeof completedWhen === "string") out.push({ kind: "value", keys: placeAt(enclosingKeys(at3), completedWhen) });
     const by = use?.by;
     if (typeof by === "string") out.push({ kind: "value", keys: placeAt(enclosingKeys(at3), by) });
     const outputTo = readOutputTo(value2.outputTo);
@@ -54880,6 +55021,7 @@ var ANNOTATION_KEYWORDS = [
   "x-telo-context-item-fills",
   "x-telo-context-from",
   "x-telo-context-from-ref-kind",
+  "x-telo-context-from-path-template",
   "x-telo-context-from-referrer",
   "x-telo-context-from-root",
   "x-telo-context-nullable-when",
@@ -55057,7 +55199,12 @@ function registerTeloKeywords(ajv3, options = {}) {
 // ../../analyzer/nodejs/src/schema-compat.ts
 var Ajv = import_ajv.default.default ?? import_ajv.default;
 function createAjv(options = {}) {
-  const instance = new Ajv({ allErrors: true, strict: false, verbose: options.verbose === true });
+  const instance = new Ajv({
+    allErrors: true,
+    strict: false,
+    verbose: options.verbose === true,
+    useDefaults: options.useDefaults === true
+  });
   import_ajv_formats.default.default ? import_ajv_formats.default.default(instance) : (0, import_ajv_formats.default)(instance);
   registerTeloKeywords(instance, { assertLive: true });
   instance.addSchema(ManifestRootSchema, void 0, void 0, false);
@@ -55269,6 +55416,23 @@ function validateAgainstSchema(data, schema4) {
   }
   if (validate2(data)) return [];
   return schemaIssues(validate2.errors, data);
+}
+var defaultFillingAjv = createAjv({ useDefaults: true });
+var defaultFillingValidators = /* @__PURE__ */ new WeakMap();
+function validateAgainstSchemaWithDefaults(data, schema4) {
+  let validate2 = defaultFillingValidators.get(schema4);
+  if (!validate2) {
+    try {
+      validate2 = defaultFillingAjv.compile(schema4);
+    } catch (err) {
+      if (schemaCompiles(schema4)) throw err;
+      return [];
+    }
+    defaultFillingValidators.set(schema4, validate2);
+  }
+  const copy = structuredClone(data);
+  if (validate2(copy)) return [];
+  return schemaIssues(validate2.errors, copy);
 }
 function navigateJsonPointer(schema4, pointer) {
   const segments = pointer.split("/").slice(1);
@@ -55669,12 +55833,8 @@ function resolveRef(schema4, root, external) {
 }
 function resolveRefIn(schema4, root, external) {
   if (!schema4.$ref || typeof schema4.$ref !== "string") return { schema: schema4, root };
-  if (schema4.$ref.startsWith("#")) {
-    const resolved = resolveSchemaPointer(root, schema4.$ref);
-    return resolved && typeof resolved === "object" ? { schema: resolved, root } : { schema: schema4, root };
-  }
-  const target = external?.(schema4.$ref);
-  return target ? { schema: target, root: target } : { schema: schema4, root };
+  const target = resolveSchemaReference(schema4.$ref, root, external);
+  return target ? { schema: target.node, root: target.document } : { schema: schema4, root };
 }
 var REFERENCE_KEYS = /* @__PURE__ */ new Set(["$ref", "kind", "name", "alias", "indexes"]);
 function inlineNamedShapes(schema4, resolve2) {
@@ -55684,7 +55844,7 @@ function inlineNamedShapes(schema4, resolve2) {
     const record = node;
     const ref = record.$ref;
     if (typeof ref === "string" && !ref.startsWith("#") && !open.has(ref)) {
-      const target = resolve2(ref);
+      const target = resolveSchemaReference(ref, void 0, resolve2)?.node;
       if (target) {
         const siblings = {};
         for (const [key3, value2] of Object.entries(record)) {
@@ -55820,7 +55980,7 @@ function substituteCelFields(data, schema4, rootSchema, options = {}) {
   const base = rootSchema ?? schema4;
   const entered = resolveRefIn(schema4, base, external);
   const root = entered.root;
-  const resolved = selectUnionBranch(entered.schema, data, root, external);
+  const resolved2 = selectUnionBranch(entered.schema, data, root, external);
   if (isRefSentinel(data)) {
     return data;
   }
@@ -55828,10 +55988,10 @@ function substituteCelFields(data, schema4, rootSchema, options = {}) {
   if (reading?.kind === "value") return reading.value;
   if (reading) {
     standIns?.set(pointer, reading);
-    return reading.class === "produced" ? producedPlaceholder(reading.produced, resolved, { root, external }) : celPlaceholderForSchema(resolved, { root, external });
+    return reading.class === "produced" ? producedPlaceholder(reading.produced, resolved2, { root, external }) : celPlaceholderForSchema(resolved2, { root, external });
   }
   if (Array.isArray(data)) {
-    const item = resolveRefIn(resolved.items ?? {}, root, external);
+    const item = resolveRefIn(resolved2.items ?? {}, root, external);
     return data.map(
       (element, i) => substituteCelFields(element, item.schema, item.root, {
         standIns,
@@ -55842,11 +56002,11 @@ function substituteCelFields(data, schema4, rootSchema, options = {}) {
   }
   if (data !== null && typeof data === "object") {
     if (!isCelRecord(data)) return data;
-    const members2 = membersSlotOf(resolved);
-    const props = members2 ? memberSlotSchemas(members2) : collectProperties(resolved);
+    const members2 = membersSlotOf(resolved2);
+    const props = members2 ? memberSlotSchemas(members2) : collectProperties(resolved2);
     const result = {};
     for (const [k, v] of Object.entries(data)) {
-      result[k] = substituteCelFields(v, props[k] ?? undeclaredKeySchema(resolved, k) ?? {}, members2 ? void 0 : root, {
+      result[k] = substituteCelFields(v, props[k] ?? undeclaredKeySchema(resolved2, k) ?? {}, members2 ? void 0 : root, {
         standIns,
         pointer: `${pointer}/${k.replace(/~/g, "~0").replace(/\//g, "~1")}`,
         external
@@ -55875,7 +56035,7 @@ var SCHEMA_KEYS = /* @__PURE__ */ new Set([
 var SCHEMA_MAP_KEYS = /* @__PURE__ */ new Set(["properties", "patternProperties"]);
 var SCHEMA_LIST_KEYS = /* @__PURE__ */ new Set(["anyOf", "oneOf", "allOf", "prefixItems"]);
 var VALUE_TYPE_KEY = "x-telo-type";
-var isSchema3 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
+var isSchema4 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
 var declaredDocuments = /* @__PURE__ */ new WeakSet();
 function declaredDocument(root) {
   declaredDocuments.add(root);
@@ -55889,12 +56049,12 @@ function childSchemas(node) {
   const out = [];
   for (const [key3, value2] of Object.entries(node)) {
     if (SCHEMA_KEYS.has(key3)) {
-      if (Array.isArray(value2)) out.push(...value2.filter(isSchema3));
-      else if (isSchema3(value2)) out.push(value2);
+      if (Array.isArray(value2)) out.push(...value2.filter(isSchema4));
+      else if (isSchema4(value2)) out.push(value2);
     } else if (SCHEMA_LIST_KEYS.has(key3) && Array.isArray(value2)) {
-      out.push(...value2.filter(isSchema3));
-    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema3(value2)) {
-      out.push(...Object.values(value2).filter(isSchema3));
+      out.push(...value2.filter(isSchema4));
+    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema4(value2)) {
+      out.push(...Object.values(value2).filter(isSchema4));
     }
   }
   return out;
@@ -55910,13 +56070,9 @@ function holdsReference(node) {
 var besideReference = (node) => Object.fromEntries(Object.entries(node).filter(([key3]) => !REFERENCE_KEYS.has(key3)));
 function referenced(node, root, external) {
   const ref = node.$ref;
-  if (!ref.startsWith("#")) {
-    const target2 = external?.(ref);
-    return target2 ? { schema: target2, root: target2 } : void 0;
-  }
-  if (!root) return { schema: besideReference(node), root };
-  const target = resolveSchemaPointer(root, ref);
-  return isSchema3(target) ? { schema: target, root } : void 0;
+  if (ref.startsWith("#") && !root) return { schema: besideReference(node), root };
+  const target = resolveSchemaReference(ref, root, external);
+  return target ? { schema: target.node, root: target.document } : void 0;
 }
 function enter2(at3, external) {
   const seen = /* @__PURE__ */ new Set();
@@ -55931,7 +56087,7 @@ function enter2(at3, external) {
   return { at: at3, followed: true };
 }
 function expand(node, enclosingRoot, external, open) {
-  if (!isSchema3(node) || !holdsReference(node)) return node;
+  if (!isSchema4(node) || !holdsReference(node)) return node;
   const { root } = declaredAt(node, enclosingRoot);
   if (typeof node.$ref === "string") {
     const target = referenced(node, root, external);
@@ -55952,7 +56108,7 @@ function expand(node, enclosingRoot, external, open) {
       out[key3] = Array.isArray(value2) ? value2.map(beneath) : beneath(value2);
     } else if (SCHEMA_LIST_KEYS.has(key3) && Array.isArray(value2)) {
       out[key3] = value2.map(beneath);
-    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema3(value2)) {
+    } else if ((SCHEMA_MAP_KEYS.has(key3) || key3 === VALUE_TYPE_KEY) && isSchema4(value2)) {
       out[key3] = Object.fromEntries(Object.entries(value2).map(([k, v]) => [k, beneath(v)]));
     } else {
       out[key3] = value2;
@@ -55966,7 +56122,7 @@ function shapeNamedBy(schema4, root, external) {
 var CHAIN_SEGMENT = /^([a-zA-Z_][a-zA-Z0-9_]*)((?:\[\d+\])*)$/;
 var declaredFor = (node, hop) => hop === void 0 ? node.items : node.properties?.[hop];
 function cannotHold(node, hop) {
-  const holds2 = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema3(value2);
+  const holds2 = (value2) => hop === void 0 ? Array.isArray(value2) : isSchema4(value2);
   const entry2 = valueTypeOf(node);
   if (entry2?.representation === "instance") return true;
   const container = hop === void 0 ? "array" : "object";
@@ -55976,7 +56132,7 @@ function cannotHold(node, hop) {
   }
   if ("const" in node && !holds2(node.const)) return true;
   if (Array.isArray(node.enum) && !node.enum.some(holds2)) return true;
-  return hop !== void 0 && node.additionalProperties === false && node.patternProperties === void 0 && !(isSchema3(node.properties) && Object.hasOwn(node.properties, hop));
+  return hop !== void 0 && node.additionalProperties === false && node.patternProperties === void 0 && !(isSchema4(node.properties) && Object.hasOwn(node.properties, hop));
 }
 var DeclaredSet = class {
   roots = /* @__PURE__ */ new Map();
@@ -55997,7 +56153,7 @@ function bareUnion(shape) {
   const keys = Object.keys(shape).filter((key3) => !ANNOTATION_KEYS.has(key3));
   if (keys.length !== 1 || keys[0] !== "anyOf" && keys[0] !== "oneOf") return void 0;
   const alternatives = shape[keys[0]];
-  return Array.isArray(alternatives) && alternatives.length > 0 && alternatives.every(isSchema3) ? alternatives : void 0;
+  return Array.isArray(alternatives) && alternatives.length > 0 && alternatives.every(isSchema4) ? alternatives : void 0;
 }
 function navigateDeclaredChain(context, chain, external) {
   let held = [declaredAt(context, void 0)];
@@ -56009,8 +56165,8 @@ function navigateDeclaredChain(context, chain, external) {
     const reach = (written, alternative) => {
       const { at: at3, followed } = enter2(written, external);
       const own2 = declaredFor(at3.schema, hop);
-      if (!followed && (alternative || !isSchema3(own2))) return false;
-      if (isSchema3(own2)) {
+      if (!followed && (alternative || !isSchema4(own2))) return false;
+      if (isSchema4(own2)) {
         next.add(declaredAt(own2, at3.root));
         return true;
       }
@@ -56023,7 +56179,7 @@ function navigateDeclaredChain(context, chain, external) {
       open.add(at3.schema);
       const claimed = alternatives.every(
         // `false` admits no value; any other non-schema says nothing.
-        (branch) => isSchema3(branch) ? reach(declaredAt(branch, at3.root), true) : branch === false
+        (branch) => isSchema4(branch) ? reach(declaredAt(branch, at3.root), true) : branch === false
       );
       open.delete(at3.schema);
       distributed.add(at3);
@@ -56905,7 +57061,7 @@ function readResourceRules(schema4) {
     const pointer = entry2.in;
     if (pointer !== void 0 && typeof pointer !== "string") return;
     const resolve2 = entry2.resolve;
-    if (resolve2 !== void 0 && !(Array.isArray(resolve2) && resolve2.every((p) => typeof p === "string" && pointerSegments2(p)))) {
+    if (resolve2 !== void 0 && !(Array.isArray(resolve2) && resolve2.every((p) => typeof p === "string" && unfoldOnce(p)))) {
       return;
     }
     const coReferrers = entry2.coReferrers;
@@ -56981,6 +57137,41 @@ function parseRulePointer(pointer) {
   };
   const parsed = steps(false);
   return parsed && at3 === pointer.length ? parsed : void 0;
+}
+function plainPointer(steps) {
+  return steps.map((step) => step.kind === "key" ? `/${step.key.replace(/~/g, "~0").replace(/\//g, "~1")}` : "/*").join("");
+}
+function unfoldRulePointer(pointer, repeats) {
+  if (!/[()|]/.test(pointer)) return pointerSegments2(pointer) ? [pointer] : void 0;
+  const steps = parseRulePointer(pointer);
+  if (!steps) return void 0;
+  const out = /* @__PURE__ */ new Set();
+  const unfold = (rest, prefix, taken) => {
+    const at3 = rest.findIndex((step) => step.kind === "repeat");
+    if (at3 === -1) {
+      out.add(plainPointer([...prefix, ...rest]));
+      return;
+    }
+    const group = rest[at3];
+    const before = [...prefix, ...rest.slice(0, at3)];
+    const after = rest.slice(at3 + 1);
+    unfold(after, before, taken);
+    if (taken >= MAX_REPEAT_DEPTH || !repeats(plainPointer(before), taken)) return;
+    for (const alternative of group.alternatives) unfold([...alternative, group, ...after], before, taken + 1);
+  };
+  unfold(steps, [], 0);
+  return [...out];
+}
+function unfoldOnce(pointer) {
+  return unfoldRulePointer(pointer, (_2, taken) => taken < 1);
+}
+function resolvePointersIn(value2, pointer) {
+  return unfoldRulePointer(
+    pointer,
+    (from) => placesAlong([{ value: value2, path: "" }], parseRulePointer(from) ?? []).some(
+      (place2) => !place2.dynamic && !!place2.value && typeof place2.value === "object" && !isTaggedSentinel(place2.value) && !isCelNode(place2.value)
+    )
+  );
 }
 function namesOnePlace(steps) {
   return steps.every((step) => step.kind === "key");
@@ -57299,9 +57490,13 @@ function resourceRuleReads(rules, moduleNames) {
       }
     }
     for (const pointer of rule.resolve ?? []) {
-      const at3 = crossingPlace(pointer);
-      read(at3);
-      targets.push({ at: at3, reads: ruleReferentReads([rule], [pointer], "self") });
+      const plain = unfoldOnce(pointer) ?? [pointer];
+      const reads = ruleReferentReads([rule], plain, "self");
+      const crossed = new Map(plain.map((each) => [JSON.stringify(crossingPlace(each)), crossingPlace(each)]));
+      for (const at3 of crossed.values()) {
+        read(at3);
+        targets.push({ at: at3, reads });
+      }
     }
     if (rule.coReferrers !== void 0) {
       const at3 = crossingPlace(rule.coReferrers);
@@ -57397,8 +57592,8 @@ function unknownTopologyRole(schema4) {
 }
 function roleNode(propSchema, root) {
   if (topologyRoleOf(propSchema)) return propSchema;
-  const resolved = resolveLocalRef(propSchema, root);
-  return resolved !== propSchema && topologyRoleOf(resolved) ? resolved : void 0;
+  const resolved2 = resolveLocalRef(propSchema, root);
+  return resolved2 !== propSchema && topologyRoleOf(resolved2) ? resolved2 : void 0;
 }
 function roledProperties(schema4, root = schema4 ?? {}) {
   if (!schema4) return [];
@@ -57463,9 +57658,8 @@ var RESOURCE_ENVELOPE_KEYS = ["kind", "metadata"];
 function resolveLocalReference(node, document) {
   const ref = node.$ref;
   if (typeof ref !== "string" || !ref.startsWith("#")) return void 0;
-  const target = resolveSchemaPointer(document, ref);
-  if (!target || typeof target !== "object" || Array.isArray(target)) return void 0;
-  return { document, node: target };
+  const target = resolveSchemaReference(ref, document, void 0);
+  return target ? { document: target.document, node: target.node } : void 0;
 }
 function refFieldEntryOf(slot, node, path) {
   const entry2 = {
@@ -57475,6 +57669,7 @@ function refFieldEntryOf(slot, node, path) {
   };
   if (slot.useCases) entry2.useCases = slot.useCases;
   if (slot.inputs !== void 0) entry2.inputs = slot.inputs;
+  if (slot.completedWhen !== void 0) entry2.completedWhen = slot.completedWhen;
   if (slot.valueBranches.length > 0) entry2.valueBranches = slot.valueBranches;
   if (node["x-telo-context"]) entry2.context = node["x-telo-context"];
   if (slot.inline) entry2.inline = true;
@@ -57494,6 +57689,7 @@ function refSlotOfEntry(entry2) {
   };
   if (entry2.useCases) slot.useCases = entry2.useCases;
   if (entry2.inputs !== void 0) slot.inputs = entry2.inputs;
+  if (entry2.completedWhen !== void 0) slot.completedWhen = entry2.completedWhen;
   if (entry2.throwsThrough) slot.throwsThrough = true;
   if (entry2.outputType) slot.outputType = entry2.outputType;
   if (entry2.outputTo) slot.outputTo = entry2.outputTo;
@@ -57679,7 +57875,10 @@ function stopAt(walk7, path) {
   const key3 = patternKey(path);
   let entry2 = walk7.reach.stops.get(key3);
   if (!entry2) {
-    walk7.reach.stops.set(key3, entry2 = { pattern: path, scopes: [], schemaFrom: [], shapes: [] });
+    walk7.reach.stops.set(
+      key3,
+      entry2 = { pattern: path, scopes: [], schemaFrom: [], shapes: [], shapeDeclarations: /* @__PURE__ */ new Map() }
+    );
   }
   return entry2;
 }
@@ -57788,6 +57987,10 @@ function followRef(node, path, walk7) {
   }
   const stop = stopAt(walk7, path);
   if (!stop.shapes.includes(ref)) stop.shapes.push(ref);
+  let declarations = stop.shapeDeclarations.get(ref);
+  if (!declarations) stop.shapeDeclarations.set(ref, declarations = []);
+  const declaration = walk7.reach.declarations.get(patternKey(path))?.find((d) => d.node === node);
+  if (declaration && !declarations.includes(declaration)) declarations.push(declaration);
 }
 function shapeRefOfSentinel(sentinel) {
   const target = refSentinelTarget2(sentinel);
@@ -57834,12 +58037,22 @@ function expansionsAt(stop, reach, schemaFrom, shapes) {
     }
   }
   if (shapes) {
-    for (const id of stop.shapes) {
-      const shape = shapes(id, reach.document);
-      if (shape) out.push({ reach: reachOfNode(shape, shape), anchor: false });
+    for (const ref of stop.shapes) {
+      const target = resolveSchemaReference(ref, reach.document, shapeLookupIn(shapes, reach.document));
+      if (target) out.push({ reach: reachOfNode(target.document, target.node), anchor: false, ref });
     }
   }
   return out;
+}
+function shapeLookupIn(shapes, document) {
+  return shapes ? (id) => shapes(id, document) : void 0;
+}
+var atReachRoot = (pattern2) => pattern2.every((segment) => isWildcard(segment, "[]"));
+function stopEnclosing(reach, stop, ref, outer, shapes) {
+  if (atReachRoot(stop.pattern) && outer) return outer;
+  const writers = stop.shapeDeclarations.get(ref) ?? [];
+  const nodes = (reach.declarations.get(patternKey(enclosingPattern(stop.pattern))) ?? []).filter((d) => writers.length === 0 || writers.some((writer) => !areAlternatives(d, writer))).map((d) => d.node);
+  return { nodes, document: reach.document, lookup: shapeLookupIn(shapes, reach.document) };
 }
 function declaredReach(schema4, schemaFrom, shapes) {
   const references = /* @__PURE__ */ new Map();
@@ -57928,9 +58141,9 @@ function enclosingDefault(ref, pointer) {
   return enclosingProperty(ref, pointer)?.default;
 }
 function enclosingProperty(ref, pointer) {
-  return propertyOfEnclosing(ref.enclosing, ref.declaredIn.document, pointer);
+  return propertyOfEnclosing(ref.enclosing, ref.enclosingIn, pointer, ref.enclosingLookup);
 }
-function propertyOfEnclosing(enclosing, document, pointer) {
+function propertyOfEnclosing(enclosing, document, pointer, lookup) {
   if (!pointer.startsWith("/")) return void 0;
   const segments = pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
   const out = { declared: false, required: false, default: void 0 };
@@ -57940,6 +58153,7 @@ function propertyOfEnclosing(enclosing, document, pointer) {
   }
   for (const declaration of enclosing) {
     let current = declaration;
+    let at3 = document;
     let value2;
     let required = true;
     let declaredNode;
@@ -57951,10 +58165,12 @@ function propertyOfEnclosing(enclosing, document, pointer) {
         break;
       }
       const node = written;
-      const target = typeof node.$ref === "string" ? resolveLocalReference(node, document)?.node : void 0;
-      value2 = node.default !== void 0 ? node.default : target?.default;
+      const target = typeof node.$ref === "string" ? followSchemaReferences(node, at3, lookup) : void 0;
+      const reached = target && target.node !== node ? target.node : void 0;
+      value2 = node.default !== void 0 ? node.default : reached?.default;
       declaredNode = node;
-      current = target ?? node;
+      current = reached ?? node;
+      if (reached) at3 = target.document;
     }
     if (!current) continue;
     out.declared = true;
@@ -58000,6 +58216,7 @@ function siteRefEntry(site) {
     for (const use of slot.uses) if (!entry2.uses.includes(use)) entry2.uses.push(use);
     if (slot.useCases && !entry2.useCases) entry2.useCases = slot.useCases;
     if (slot.inputs !== void 0 && entry2.inputs === void 0) entry2.inputs = slot.inputs;
+    if (slot.completedWhen !== void 0 && entry2.completedWhen === void 0) entry2.completedWhen = slot.completedWhen;
     if (context && !entry2.context) entry2.context = context;
     if (slot.inline) entry2.inline = true;
     if (slot.throwsThrough) entry2.throwsThrough = true;
@@ -58048,7 +58265,7 @@ function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schem
     }
     return site;
   };
-  const walk7 = (reach, prefix, at0, base, baseKeys, patternBase, anchored) => {
+  const walk7 = (reach, prefix, at0, base, baseKeys, patternBase, anchored, outer) => {
     for (const at3 of reach.paths.values()) {
       const declaredPath = at3.pattern;
       const rel = relativeFieldPath(declaredPath, prefix);
@@ -58067,6 +58284,11 @@ function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schem
             if (site.from.has(entry2)) continue;
             site.from.add(entry2);
             const fieldKeys = [...patternBase, ...declaredPath];
+            const enclosing = atReachRoot(declaredPath) && outer ? outer : {
+              nodes: enclosingDeclarations(reach, declaredPath, entry2),
+              document: reach.document,
+              lookup: shapeLookupIn(shapes, reach.document)
+            };
             const ref = {
               slot: refSlotOfEntry(entry2),
               fieldPath: patternText(fieldKeys),
@@ -58075,7 +58297,9 @@ function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schem
               declaredPath,
               viaAnchor: anchored,
               node: entryDeclarations.get(entry2).node,
-              enclosing: enclosingDeclarations(reach, declaredPath, entry2),
+              enclosing: enclosing.nodes,
+              enclosingIn: enclosing.document,
+              ...enclosing.lookup ? { enclosingLookup: enclosing.lookup } : {},
               alternatives: siteAlternatives(entry2, reach, prefix, at0, found)
             };
             if (entry2.context) ref.context = entry2.context;
@@ -58085,7 +58309,7 @@ function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schem
         if (at3.recurse.length === 0) continue;
         if (!found.value || typeof found.value !== "object" || onData.has(found.value)) continue;
         onData.add(found.value);
-        for (const to of at3.recurse) walk7(reach, to, found, path, keys, patternBase, anchored);
+        for (const to of at3.recurse) walk7(reach, to, found, path, keys, patternBase, anchored, outer);
         onData.delete(found.value);
       }
     }
@@ -58129,14 +58353,15 @@ function enumerateSites(schema4, data, { stops: keepStops, withSchemaFrom, schem
             path,
             keys,
             [...patternBase, ...declaredPath],
-            anchored || next.anchor
+            anchored || next.anchor,
+            next.ref === void 0 ? void 0 : stopEnclosing(reach, stop, next.ref, outer, shapes)
           );
           entered.delete(next.reach);
         }
       }
     }
   };
-  walk7(root, [], { value: data, path: "", keys: [] }, "", [], [], false);
+  walk7(root, [], { value: data, path: "", keys: [] }, "", [], [], false, void 0);
   return [...sites.values()].map(({ from, ...site }) => site);
 }
 function siteAlternatives(entry2, reach, prefix, start, found) {
@@ -58317,13 +58542,13 @@ function resolveLocalRef2(schema4, root) {
   const ref = schema4.$ref;
   if (typeof ref === "string" && ref.startsWith("#/$defs/")) {
     const defName = ref.slice("#/$defs/".length);
-    const resolved = root.$defs?.[defName];
-    if (resolved && typeof resolved === "object") return resolved;
+    const resolved2 = root.$defs?.[defName];
+    if (resolved2 && typeof resolved2 === "object") return resolved2;
   }
   if (typeof ref === "string" && ref.startsWith(BUILTIN_FRAGMENT_PREFIX)) {
     const defName = ref.slice(BUILTIN_FRAGMENT_PREFIX.length);
-    const resolved = ManifestRootSchema.$defs[defName];
-    if (resolved && typeof resolved === "object") return resolved;
+    const resolved2 = ManifestRootSchema.$defs[defName];
+    if (resolved2 && typeof resolved2 === "object") return resolved2;
   }
   return schema4;
 }
@@ -58439,19 +58664,69 @@ function forEachStep(body2, schema4, visit4) {
   walkStepArray(body2.steps, body2.itemSchema, schema4, body2.field, visit4);
 }
 
+// ../../analyzer/nodejs/src/scope-annotation.ts
+var OBJECT_KEYS = /* @__PURE__ */ new Set(["regions", "openedBy"]);
+var DISPATCHING_CAPABILITIES = /* @__PURE__ */ new Set(["Telo.Invocable", "Telo.Runnable", "Telo.Service"]);
+function readScopeAnnotation(value2) {
+  if (typeof value2 === "string") return { regions: [value2], openedByDispatch: false };
+  if (Array.isArray(value2)) {
+    return { regions: value2.filter((p) => typeof p === "string"), openedByDispatch: false };
+  }
+  if (value2 && typeof value2 === "object") {
+    const object = value2;
+    const regions = Array.isArray(object.regions) ? object.regions.filter((p) => typeof p === "string") : [];
+    return {
+      regions,
+      openedByDispatch: object.openedBy === "dispatch" && scopeAnnotationProblem(value2) === void 0
+    };
+  }
+  return { regions: [], openedByDispatch: false };
+}
+function scopeAnnotationProblem(value2) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  const object = value2;
+  const unknown = Object.keys(object).filter((key3) => !OBJECT_KEYS.has(key3));
+  if (unknown.length > 0) {
+    return `the object form takes only \`regions\` and \`openedBy\`, not ${unknown.map((k) => `\`${k}\``).join(", ")}`;
+  }
+  const regions = object.regions;
+  if (!Array.isArray(regions) || regions.length === 0 || regions.some((p) => typeof p !== "string")) {
+    return "`regions` must be a non-empty list of JSON Pointers";
+  }
+  if (object.openedBy !== void 0 && object.openedBy !== "dispatch") {
+    return `\`openedBy\` takes only \`dispatch\`, not ${JSON.stringify(object.openedBy)}`;
+  }
+  return void 0;
+}
+function openedByCapabilityProblem(value2, capability) {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return void 0;
+  if (value2.openedBy !== "dispatch") return void 0;
+  if (capability === void 0 || DISPATCHING_CAPABILITIES.has(capability)) return void 0;
+  return `\`openedBy: dispatch\` needs a kind whose instances are dispatched \u2014 Telo.Invocable, Telo.Runnable or Telo.Service \u2014 but its capability is ${capability}`;
+}
+
 // ../../analyzer/nodejs/src/scope-declarations.ts
 function declaredScopes(sites) {
   const out = [];
   for (const site of sites) {
     if (site.scopes.length === 0 || !Array.isArray(site.data)) continue;
     const regions = /* @__PURE__ */ new Map();
+    let openedByDispatch = false;
     for (const { scope } of site.scopes) {
-      for (const pointer of Array.isArray(scope) ? scope : [scope]) {
+      const annotation = readScopeAnnotation(scope);
+      openedByDispatch ||= annotation.openedByDispatch;
+      for (const pointer of annotation.regions) {
         const keys = pointerSegments2(pointer.startsWith("/") ? pointer : `/${pointer}`);
         if (keys) regions.set(JSON.stringify(keys), keys);
       }
     }
-    out.push({ path: site.path, keys: site.keys, declarations: site.data, regions: [...regions.values()] });
+    out.push({
+      path: site.path,
+      keys: site.keys,
+      declarations: site.data,
+      regions: [...regions.values()],
+      openedByDispatch
+    });
   }
   return out;
 }
@@ -58505,12 +58780,9 @@ function outsideScopesOf(manifest) {
   const origin = manifest?.metadata?.xTeloOrigin?.outsideScopes;
   return Array.isArray(origin) ? origin : [];
 }
-var scopeReads = ({ value: value2 }) => {
-  const pointers = Array.isArray(value2) ? value2 : [value2];
-  return pointers.flatMap(
-    (pointer) => typeof pointer === "string" ? [{ kind: "reference", keys: placeAt([], pointer), transitive: false, reads: READS_IDENTITY }] : []
-  );
-};
+var scopeReads = ({ value: value2 }) => readScopeAnnotation(value2).regions.map(
+  (pointer) => ({ kind: "reference", keys: placeAt([], pointer), transitive: false, reads: READS_IDENTITY })
+);
 
 // ../../analyzer/nodejs/src/forwarded-declaration.ts
 function isForwardedDeclaration(manifest) {
@@ -59197,11 +59469,11 @@ function declaredResultSchemaAt(slotSchema, manifestRoot, resolveSchema) {
 }
 function parameterSchemaOf(param, resolveSchema) {
   const declared = isObject4(param.schema) ? param.schema : void 0;
-  const resolved = declared ? resolveSchema?.(declared) ?? declared : void 0;
-  const omittedReadsNull = param.optional === true && !(resolved && "default" in resolved);
+  const resolved2 = declared ? resolveSchema?.(declared) ?? declared : void 0;
+  const omittedReadsNull = param.optional === true && !(resolved2 && "default" in resolved2);
   return signatureSchemaOf({
     ...param,
-    schema: resolved,
+    schema: resolved2,
     ...omittedReadsNull ? { nullable: true } : {}
   });
 }
@@ -60175,14 +60447,13 @@ function resolveContractValueSchemas(schema4, declaration, host) {
   });
   const conjunct = (type, member, key3) => {
     if (!member) return refTo(type);
-    if (!("key" in member) || member.up !== 0 || key3 === void 0) return void 0;
-    if (key3 !== MAP_VALUE) {
-      const pointer = memberPointerOf(type, key3);
-      return pointer === void 0 ? void 0 : refTo(type, pointer);
-    }
-    const names = memberNamesOf(type);
-    return names.length === 0 ? void 0 : { properties: Object.fromEntries(names.map((name2) => [name2, refTo(type, memberPointerOf(type, name2))])) };
+    if (!("key" in member) || member.up !== 0 || key3 === void 0 || key3 === MAP_VALUE) return void 0;
+    const pointer = memberPointerOf(type, key3);
+    return pointer === void 0 ? void 0 : refTo(type, pointer);
   };
+  const mapConjuncts = (map3) => mapValueSchemas(map3).flatMap(
+    ({ value: value2, pattern: pattern2 }) => valueSchemaTypes(declaration, value2[VALUE_SCHEMA_ANNOTATION], host).filter(({ member }) => member !== void 0 && "key" in member && member.up === 0).map(({ schema: type }) => keyedMapSchema(type, map3, pattern2, (name2) => refTo(type, memberPointerOf(type, name2)))).filter((c) => c !== void 0)
+  );
   const typed = (node, key3) => {
     let walked = node;
     for (const child of schemaChildren(node)) {
@@ -60199,7 +60470,10 @@ function resolveContractValueSchemas(schema4, declaration, host) {
       }
       walked[child.keyword][child.at] = next;
     }
-    const conjuncts = valueSchemaTypes(declaration, node[VALUE_SCHEMA_ANNOTATION], host).map(({ schema: type, member }) => conjunct(type, member, key3)).filter((c) => c !== void 0);
+    const conjuncts = [
+      ...valueSchemaTypes(declaration, node[VALUE_SCHEMA_ANNOTATION], host).map(({ schema: type, member }) => conjunct(type, member, key3)).filter((c) => c !== void 0),
+      ...mapConjuncts(node)
+    ];
     if (conjuncts.length === 0) return walked;
     const { [VALUE_SCHEMA_ANNOTATION]: _dropped, ...rest } = walked;
     return {
@@ -60214,6 +60488,43 @@ function resolveContractValueSchemas(schema4, declaration, host) {
   return { ...root, $defs: defs };
 }
 var pointerSegment = (key3) => key3.replace(/~/g, "~0").replace(/\//g, "~1");
+function mapValueSchemas(map3) {
+  const out = [];
+  if (isSchemaNode(map3.additionalProperties) && map3.additionalProperties[VALUE_SCHEMA_ANNOTATION] !== void 0) {
+    out.push({ value: map3.additionalProperties });
+  }
+  for (const [pattern2, value2] of Object.entries(isSchemaNode(map3.patternProperties) ? map3.patternProperties : {})) {
+    if (isSchemaNode(value2) && value2[VALUE_SCHEMA_ANNOTATION] !== void 0) out.push({ value: value2, pattern: pattern2 });
+  }
+  return out;
+}
+function matchesPattern(pattern2, name2) {
+  try {
+    return new RegExp(pattern2, "u").test(name2);
+  } catch {
+    return false;
+  }
+}
+function keyedMapSchema(type, map3, pattern2, valueOf) {
+  const declared = typeRootOf(type).node?.properties;
+  if (!isSchemaNode(declared)) return void 0;
+  const fixed = Object.keys(isSchemaNode(map3.properties) ? map3.properties : {});
+  const patterns = Object.keys(isSchemaNode(map3.patternProperties) ? map3.patternProperties : {});
+  const governs = (name2) => !fixed.includes(name2) && (pattern2 === void 0 ? !patterns.some((each) => matchesPattern(each, name2)) : matchesPattern(pattern2, name2));
+  const names = Object.keys(declared).filter(governs);
+  const properties = Object.fromEntries(names.map((name2) => [name2, valueOf(name2)]));
+  if (pattern2 !== void 0) {
+    return {
+      properties,
+      propertyNames: { anyOf: [{ not: { pattern: pattern2 } }, { enum: [...fixed, ...names] }] }
+    };
+  }
+  return {
+    properties: { ...Object.fromEntries(fixed.map((name2) => [name2, {}])), ...properties },
+    ...patterns.length > 0 ? { patternProperties: Object.fromEntries(patterns.map((each) => [each, {}])) } : {},
+    additionalProperties: false
+  };
+}
 function rebasedType(type, key3) {
   const entry2 = `#/$defs/${pointerSegment(key3)}`;
   const rebase = (node) => {
@@ -60275,12 +60586,12 @@ function valueSchemaMemberProblem(root, annotation, member) {
   }
   let node = depth === 0 ? root : levels[depth - 1].node;
   for (const segment of member.pointer) {
-    node = localTarget2(node, root);
+    node = localTarget(node, root);
     const next = node?.properties?.[segment];
     node = next && typeof next === "object" ? next : void 0;
     if (!node) return `\`member\` names '${member.pointer.join("/")}', which the schema does not declare there.`;
   }
-  node = localTarget2(node, root);
+  node = localTarget(node, root);
   return node && holdsOnlyStrings(node) ? void 0 : `\`member\` names '${member.pointer.join("/")}', which is not declared a string, so it cannot name a property.`;
 }
 function holdsOnlyStrings(node) {
@@ -60291,7 +60602,7 @@ function holdsOnlyStrings(node) {
 }
 function schemaReachesLocation(schema4, segments) {
   const reaches = (raw, rest, seen) => {
-    const node = localTarget2(raw, schema4);
+    const node = localTarget(raw, schema4);
     if (!node || seen.includes(node)) return false;
     if (rest.length === 0) return true;
     if (isRefSlot(node) || node["x-telo-schema-from"] !== void 0) return true;
@@ -60317,7 +60628,7 @@ function schemaReachesLocation(schema4, segments) {
   };
   return reaches(schema4, segments, []);
 }
-function localTarget2(node, root) {
+function localTarget(node, root) {
   let current = node;
   const seen = /* @__PURE__ */ new Set();
   while (current && typeof current === "object" && typeof current.$ref === "string" && current.$ref.startsWith("#")) {
@@ -60327,28 +60638,55 @@ function localTarget2(node, root) {
   }
   return current && typeof current === "object" && !Array.isArray(current) ? current : void 0;
 }
-function valueSchemaSlots(schema4, path = "$") {
+function valueSchemaSlots(schema4, path = "$", maps = []) {
   if (!schema4 || typeof schema4 !== "object") return [];
   const out = [];
   const from = schema4[VALUE_SCHEMA_ANNOTATION];
   if (typeof from === "string" && from.length > 0 || from !== null && typeof from === "object") {
-    out.push({ scope: path, from });
+    out.push({ scope: path, from, maps });
   }
   if (schema4.properties) {
     for (const [key3, value2] of Object.entries(schema4.properties)) {
-      out.push(...valueSchemaSlots(value2, `${path}.${key3}`));
+      out.push(...valueSchemaSlots(value2, `${path}.${key3}`, maps));
     }
   }
-  for (const map3 of [schema4.additionalProperties, ...Object.values(schema4.patternProperties ?? {})]) {
-    if (map3 && typeof map3 === "object") out.push(...valueSchemaSlots(map3, `${path}.*`));
+  if (schema4.additionalProperties && typeof schema4.additionalProperties === "object") {
+    out.push(...valueSchemaSlots(schema4.additionalProperties, `${path}.*`, [...maps, { node: schema4 }]));
+  }
+  for (const [pattern2, value2] of Object.entries(schema4.patternProperties ?? {})) {
+    if (value2 && typeof value2 === "object") {
+      out.push(...valueSchemaSlots(value2, `${path}.*`, [...maps, { node: schema4, pattern: pattern2 }]));
+    }
   }
   if (schema4.items && typeof schema4.items === "object") {
-    out.push(...valueSchemaSlots(schema4.items, `${path}[*]`));
+    out.push(...valueSchemaSlots(schema4.items, `${path}[*]`, maps));
   }
   for (const key3 of ["oneOf", "anyOf", "allOf"]) {
     if (Array.isArray(schema4[key3])) {
-      for (const sub of schema4[key3]) out.push(...valueSchemaSlots(sub, path));
+      for (const sub of schema4[key3]) out.push(...valueSchemaSlots(sub, path, maps));
     }
+  }
+  return out;
+}
+function keyedMapAt(slot, path, member) {
+  if (!("key" in member)) return void 0;
+  const tokens = scopeTokens(slot.scope);
+  const segments = concreteSegments(path);
+  if (tokens.length !== segments.length) return void 0;
+  const keyed = tokens.length - 1 - member.up;
+  if (keyed < 0 || tokens[keyed] !== "*") return void 0;
+  const map3 = slot.maps[tokens.slice(0, keyed + 1).filter((token) => token === "*").length - 1];
+  if (!map3) return void 0;
+  const mapPath = segments.slice(0, keyed).map((segment, i) => tokens[i] === "[*]" ? `[${segment}]` : i === 0 ? segment : `.${segment}`).join("");
+  return { path: mapPath, map: map3 };
+}
+function scopeTokens(scope) {
+  const stripped = scope.startsWith("$.") ? scope.slice(2) : scope === "$" ? "" : scope;
+  if (!stripped) return [];
+  const out = [];
+  for (const part of stripped.split(".")) {
+    if (part.endsWith("[*]")) out.push(part.slice(0, -3), "[*]");
+    else out.push(part);
   }
   return out;
 }
@@ -60447,10 +60785,6 @@ function memberPointerOf(type, name2) {
   const property = node?.properties?.[name2];
   return property && typeof property === "object" ? `${at3}/properties/${pointerSegment(name2)}` : void 0;
 }
-function memberNamesOf(type) {
-  const properties = typeRootOf(type).node?.properties;
-  return properties && typeof properties === "object" ? Object.keys(properties) : [];
-}
 var schemaFromTargetReads = /* @__PURE__ */ new Map();
 function schemaFromTarget(pointer) {
   const known = schemaFromTargetReads.get(pointer);
@@ -60536,7 +60870,8 @@ var TYPING_ANNOTATIONS = [
   "x-telo-context-element-from",
   "x-telo-context-element-from-item",
   "x-telo-context-collection-from",
-  "x-telo-context-parameters-from"
+  "x-telo-context-parameters-from",
+  "x-telo-context-from-path-template"
 ];
 function fromReferrerProblem(node, where, inBinding) {
   const value2 = node[CONTEXT_FROM_REFERRER];
@@ -60565,7 +60900,7 @@ var fromReferrerReads = () => [{ kind: "referrers", reads: READS_SLOT_SCOPES }];
 
 // ../../analyzer/nodejs/src/element-from-item.ts
 var ELEMENT_FROM_ITEM = "x-telo-context-element-from-item";
-var isSchema4 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema5 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 var GRAMMAR = /^(0|[1-9][0-9]*)((\/([^/~]|~[01])*)+)$/;
 function readRelativePointer(value2) {
   if (typeof value2 !== "string") return void 0;
@@ -60635,27 +60970,17 @@ function relativePointerRefusal(levels, pointer, document, shapes, rootIsResourc
   return void 0;
 }
 function deref2(node, document, shapes) {
-  const seen = /* @__PURE__ */ new Set();
-  let current = node;
-  let doc = document;
-  while (typeof current.$ref === "string" && !seen.has(current)) {
-    seen.add(current);
-    const local = current.$ref.startsWith("#");
-    const target = local ? resolveSchemaPointer(doc, current.$ref) : shapes(current.$ref);
-    if (!isSchema4(target)) break;
-    if (!local) doc = target;
-    current = target;
-  }
-  return [current, doc];
+  const reached = followSchemaReferences(node, document, shapes);
+  return [reached.node, reached.document ?? document];
 }
 function memberOf(node, document, segment, shapes) {
-  const [resolved, doc] = deref2(node, document, shapes);
-  if (/^(0|[1-9][0-9]*)$/.test(segment) && isSchema4(resolved.items)) return [resolved.items, doc];
-  if (isSchema4(resolved.properties) && isSchema4(resolved.properties[segment])) {
-    return [resolved.properties[segment], doc];
+  const [resolved2, doc] = deref2(node, document, shapes);
+  if (/^(0|[1-9][0-9]*)$/.test(segment) && isSchema5(resolved2.items)) return [resolved2.items, doc];
+  if (isSchema5(resolved2.properties) && isSchema5(resolved2.properties[segment])) {
+    return [resolved2.properties[segment], doc];
   }
-  for (const member of Array.isArray(resolved.allOf) ? resolved.allOf : []) {
-    if (isSchema4(member)) {
+  for (const member of Array.isArray(resolved2.allOf) ? resolved2.allOf : []) {
+    if (isSchema5(member)) {
       const found = memberOf(member, doc, segment, shapes);
       if (found) return found;
     }
@@ -60666,6 +60991,605 @@ var elementFromItemReads = ({ value: value2, at: at3 }) => typeof value2 === "st
   { kind: "value", keys: placeAt(at3, value2) },
   { kind: "reference", keys: [], transitive: true, reads: dispatchReads }
 ] : [];
+
+// ../../analyzer/nodejs/src/context-nullable-when.ts
+var NULLABLE_WHEN = "x-telo-context-nullable-when";
+var isSchema6 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function readNullableWhen(node) {
+  if (!isSchema6(node)) return void 0;
+  const value2 = node[NULLABLE_WHEN];
+  if (nullableWhenValueProblem(value2) !== void 0) return void 0;
+  const { at: at3, equals, absent } = value2;
+  return { at: readRelativePointer(at3), pointer: at3, equals, absent };
+}
+function nullableWhenValueProblem(value2) {
+  if (!isSchema6(value2)) return "it must be an object '{ at, equals, absent }'";
+  const extra = Object.keys(value2).filter((key3) => key3 !== "at" && key3 !== "equals" && key3 !== "absent");
+  if (extra.length > 0) return `'${extra[0]}' is not one of its keys \u2014 it takes 'at', 'equals' and 'absent'`;
+  if (!readRelativePointer(value2.at)) {
+    return "'at' must be a relative JSON pointer \u2014 the levels to climb from the context holder, then a JSON Pointer ('0/options/mode')";
+  }
+  if (typeof value2.absent !== "boolean") return "'absent' must be true or false \u2014 whether a value missing at 'at' makes the node nullable";
+  if (!Array.isArray(value2.equals)) return "'equals' must be a list of the values at 'at' that make the node nullable";
+  if (value2.equals.length === 0 && value2.absent !== true) return "'equals' is empty and 'absent' is false, so it never applies";
+  return void 0;
+}
+function nullableWhenHolds(rule, root, holder, schemaAt3) {
+  if (rule.at.up > holder.length) return true;
+  const tokens = holder.slice(0, holder.length - rule.at.up);
+  let current = root;
+  for (const token of tokens) {
+    if (undecided(current)) return true;
+    current = current !== null && typeof current === "object" ? current[token] : void 0;
+  }
+  for (const segment of rule.at.segments) {
+    if (undecided(current)) return true;
+    if (Array.isArray(current) && /^(0|[1-9][0-9]*)$/.test(segment)) {
+      tokens.push(Number(segment));
+      current = current[Number(segment)];
+    } else if (isSchema6(current)) {
+      tokens.push(segment);
+      current = segment in current ? current[segment] : schemaAt3(tokens)?.default;
+    } else {
+      current = void 0;
+      break;
+    }
+  }
+  if (current === void 0) return rule.absent;
+  if (undecided(current)) return true;
+  return rule.equals.some((value2) => sameJson2(value2, current));
+}
+function undecided(value2) {
+  return isTaggedSentinel(value2) || expansionTagOf(value2) !== void 0;
+}
+function sameJson2(a, b) {
+  if (a === b) return true;
+  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  const keysA = Object.keys(a);
+  const keysB = Object.keys(b);
+  return keysA.length === keysB.length && keysA.every((key3) => sameJson2(a[key3], b[key3]));
+}
+function withNull2(schema4) {
+  if (schema4.type === "null") return schema4;
+  if (Array.isArray(schema4.type)) return schema4.type.includes("null") ? schema4 : { ...schema4, type: [...schema4.type, "null"] };
+  if (typeof schema4.type === "string") return { ...schema4, type: [schema4.type, "null"] };
+  if (isSchema6(schema4.properties) || schema4.additionalProperties !== void 0) return { ...schema4, type: ["object", "null"] };
+  if (Object.keys(schema4).length === 0) return schema4;
+  return { anyOf: [schema4, { type: "null" }] };
+}
+function deref3(node, document, shapes) {
+  const reached = followSchemaReferences(node, document, shapes);
+  return [reached.node, reached.document ?? document];
+}
+function schemaMemberOf(node, document, segment, shapes) {
+  const [resolved2, doc] = deref3(node, document, shapes);
+  if (typeof segment === "number" || /^(0|[1-9][0-9]*)$/.test(segment)) {
+    if (isSchema6(resolved2.items)) return [resolved2.items, doc];
+    if (typeof segment === "number") return void 0;
+  }
+  const member = propertySchemas(resolved2).find(([key3]) => key3 === segment)?.[1];
+  if (isSchema6(member)) return [member, doc];
+  for (const conjunct of Array.isArray(resolved2.allOf) ? resolved2.allOf : []) {
+    if (!isSchema6(conjunct)) continue;
+    const found = schemaMemberOf(conjunct, doc, segment, shapes);
+    if (found) return found;
+  }
+  return void 0;
+}
+function schemaAtData(root, tokens, shapes) {
+  if (!root) return void 0;
+  let node = root;
+  let doc = root;
+  for (const token of tokens) {
+    const found = schemaMemberOf(node, doc, token, shapes);
+    if (!found) return void 0;
+    [node, doc] = found;
+  }
+  return deref3(node, doc, shapes)[0];
+}
+function nullableWhenTarget(levels, rule, document, shapes, rootIsResource) {
+  return holderPointerTarget(levels, rule.at, document, shapes, rootIsResource);
+}
+function holderPointerTarget(levels, pointer, document, shapes, rootIsResource) {
+  const field = levels.length - 1;
+  const holderLevel = levels[field]?.key === "*" ? field : field - 1;
+  const at3 = holderLevel - pointer.up;
+  if (at3 < 0) {
+    return {
+      refusal: rootIsResource ? `it climbs ${pointer.up} level${pointer.up === 1 ? "" : "s"} from the context holder, above the resource` : `it climbs ${pointer.up} level${pointer.up === 1 ? "" : "s"} from the context holder, above the named shape, whose holder is not known here`
+    };
+  }
+  let node = levels[at3].node;
+  let doc = document;
+  for (const segment of pointer.segments) {
+    const found = schemaMemberOf(node, doc, segment, shapes);
+    if (!found) return { refusal: `it names '${segment}', which the schema does not declare there` };
+    [node, doc] = found;
+  }
+  return { target: deref3(node, doc, shapes)[0] };
+}
+var nullableWhenReads = ({ value: value2, at: at3, item }) => {
+  const pointer = isSchema6(value2) && typeof value2.at === "string" ? value2.at : void 0;
+  if (!pointer || !readRelativePointer(pointer)) return [];
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const base of [enclosingKeys(at3), item]) {
+    const keys = placeAt(base, pointer);
+    const id = JSON.stringify(keys);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ kind: "value", keys });
+  }
+  return out;
+};
+
+// ../../analyzer/nodejs/src/path-params-slot.ts
+var PATH_PARAMS_FOR_ANNOTATION = "x-telo-path-params-for";
+var ANNOTATION_KEYS2 = ["template", "through"];
+var VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+var ABSOLUTE_URL = /^(https?):\/\/([^/?#]*)(.*)$/i;
+var MAILTO = /^mailto:(.*)$/i;
+var isSchema7 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isPlainObject12 = (value2) => {
+  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
+  const prototype = Object.getPrototypeOf(value2);
+  return prototype === Object.prototype || prototype === null;
+};
+function readPathTemplate(template) {
+  let rest = template;
+  const absolute = ABSOLUTE_URL.exec(template);
+  if (absolute) {
+    if (/[{}]/.test(absolute[2])) {
+      return { invalid: `its authority '${absolute[2]}' holds a variable \u2014 only the path segments after the authority are variables` };
+    }
+    rest = absolute[3];
+  } else {
+    const mailto = MAILTO.exec(template);
+    if (mailto) rest = mailto[1];
+  }
+  const tailAt = rest.search(/[?#]/);
+  const path = tailAt === -1 ? rest : rest.slice(0, tailAt);
+  const tail = tailAt === -1 ? "" : rest.slice(tailAt);
+  if (/[{}]/.test(tail)) {
+    return { invalid: `its query or fragment '${tail}' holds '{' or '}' \u2014 a variable is a whole path segment` };
+  }
+  const variables = [];
+  for (const segment of path.split("/")) {
+    if (!/[{}]/.test(segment)) continue;
+    const whole = /^\{([^{}]*)\}$/.exec(segment);
+    if (!whole) {
+      return { invalid: `segment '${segment}' holds a variable beside other text \u2014 a variable is a whole segment, '/{<name>}/'` };
+    }
+    const name2 = whole[1];
+    if (!VARIABLE_NAME.test(name2)) {
+      return { invalid: `'{${name2}}' names no variable \u2014 a name matches /^[A-Za-z_][A-Za-z0-9_]*$/` };
+    }
+    if (variables.includes(name2)) {
+      return { invalid: `'{${name2}}' appears twice \u2014 each variable names one segment` };
+    }
+    variables.push(name2);
+  }
+  return { variables };
+}
+function throughSegments(value2) {
+  if (typeof value2 !== "string" || value2 === "") return void 0;
+  return value2.startsWith("/") ? pointerSegments(value2) : [value2];
+}
+function readAnnotation(raw) {
+  if (!isPlainObject12(raw)) return void 0;
+  const template = pointerSegments(raw.template);
+  if (!template || template.length === 0 || template.some((segment) => segment === "")) return void 0;
+  const through = raw.through === void 0 ? void 0 : throughSegments(raw.through);
+  if (raw.through !== void 0 && !through) return void 0;
+  return { template, ...through ? { through } : {} };
+}
+function isExpression2(value2) {
+  return isCompiledValue(value2) || isTaggedSentinel(value2) && !isRefSentinel(value2);
+}
+function pathParamsSites(schema4, data, external) {
+  if (!declaresPathParams(schema4, external)) return [];
+  const out = /* @__PURE__ */ new Map();
+  const seen = /* @__PURE__ */ new Map();
+  const walk7 = (node, root, value2, path, holder) => {
+    if (!isSchema7(node) || value2 === void 0) return;
+    const key3 = renderValuePath(path);
+    const entered = seen.get(node) ?? /* @__PURE__ */ new Set();
+    if (entered.has(key3)) return;
+    entered.add(key3);
+    seen.set(node, entered);
+    const annotation = readAnnotation(node[PATH_PARAMS_FOR_ANNOTATION]);
+    if (annotation && holder && !out.has(key3)) {
+      let template = holder.value;
+      for (const segment of annotation.template) template = isPlainObject12(template) ? template[segment] : void 0;
+      out.set(key3, {
+        path,
+        holderPath: holder.path,
+        templatePath: [...holder.path, ...annotation.template],
+        params: value2,
+        template,
+        ...annotation.through ? { through: annotation.through } : {}
+      });
+    }
+    if (typeof node.$ref === "string") {
+      const target = resolveRefIn(node, root, external);
+      if (target.schema !== node) walk7(target.schema, target.root, value2, path, holder);
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(node[union2])) for (const branch of node[union2]) walk7(branch, root, value2, path, holder);
+    }
+    if (Array.isArray(value2)) {
+      value2.forEach((item, index) => {
+        const items = Array.isArray(node.items) ? node.items[index] : node.items;
+        walk7(items, root, item, [...path, index], void 0);
+      });
+      return;
+    }
+    if (!isPlainObject12(value2)) return;
+    const properties = isSchema7(node.properties) ? node.properties : {};
+    const here = { value: value2, path };
+    for (const [name2, child] of Object.entries(properties)) {
+      if (Object.hasOwn(value2, name2) || !declaresPathParams(child, external)) continue;
+      walk7(child, root, {}, [...path, name2], here);
+    }
+    for (const [name2, child] of Object.entries(value2)) {
+      if (Object.hasOwn(properties, name2)) {
+        walk7(properties[name2], root, child, [...path, name2], here);
+        continue;
+      }
+      const pattern2 = Object.entries(isSchema7(node.patternProperties) ? node.patternProperties : {}).find(
+        ([source]) => new RegExp(source, "u").test(name2)
+      );
+      if (pattern2) walk7(pattern2[1], root, child, [...path, name2], void 0);
+      else if (isSchema7(node.additionalProperties)) walk7(node.additionalProperties, root, child, [...path, name2], void 0);
+    }
+  };
+  walk7(schema4, schema4, data, [], void 0);
+  return [...out.values()];
+}
+var declaring2 = /* @__PURE__ */ new WeakMap();
+function declaresPathParams(schema4, external) {
+  const open = /* @__PURE__ */ new Set();
+  const scan = (node) => {
+    if (!node || typeof node !== "object") return { found: false, named: false };
+    const known = declaring2.get(node);
+    if (known !== void 0) return { found: known, named: false };
+    if (open.has(node)) return { found: false, named: false };
+    open.add(node);
+    let found = false;
+    let named = false;
+    if (Array.isArray(node)) {
+      for (const item of node) {
+        const child = scan(item);
+        found ||= child.found;
+        named ||= child.named;
+      }
+    } else {
+      const record = node;
+      if (PATH_PARAMS_FOR_ANNOTATION in record) found = true;
+      if (typeof record.$ref === "string" && !record.$ref.startsWith("#")) {
+        named = true;
+        const target = resolveSchemaReference(record.$ref, void 0, external)?.node;
+        if (target && scan(target).found) found = true;
+      }
+      for (const [key3, child] of Object.entries(record)) {
+        if (key3 === PATH_PARAMS_FOR_ANNOTATION) continue;
+        const inner = scan(child);
+        found ||= inner.found;
+        named ||= inner.named;
+      }
+    }
+    open.delete(node);
+    if (found || !named) declaring2.set(node, found);
+    return { found, named };
+  };
+  return scan(schema4).found;
+}
+var quoted = (names) => names.map((name2) => `'${name2}'`).join(", ");
+function templateSource(site, resource, host) {
+  const field = renderValuePath(site.templatePath);
+  if (typeof site.template === "string") {
+    return { kind: "template", text: site.template, described: `'${field}: ${site.template}'` };
+  }
+  if (isExpression2(site.template)) return { kind: "expression" };
+  if (!site.through || site.template === void 0 || site.template === null) return void 0;
+  const declaration = host.declarationOf(site.template, resource);
+  if (!declaration) return void 0;
+  let text3 = declaration;
+  for (const segment of site.through) text3 = isPlainObject12(text3) ? text3[segment] : void 0;
+  if (typeof text3 !== "string") return void 0;
+  const name2 = `'${String(declaration.metadata?.name)}'`;
+  return {
+    kind: "template",
+    text: text3,
+    described: `the template '${site.through.join(".")}: ${text3}' of ${name2} (named at '${field}')`
+  };
+}
+function pathParamsProblems(schema4, resource, host) {
+  const out = [];
+  for (const site of pathParamsSites(schema4, resource, host.external)) {
+    const params = site.params;
+    if (!isPlainObject12(params)) continue;
+    const source = templateSource(site, resource, host);
+    if (!source) continue;
+    const judgedAt = renderValuePath(site.holderPath);
+    const field = renderValuePath(site.templatePath);
+    const map3 = renderValuePath(site.path);
+    const entries = Object.keys(params);
+    if (source.kind === "expression") {
+      for (const name2 of entries) {
+        out.push({
+          code: "PATH_PARAMETER_UNUSED",
+          path: renderValuePath([...site.path, name2]),
+          judgedAt,
+          message: `'${map3}.${name2}' is never read: '${field}' is an expression, read as a whole address and never expanded. Remove '${map3}', or write '${field}' as a template.`
+        });
+      }
+      continue;
+    }
+    const reading = readPathTemplate(source.text);
+    if ("invalid" in reading) {
+      out.push({
+        code: "PATH_TEMPLATE_INVALID",
+        path: field,
+        judgedAt,
+        message: `${source.described} is not a path template: ${reading.invalid}.`
+      });
+      continue;
+    }
+    for (const variable of reading.variables) {
+      if (entries.includes(variable)) continue;
+      out.push({
+        code: "PATH_PARAMETER_UNBOUND",
+        path: field,
+        judgedAt,
+        message: `${source.described} reads '{${variable}}', which '${map3}' does not bind. Add '${variable}' to '${map3}'.`
+      });
+    }
+    for (const name2 of entries) {
+      if (reading.variables.includes(name2)) continue;
+      out.push({
+        code: "PATH_PARAMETER_UNUSED",
+        path: renderValuePath([...site.path, name2]),
+        judgedAt,
+        message: `'${map3}.${name2}' names no variable of ${source.described}` + (reading.variables.length > 0 ? ` \u2014 it reads ${quoted(reading.variables)}` : `, which reads none`) + `. Remove the entry, or name the variable it fills.`
+      });
+    }
+  }
+  return out;
+}
+function alternativesOf3(node, root, external) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (n, r) => {
+    if (!isSchema7(n) || seen.has(n)) return;
+    seen.add(n);
+    out.push(n);
+    if (typeof n.$ref === "string") {
+      const target = resolveRefIn(n, r, external);
+      if (target.schema !== n) visit4(target.schema, target.root);
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(n[union2])) for (const branch of n[union2]) visit4(branch, r);
+    }
+  };
+  visit4(node, root);
+  return out;
+}
+function fieldNodes(holder, root, segments, external) {
+  let current = [holder];
+  for (const segment of segments) {
+    const next = [];
+    for (const node of current) {
+      for (const alternative of alternativesOf3(node, root, external)) {
+        const child = isSchema7(alternative.properties) ? alternative.properties[segment] : void 0;
+        if (isSchema7(child)) next.push(child);
+      }
+    }
+    current = next;
+  }
+  return current.flatMap((node) => alternativesOf3(node, root, external));
+}
+var declaresObject = (node) => node.type === "object" || Array.isArray(node.type) && node.type.includes("object");
+function pathParamsAnnotationProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
+  if (!isSchema7(schema4)) return [];
+  const problems = [];
+  const visited = /* @__PURE__ */ new Set();
+  const shapeName = (ref) => parseCanonicalTypeSchemaId(ref)?.typeName ?? ref;
+  const report = (path, shape2, inner, reason) => {
+    const where = renderValuePath(shape2 ? path : [...path, PATH_PARAMS_FOR_ANNOTATION]);
+    const place2 = shape2 ? `'${where}', which reaches '${renderValuePath([...inner, PATH_PARAMS_FOR_ANNOTATION])}' in the named shape '${shape2}' it names,` : `'${where}'`;
+    problems.push({ path: where, message: `'${kind}' declares ${place2} ${reason}` });
+  };
+  const shape = `The annotation is { template: <JSON Pointer to the field holding the template>, through?: <field of the declaration a reference there names> }.`;
+  const judge = (node, root, holder, path, shapeOf3, inner) => {
+    const raw = node[PATH_PARAMS_FOR_ANNOTATION];
+    const refuse3 = (reason) => report(path, shapeOf3, inner, reason);
+    if (!isPlainObject12(raw)) {
+      refuse3(`as something other than an object. ${shape}`);
+      return;
+    }
+    const unknown = Object.keys(raw).filter((key3) => !ANNOTATION_KEYS2.includes(key3));
+    if (unknown.length > 0) {
+      refuse3(`with ${quoted(unknown)}, read by nothing. ${shape}`);
+      return;
+    }
+    const template = pointerSegments(raw.template);
+    if (!template || template.length === 0 || template.some((segment) => segment === "")) {
+      refuse3(`with a 'template' that is no JSON Pointer ('/path') to the field holding the template. ${shape}`);
+      return;
+    }
+    if (raw.through !== void 0 && !throughSegments(raw.through)) {
+      refuse3(`with a 'through' that is neither a field name nor a JSON Pointer. ${shape}`);
+      return;
+    }
+    if (!holder) {
+      refuse3(`on a node that is no named property: it belongs on the map of path variables, a property beside the field holding the template.`);
+      return;
+    }
+    if (!declaresObject(node)) {
+      refuse3(`on a property that holds no object: it belongs on the map whose keys name the template's variables, declared 'type: object'.`);
+      return;
+    }
+    if (template[0] === holder.name) {
+      refuse3(`with a 'template' naming the annotated map itself; name the field holding the template.`);
+      return;
+    }
+    const fields = fieldNodes(holder.node, root, template, resolveRef2);
+    if (fields.length === 0) {
+      refuse3(`with a 'template' naming '${template.join("/")}', which the object holding '${holder.name}' does not declare.`);
+      return;
+    }
+    const referenceSlot = fields.some((field) => "x-telo-ref" in field);
+    if (raw.through !== void 0 && !referenceSlot) {
+      refuse3(`with a 'through', but '${template.join("/")}' holds no reference: 'through' is read by nothing. Remove it, or let the field hold a reference.`);
+    } else if (raw.through === void 0 && referenceSlot) {
+      refuse3(`with no 'through', but '${template.join("/")}' may hold a reference: name the field of the declaration it names that holds the template.`);
+    }
+  };
+  const visit4 = (node, root, holder, path, shapeOf3, inner) => {
+    if (!isSchema7(node) || visited.has(node)) return;
+    visited.add(node);
+    const step = (key3) => shapeOf3 ? [path, [...inner, ...key3]] : [[...path, ...key3], inner];
+    if (PATH_PARAMS_FOR_ANNOTATION in node) judge(node, root, holder, path, shapeOf3, inner);
+    if (isSchema7(node.properties)) {
+      for (const [key3, child] of Object.entries(node.properties)) {
+        const [p, i] = step(["properties", key3]);
+        visit4(child, root, { node, name: key3 }, p, shapeOf3, i);
+      }
+    }
+    for (const mapKey of ["patternProperties", "$defs", "definitions"]) {
+      if (!isSchema7(node[mapKey])) continue;
+      for (const [key3, child] of Object.entries(node[mapKey])) {
+        const [p, i] = step([mapKey, key3]);
+        visit4(child, root, void 0, p, shapeOf3, i);
+      }
+    }
+    for (const single of ["additionalProperties", "items", "then", "else"]) {
+      if (isSchema7(node[single])) {
+        const [p, i] = step([single]);
+        visit4(node[single], root, void 0, p, shapeOf3, i);
+      }
+    }
+    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
+      if (Array.isArray(node[union2])) {
+        node[union2].forEach((branch, index) => {
+          const [p, i] = step([union2, index]);
+          visit4(branch, root, holder, p, shapeOf3, i);
+        });
+      }
+    }
+    if (typeof node.$ref === "string") {
+      if (node.$ref.startsWith("#")) {
+        const target = resolveRefIn(node, root);
+        if (target.schema !== node) {
+          visit4(target.schema, root, holder, path, shapeOf3, inner);
+        }
+      } else {
+        const named = resolveSchemaReference(node.$ref, root, resolveRef2);
+        if (named) {
+          visit4(named.node, named.document, holder, path, shapeOf3 ?? shapeName(named.shape), shapeOf3 ? inner : []);
+        }
+      }
+    }
+  };
+  visit4(schema4, schema4, void 0, at3, void 0, []);
+  return problems;
+}
+var pathParamsForReads = ({ value: value2, at: at3 }) => {
+  const annotation = readAnnotation(value2);
+  if (!annotation) return [];
+  const keys = placeAt(enclosingKeys(at3), `/${annotation.template.map((s) => s.replace(/~/g, "~0").replace(/\//g, "~1")).join("/")}`);
+  const places = [{ kind: "value", keys }];
+  if (annotation.through) {
+    const through = annotation.through;
+    places.push({ kind: "reference", keys, transitive: false, reads: () => [{ kind: "value", keys: through }] });
+  }
+  return places;
+};
+
+// ../../analyzer/nodejs/src/context-from-path-template.ts
+var CONTEXT_FROM_PATH_TEMPLATE = "x-telo-context-from-path-template";
+var isSchema8 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function readFromPathTemplate(node) {
+  return isSchema8(node) ? readRelativePointer(node[CONTEXT_FROM_PATH_TEMPLATE]) : void 0;
+}
+var SHAPE_KEYWORDS2 = /* @__PURE__ */ new Set(["type", "properties", "required", "additionalProperties", "patternProperties", "propertyNames"]);
+function pathTemplateParams(own2, template) {
+  const kept = Object.fromEntries(
+    Object.entries(own2).filter(([key3]) => key3 !== CONTEXT_FROM_PATH_TEMPLATE && !SHAPE_KEYWORDS2.has(key3))
+  );
+  const reading = typeof template === "string" ? readPathTemplate(template) : void 0;
+  if (!reading || !("variables" in reading)) {
+    return { ...kept, type: "object", additionalProperties: { type: "string" } };
+  }
+  return {
+    ...kept,
+    type: "object",
+    properties: Object.fromEntries(reading.variables.map((name2) => [name2, { type: "string" }])),
+    required: [...reading.variables],
+    additionalProperties: false
+  };
+}
+function valueFromHolder(root, holder, pointer) {
+  if (pointer.up > holder.length) return void 0;
+  const computed = (value2) => isTaggedSentinel(value2) || isCompiledValue(value2);
+  let current = root;
+  for (const token of [...holder.slice(0, holder.length - pointer.up), ...pointer.segments]) {
+    if (current === null || typeof current !== "object" || computed(current)) return void 0;
+    current = current[token];
+  }
+  return computed(current) ? void 0 : current;
+}
+function fromPathTemplateProblem(node, where, inBinding, field, document, shapes, rootIsResource) {
+  const written = node[CONTEXT_FROM_PATH_TEMPLATE];
+  const pointer = readRelativePointer(written);
+  if (!pointer) {
+    return {
+      code: "SCHEMA_VIOLATION",
+      message: `'${where}' must be a relative JSON pointer \u2014 the levels to climb from the context holder, then a JSON Pointer to the field holding the path template ('0/path').`
+    };
+  }
+  if (!inBinding) {
+    return {
+      code: "CONTEXT_FROM_PATH_TEMPLATE_INVALID",
+      message: `'${where}' is read only on a binding \u2014 a property of an 'x-telo-context' \u2014 or a member beneath one, so here it types nothing.`
+    };
+  }
+  const beside = TYPING_ANNOTATIONS.find((key3) => key3 !== CONTEXT_FROM_PATH_TEMPLATE && key3 in node);
+  if (beside) {
+    return {
+      code: "CONTEXT_FROM_PATH_TEMPLATE_INVALID",
+      message: `'${where}' types the node from a path template, and '${beside}' beside it types it too; keep one.`
+    };
+  }
+  if (!field) return void 0;
+  const found = holderPointerTarget(field, pointer, document, shapes, rootIsResource);
+  const refusal = "refusal" in found ? found.refusal : holdsNoString(found.target);
+  if (!refusal) return void 0;
+  return {
+    code: "CONTEXT_FROM_PATH_TEMPLATE_INVALID",
+    message: `'${where}: ${String(written)}' names no path template to type the node from: ${refusal}.`
+  };
+}
+function holdsNoString(target) {
+  const type = target.type;
+  const types = typeof type === "string" ? [type] : Array.isArray(type) ? type : void 0;
+  return types && !types.includes("string") ? `the field is declared ${types.join(" or ")}, never a string` : void 0;
+}
+var fromPathTemplateReads = ({ value: value2, at: at3, item }) => {
+  if (typeof value2 !== "string" || !readRelativePointer(value2)) return [];
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const base of [enclosingKeys(at3), item]) {
+    const keys = placeAt(base, value2);
+    const id = JSON.stringify(keys);
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push({ kind: "value", keys });
+  }
+  return out;
+};
 
 // ../../analyzer/nodejs/src/ref-slot-reading.ts
 function isObject6(value2) {
@@ -60947,13 +61871,13 @@ function applyExtends(ownSchema, extendsField, declarations, ancestry, reader) {
 function foldTypeExtends(ownSchema, extendsField, resolveParent2) {
   if (!extendsField) return ownSchema;
   const parents = Array.isArray(extendsField) ? extendsField : [extendsField];
-  const resolved = [];
+  const resolved2 = [];
   for (const parent of parents) {
     const parentSchema = resolveParent2(parent);
-    if (parentSchema) resolved.push(parentSchema);
+    if (parentSchema) resolved2.push(parentSchema);
   }
-  if (resolved.length === 0) return ownSchema;
-  return mergeTypeSchemas([...resolved, ownSchema]);
+  if (resolved2.length === 0) return ownSchema;
+  return mergeTypeSchemas([...resolved2, ownSchema]);
 }
 function celExprSource(raw) {
   if (isTaggedSentinel(raw)) return raw.engine === CEL_ENGINE ? raw.source.trim() : null;
@@ -61025,14 +61949,14 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
       return { ...schema4, properties: { ...schema4.properties ?? {} }, additionalProperties: true };
     }
     const asType = resolveTypeFieldToSchema(navigated, declarations ?? NO_DECLARATIONS, manifestRoot);
-    const resolved = openDynamicProperties(asType?.properties ?? navigated);
+    const resolved2 = openDynamicProperties(asType?.properties ?? navigated);
     const required = Array.isArray(asType?.required) ? asType.required : void 0;
     const typedOwn = Object.fromEntries(
       Object.entries(schema4.properties ?? {}).filter(([, member]) => carriesOwnTyping(member)).map(([key3, member]) => [key3, resolveContextAnnotations(member, manifestItem, normalizedOpts)])
     );
     return {
       ...schema4,
-      properties: { ...schema4.properties ?? {}, ...resolved ?? {}, ...typedOwn },
+      properties: { ...schema4.properties ?? {}, ...resolved2 ?? {}, ...typedOwn },
       ...required ? { required } : {},
       additionalProperties: false
     };
@@ -61063,6 +61987,7 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
   }
   if (typeof schema4[ELEMENT_FROM_ITEM] === "string") return {};
   if (schema4[CONTEXT_FROM_REFERRER] !== void 0) return fromReferrerOwnKeywords(schema4);
+  if (schema4[CONTEXT_FROM_PATH_TEMPLATE] !== void 0) return pathTemplateParams(schema4, void 0);
   const fromRoot = schema4["x-telo-context-from-root"];
   const fromRefKindRaw = schema4["x-telo-context-from-ref-kind"];
   const fromRefKinds = fromRefKindRaw == null ? [] : Array.isArray(fromRefKindRaw) ? fromRefKindRaw : [fromRefKindRaw];
@@ -61070,13 +61995,13 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
     if (fromRoot) {
       const navigated = navigatePath(manifestRoot, fromRoot.split("/"));
       if (navigated && typeof navigated === "object" && !Array.isArray(navigated)) {
-        const resolved = resolveTypeFieldToSchema(navigated, declarations ?? NO_DECLARATIONS, manifestRoot) ?? navigated;
+        const resolved2 = resolveTypeFieldToSchema(navigated, declarations ?? NO_DECLARATIONS, manifestRoot) ?? navigated;
         return keepDeclaredNullability(
           schema4,
-          defs ? withRefSlotsAsReadings(resolved, {
+          defs ? withRefSlotsAsReadings(resolved2, {
             resolve: (kind) => defs.resolve(kind),
             resolveKind: (kind) => aliases?.resolveKind(kind)
-          }) : resolved
+          }) : resolved2
         );
       }
     }
@@ -61099,9 +62024,9 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
         const canonical = scope?.resolveKind(target.kind) ?? target.kind;
         const def = defs.resolve(canonical) ?? defs.resolve(target.kind);
         const typeField = def ? def[field] : void 0;
-        const resolved = resolveTypeFieldToSchema(typeField, declarations ?? NO_DECLARATIONS);
-        if (resolved && typeof resolved === "object") {
-          return keepDeclaredNullability(schema4, resolved);
+        const resolved2 = resolveTypeFieldToSchema(typeField, declarations ?? NO_DECLARATIONS);
+        if (resolved2 && typeof resolved2 === "object") {
+          return keepDeclaredNullability(schema4, resolved2);
         }
       }
     }
@@ -61125,19 +62050,19 @@ function resolveContextAnnotations(schema4, manifestItem, opts) {
       const member = names.scopeMember(ref.name, scopeReadAt(manifestRoot, sitePath));
       const refManifest = member ? member.kind === ref.kind ? member : void 0 : names.declarationsOf(ref.name).find((m) => m.kind === ref.kind) ?? crossedDeclaration(ref, manifestRoot, referenceHost);
       if (refManifest) {
-        const resolved = refFromSchema(foldedShape(declarations)(refManifest), segments, declarations, referenceHost);
-        if (resolved) return keepDeclaredNullability(schema4, resolved);
+        const resolved2 = refFromSchema(foldedShape(declarations)(refManifest), segments, declarations, referenceHost);
+        if (resolved2) return keepDeclaredNullability(schema4, resolved2);
       }
       if (defs) {
         const canonical = aliases?.resolveKind(ref.kind) ?? ref.kind;
         const def = defs.resolve(canonical);
         if (def) {
-          const resolved = resolveTypeFieldToSchema(
+          const resolved2 = resolveTypeFieldToSchema(
             navigatePath(def, segments),
             declarations
           );
-          if (resolved && typeof resolved === "object") {
-            return keepDeclaredNullability(schema4, resolved);
+          if (resolved2 && typeof resolved2 === "object") {
+            return keepDeclaredNullability(schema4, resolved2);
           }
           if (segments.length === 1) {
             const derived = valueDerivedContract(
@@ -61174,11 +62099,11 @@ function declaresNull(node) {
   const type = node.type;
   return type === "null" || Array.isArray(type) && type.includes("null") || node.nullable === true;
 }
-function keepDeclaredNullability(node, resolved) {
-  if (!declaresNull(node) || declaresNull(resolved)) return resolved;
-  const own2 = resolved.type ?? (Array.isArray(node.type) ? node.type.filter((t) => t !== "null") : node.type);
+function keepDeclaredNullability(node, resolved2) {
+  if (!declaresNull(node) || declaresNull(resolved2)) return resolved2;
+  const own2 = resolved2.type ?? (Array.isArray(node.type) ? node.type.filter((t) => t !== "null") : node.type);
   const types = own2 === void 0 ? [] : Array.isArray(own2) ? own2 : [own2];
-  return types.length === 0 ? { ...resolved, nullable: true } : { ...resolved, type: [...types, "null"] };
+  return types.length === 0 ? { ...resolved2, nullable: true } : { ...resolved2, type: [...types, "null"] };
 }
 var foldedShapes = /* @__PURE__ */ new WeakMap();
 function foldedShape(requests) {
@@ -61192,8 +62117,8 @@ function crossedDeclaration(ref, holder, host) {
 }
 function refFromSchema(refManifest, segments, declarations, host) {
   if (!host || segments.length === 1) {
-    const resolved = resolveTypeFieldToSchema(navigatePath(refManifest, [...segments]), declarations, refManifest);
-    return resolved && typeof resolved === "object" ? resolved : void 0;
+    const resolved2 = resolveTypeFieldToSchema(navigatePath(refManifest, [...segments]), declarations, refManifest);
+    return resolved2 && typeof resolved2 === "object" ? resolved2 : void 0;
   }
   const schemas3 = [];
   for (const { value: value2, holder } of declarationValuesAt(refManifest, segments, host.scope)) {
@@ -61500,12 +62425,9 @@ function valueSchemaHostOf(scope, declarer) {
   };
 }
 function contractRefTarget(ref, document, resolveRef2) {
-  if (ref.startsWith("#")) {
-    const target2 = document ? resolveSchemaPointer(document, ref) : void 0;
-    return target2 && typeof target2 === "object" && !Array.isArray(target2) ? { target: target2, document } : void 0;
-  }
-  const target = resolveRef2?.(ref);
-  return target ? { target, document: void 0 } : void 0;
+  const reached = resolveSchemaReference(ref, document, resolveRef2);
+  if (!reached) return void 0;
+  return { target: reached.node, document: reached.shape === void 0 ? document : void 0 };
 }
 function withContractDefaults(value2, schema4, resolveRef2, onFill) {
   const deref6 = (node, chain, document) => {
@@ -62677,145 +63599,6 @@ var TypedEnvironments = class {
   }
 };
 
-// ../../analyzer/nodejs/src/context-nullable-when.ts
-var NULLABLE_WHEN = "x-telo-context-nullable-when";
-var isSchema5 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-function readNullableWhen(node) {
-  if (!isSchema5(node)) return void 0;
-  const value2 = node[NULLABLE_WHEN];
-  if (nullableWhenValueProblem(value2) !== void 0) return void 0;
-  const { at: at3, equals, absent } = value2;
-  return { at: readRelativePointer(at3), pointer: at3, equals, absent };
-}
-function nullableWhenValueProblem(value2) {
-  if (!isSchema5(value2)) return "it must be an object '{ at, equals, absent }'";
-  const extra = Object.keys(value2).filter((key3) => key3 !== "at" && key3 !== "equals" && key3 !== "absent");
-  if (extra.length > 0) return `'${extra[0]}' is not one of its keys \u2014 it takes 'at', 'equals' and 'absent'`;
-  if (!readRelativePointer(value2.at)) {
-    return "'at' must be a relative JSON pointer \u2014 the levels to climb from the context holder, then a JSON Pointer ('0/options/mode')";
-  }
-  if (typeof value2.absent !== "boolean") return "'absent' must be true or false \u2014 whether a value missing at 'at' makes the node nullable";
-  if (!Array.isArray(value2.equals)) return "'equals' must be a list of the values at 'at' that make the node nullable";
-  if (value2.equals.length === 0 && value2.absent !== true) return "'equals' is empty and 'absent' is false, so it never applies";
-  return void 0;
-}
-function nullableWhenHolds(rule, root, holder, schemaAt3) {
-  if (rule.at.up > holder.length) return true;
-  const tokens = holder.slice(0, holder.length - rule.at.up);
-  let current = root;
-  for (const token of tokens) {
-    if (undecided(current)) return true;
-    current = current !== null && typeof current === "object" ? current[token] : void 0;
-  }
-  for (const segment of rule.at.segments) {
-    if (undecided(current)) return true;
-    if (Array.isArray(current) && /^(0|[1-9][0-9]*)$/.test(segment)) {
-      tokens.push(Number(segment));
-      current = current[Number(segment)];
-    } else if (isSchema5(current)) {
-      tokens.push(segment);
-      current = segment in current ? current[segment] : schemaAt3(tokens)?.default;
-    } else {
-      current = void 0;
-      break;
-    }
-  }
-  if (current === void 0) return rule.absent;
-  if (undecided(current)) return true;
-  return rule.equals.some((value2) => sameJson2(value2, current));
-}
-function undecided(value2) {
-  return isTaggedSentinel(value2) || expansionTagOf(value2) !== void 0;
-}
-function sameJson2(a, b) {
-  if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a === null || b === null) return false;
-  if (Array.isArray(a) !== Array.isArray(b)) return false;
-  const keysA = Object.keys(a);
-  const keysB = Object.keys(b);
-  return keysA.length === keysB.length && keysA.every((key3) => sameJson2(a[key3], b[key3]));
-}
-function withNull2(schema4) {
-  if (schema4.type === "null") return schema4;
-  if (Array.isArray(schema4.type)) return schema4.type.includes("null") ? schema4 : { ...schema4, type: [...schema4.type, "null"] };
-  if (typeof schema4.type === "string") return { ...schema4, type: [schema4.type, "null"] };
-  if (isSchema5(schema4.properties) || schema4.additionalProperties !== void 0) return { ...schema4, type: ["object", "null"] };
-  if (Object.keys(schema4).length === 0) return schema4;
-  return { anyOf: [schema4, { type: "null" }] };
-}
-function deref3(node, document, shapes) {
-  const seen = /* @__PURE__ */ new Set();
-  let current = node;
-  let doc = document;
-  while (typeof current.$ref === "string" && !seen.has(current)) {
-    seen.add(current);
-    const local = current.$ref.startsWith("#");
-    const target = local ? resolveSchemaPointer(doc, current.$ref) : shapes(current.$ref);
-    if (!isSchema5(target)) break;
-    if (!local) doc = target;
-    current = target;
-  }
-  return [current, doc];
-}
-function schemaMemberOf(node, document, segment, shapes) {
-  const [resolved, doc] = deref3(node, document, shapes);
-  if (typeof segment === "number" || /^(0|[1-9][0-9]*)$/.test(segment)) {
-    if (isSchema5(resolved.items)) return [resolved.items, doc];
-    if (typeof segment === "number") return void 0;
-  }
-  const member = propertySchemas(resolved).find(([key3]) => key3 === segment)?.[1];
-  if (isSchema5(member)) return [member, doc];
-  for (const conjunct of Array.isArray(resolved.allOf) ? resolved.allOf : []) {
-    if (!isSchema5(conjunct)) continue;
-    const found = schemaMemberOf(conjunct, doc, segment, shapes);
-    if (found) return found;
-  }
-  return void 0;
-}
-function schemaAtData(root, tokens, shapes) {
-  if (!root) return void 0;
-  let node = root;
-  let doc = root;
-  for (const token of tokens) {
-    const found = schemaMemberOf(node, doc, token, shapes);
-    if (!found) return void 0;
-    [node, doc] = found;
-  }
-  return deref3(node, doc, shapes)[0];
-}
-function nullableWhenTarget(levels, rule, document, shapes, rootIsResource) {
-  const field = levels.length - 1;
-  const holderLevel = levels[field]?.key === "*" ? field : field - 1;
-  const at3 = holderLevel - rule.at.up;
-  if (at3 < 0) {
-    return {
-      refusal: rootIsResource ? `it climbs ${rule.at.up} level${rule.at.up === 1 ? "" : "s"} from the context holder, above the resource` : `it climbs ${rule.at.up} level${rule.at.up === 1 ? "" : "s"} from the context holder, above the named shape, whose holder is not known here`
-    };
-  }
-  let node = levels[at3].node;
-  let doc = document;
-  for (const segment of rule.at.segments) {
-    const found = schemaMemberOf(node, doc, segment, shapes);
-    if (!found) return { refusal: `it names '${segment}', which the schema does not declare there` };
-    [node, doc] = found;
-  }
-  return { target: deref3(node, doc, shapes)[0] };
-}
-var nullableWhenReads = ({ value: value2, at: at3, item }) => {
-  const pointer = isSchema5(value2) && typeof value2.at === "string" ? value2.at : void 0;
-  if (!pointer || !readRelativePointer(pointer)) return [];
-  const seen = /* @__PURE__ */ new Set();
-  const out = [];
-  for (const base of [enclosingKeys(at3), item]) {
-    const keys = placeAt(base, pointer);
-    const id = JSON.stringify(keys);
-    if (seen.has(id)) continue;
-    seen.add(id);
-    out.push({ kind: "value", keys });
-  }
-  return out;
-};
-
 // ../../analyzer/nodejs/src/executable-capability.ts
 function capabilityExtendsExecutable(capability, defs) {
   let current = capability;
@@ -63140,8 +63923,8 @@ function scopeFieldsOfSchema(schema4) {
     const properties = object?.properties;
     if (!properties || typeof properties !== "object") continue;
     for (const [field, node] of Object.entries(properties)) {
-      const resolved = local(node);
-      const scoped = node?.["x-telo-scope"] ?? resolved?.["x-telo-scope"];
+      const resolved2 = local(node);
+      const scoped = node?.["x-telo-scope"] ?? resolved2?.["x-telo-scope"];
       if (scoped !== void 0 && !out.includes(field)) out.push(field);
     }
   }
@@ -64636,10 +65419,11 @@ function canonicalizeInPlace(value2, resolveAuthority, ownModule, isSlotRoot) {
     return;
   }
   const obj = value2;
-  const parsed = parseTeloTypeRef(obj.$ref);
+  const { shape, pointer } = typeof obj.$ref === "string" ? schemaReferenceParts(obj.$ref) : { shape: void 0, pointer: "#" };
+  const parsed = parseTeloTypeRef(shape);
   if (parsed) {
     const module = resolveAuthority(parsed.authority);
-    if (module) obj.$ref = canonicalTypeSchemaId(module, parsed.typeName);
+    if (module) obj.$ref = `${canonicalTypeSchemaId(module, parsed.typeName)}${pointer === "#" ? "" : pointer}`;
   }
   const named = resolvedRefInSchema(obj);
   if (named) {
@@ -64692,21 +65476,21 @@ function resolvedRefInSchema(obj) {
 // ../../analyzer/nodejs/src/caught-member.ts
 var X_TELO_CAUGHT_MEMBER = "x-telo-caught-member";
 var CAUGHT_MEMBERS = ["code", "data"];
-function isPlainObject12(value2) {
+function isPlainObject13(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 function caughtMemberOf(node) {
-  if (!isPlainObject12(node)) return void 0;
+  if (!isPlainObject13(node)) return void 0;
   const value2 = node[X_TELO_CAUGHT_MEMBER];
   return value2 === "code" || value2 === "data" ? value2 : void 0;
 }
 function isCatchListSchema(schema4) {
-  return isPlainObject12(schema4) && schema4["x-telo-outcome-list"] === "catches";
+  return isPlainObject13(schema4) && schema4["x-telo-outcome-list"] === "catches";
 }
 function catchListContext(listSchema) {
-  if (!isPlainObject12(listSchema)) return void 0;
+  if (!isPlainObject13(listSchema)) return void 0;
   const context = listSchema["x-telo-context"];
-  return isPlainObject12(context) ? context : void 0;
+  return isPlainObject13(context) ? context : void 0;
 }
 function caughtMemberNodes(context) {
   const out = [];
@@ -64714,18 +65498,18 @@ function caughtMemberNodes(context) {
     if (seen.has(node)) return;
     seen.add(node);
     const properties = node.properties;
-    if (!isPlainObject12(properties)) return;
+    if (!isPlainObject13(properties)) return;
     for (const [name2, child] of Object.entries(properties)) {
-      if (!isPlainObject12(child)) continue;
+      if (!isPlainObject13(child)) continue;
       const next = [...chain, name2];
       out.push({ chain: next, node: child });
       visit4(child, next, seen);
     }
   };
   const bindings = context?.properties;
-  if (!isPlainObject12(bindings)) return out;
+  if (!isPlainObject13(bindings)) return out;
   for (const [name2, binding] of Object.entries(bindings)) {
-    if (isPlainObject12(binding)) visit4(binding, [name2], /* @__PURE__ */ new Set());
+    if (isPlainObject13(binding)) visit4(binding, [name2], /* @__PURE__ */ new Set());
   }
   return out;
 }
@@ -64737,11 +65521,11 @@ function withCaughtData(context, data) {
     if (caughtMemberOf(node) === "data") return data;
     if (seen.has(node)) return node;
     const properties = node.properties;
-    if (!isPlainObject12(properties)) return node;
+    if (!isPlainObject13(properties)) return node;
     seen.add(node);
     let next;
     for (const [name2, child] of Object.entries(properties)) {
-      if (!isPlainObject12(child)) continue;
+      if (!isPlainObject13(child)) continue;
       const replaced = replace(child, seen);
       if (replaced === child) continue;
       next ??= { ...properties };
@@ -65069,6 +65853,9 @@ var CelScopeResolver = class _CelScopeResolver {
   inputsSchema;
   /** Set only when the resource's kind receives call arguments. */
   argumentSites;
+  /** The `inputs` a scope member's creation-time fields read: the input contract
+   *  of the holder opening its scope, when that scope is opened by dispatch. */
+  openingInputs;
   /** The enclosing definition's `self` schema, resolved once per resource. A
    *  template body's contexts resolve against the BODY, so `self` — the one
    *  binding anchored on the definition — is substituted before they do. */
@@ -65175,8 +65962,14 @@ var CelScopeResolver = class _CelScopeResolver {
           const json = typed ? stableJson(typed) : "";
           let entry2 = distinct2.get(json);
           if (!entry2) distinct2.set(json, entry2 = { ...typed ? { schema: typed } : {}, referrers: [] });
-          const labels = variant.referrers.length > 0 ? [...new Set(variant.referrers.map((r) => r.label))] : [label2];
-          for (const each of labels) entry2.referrers.push({ manifest: referrer, path: slot, label: each });
+          if (variant.referrers.length === 0) {
+            entry2.referrers.push({ manifest: referrer, path: slot, label: label2 });
+            continue;
+          }
+          for (const each of new Set(variant.referrers.map((r) => r.label))) {
+            const via = variant.referrers.filter((r) => r.label === each);
+            entry2.referrers.push({ manifest: referrer, path: slot, label: each, via });
+          }
         }
       }
       const out = [...distinct2.values()];
@@ -65230,6 +66023,13 @@ var CelScopeResolver = class _CelScopeResolver {
     const resolveDef = contractScope.resolveDefinition;
     this.argumentSites = this.stepContext ? callArgumentSites(definition, defs, resolveDef, shapes) : void 0;
     this.inputsSchema = this.argumentSites ? resolveContract("inputType", m, definition, contractScope)?.schema : void 0;
+    const member = scopeMemberOf(m);
+    this.openingInputs = member?.scope.openedByDispatch ? resolveContract(
+      "inputType",
+      member.holder,
+      this.inputs.definitionOf?.(member.holder),
+      contractScope
+    )?.schema ?? { type: "object", additionalProperties: true } : void 0;
     this.selfSchema = m.kind === "Telo.Definition" ? buildSelfSchema(m, defs, aliases) : void 0;
     const declaringModule4 = m.metadata?.module;
     this.bodyScopes = templateBodies(m, defs, aliases, scopes).map((template) => {
@@ -65295,7 +66095,7 @@ var CelScopeResolver = class _CelScopeResolver {
       moduleManifest
     } = this.inputs;
     const functions = this.inputs.moduleFunctions;
-    const resolved = (qualified) => {
+    const resolved2 = (qualified) => {
       const resolution = functions?.resolve(m, qualified);
       return resolution?.status === "resolved" ? resolution : void 0;
     };
@@ -65353,10 +66153,10 @@ var CelScopeResolver = class _CelScopeResolver {
       env,
       contextSchema,
       moduleNames,
-      moduleCallType: (qualified) => resolved(qualified)?.celType,
-      moduleCallResult: (qualified) => resolved(qualified)?.returns,
+      moduleCallType: (qualified) => resolved2(qualified)?.celType,
+      moduleCallResult: (qualified) => resolved2(qualified)?.returns,
       moduleCallFlags: (qualified) => this.inputs.callableFlags?.ofCall(m, qualified),
-      moduleFunction: resolved,
+      moduleFunction: resolved2,
       moduleFunctionsOf: (receiver) => functions?.callablesThrough(m, receiver) ?? [],
       // The observed-state context that stands in where no `x-telo-context`
       // matched carries no globals; merging is a no-op for one that does.
@@ -65400,6 +66200,10 @@ var CelScopeResolver = class _CelScopeResolver {
           steps: this.stepsAt(stepContext, localPath2, inBody)
         }
       };
+    }
+    if (this.openingInputs && !parameterScope && !inBody && site.mode === "compile") {
+      const base = matched ?? { type: "object", properties: {}, additionalProperties: true };
+      matched = { ...base, properties: { ...base.properties ?? {}, inputs: this.openingInputs } };
     }
     const errorSchema = errorScopes.size > 0 ? errorContextForPath(path, errorScopes) : void 0;
     if (errorSchema) {
@@ -65465,36 +66269,44 @@ var CelScopeResolver = class _CelScopeResolver {
       if (isParameterScope(ctx.schema)) from = i;
     });
     const outer = isParameterScope(site.contextSchema) ? [] : enclosing.slice(from);
-    let resolved = resolveRegion(matched, site.matchedScope);
+    let resolved2 = resolveRegion(matched, site.matchedScope);
     if (outer.length > 0) {
       const inherited = Object.assign(
         {},
         ...outer.map((ctx) => resolveRegion(ctx.schema, ctx.scope).properties ?? {})
       );
-      resolved = { ...resolved, properties: { ...inherited, ...resolved.properties ?? {} } };
+      resolved2 = { ...resolved2, properties: { ...inherited, ...resolved2.properties ?? {} } };
     }
-    resolved = this.withItemElements(
+    resolved2 = this.withItemElements(
       site,
       [...outer, { scope: site.matchedScope, schema: declaredInnermost }],
-      resolved,
+      resolved2,
       body2
     );
     const variant = site.variant ?? this.siteVariants(site)[0];
     if (variant) {
       for (const [location, schema4] of Object.entries(variant.bindings)) {
-        resolved = replacedAt(resolved, location.split(LOCATION_SEPARATOR), () => schema4);
+        resolved2 = replacedAt(resolved2, location.split(LOCATION_SEPARATOR), () => schema4);
       }
     }
+    for (const { location, schema: schema4 } of this.pathTemplateTypings(
+      [...outer, { scope: site.matchedScope, schema: declaredInnermost }],
+      localPath,
+      rootManifest,
+      localScopeOf
+    )) {
+      resolved2 = replacedAt(resolved2, location, () => schema4);
+    }
     const absent = bindingsAbsentAt([...outer.map((ctx) => ctx.schema), matched], site.mode);
-    if (absent.length > 0 && resolved.properties) {
-      const properties = { ...resolved.properties };
+    if (absent.length > 0 && resolved2.properties) {
+      const properties = { ...resolved2.properties };
       for (const name2 of absent) delete properties[name2];
-      resolved = { ...resolved, properties };
+      resolved2 = { ...resolved2, properties };
     }
     const caught = this.inputs.caughtDataAt?.(m, path);
-    if (caught) resolved = withCaughtData(resolved, caught);
+    if (caught) resolved2 = withCaughtData(resolved2, caught);
     const loops = this.inputs.loopBindingsAt?.(m, path);
-    if (loops) resolved = { ...resolved, properties: { ...resolved.properties ?? {}, ...loops } };
+    if (loops) resolved2 = { ...resolved2, properties: { ...resolved2.properties ?? {}, ...loops } };
     const expand4 = (schema4) => inlineNamedShapes(schema4, this.inputs.shapes);
     const nullable2 = (schema4) => {
       let out = schema4;
@@ -65504,11 +66316,11 @@ var CelScopeResolver = class _CelScopeResolver {
       }
       return out;
     };
-    if (parameterScope) return nullable2(expand4(resolved));
+    if (parameterScope) return nullable2(expand4(resolved2));
     return nullable2(
       expand4(
         mergeKernelGlobalsIntoContext(
-          resolved,
+          resolved2,
           // Typed in the module that DECLARED this resource — for a manifest
           // forwarded from an imported library, that is its `moduleGlobals` stamp,
           // not the consuming application's block.
@@ -65516,6 +66328,41 @@ var CelScopeResolver = class _CelScopeResolver {
         )
       )
     );
+  }
+  /**
+   * The type of every node the regions mark `x-telo-context-from-path-template`,
+   * at its location in the context — each binding as the innermost region
+   * declaring its name declares it, the template read from that region's holder.
+   */
+  pathTemplateTypings(regions, localPath, root, localScopeOf) {
+    const owners = /* @__PURE__ */ new Map();
+    for (const region of regions) {
+      const properties = region.schema?.properties;
+      if (!properties || typeof properties !== "object") continue;
+      for (const [name2, binding] of Object.entries(properties)) {
+        owners.set(name2, { binding, scope: region.scope });
+      }
+    }
+    const out = [];
+    for (const [name2, { binding, scope }] of owners) {
+      const local = localScopeOf(scope);
+      const holderPath = local === void 0 ? "" : getContextHolderPath(localPath, local);
+      if (holderPath === void 0) continue;
+      const holder = tokensOfPath(holderPath);
+      const visit4 = (node, location) => {
+        if (!node || typeof node !== "object" || Array.isArray(node)) return;
+        const pointer = readFromPathTemplate(node);
+        if (pointer) {
+          out.push({ location, schema: pathTemplateParams(node, valueFromHolder(root, holder, pointer)) });
+          return;
+        }
+        const properties = node.properties;
+        if (!properties || typeof properties !== "object") return;
+        for (const [key3, child] of Object.entries(properties)) visit4(child, [...location, key3]);
+      };
+      visit4(binding, [name2]);
+    }
+    return out;
   }
   /**
    * The locations, in the context, of every node the regions mark
@@ -65657,7 +66504,7 @@ var CelScopeResolver = class _CelScopeResolver {
   /** `resolved` with every binding an `x-telo-context-element-from-item`
    *  pointer types — by the innermost region declaring its name — replaced by
    *  the element of the collection the chain at the pointed field names. */
-  withItemElements(site, regions, resolved, body2) {
+  withItemElements(site, regions, resolved2, body2) {
     const owners = /* @__PURE__ */ new Map();
     for (const region of regions) {
       const properties2 = region.schema?.properties;
@@ -65668,12 +66515,12 @@ var CelScopeResolver = class _CelScopeResolver {
     }
     let properties;
     for (const [name2, { pointer, scope }] of owners) {
-      if (pointer === void 0 || scope === void 0 || !resolved.properties || !(name2 in resolved.properties)) continue;
-      const next = properties ?? { ...resolved.properties };
+      if (pointer === void 0 || scope === void 0 || !resolved2.properties || !(name2 in resolved2.properties)) continue;
+      const next = properties ?? { ...resolved2.properties };
       next[name2] = this.itemElementAt(site, scope, pointer, body2) ?? {};
       properties = next;
     }
-    return properties ? { ...resolved, properties } : resolved;
+    return properties ? { ...resolved2, properties } : resolved2;
   }
   /** The element of the collection the chain at the field `pointer` names
    *  holds, typed as at that field's own site — or undefined. */
@@ -69075,9 +69922,9 @@ function visitManifest(resources, registry, visitor, options = {}) {
 
 // ../../analyzer/nodejs/src/argument-map-default.ts
 function isLiteralObject(value2) {
-  return isPlainObject13(value2) && isLiteral(value2);
+  return isPlainObject14(value2) && isLiteral(value2);
 }
-function isPlainObject13(value2) {
+function isPlainObject14(value2) {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const proto = Object.getPrototypeOf(value2);
   return proto === Object.prototype || proto === null;
@@ -69087,7 +69934,7 @@ function isLiteral(value2) {
   if (typeof value2 === "string" || typeof value2 === "boolean") return true;
   if (typeof value2 === "number") return Number.isFinite(value2);
   if (Array.isArray(value2)) return value2.every(isLiteral);
-  if (!isPlainObject13(value2)) return false;
+  if (!isPlainObject14(value2)) return false;
   if ("__tagged" in value2 || "__compiled" in value2) return false;
   return Object.values(value2).every(isLiteral);
 }
@@ -69190,6 +70037,106 @@ function describeWritten(value2) {
     return `an expression`;
   }
   return JSON.stringify(value2);
+}
+
+// ../../analyzer/nodejs/src/completed-when-slot.ts
+var COMPLETED_WHEN_CODE = "X_TELO_REF_INVALID_COMPLETED_WHEN";
+var isSchema9 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var POINTER = /^(\/([^/~]|~[01])+)+$/;
+function pointerSegments3(pointer) {
+  return pointer.slice(1).split("/").map((token) => token.replace(/~1/g, "/").replace(/~0/g, "~"));
+}
+function siblingAt(enclosing, pointer, document, lookup) {
+  let at3 = { node: enclosing, document };
+  for (const segment of pointerSegments3(pointer)) {
+    if (!at3) return void 0;
+    const object = followSchemaReferences(at3.node, at3.document, lookup);
+    const next = propertySchemas(object.node).find(([key3]) => key3 === segment)?.[1];
+    at3 = isSchema9(next) ? { node: next, document: object.document } : void 0;
+  }
+  return at3 ? followSchemaReferences(at3.node, at3.document, lookup).node : void 0;
+}
+function carriers(node, path) {
+  const out = [];
+  if (isSchema9(node["x-telo-ref"])) out.push({ annotation: node["x-telo-ref"], path });
+  for (const key3 of ["anyOf", "oneOf"]) {
+    if (!Array.isArray(node[key3])) continue;
+    node[key3].forEach((branch, i) => {
+      if (isSchema9(branch) && isSchema9(branch["x-telo-ref"])) out.push({ annotation: branch["x-telo-ref"], path: `${path}.${key3}[${i}]` });
+    });
+  }
+  return out;
+}
+function completedWhenProblems(schema4, name2, at3 = "schema", lookup) {
+  if (!isSchema9(schema4)) return [];
+  const document = schema4;
+  const problems = [];
+  const asProperty = /* @__PURE__ */ new Set();
+  const declaring4 = [];
+  const seen = /* @__PURE__ */ new Set();
+  const claimed = /* @__PURE__ */ new Set();
+  const refuse3 = (slotPath, annotationPath, value2, reason) => {
+    problems.push({
+      code: COMPLETED_WHEN_CODE,
+      path: `${annotationPath}.x-telo-ref.completedWhen`,
+      message: `${name2}: x-telo-ref at '${slotPath}' declares 'completedWhen: ${typeof value2 === "string" ? value2 : JSON.stringify(value2)}', but ${reason}.`
+    });
+  };
+  const judge = (enclosing, slot, slotPath) => {
+    asProperty.add(slot);
+    for (const { annotation, path } of carriers(slot, slotPath)) {
+      const pointer = annotation.completedWhen;
+      if (pointer === void 0) continue;
+      if (typeof pointer !== "string" || !POINTER.test(pointer)) {
+        refuse3(slotPath, path, pointer, "it must be a JSON Pointer naming a boolean sibling of the slot, as '/prompt'");
+        continue;
+      }
+      if (typeof annotation.inputs !== "string") {
+        refuse3(slotPath, path, pointer, "the slot declares no 'inputs:' argument map for its target to complete");
+        continue;
+      }
+      const sibling = siblingAt(enclosing, pointer, document, lookup);
+      if (!sibling) refuse3(slotPath, path, pointer, `the object enclosing the slot declares nothing at '${pointer}'`);
+      else if (sibling.type !== "boolean") refuse3(slotPath, path, pointer, `'${pointer}' is not declared 'type: boolean'`);
+    }
+  };
+  const visit4 = (node, path) => {
+    if (!isSchema9(node) || seen.has(node)) return;
+    seen.add(node);
+    for (const key3 of ["anyOf", "oneOf"]) {
+      if (Array.isArray(node[key3])) {
+        for (const branch of node[key3]) if (isSchema9(branch) && branch["x-telo-ref"] !== void 0) claimed.add(branch);
+      }
+    }
+    if (!claimed.has(node) && carriers(node, path).some(({ annotation }) => annotation.completedWhen !== void 0)) {
+      declaring4.push({ node, path });
+    }
+    if (isSchema9(node.properties)) {
+      for (const [key3, child] of Object.entries(node.properties)) {
+        if (isSchema9(child)) judge(node, followSchemaReferences(child, document, void 0).node, `${path}.properties.${key3}`);
+      }
+    }
+    for (const map3 of ["properties", "patternProperties", "$defs", "definitions"]) {
+      if (!isSchema9(node[map3])) continue;
+      for (const [key3, child] of Object.entries(node[map3])) visit4(child, `${path}.${map3}.${key3}`);
+    }
+    visit4(node.additionalProperties, `${path}.additionalProperties`);
+    if (Array.isArray(node.items)) node.items.forEach((item, i) => visit4(item, `${path}.items[${i}]`));
+    else visit4(node.items, `${path}.items`);
+    for (const key3 of ["anyOf", "oneOf", "allOf"]) {
+      if (!Array.isArray(node[key3])) continue;
+      node[key3].forEach((branch, i) => visit4(branch, `${path}.${key3}[${i}]`));
+    }
+  };
+  visit4(schema4, at3);
+  for (const { node, path } of declaring4) {
+    if (asProperty.has(node)) continue;
+    for (const { annotation, path: annotationPath } of carriers(node, path)) {
+      if (annotation.completedWhen === void 0) continue;
+      refuse3(path, annotationPath, annotation.completedWhen, "the slot is no property of an object schema, so it has no sibling to read");
+    }
+  }
+  return problems;
 }
 
 // ../../analyzer/nodejs/src/validate-ref-slots.ts
@@ -69305,6 +70252,7 @@ var REF_ANNOTATION_KEYS = /* @__PURE__ */ new Set([
   "kind",
   "use",
   "inputs",
+  "completedWhen",
   "throwsThrough",
   "outputType",
   "outputTo",
@@ -69350,6 +70298,11 @@ function walkSchema(node, path, visited, claimedBranches, onSlot) {
     if (key3 === "x-telo-ref" || key3 === "examples" || key3 === "default") continue;
     walkSchema(value2, path ? `${path}.${key3}` : key3, visited, claimedBranches, onSlot);
   }
+}
+function completedWhenIssues(definition, lookup) {
+  const schema4 = definition.schema;
+  const name2 = `${definition.kind} '${definition.metadata?.name}'`;
+  return completedWhenProblems(schema4, name2, "schema", lookup).map((problem) => ({ ...problem, manifest: definition }));
 }
 function validateRefSlotDeclarations(definition) {
   const issues = [];
@@ -69463,8 +70416,8 @@ function kindIsA(kind, ancestor, resolve2) {
     if (!definition) continue;
     const { extends: parent, capability } = definition;
     if (typeof parent === "string") {
-      const resolved = resolve2(parent, definition);
-      queue.push(resolved ? canonicalKindOf(resolved) : parent);
+      const resolved2 = resolve2(parent, definition);
+      queue.push(resolved2 ? canonicalKindOf(resolved2) : parent);
     }
     if (typeof capability === "string" && capability !== current) queue.push(capability);
   }
@@ -69487,10 +70440,10 @@ function coReferrerCallProblems(definition, ownSchema, resolve2, complete) {
     });
   };
   forEachRefSlotNode(ownSchema, "schema", (node, slotPath) => {
-    const carriers = [];
+    const carriers2 = [];
     const own2 = node["x-telo-ref"];
     if (own2 && typeof own2 === "object" && !Array.isArray(own2)) {
-      carriers.push({ annotation: own2, at: `${slotPath}.x-telo-ref` });
+      carriers2.push({ annotation: own2, at: `${slotPath}.x-telo-ref` });
     }
     for (const key3 of ["anyOf", "oneOf"]) {
       const branches = node[key3];
@@ -69498,11 +70451,11 @@ function coReferrerCallProblems(definition, ownSchema, resolve2, complete) {
       branches.forEach((branch, i) => {
         const annotation = branch?.["x-telo-ref"];
         if (annotation && typeof annotation === "object" && !Array.isArray(annotation)) {
-          carriers.push({ annotation, at: `${slotPath}.${key3}[${i}].x-telo-ref` });
+          carriers2.push({ annotation, at: `${slotPath}.${key3}[${i}].x-telo-ref` });
         }
       });
     }
-    for (const { annotation, at: at3 } of carriers) {
+    for (const { annotation, at: at3 } of carriers2) {
       const raw = annotation.callsCoReferrers;
       if (raw === void 0) continue;
       const { kind, slot } = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
@@ -69777,8 +70730,8 @@ function resolveUseAtSite(entry2, root, concretePath2, schemaDefault) {
   let selector = navigatePointer(enclosing, entry2.useCases.by);
   if (selector === void 0) selector = schemaDefault(entry2.useCases.by);
   if (selector !== void 0 && typeof selector !== "object") {
-    const resolved = entry2.useCases.cases[String(selector)];
-    if (resolved) return { use: resolved };
+    const resolved2 = entry2.useCases.cases[String(selector)];
+    if (resolved2) return { use: resolved2 };
   }
   const slot = {
     kinds: entry2.refs,
@@ -71532,6 +72485,15 @@ function schemaAtPointer2(schema4, pointer) {
   }
   return node;
 }
+function referencedPlace(ref, at3, shapes) {
+  let module = at3.module;
+  const target = resolveSchemaReference(ref, at3.root, (id) => {
+    const shape = shapes?.(id, at3.module);
+    if (shape) module = shape.module;
+    return shape?.schema;
+  });
+  return target ? { node: target.node, root: target.document, module } : void 0;
+}
 var MAX_SCHEMA_REPEAT = 16;
 function ruleCollectionSchemas(schema4, pointer, module, shapes) {
   const steps = parseRulePointer(pointer);
@@ -71539,7 +72501,7 @@ function ruleCollectionSchemas(schema4, pointer, module, shapes) {
     return { problem: `'in' must be a JSON Pointer starting with '/', optionally with '*' and repeated groups '(\u2026)*', got '${pointer}'.` };
   }
   if (!isObject7(schema4)) return { nodes: [] };
-  const resolved = (place2) => {
+  const resolved2 = (place2) => {
     const out = [];
     const seen = /* @__PURE__ */ new Set();
     const visit4 = (current) => {
@@ -71547,13 +72509,8 @@ function ruleCollectionSchemas(schema4, pointer, module, shapes) {
       seen.add(current.node);
       const ref = current.node.$ref;
       if (typeof ref === "string") {
-        if (ref.startsWith("#")) {
-          const target = resolveSchemaPointer(current.root, ref);
-          if (isObject7(target)) visit4({ ...current, node: target });
-        } else {
-          const shape = shapes?.(ref, current.module);
-          if (shape) visit4({ node: shape.schema, root: shape.schema, module: shape.module });
-        }
+        const target = referencedPlace(ref, current, shapes);
+        if (target) visit4(target);
       }
       out.push(current);
       for (const key3 of ["anyOf", "oneOf", "allOf"]) {
@@ -71591,7 +72548,7 @@ function ruleCollectionSchemas(schema4, pointer, module, shapes) {
           }
           continue;
         }
-        for (const node of resolved(place2)) {
+        for (const node of resolved2(place2)) {
           const children = step.kind === "any" ? [node.node.items, node.node.additionalProperties, ...Object.values(node.node.patternProperties ?? {})] : [
             isObject7(node.node.properties) ? node.node.properties[step.key] : void 0,
             node.node.type === "array" ? node.node.items : void 0,
@@ -71607,7 +72564,7 @@ function ruleCollectionSchemas(schema4, pointer, module, shapes) {
   };
   const reached = along([{ node: schema4, root: schema4, module }], steps);
   if (typeof reached === "string") return { problem: reached };
-  return { nodes: reached.flatMap(resolved).map((place2) => place2.node) };
+  return { nodes: reached.flatMap(resolved2).map((place2) => place2.node) };
 }
 function rulePointerReaches(schema4, pointer, kindSchemas, reading) {
   const segments = pointerSegments2(pointer);
@@ -71632,16 +72589,9 @@ function rulePointerReaches(schema4, pointer, kindSchemas, reading) {
     const ref = node.$ref;
     if (typeof ref === "string" && !following.has(node)) {
       following.add(node);
-      if (ref.startsWith("#")) {
-        const target = resolveSchemaPointer(at3.root, ref);
-        if (isObject7(target)) verdicts.push(walk7(at3, target, rest));
-      } else if (shapes) {
-        const shape = shapes(ref, at3.module);
-        if (shape) verdicts.push(walk7({ node: shape.schema, root: shape.schema, module: shape.module }, shape.schema, rest));
-        else verdicts.push("unknown");
-      } else {
-        verdicts.push("unknown");
-      }
+      const target = referencedPlace(ref, at3, shapes);
+      if (target) verdicts.push(walk7(target, target.node, rest));
+      else if (!ref.startsWith("#")) verdicts.push("unknown");
       following.delete(node);
     }
     const [segment, ...tail] = rest;
@@ -71655,6 +72605,53 @@ function rulePointerReaches(schema4, pointer, kindSchemas, reading) {
     return verdicts.includes("ok") ? "ok" : verdicts.includes("unknown") ? "unknown" : "absent";
   };
   return walk7(isObject7(schema4) ? { node: schema4, root: schema4, module: reading?.module } : void 0, schema4, segments);
+}
+function slotAlong(schema4, segments, reading) {
+  const following = /* @__PURE__ */ new Set();
+  const walk7 = (place2, rest) => {
+    const node = place2.node;
+    if (readRefSlot(node)) return true;
+    const ref = node.$ref;
+    if (typeof ref === "string" && !following.has(node)) {
+      following.add(node);
+      const target = referencedPlace(ref, place2, reading.shapes);
+      const met = target !== void 0 && walk7(target, rest);
+      following.delete(node);
+      if (met) return true;
+    }
+    for (const key3 of ["anyOf", "oneOf", "allOf"]) {
+      const branches = node[key3];
+      if (Array.isArray(branches) && branches.some((branch) => isObject7(branch) && walk7({ ...place2, node: branch }, rest))) {
+        return true;
+      }
+    }
+    if (rest.length === 0) return false;
+    const [segment, ...tail] = rest;
+    const properties = isObject7(node.properties) ? node.properties : void 0;
+    const additional = isObject7(node.additionalProperties) ? node.additionalProperties : void 0;
+    const next = segment === "*" ? node.items ?? additional : properties?.[segment] ?? (node.type === "array" ? node.items : void 0) ?? additional;
+    return isObject7(next) && walk7({ ...place2, node: next }, tail);
+  };
+  return isObject7(schema4) && walk7({ node: schema4, root: schema4, module: reading.module }, segments);
+}
+function groupMeetsReference(schema4, pointer, reading) {
+  const steps = parseRulePointer(pointer);
+  if (!steps) return false;
+  const plain = (path) => path.flatMap((step) => step.kind === "key" ? [step.key] : step.kind === "any" ? ["*"] : []);
+  const meets = (path, before) => {
+    let prefix = [...before];
+    for (const step of path) {
+      if (step.kind === "repeat") {
+        for (const alternative of step.alternatives) {
+          if (slotAlong(schema4, [...prefix, ...plain(alternative)], reading) || meets(alternative, prefix)) return true;
+        }
+        continue;
+      }
+      prefix = [...prefix, ...plain([step])];
+    }
+    return false;
+  };
+  return meets(steps, []);
 }
 function isIterableSchema(node) {
   if (!isObject7(node)) return true;
@@ -71751,13 +72748,20 @@ function validateResourceRuleDeclarations(manifest, effectiveSchema, moduleNames
       if (!Array.isArray(entry2.resolve)) {
         issue(`${at3}.resolve`, "'resolve' must be a list of JSON Pointers to this kind's reference slots.");
       } else {
+        const reading = { module: manifest.metadata?.module, shapes };
         entry2.resolve.forEach((pointer, i) => {
-          if (typeof pointer !== "string" || !pointerSegments2(pointer)) {
-            issue(`${at3}.resolve[${i}]`, "Each 'resolve' entry must be a JSON Pointer starting with '/'.");
-          } else if (rulePointerReaches(schema4, pointer, kindSchemas, {
-            module: manifest.metadata?.module,
-            shapes
-          }) === "absent") {
+          const unfolded = typeof pointer === "string" ? unfoldOnce(pointer) : void 0;
+          if (!unfolded) {
+            issue(
+              `${at3}.resolve[${i}]`,
+              "Each 'resolve' entry must be a JSON Pointer starting with '/', optionally with '*' and repeated groups '(\u2026)*'."
+            );
+          } else if (groupMeetsReference(schema4, pointer, reading)) {
+            issue(
+              `${at3}.resolve[${i}]`,
+              `'resolve' names '${pointer}', whose repeated group steps over a reference slot. A group repeats over this resource's own fields only; repeat it up to the reference, and continue past the reference after the group.`
+            );
+          } else if (unfolded.some((each) => rulePointerReaches(schema4, each, kindSchemas, reading) === "absent")) {
             issue(
               `${at3}.resolve[${i}]`,
               `'resolve' names '${pointer}', which this kind's schema does not declare. It must name a reference slot of this kind, or a collection of them, and may continue inside what it names.`
@@ -71902,11 +72906,12 @@ function evaluateResourceRules(manifest, definitionSchema, moduleNames, function
 }
 function resolvedRuleView(manifest, resolve2, binder, kind) {
   let self = binder?.view(manifest) ?? manifest;
-  for (const pointer of resolve2 ?? []) {
+  const written = self;
+  for (const pointer of (resolve2 ?? []).flatMap((each) => resolvePointersIn(written, each) ?? [each])) {
     if (!binder) return { ok: false, failure: { reason: "unknown-shape", at: pointer } };
-    const resolved = binder.resolveAlong(manifest, kind, self, pointer);
-    if (!resolved.ok) return resolved;
-    self = resolved.view;
+    const resolved2 = binder.resolveAlong(manifest, kind, self, pointer);
+    if (!resolved2.ok) return resolved2;
+    self = resolved2.view;
   }
   return { ok: true, self };
 }
@@ -72082,9 +73087,9 @@ function resolveEntry(value2, at3, resolver) {
       out[key3] = child;
       continue;
     }
-    const resolved = resolveReference2(reference, site, `${at3}.${key3}`, resolver);
-    if (!resolved.ok) return resolved;
-    out[key3] = resolved.value;
+    const resolved2 = resolveReference2(reference, site, `${at3}.${key3}`, resolver);
+    if (!resolved2.ok) return resolved2;
+    out[key3] = resolved2.value;
   }
   return { ok: true, value: out };
 }
@@ -72137,12 +73142,12 @@ var PeerBinder = class {
     if (!shapes || !sites) {
       return { ok: false, failure: { reason: "unknown-shape", at: collectionPath } };
     }
-    const resolved = this.collection(referrer, pointer, collectionPath, shapes, sites);
-    if (!resolved.ok) return resolved;
-    const mine = resolved.entryShape ? this.entryKey(slotPath, collectionPath, resolved.entryShape) : void 0;
-    const at3 = mine === void 0 ? -1 : resolved.keys.indexOf(mine);
-    const peers = at3 === -1 ? resolved.values : resolved.values.filter((_2, i) => i !== at3);
-    if (at3 !== -1) return { ok: true, binding: { peers, entry: resolved.values[at3] } };
+    const resolved2 = this.collection(referrer, pointer, collectionPath, shapes, sites);
+    if (!resolved2.ok) return resolved2;
+    const mine = resolved2.entryShape ? this.entryKey(slotPath, collectionPath, resolved2.entryShape) : void 0;
+    const at3 = mine === void 0 ? -1 : resolved2.keys.indexOf(mine);
+    const peers = at3 === -1 ? resolved2.values : resolved2.values.filter((_2, i) => i !== at3);
+    if (at3 !== -1) return { ok: true, binding: { peers, entry: resolved2.values[at3] } };
     const site = sites.get(slotPath);
     if (!site) {
       if (navigatePath2(this.view(referrer), slotPath) === void 0) {
@@ -72176,10 +73181,10 @@ var PeerBinder = class {
     if (own2) {
       return resolveEntry(raw, path, this.resolver(manifest, (at3) => at3 === path ? own2 : void 0));
     }
-    const resolved = this.collection(manifest, pointer, path, shapes, sites);
-    if (!resolved.ok) return resolved;
-    if (Array.isArray(raw)) return { ok: true, value: resolved.values };
-    return { ok: true, value: Object.fromEntries(resolved.keys.map((k, i) => [k, resolved.values[i]])) };
+    const resolved2 = this.collection(manifest, pointer, path, shapes, sites);
+    if (!resolved2.ok) return resolved2;
+    if (Array.isArray(raw)) return { ok: true, value: resolved2.values };
+    return { ok: true, value: Object.fromEntries(resolved2.keys.map((k, i) => [k, resolved2.values[i]])) };
   }
   /**
    * `view` with every reference along `pointer` resolved, a hop at a time — the
@@ -72209,17 +73214,17 @@ var PeerBinder = class {
       }
       const prefix = segments.slice(0, k);
       if (!this.isReferenceLocation(holder, kind, prefix, k < segments.length)) continue;
-      const resolved2 = this.resolveReferences(holder, kind, toPointer(prefix));
-      if (!resolved2.ok) return resolved2;
-      if (resolved2.value === void 0 || resolved2.value === null) return { ok: true, view };
-      const continued = this.continueInto(resolved2.value, segments.slice(k));
+      const resolved3 = this.resolveReferences(holder, kind, toPointer(prefix));
+      if (!resolved3.ok) return resolved3;
+      if (resolved3.value === void 0 || resolved3.value === null) return { ok: true, view };
+      const continued = this.continueInto(resolved3.value, segments.slice(k));
       if (!continued.ok) return continued;
       return { ok: true, view: replaceAt(view, prefix, continued.value) };
     }
-    const resolved = this.resolveReferences(holder, kind, toPointer(segments));
-    if (!resolved.ok) return resolved;
-    if (resolved.value === void 0) return { ok: true, view };
-    return { ok: true, view: replaceAt(view, segments, resolved.value) };
+    const resolved2 = this.resolveReferences(holder, kind, toPointer(segments));
+    if (!resolved2.ok) return resolved2;
+    if (resolved2.value === void 0) return { ok: true, view };
+    return { ok: true, view: replaceAt(view, segments, resolved2.value) };
   }
   /** A value a hop resolved, with the rest of the pointer applied inside it. */
   continueInto(value2, rest) {
@@ -72287,9 +73292,9 @@ var PeerBinder = class {
   coReferrer(manifest, kind) {
     const cached = this.coReferrers.get(manifest);
     if (cached) return cached;
-    const resolved = this.resolveCoReferrer(manifest, kind);
-    this.coReferrers.set(manifest, resolved);
-    return resolved;
+    const resolved2 = this.resolveCoReferrer(manifest, kind);
+    this.coReferrers.set(manifest, resolved2);
+    return resolved2;
   }
   resolveCoReferrer(manifest, kind) {
     const name2 = manifest.metadata?.name ?? "<unnamed>";
@@ -72301,9 +73306,9 @@ var PeerBinder = class {
     for (const [path, site] of sites) {
       const reference = referenceValueOf(navigatePath2(written, path));
       if (!reference) continue;
-      const resolved = resolveReference2(reference, site, `${name2}.${path}`, resolver);
-      if (!resolved.ok) return resolved;
-      value2 = replaceAt(value2, pathSegments(path), resolved.value);
+      const resolved2 = resolveReference2(reference, site, `${name2}.${path}`, resolver);
+      if (!resolved2.ok) return resolved2;
+      value2 = replaceAt(value2, pathSegments(path), resolved2.value);
     }
     return { ok: true, value: value2 };
   }
@@ -72346,9 +73351,9 @@ var PeerBinder = class {
     }
     const cached = byPointer.get(pointer);
     if (cached) return cached;
-    const resolved = this.resolveCollection(referrer, pointer, collectionPath, shapes, sites);
-    byPointer.set(pointer, resolved);
-    return resolved;
+    const resolved2 = this.resolveCollection(referrer, pointer, collectionPath, shapes, sites);
+    byPointer.set(pointer, resolved2);
+    return resolved2;
   }
   resolveCollection(referrer, pointer, collectionPath, shapes, sites) {
     const raw = resolvePointer(this.view(referrer), pointer);
@@ -72366,9 +73371,9 @@ var PeerBinder = class {
     const resolver = this.resolver(referrer, (path) => sites.get(path));
     for (let i = 0; i < items.length; i++) {
       const at3 = Array.isArray(raw) ? `${collectionPath}[${keys[i]}]` : `${collectionPath}.${keys[i]}`;
-      const resolved = resolveEntry(items[i], at3, resolver);
-      if (!resolved.ok) return resolved;
-      values.push(resolved.value);
+      const resolved2 = resolveEntry(items[i], at3, resolver);
+      if (!resolved2.ok) return resolved2;
+      values.push(resolved2.value);
     }
     return { ok: true, keys, values, entryShape };
   }
@@ -72783,14 +73788,14 @@ function unfoldScopedOrigins(root, path) {
   let segments = parseSegments(path);
   let unfoldedAny = false;
   for (let hops = 0; hops <= segments.length + 16; hops++) {
-    const next = unfoldOnce(root, segments);
+    const next = unfoldOnce2(root, segments);
     if (!next) break;
     segments = next;
     unfoldedAny = true;
   }
   return unfoldedAny ? formatSegments(segments) : path;
 }
-function unfoldOnce(root, segments) {
+function unfoldOnce2(root, segments) {
   let node = root;
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
@@ -73399,8 +74404,8 @@ function validateTemplateBody(manifests, registry, aliases, aliasesByModule, roo
     const name2 = m.metadata?.name;
     if (typeof name2 !== "string") continue;
     if (m.kind === "Telo.Import") {
-      const resolved = m.metadata.resolvedModuleName;
-      if (resolved) importedModules.add(resolved);
+      const resolved2 = m.metadata.resolvedModuleName;
+      if (resolved2) importedModules.add(resolved2);
       continue;
     }
     if (isKindDocument(m)) continue;
@@ -74584,7 +75589,7 @@ function fromSelf(holder, self, input) {
       if (node2 !== void 0) reached.push({ node: node2, written, exact, holding: holding2 });
       return;
     }
-    if (!isPlainObject14(node2)) {
+    if (!isPlainObject15(node2)) {
       if (node2 !== void 0 && node2 !== null) unknown = true;
       return;
     }
@@ -74650,7 +75655,7 @@ function selfDefaults(holder, input) {
 function valueAlong(value2, keys) {
   let node = value2;
   for (const key3 of keys) {
-    if (!isPlainObject14(node)) return void 0;
+    if (!isPlainObject15(node)) return void 0;
     node = node[key3];
   }
   return node;
@@ -74678,7 +75683,7 @@ function throughBase(base, self, holder, input) {
   for (let i = 0; i < self.length; i++) {
     const forwarded2 = selfForwardPath(node);
     if (forwarded2) return fromSelf(holder, [...forwarded2, ...self.slice(i)], input);
-    if (!isPlainObject14(node)) return void 0;
+    if (!isPlainObject15(node)) return void 0;
     node = node[self[i]];
     if (node === void 0) return void 0;
   }
@@ -74708,7 +75713,7 @@ function readBaseMapping(node, reading, at3 = []) {
     reading.hold?.(items);
     return items;
   }
-  if (isPlainObject14(node)) {
+  if (isPlainObject15(node)) {
     const out = {};
     for (const [key3, child] of Object.entries(node)) {
       const read = readBaseMapping(child, reading, [...at3, key3]);
@@ -74735,7 +75740,7 @@ function reachedPlainly(holder, path, union2) {
       if (node !== void 0) out.push({ node, written, exact, holding: holding2 });
       return;
     }
-    if (!isPlainObject14(node)) return;
+    if (!isPlainObject15(node)) return;
     walk7(node[path[i]], i + 1, written && !exact ? [...written, path[i]] : written, exact, holding2);
   };
   walk7(holder.manifest, 0, rootWritten(holder, union2), false, EVERYWHERE);
@@ -74798,7 +75803,7 @@ function mirrored(option, present2, value2) {
 }
 function containerFor(next, literal, canonicalKind, union2) {
   const child = typeof next === "number" ? [] : {};
-  const declared = isPlainObject14(literal) ? literal.kind : void 0;
+  const declared = isPlainObject15(literal) ? literal.kind : void 0;
   if (typeof declared === "string" && !Array.isArray(child)) child.kind = canonicalKind(declared);
   union2.hold(child);
   return child;
@@ -74834,7 +75839,7 @@ function isCompiled(value2) {
 function isOpaque(value2) {
   return isTaggedSentinel(value2) || isRefSentinel(value2) || isCompiled(value2);
 }
-function isPlainObject14(value2) {
+function isPlainObject15(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2) && !isOpaque(value2) && !isAlternatives(value2);
 }
 
@@ -76072,7 +77077,7 @@ function leafDeclaration(value2) {
   }
   return void 0;
 }
-function alternativesOf3(sentinel) {
+function alternativesOf4(sentinel) {
   const out = [];
   for (const [id] of branchesOf({ sentinel, tag: sentinel.__expand })) {
     const key3 = id.startsWith("case:") ? id.slice("case:".length) : id;
@@ -76092,7 +77097,7 @@ function standInFor(sentinel, stamp) {
   if (sentinel.__expand === "for-each") {
     marks[FAMILY_STAMP] = repeatOf(sentinel);
   } else {
-    const alternatives = alternativesOf3(sentinel);
+    const alternatives = alternativesOf4(sentinel);
     marks[CHOICE_STAMP] = {
       path: "",
       tag: sentinel.__expand,
@@ -76370,17 +77375,29 @@ function slotCallSites(manifest, sites, ctx) {
     const invoke = site.data;
     if (!invoke || typeof invoke !== "object" || Array.isArray(invoke)) continue;
     const values = navigateConcretePath2(manifest, inputsPath);
+    const completed = slotCompleted(site, manifest);
     if (values === void 0) {
       const omitted = omittedSlotCallSite(site, manifest, ctx);
-      if (omitted) out.push(omitted);
+      if (omitted) out.push(completed ? { ...omitted, completed } : omitted);
       continue;
     }
     if (!values || typeof values !== "object" || Array.isArray(values)) continue;
-    out.push(
-      callSiteAt("slot", inputsPath, values, invoke, manifest, ctx)
-    );
+    const call = callSiteAt("slot", inputsPath, values, invoke, manifest, ctx);
+    out.push(completed ? { ...call, completed } : call);
   }
   return out;
+}
+function slotCompletedWhenPath(site) {
+  if (site.refs.length === 0) return void 0;
+  const completedWhen = siteRefEntry(site).completedWhen;
+  const pointer = completedWhen ? pointerSegments4(completedWhen) : void 0;
+  if (!pointer) return void 0;
+  const enclosing = site.path.slice(0, Math.max(0, site.path.lastIndexOf(".")));
+  return [enclosing, ...pointer].filter(Boolean).join(".");
+}
+function slotCompleted(site, manifest) {
+  const path = slotCompletedWhenPath(site);
+  return path !== void 0 && navigateConcretePath2(manifest, path) === true ? true : void 0;
 }
 function slotArgumentMapDefault(site) {
   for (const ref of site.refs) {
@@ -76404,12 +77421,12 @@ function slotInputsPath(site) {
   if (site.refs.length === 0) return void 0;
   const inputs = siteRefEntry(site).inputs;
   if (!inputs) return void 0;
-  const pointer = pointerSegments3(inputs);
+  const pointer = pointerSegments4(inputs);
   if (!pointer) return void 0;
   const enclosing = site.path.slice(0, Math.max(0, site.path.lastIndexOf(".")));
   return [enclosing, ...pointer].filter(Boolean).join(".");
 }
-function pointerSegments3(pointer) {
+function pointerSegments4(pointer) {
   if (!pointer.startsWith("/")) return void 0;
   const segments = pointer.slice(1).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((s) => s.length > 0 && !/^\d+$/.test(s)) ? segments : void 0;
@@ -76472,13 +77489,22 @@ function valueSchemaSites(manifest, defSchema, ctx) {
   if (!defSchema) return [];
   const host = ctx.valueSchemaHost ?? resourceLocalHost(ctx.types);
   const out = [];
-  for (const { scope, from } of valueSchemaSlots(defSchema)) {
+  for (const slot of valueSchemaSlots(defSchema)) {
+    const { scope, from } = slot;
     const label2 = describeValueSchemaLocation(from);
     for (const { schema: type, member } of valueSchemaTypes(manifest, from, host)) {
+      const keyedMaps = /* @__PURE__ */ new Set();
       for (const { path, value: value2 } of resolveScopeValues(manifest, scope)) {
         if (!member) {
           out.push({ path, value: value2, schema: type, from: label2 });
           continue;
+        }
+        const keyed = keyedMapAt(slot, path, member);
+        if (keyed && !keyedMaps.has(keyed.path)) {
+          keyedMaps.add(keyed.path);
+          const map3 = navigateConcretePath2(manifest, keyed.path);
+          const keys = keyedMapSchema(type, keyed.map.node, keyed.map.pattern, () => ({}));
+          if (keys && isWrittenMap(map3)) out.push({ path: keyed.path, value: map3, schema: keys, from: label2 });
         }
         const name2 = memberNameAt(manifest, path, member);
         const schema4 = name2 === void 0 ? void 0 : memberTypeOf(type, name2);
@@ -76487,6 +77513,9 @@ function valueSchemaSites(manifest, defSchema, ctx) {
     }
   }
   return out;
+}
+function isWrittenMap(value2) {
+  return value2 !== null && typeof value2 === "object" && !Array.isArray(value2) && !isTaggedSentinel(value2) && !isCompiledValue(value2);
 }
 function derivedSlotsOf(resource, ctx) {
   const manifest = resource;
@@ -76628,6 +77657,7 @@ function checkCallSite(site, manifest, types, defs, aliases, scopes, stepContext
     (path) => filled.push(path)
   );
   for (const issue of defs.validateResourceConfig(effective, contract.schema, standIns)) {
+    if (site.completed && missingRequired(issue) && containerOf(issue.path) === "") continue;
     const anchor = writtenAncestor(
       missingRequired(issue) ? containerOf(issue.path) : issue.path,
       filled
@@ -76674,46 +77704,29 @@ function retryFields(schema4) {
 }
 
 // ../../analyzer/nodejs/src/output-to-slot.ts
-var isSchema6 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-function pointerSegments4(pointer) {
+var isSchema10 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function pointerSegments5(pointer) {
   return pointer.slice(1).split("/").map((token) => token.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
-function derefLocal(node, document) {
-  const seen = /* @__PURE__ */ new Set();
-  let current = node;
-  while (typeof current.$ref === "string" && current.$ref.startsWith("#") && !seen.has(current)) {
-    seen.add(current);
-    const target = resolveSchemaPointer(document, current.$ref);
-    if (!isSchema6(target)) break;
-    current = target;
+function siblingAt2(enclosing, pointer, document, shapes) {
+  let at3 = { node: enclosing, document };
+  for (const segment of pointerSegments5(pointer)) {
+    if (!at3) return void 0;
+    const object = followSchemaReferences(at3.node, at3.document, shapes);
+    const next = propertySchemas(object.node).find(([key3]) => key3 === segment)?.[1];
+    at3 = isSchema10(next) ? { node: next, document: object.document } : void 0;
   }
-  return current;
-}
-function siblingAt(enclosing, pointer, document) {
-  let current = enclosing;
-  for (const segment of pointerSegments4(pointer)) {
-    if (!current) return void 0;
-    const next = propertySchemas(derefLocal(current, document)).find(([key3]) => key3 === segment)?.[1];
-    current = isSchema6(next) ? next : void 0;
-  }
-  return current ? derefLocal(current, document) : void 0;
+  return at3 ? followSchemaReferences(at3.node, at3.document, shapes).node : void 0;
 }
 function declaresMember(contract, member, shapes) {
   const root = rootOf(contract, shapes);
   return root !== void 0 && propertySchemas(root).some(([key3]) => key3 === member);
 }
 function rootOf(contract, shapes) {
-  const seen = /* @__PURE__ */ new Set();
-  let current = contract;
-  while (current && typeof current.$ref === "string" && !current.$ref.startsWith("#") && !seen.has(current)) {
-    seen.add(current);
-    const target = shapes(current.$ref);
-    current = isSchema6(target) ? target : void 0;
-  }
-  return current;
+  return followSchemaReferences(contract, void 0, shapes).node;
 }
 function outputToProblems(definition, schema4, resolve2, inputContractOf, shapes) {
-  if (!isSchema6(schema4)) return [];
+  if (!isSchema10(schema4)) return [];
   const document = schema4;
   const name2 = `${definition.kind} '${definition.metadata?.name}'`;
   const problems = [];
@@ -76727,7 +77740,7 @@ function outputToProblems(definition, schema4, resolve2, inputContractOf, shapes
         message: `${name2}: x-telo-ref at '${slotPath}' declares 'outputTo: { slot: ${outputTo.slot}, member: ${outputTo.member} }', but ${reason}.`
       });
     };
-    const target = siblingAt(enclosing, outputTo.slot, document);
+    const target = siblingAt2(enclosing, outputTo.slot, document, shapes);
     if (!target) return refuse3(`the object enclosing the slot declares nothing at '${outputTo.slot}'`);
     if (target === slotNode) return refuse3(`'${outputTo.slot}' names the slot itself`);
     const targetSlot = readRefSlot(target);
@@ -76744,17 +77757,17 @@ function outputToProblems(definition, schema4, resolve2, inputContractOf, shapes
     }
   };
   const visit4 = (node, path) => {
-    if (!isSchema6(node) || seen.has(node)) return;
+    if (!isSchema10(node) || seen.has(node)) return;
     seen.add(node);
-    if (isSchema6(node.properties)) {
+    if (isSchema10(node.properties)) {
       for (const [key3, child] of Object.entries(node.properties)) {
-        if (!isSchema6(child)) continue;
+        if (!isSchema10(child)) continue;
         const outputTo = readRefSlot(child)?.outputTo;
         if (outputTo) judge(node, child, `${path}.properties.${key3}`, outputTo);
       }
     }
     for (const map3 of ["properties", "patternProperties", "$defs", "definitions"]) {
-      if (!isSchema6(node[map3])) continue;
+      if (!isSchema10(node[map3])) continue;
       for (const [key3, child] of Object.entries(node[map3])) visit4(child, `${path}.${map3}.${key3}`);
     }
     visit4(node.additionalProperties, `${path}.additionalProperties`);
@@ -76779,7 +77792,7 @@ function withoutNull2(schema4) {
   for (const key3 of ["anyOf", "oneOf"]) {
     const branches = out[key3];
     if (!Array.isArray(branches)) continue;
-    const kept = branches.filter((branch) => !(isSchema6(branch) && branch.type === "null" && Object.keys(branch).length === 1));
+    const kept = branches.filter((branch) => !(isSchema10(branch) && branch.type === "null" && Object.keys(branch).length === 1));
     if (kept.length === branches.length) continue;
     if (kept.length === 0) return void 0;
     const { [key3]: _branches, ...rest } = out;
@@ -76793,7 +77806,7 @@ function outputToRefusal(produced2, consumed, member, shapes) {
   const presented = withoutNull2(produced2);
   const root = rootOf(consumed, shapes);
   const target = root ? propertySchemas(root).find(([key3]) => key3 === member)?.[1] : void 0;
-  if (!presented || !isSchema6(target)) return [];
+  if (!presented || !isSchema10(target)) return [];
   const { compatible, issues } = checkSchemaCompatibility(presented, target, shapes, ROLES2);
   return compatible ? [] : issues;
 }
@@ -77210,8 +78223,8 @@ function definitionFor(kind, defs, aliases, scopeResolver) {
     const d = defs.resolve(scoped);
     if (d) return d;
   }
-  const resolved = aliases.resolveKind(kind);
-  return resolved ? defs.resolve(resolved) : void 0;
+  const resolved2 = aliases.resolveKind(kind);
+  return resolved2 ? defs.resolve(resolved2) : void 0;
 }
 function defResolverFor(ctx) {
   return (kind, from) => definitionFor(
@@ -77666,15 +78679,15 @@ function raiseSites(schema4, data) {
   const walk7 = (node, value2, path) => {
     if (!isObject11(node) || value2 === void 0 || value2 === null) return;
     if (isObject11(value2) && seen.has(value2)) return;
-    const resolved = deref6(node);
+    const resolved2 = deref6(node);
     if (Array.isArray(value2)) {
-      if (isObject11(resolved.items)) value2.forEach((item, i) => walk7(resolved.items, item, `${path}[${i}]`));
+      if (isObject11(resolved2.items)) value2.forEach((item, i) => walk7(resolved2.items, item, `${path}[${i}]`));
       return;
     }
     if (!isObject11(value2)) return;
     seen.add(value2);
-    if (isObject11(resolved.properties)) {
-      for (const [key3, child] of Object.entries(resolved.properties)) {
+    if (isObject11(resolved2.properties)) {
+      for (const [key3, child] of Object.entries(resolved2.properties)) {
         if (!isObject11(child) || value2[key3] === void 0) continue;
         const codes = readRaises(child);
         if (codes) out.push({ holder: path, codes });
@@ -78256,8 +79269,8 @@ var CatchLadder = class {
       );
       if (targetManifest) return resolveThrowsUnion(targetManifest, ctx);
     }
-    const resolved = scopeResolver?.resolveKind(handlerRef.kind) ?? ctx.aliases.resolveKind(handlerRef.kind);
-    const def = ctx.defs.resolve(handlerRef.kind) ?? (resolved ? ctx.defs.resolve(resolved) : void 0);
+    const resolved2 = scopeResolver?.resolveKind(handlerRef.kind) ?? ctx.aliases.resolveKind(handlerRef.kind);
+    const def = ctx.defs.resolve(handlerRef.kind) ?? (resolved2 ? ctx.defs.resolve(resolved2) : void 0);
     const block = def ? throwsBlockOf(def, ctx) : void 0;
     if (!block) return { codes: /* @__PURE__ */ new Map(), unbounded: false };
     const codes = /* @__PURE__ */ new Map();
@@ -78299,29 +79312,29 @@ var outcomeListReads = () => [{ kind: "reference", keys: [], transitive: true, r
 // ../../analyzer/nodejs/src/application-source-slot.ts
 var APPLICATION_SOURCE_ANNOTATION = "x-telo-application-source";
 var APPLICATION_INPUT_BLOCKS = ["variables", "secrets", "ports", "needs"];
-var isPlainObject15 = (value2) => {
+var isPlainObject16 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
-function pointerSegments5(pointer) {
+function pointerSegments6(pointer) {
   if (typeof pointer !== "string" || !pointer.startsWith("/") || pointer === "/") return void 0;
   const segments = pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((segment) => segment !== "") ? segments : void 0;
 }
 function readFeeds(raw) {
-  if (!isPlainObject15(raw)) return void 0;
+  if (!isPlainObject16(raw)) return void 0;
   const feeds = {};
   for (const block of APPLICATION_INPUT_BLOCKS) {
-    const segments = pointerSegments5(raw[block]);
+    const segments = pointerSegments6(raw[block]);
     if (segments) feeds[block] = segments;
   }
   return feeds;
 }
 function readApplicationSourceSlot(schema4) {
-  if (!isPlainObject15(schema4) || !isPlainObject15(schema4.properties)) return void 0;
+  if (!isPlainObject16(schema4) || !isPlainObject16(schema4.properties)) return void 0;
   for (const [field, property] of Object.entries(schema4.properties)) {
-    if (!isPlainObject15(property) || !(APPLICATION_SOURCE_ANNOTATION in property)) continue;
+    if (!isPlainObject16(property) || !(APPLICATION_SOURCE_ANNOTATION in property)) continue;
     const feeds = readFeeds(property[APPLICATION_SOURCE_ANNOTATION]);
     if (feeds) return { field, feeds };
   }
@@ -78330,7 +79343,7 @@ function readApplicationSourceSlot(schema4) {
 function valueAtKeys(holder, keys) {
   let value2 = holder;
   for (const key3 of keys) {
-    if (!isPlainObject15(value2)) return void 0;
+    if (!isPlainObject16(value2)) return void 0;
     value2 = value2[key3];
   }
   return value2;
@@ -78356,7 +79369,7 @@ function applicationSourceCandidates(manifests, fieldOf) {
       node.forEach(visit4);
       return;
     }
-    if (!isPlainObject15(node)) return;
+    if (!isPlainObject16(node)) return;
     if (typeof node.kind === "string") {
       const field = fieldOf(node.kind);
       const source = field !== void 0 ? node[field] : void 0;
@@ -78380,11 +79393,11 @@ var SCHEMA_VALUES = [
 ];
 var SCHEMA_LISTS = ["oneOf", "anyOf", "allOf", "items"];
 var SHAPE = `The annotation is { variables?, secrets?, ports?, needs? }, each a JSON Pointer from the resource root to the map that feeds that block of the child application.`;
-var quoted = (names) => names.map((name2) => `'${name2}'`).join(", ");
+var quoted2 = (names) => names.map((name2) => `'${name2}'`).join(", ");
 function declaresProperty(schema4, keys) {
   let node = schema4;
   for (const key3 of keys) {
-    if (!isPlainObject15(node) || !isPlainObject15(node.properties) || !(key3 in node.properties)) {
+    if (!isPlainObject16(node) || !isPlainObject16(node.properties) || !(key3 in node.properties)) {
       return false;
     }
     node = node.properties[key3];
@@ -78401,7 +79414,7 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
     const where = render2(path);
     problems.push({ path: where, message: `'${kind}' declares '${where}': ${detail}` });
   };
-  const root = isPlainObject15(schema4) ? schema4 : void 0;
+  const root = isPlainObject16(schema4) ? schema4 : void 0;
   let annotated;
   const judge = (property, path, field) => {
     const annotationPath = [...path, APPLICATION_SOURCE_ANNOTATION];
@@ -78433,7 +79446,7 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
       );
     }
     const raw = property[APPLICATION_SOURCE_ANNOTATION];
-    if (!isPlainObject15(raw)) {
+    if (!isPlainObject16(raw)) {
       refuse3(annotationPath, `it must be an object. ${SHAPE}`);
       return;
     }
@@ -78443,14 +79456,14 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
     if (unknown.length > 0) {
       refuse3(
         annotationPath,
-        `${unknown.length === 1 ? "key" : "keys"} ${quoted(unknown)} ${unknown.length === 1 ? "is" : "are"} read by nothing. Known: ${APPLICATION_INPUT_BLOCKS.join(", ")}.`
+        `${unknown.length === 1 ? "key" : "keys"} ${quoted2(unknown)} ${unknown.length === 1 ? "is" : "are"} read by nothing. Known: ${APPLICATION_INPUT_BLOCKS.join(", ")}.`
       );
     }
     const targets = /* @__PURE__ */ new Map();
     for (const block of APPLICATION_INPUT_BLOCKS) {
       if (raw[block] === void 0) continue;
       const blockPath = [...annotationPath, block];
-      const segments = pointerSegments5(raw[block]);
+      const segments = pointerSegments6(raw[block]);
       if (!segments) {
         refuse3(
           blockPath,
@@ -78477,11 +79490,11 @@ function applicationSourceAnnotationProblems(kind, schema4, at3 = ["schema"]) {
   };
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path, field) => {
-    if (!isPlainObject15(node) || seen.has(node)) return;
+    if (!isPlainObject16(node) || seen.has(node)) return;
     seen.add(node);
     if (APPLICATION_SOURCE_ANNOTATION in node) judge(node, path, field);
     for (const key3 of SCHEMA_MAPS) {
-      if (isPlainObject15(node[key3])) {
+      if (isPlainObject16(node[key3])) {
         for (const [name2, child] of Object.entries(node[key3])) {
           visit4(child, [...path, key3, name2], node === root && key3 === "properties" ? name2 : void 0);
         }
@@ -79179,9 +80192,9 @@ function readModuleSources(ownerJson, options = {}) {
     }
     const linkTargets = /* @__PURE__ */ new Map();
     for (const link of links) {
-      const resolved = resolveLinkTarget(link.path, link.target);
+      const resolved2 = resolveLinkTarget(link.path, link.target);
       const targetAt = `${at3}.entries.${link.key}.target`;
-      if (resolved === link.path) {
+      if (resolved2 === link.path) {
         problem(
           "SOURCE_LINK_CYCLE",
           targetAt,
@@ -79190,17 +80203,17 @@ function readModuleSources(ownerJson, options = {}) {
         valid = false;
         continue;
       }
-      if (resolved === void 0 || !entryPaths.has(resolved)) {
+      if (resolved2 === void 0 || !entryPaths.has(resolved2)) {
         problem(
           "SOURCE_LINK_TARGET_UNRESOLVED",
           targetAt,
-          `${label2} entry '${link.key}': link target '${link.target}' resolves, relative to the link's directory, to ${resolved === void 0 ? "a path outside the module" : `'${resolved}'`}, which is not another entry of this source.`
+          `${label2} entry '${link.key}': link target '${link.target}' resolves, relative to the link's directory, to ${resolved2 === void 0 ? "a path outside the module" : `'${resolved2}'`}, which is not another entry of this source.`
         );
         valid = false;
         continue;
       }
-      linkTargets.set(link.path, resolved);
-      entries.push({ kind: "link", key: link.key, path: link.path, target: link.target, resolved });
+      linkTargets.set(link.path, resolved2);
+      entries.push({ kind: "link", key: link.key, path: link.path, target: link.target, resolved: resolved2 });
     }
     for (const link of links) {
       if (!linkTargets.has(link.path)) continue;
@@ -80772,7 +81785,7 @@ function applicationsOf(declarations, resolve2, scope) {
   for (const declaration of declarations) visit4(declaration.manifest, declaration.type, []);
   return out;
 }
-function referenceTarget(value2) {
+function referenceTarget2(value2) {
   if (isRefSentinel(value2)) {
     const target = refSentinelTarget2(value2);
     return target ? { name: target.name, ...target.alias ? { alias: target.alias } : {} } : void 0;
@@ -80799,7 +81812,7 @@ function referencesOf(declarations, bodies, resolve2, sitesOf2, needsFeedOf) {
         continue;
       }
       if (site.refs.length === 0) continue;
-      const target = referenceTarget(site.data);
+      const target = referenceTarget2(site.data);
       if (!target) {
         nested(site.data, at3);
         continue;
@@ -82083,7 +83096,7 @@ function completeAssignment(configurations, picked) {
   }
   return out;
 }
-function alternativesOf4(site, declaration) {
+function alternativesOf5(site, declaration) {
   const out = [];
   for (const [id] of branchesOf(site)) {
     const key3 = id.startsWith("case:") ? id.slice("case:".length) : id;
@@ -82120,7 +83133,7 @@ function annotateChoices(graph, reading, assignment) {
     const choice = {
       path: site.declaration ? "" : pathOf2(site.keys),
       tag: site.tag,
-      alternatives: alternativesOf4(site, site.declaration),
+      alternatives: alternativesOf5(site, site.declaration),
       selected: typeof branch === "string" && !branch.startsWith("\0") ? branch.startsWith("case:") ? branch.slice("case:".length) : branch : site.tag === "if" ? ABSENT_ALTERNATIVE : null
     };
     if (site.declaration) node.choice = choice;
@@ -82689,6 +83702,47 @@ function reasonOf(cause) {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
+// ../../analyzer/nodejs/src/pointer-base-fragments.ts
+var isObject13 = (value2) => value2 !== null && typeof value2 === "object" && !Array.isArray(value2);
+function referencedShapes(node, out, seen) {
+  if (!node || typeof node !== "object" || seen.has(node)) return out;
+  seen.add(node);
+  if (Array.isArray(node)) {
+    for (const item of node) referencedShapes(item, out, seen);
+    return out;
+  }
+  const record = node;
+  if (typeof record.$ref === "string") {
+    const { shape } = schemaReferenceParts(record.$ref);
+    if (shape !== void 0) out.add(shape);
+  }
+  for (const value2 of Object.values(record)) referencedShapes(value2, out, seen);
+  return out;
+}
+var hoistedDefsOf = (document) => isObject13(document.$defs) ? Object.entries(document.$defs).filter(([key3]) => isHoistedFragmentDefKey(key3)) : [];
+function withReachedFragmentDefs(schema4, lookup) {
+  if (!isObject13(schema4)) return schema4;
+  const own2 = new Set(hoistedDefsOf(schema4).map(([key3]) => key3));
+  const added = {};
+  const visited = /* @__PURE__ */ new Set();
+  const pending = [...referencedShapes(schema4, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set())];
+  while (pending.length > 0) {
+    const id = pending.pop();
+    if (visited.has(id)) continue;
+    visited.add(id);
+    const document = lookup(id);
+    if (!isObject13(document) || document === schema4) continue;
+    for (const [key3, body2] of hoistedDefsOf(document)) {
+      if (!own2.has(key3) && !(key3 in added)) added[key3] = body2;
+    }
+    for (const next of referencedShapes(document, /* @__PURE__ */ new Set(), /* @__PURE__ */ new Set())) {
+      if (!visited.has(next)) pending.push(next);
+    }
+  }
+  if (Object.keys(added).length === 0) return schema4;
+  return { ...schema4, $defs: { ...isObject13(schema4.$defs) ? schema4.$defs : {}, ...added } };
+}
+
 // ../../analyzer/nodejs/src/definition-registry.ts
 function shapeId(ref, module, scope) {
   if (parseCanonicalTypeSchemaId(ref)) return ref;
@@ -82837,7 +83891,7 @@ var DefinitionRegistry = class {
     if (layer && !layer.shared(id)) {
       if (layer.registered.has(id)) return true;
       const store = this.layerStore(layer);
-      const registered = schemaWithTagsAsText(schema4);
+      const registered = schemaWithTagsAsText(this.withFragments(schema4));
       try {
         store.ajv.addSchema(registered, id, void 0, true);
       } catch {
@@ -82883,6 +83937,11 @@ var DefinitionRegistry = class {
       this.namedShapes.set(id, schema4);
     }
     this.clearReaches();
+  }
+  /** `schema` carrying the hoisted fragments of every named shape it reaches,
+   *  announced or registered, which a pointer `$ref` based in it needs. */
+  withFragments(schema4) {
+    return withReachedFragmentDefs(schema4, (id) => this.namedShapeFor(id));
   }
   /** The announced or registered shape at `id`: the open layer's first. */
   namedShapeFor(id) {
@@ -82955,7 +84014,7 @@ var DefinitionRegistry = class {
    * which wraps `compile` for this same reason.
    */
   tryAddSchema(schema4, id, trusted = false) {
-    const registered = schemaWithTagsAsText(schema4);
+    const registered = schemaWithTagsAsText(this.withFragments(schema4));
     try {
       this.sharedStore.ajv.addSchema(registered, id, void 0, !trusted);
     } catch {
@@ -82981,7 +84040,7 @@ var DefinitionRegistry = class {
       for (const { schema: schema4, id } of this.registeredSchemas) ajv3.addSchema(schema4, id, void 0, false);
       if (store !== this.sharedStore) {
         for (const [id, schema4] of this.layer.registered) {
-          ajv3.addSchema(schemaWithTagsAsText(schema4), id, void 0, false);
+          ajv3.addSchema(schemaWithTagsAsText(this.withFragments(schema4)), id, void 0, false);
         }
       }
       const validator = new SchemaNodeValidator(ajv3, {
@@ -83064,7 +84123,7 @@ var DefinitionRegistry = class {
     const cached = store.compiled.get(schema4);
     if (cached) return cached;
     try {
-      const validate2 = store.ajv.compile(schemaWithTagsAsText(schema4));
+      const validate2 = store.ajv.compile(schemaWithTagsAsText(this.withFragments(schema4)));
       store.compiled.set(schema4, validate2);
       return validate2;
     } catch (err) {
@@ -83081,7 +84140,7 @@ var DefinitionRegistry = class {
    *  resource of that kind. */
   schemaCompileError(schema4) {
     try {
-      this.ajv.compile(schemaWithTagsAsText(schema4));
+      this.ajv.compile(schemaWithTagsAsText(this.withFragments(schema4)));
       return void 0;
     } catch (err) {
       this.refuseWithheld(missingSchemaOf2(err));
@@ -83163,15 +84222,15 @@ var DefinitionRegistry = class {
   effectiveSchemaOf(definition) {
     if (!definition) return void 0;
     const { name: name2, module: mod } = definition.metadata;
-    const resolved = this.effectiveSchema(mod ? `${mod}.${name2}` : name2);
-    return resolved ?? definition.schema;
+    const resolved2 = this.effectiveSchema(mod ? `${mod}.${name2}` : name2);
+    return resolved2 ?? definition.schema;
   }
   /** The registry key a resource's kind resolves to — the kind as written
    *  first, then through `scope` (the declaring module's alias table). */
   kindKeyOf(kind, scope) {
     if (this.defs.has(kind)) return kind;
-    const resolved = scope?.resolveKind(kind);
-    return resolved && this.defs.has(resolved) ? resolved : void 0;
+    const resolved2 = scope?.resolveKind(kind);
+    return resolved2 && this.defs.has(resolved2) ? resolved2 : void 0;
   }
   /**
    * Where a resource's kind reaches (`reference-reach.ts`): the kind's
@@ -83896,8 +84955,8 @@ var AnalysisRegistry = class _AnalysisRegistry {
   }
   resolveDefinition(kind) {
     const ctx = this._context();
-    const resolved = ctx.aliases?.resolveKind(kind);
-    return ctx.definitions?.resolve(kind) ?? (resolved ? ctx.definitions?.resolve(resolved) : void 0);
+    const resolved2 = ctx.aliases?.resolveKind(kind);
+    return ctx.definitions?.resolve(kind) ?? (resolved2 ? ctx.definitions?.resolve(resolved2) : void 0);
   }
   /** Resolve a kind in a named module's scope. The entry point for walking an
    *  `extends` chain from outside it (the kernel's contract binding): aliases are
@@ -84203,12 +85262,12 @@ function contextFillCycles(owner, host) {
           return void 0;
         });
         const reads = [];
-        const readsIn = (item, m, prefix, value2, carriers, seen) => {
+        const readsIn = (item, m, prefix, value2, carriers2, seen) => {
           for (const leaf of celLeaves(value2, prefix)) {
             const chain = PLAIN_CHAIN.exec(leaf.source);
             if (!chain) continue;
             const holder = ownersAt(m, leaf.path).get(chain[1]);
-            if (!carriers(chain[1], holder)) continue;
+            if (!carriers2(chain[1], holder)) continue;
             reads.push({ item, member: chain[2], manifest: m, path: leaf.path, chain: leaf.source });
           }
           for (const edge of host.graph.edgesFrom(nodeIdFor(m))) {
@@ -84216,7 +85275,7 @@ function contextFillCycles(owner, host) {
             const node = host.graph.nodes.get(edge.to);
             if (node?.type !== "resource" || seen.has(node.manifest)) continue;
             const forwarded = new Set(
-              [...ownersAt(m, edge.path)].filter(([name2, holder]) => carriers(name2, holder)).map(([name2]) => name2)
+              [...ownersAt(m, edge.path)].filter(([name2, holder]) => carriers2(name2, holder)).map(([name2]) => name2)
             );
             if (forwarded.size === 0) continue;
             readsIn(
@@ -84738,15 +85797,15 @@ function addStartupStatusReadEdges(nodes, deps, registry, aliases, aliasesByModu
 
 // ../../analyzer/nodejs/src/text-schemas.ts
 var CONTRACT_KEYS = /* @__PURE__ */ new Set(["inputType", "outputType"]);
-var isPlainObject16 = (value2) => {
+var isPlainObject17 = (value2) => {
   if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
   const prototype = Object.getPrototypeOf(value2);
   return prototype === Object.prototype || prototype === null;
 };
 function inlineSchemaOf(value2) {
-  if (!isPlainObject16(value2)) return void 0;
+  if (!isPlainObject17(value2)) return void 0;
   if (typeof value2.kind === "string") {
-    return isResolvedReference(value2) || !isPlainObject16(value2.schema) ? void 0 : value2.schema;
+    return isResolvedReference(value2) || !isPlainObject17(value2.schema) ? void 0 : value2.schema;
   }
   return value2;
 }
@@ -84774,7 +85833,7 @@ function schemaValueSites(kindSchema, manifest, isExpression4) {
       entered.add(key3);
       const fragment = manifestFragmentOf(declared);
       if (fragment === "KindSchema" || fragment === "JsonSchema7") {
-        if (isPlainObject16(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
+        if (isPlainObject17(value2)) add(fragment === "KindSchema" ? "kind" : "data", path, value2);
         return;
       }
       if (fragment === "CallableParams" && Array.isArray(value2)) add("params", path, value2);
@@ -84787,20 +85846,20 @@ function schemaValueSites(kindSchema, manifest, isExpression4) {
         }
       }
       if (typeof declared.$ref === "string" && declared.$ref.startsWith("#")) {
-        walk7(resolveSchemaPointer(kindSchema, declared.$ref), value2, path);
+        walk7(resolveSchemaReference(declared.$ref, kindSchema, void 0)?.node, value2, path);
       }
       for (const union2 of ["oneOf", "anyOf", "allOf"]) {
         if (Array.isArray(declared[union2])) for (const branch of declared[union2]) walk7(branch, value2, path);
       }
       if (Array.isArray(value2)) {
-        if (isPlainObject16(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
+        if (isPlainObject17(declared.items)) value2.forEach((item, index) => walk7(declared.items, item, [...path, index]));
         return;
       }
-      if (!isPlainObject16(value2)) return;
-      const properties = isPlainObject16(declared.properties) ? declared.properties : {};
+      if (!isPlainObject17(value2)) return;
+      const properties = isPlainObject17(declared.properties) ? declared.properties : {};
       for (const [name2, child] of Object.entries(value2)) {
         if (name2 in properties) walk7(properties[name2], child, [...path, name2]);
-        else if (isPlainObject16(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
+        else if (isPlainObject17(declared.additionalProperties)) walk7(declared.additionalProperties, child, [...path, name2]);
       }
     };
     walk7(kindSchema, manifest, []);
@@ -84811,7 +85870,7 @@ function schemaValueSites(kindSchema, manifest, isExpression4) {
       value2.forEach((item, index) => contracts(item, [...path, index]));
       return;
     }
-    if (!isPlainObject16(value2)) return;
+    if (!isPlainObject17(value2)) return;
     for (const [key3, child] of Object.entries(value2)) {
       if (CONTRACT_KEYS.has(key3)) {
         const inline = inlineSchemaOf(child);
@@ -84847,12 +85906,12 @@ function schemaNodes(schema4) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path) => {
-    if (!isPlainObject16(node) || seen.has(node)) return;
+    if (!isPlainObject17(node) || seen.has(node)) return;
     seen.add(node);
     out.push({ node, path });
     for (const key3 of SUBSCHEMA_MAPS) {
       const map3 = node[key3];
-      if (!isPlainObject16(map3)) continue;
+      if (!isPlainObject17(map3)) continue;
       for (const [name2, child] of Object.entries(map3)) {
         if ((key3 === "$defs" || key3 === "definitions") && isHoistedFragmentDefKey(name2)) continue;
         visit4(child, [...path, key3, name2]);
@@ -84873,7 +85932,7 @@ function textContextOf(node) {
   return typeof context === "string" && context !== "" ? context : null;
 }
 function schemaTexts(schema4) {
-  if (!isPlainObject16(schema4)) return [];
+  if (!isPlainObject17(schema4)) return [];
   const cached = schemaTextMemo.get(schema4);
   if (cached) return cached;
   const out = [];
@@ -84914,12 +85973,12 @@ function shapeProblem(annotation, value2, path) {
 }
 function propertiesOf(node, root) {
   let at3 = node;
-  for (let hops = 0; hops < 32 && isPlainObject16(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
-    at3 = resolveSchemaPointer(root, at3.$ref);
+  for (let hops = 0; hops < 32 && isPlainObject17(at3) && typeof at3.$ref === "string" && at3.$ref.startsWith("#"); hops++) {
+    at3 = resolveSchemaReference(at3.$ref, root, void 0)?.node;
   }
-  return isPlainObject16(at3) && isPlainObject16(at3.properties) ? at3.properties : void 0;
+  return isPlainObject17(at3) && isPlainObject17(at3.properties) ? at3.properties : void 0;
 }
-function declaresObject(node) {
+function declaresObject2(node) {
   const type = node.type;
   return type === "object" || Array.isArray(type) && type.includes("object");
 }
@@ -84934,8 +85993,8 @@ function schemaAt(start, segments, root) {
 }
 function isTextNode(node, root) {
   if (isTextSchema(node)) return true;
-  if (isPlainObject16(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
-    return isTextSchema(resolveSchemaPointer(root, node.$ref));
+  if (isPlainObject17(node) && typeof node.$ref === "string" && node.$ref.startsWith("#")) {
+    return isTextSchema(resolveSchemaReference(node.$ref, root, void 0)?.node);
   }
   return false;
 }
@@ -84959,7 +86018,7 @@ function textAnnotationProblems(site) {
     }
     const at3 = [...path, TEXT_VALUES_FOR_ANNOTATION];
     const relation = (message) => problems.push({ code: "TEXT_VALUES_FOR_INVALID", message, path: at3 });
-    if (!declaresObject(node)) {
+    if (!declaresObject2(node)) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION} is on a node that holds no object: a message's values are an object keyed by placeholder name`);
       return;
     }
@@ -85001,13 +86060,13 @@ function paramsValuesForProblems(params) {
   const problems = [];
   const byName2 = /* @__PURE__ */ new Map();
   for (const param of params) {
-    if (isPlainObject16(param) && typeof param.name === "string" && isPlainObject16(param.schema)) {
+    if (isPlainObject17(param) && typeof param.name === "string" && isPlainObject17(param.schema)) {
       byName2.set(param.name, param.schema);
     }
   }
   const paired = /* @__PURE__ */ new Map();
   params.forEach((param, index) => {
-    if (!isPlainObject16(param) || !isPlainObject16(param.schema)) return;
+    if (!isPlainObject17(param) || !isPlainObject17(param.schema)) return;
     const schema4 = param.schema;
     if (!(TEXT_VALUES_FOR_ANNOTATION in schema4)) return;
     const path = [index, "schema"];
@@ -85019,7 +86078,7 @@ function paramsValuesForProblems(params) {
     }
     const at3 = [...path, TEXT_VALUES_FOR_ANNOTATION];
     const relation = (message) => problems.push({ code: "TEXT_VALUES_FOR_INVALID", message, path: at3 });
-    if (!declaresObject(schema4)) {
+    if (!declaresObject2(schema4)) {
       relation(`${TEXT_VALUES_FOR_ANNOTATION} is on a parameter that holds no object: a message's values are an object keyed by placeholder name`);
       return;
     }
@@ -85048,7 +86107,7 @@ function textParameters(params) {
   params.forEach((param, index) => {
     if (typeof param.name !== "string" || !isTextSchema(param.schema)) return;
     const pairedAt = params.findIndex((other) => {
-      const segments = isPlainObject16(other.schema) ? pointerSegments(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
+      const segments = isPlainObject17(other.schema) ? pointerSegments(other.schema[TEXT_VALUES_FOR_ANNOTATION]) : void 0;
       return segments?.length === 1 && segments[0] === param.name;
     });
     const paired = pairedAt === -1 ? void 0 : params[pairedAt];
@@ -85062,7 +86121,7 @@ function textParameters(params) {
 }
 function textContextNodes(value2, path = []) {
   if (Array.isArray(value2)) return value2.flatMap((item, index) => textContextNodes(item, [...path, index]));
-  if (!isPlainObject16(value2)) return [];
+  if (!isPlainObject17(value2)) return [];
   const own2 = TEXT_CONTEXT_ANNOTATION in value2 ? [{ node: value2, path }] : [];
   return [...own2, ...Object.entries(value2).flatMap(([key3, child]) => textContextNodes(child, [...path, key3]))];
 }
@@ -85312,12 +86371,12 @@ function readAlong(root, path) {
     const next = [];
     for (const node of nodes) {
       if (typeof segment === "number") {
-        if (isSchema7(node.items)) next.push(node.items);
+        if (isSchema11(node.items)) next.push(node.items);
         continue;
       }
       const property = node.properties?.[segment];
-      if (isSchema7(property)) next.push(property);
-      else if (isSchema7(node.additionalProperties)) next.push(node.additionalProperties);
+      if (isSchema11(property)) next.push(property);
+      else if (isSchema11(node.additionalProperties)) next.push(node.additionalProperties);
     }
     if (next.length === 0) return {};
     nodes = expand2(next, root);
@@ -85335,14 +86394,14 @@ function expand2(nodes, root) {
   const out = [];
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node) => {
-    const resolved = resolveLocalRef2(node, root) ?? node;
-    if (seen.has(resolved)) return;
-    seen.add(resolved);
-    out.push(resolved);
+    const resolved2 = resolveLocalRef2(node, root) ?? node;
+    if (seen.has(resolved2)) return;
+    seen.add(resolved2);
+    out.push(resolved2);
     for (const key3 of ["oneOf", "anyOf", "allOf"]) {
-      const branches = resolved[key3];
+      const branches = resolved2[key3];
       if (!Array.isArray(branches)) continue;
-      for (const branch of branches) if (isSchema7(branch)) visit4(branch);
+      for (const branch of branches) if (isSchema11(branch)) visit4(branch);
     }
   };
   for (const node of nodes) visit4(node);
@@ -85362,16 +86421,16 @@ function segmentsOf(path) {
   }
   return out;
 }
-function isSchema7(value2) {
+function isSchema11(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 
 // ../../analyzer/nodejs/src/referrer-rule.ts
-function isObject13(value2) {
+function isObject14(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function readRawReferrerRules(schema4) {
-  if (!isObject13(schema4)) return void 0;
+  if (!isObject14(schema4)) return void 0;
   return schema4[REFERRER_RULES_ANNOTATION];
 }
 function readReferrerRules(schema4) {
@@ -85379,7 +86438,7 @@ function readReferrerRules(schema4) {
   if (!Array.isArray(raw)) return [];
   const rules = [];
   raw.forEach((entry2, index) => {
-    if (!isObject13(entry2)) return;
+    if (!isObject14(entry2)) return;
     const condition = celSourceOf(entry2.condition);
     const { code, message, referrer, peers, coReferrers } = entry2;
     if (!condition || typeof code !== "string" || typeof message !== "string") return;
@@ -85427,7 +86486,7 @@ function rewriteReferrerRuleKinds(node, rewrite) {
   const raw = node[REFERRER_RULES_ANNOTATION];
   if (!Array.isArray(raw)) return;
   for (const entry2 of raw) {
-    if (!isObject13(entry2) || typeof entry2.referrer !== "string") continue;
+    if (!isObject14(entry2) || typeof entry2.referrer !== "string") continue;
     const rewritten = rewrite(entry2.referrer);
     if (rewritten !== void 0) entry2.referrer = rewritten;
   }
@@ -86776,7 +87835,7 @@ function validateZoneSlotDeclarations(definition) {
 
 // ../../analyzer/nodejs/src/validate-schema-projection.ts
 var PROJECTION = "x-telo-schema-projection";
-function isObject14(value2) {
+function isObject15(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 var PROJECTION_FROM2 = "x-telo-schema-projection-from";
@@ -86799,7 +87858,7 @@ function derivationIssues(manifest, kindDocument) {
       node.forEach((item, index) => visit4(item, `${path}[${index}]`, [...segments, index]));
       return;
     }
-    if (!isObject14(node)) return;
+    if (!isObject15(node)) return;
     for (const [key3, value2] of Object.entries(node)) {
       const at3 = path === "" ? key3 : `${path}.${key3}`;
       if (key3 === PROJECTION_FROM2) {
@@ -86831,7 +87890,7 @@ function projectionIssues(manifest) {
       )
     );
   }
-  if (!isObject14(raw)) {
+  if (!isObject15(raw)) {
     return [
       ...issues,
       issue(
@@ -86881,7 +87940,7 @@ function projectionIssues(manifest) {
   }
   const reference = raw.reference;
   if (reference !== void 0) {
-    if (!isObject14(reference)) {
+    if (!isObject15(reference)) {
       issues.push(
         issue(
           "SCHEMA_PROJECTION_INVALID",
@@ -86967,7 +88026,7 @@ function modifierDefaultProblems(schema4, projection) {
   return problems;
 }
 function isArrayCollection(collection) {
-  return !!collection && isObject14(collection.items) && !isObject14(collection.additionalProperties);
+  return !!collection && isObject15(collection.items) && !isObject15(collection.additionalProperties);
 }
 function nestedProblem(nested, schema4, projection) {
   if (nested === void 0) return void 0;
@@ -87001,7 +88060,7 @@ function sameShape(a, b, seen = /* @__PURE__ */ new Map()) {
 }
 
 // ../../analyzer/nodejs/src/validate-referrer-rules.ts
-function isObject15(value2) {
+function isObject16(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 function validateReferrerRuleDeclarations(manifest, context = {}) {
@@ -87020,7 +88079,7 @@ function validateReferrerRuleDeclarations(manifest, context = {}) {
   const seen = /* @__PURE__ */ new Map();
   raw.forEach((entry2, index) => {
     const at3 = `${base}[${index}]`;
-    if (!isObject15(entry2)) {
+    if (!isObject16(entry2)) {
       issue(at3, "A rule must be an object with 'condition', 'code' and 'message'.");
       return;
     }
@@ -87093,7 +88152,7 @@ function referrerRuleCallIssues(manifest, moduleNames, flagsOf) {
   if (!Array.isArray(raw)) return [];
   const issues = [];
   raw.forEach((entry2, index) => {
-    const condition = isObject15(entry2) ? celSourceOf(entry2.condition) : void 0;
+    const condition = isObject16(entry2) ? celSourceOf(entry2.condition) : void 0;
     if (!condition) return;
     for (const message of conditionCallRefusals(condition, moduleNames, flagsOf)) {
       issues.push({
@@ -87413,388 +88472,6 @@ function reportUnexercisedReferrerRule(definition, rule) {
   };
 }
 
-// ../../analyzer/nodejs/src/path-params-slot.ts
-var PATH_PARAMS_FOR_ANNOTATION = "x-telo-path-params-for";
-var ANNOTATION_KEYS2 = ["template", "through"];
-var VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
-var ABSOLUTE_URL = /^(https?):\/\/([^/?#]*)(.*)$/i;
-var MAILTO = /^mailto:(.*)$/i;
-var isSchema8 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
-var isPlainObject17 = (value2) => {
-  if (!value2 || typeof value2 !== "object" || Array.isArray(value2)) return false;
-  const prototype = Object.getPrototypeOf(value2);
-  return prototype === Object.prototype || prototype === null;
-};
-function readPathTemplate(template) {
-  let rest = template;
-  const absolute = ABSOLUTE_URL.exec(template);
-  if (absolute) {
-    if (/[{}]/.test(absolute[2])) {
-      return { invalid: `its authority '${absolute[2]}' holds a variable \u2014 only the path segments after the authority are variables` };
-    }
-    rest = absolute[3];
-  } else {
-    const mailto = MAILTO.exec(template);
-    if (mailto) rest = mailto[1];
-  }
-  const tailAt = rest.search(/[?#]/);
-  const path = tailAt === -1 ? rest : rest.slice(0, tailAt);
-  const tail = tailAt === -1 ? "" : rest.slice(tailAt);
-  if (/[{}]/.test(tail)) {
-    return { invalid: `its query or fragment '${tail}' holds '{' or '}' \u2014 a variable is a whole path segment` };
-  }
-  const variables = [];
-  for (const segment of path.split("/")) {
-    if (!/[{}]/.test(segment)) continue;
-    const whole = /^\{([^{}]*)\}$/.exec(segment);
-    if (!whole) {
-      return { invalid: `segment '${segment}' holds a variable beside other text \u2014 a variable is a whole segment, '/{<name>}/'` };
-    }
-    const name2 = whole[1];
-    if (!VARIABLE_NAME.test(name2)) {
-      return { invalid: `'{${name2}}' names no variable \u2014 a name matches /^[A-Za-z_][A-Za-z0-9_]*$/` };
-    }
-    if (variables.includes(name2)) {
-      return { invalid: `'{${name2}}' appears twice \u2014 each variable names one segment` };
-    }
-    variables.push(name2);
-  }
-  return { variables };
-}
-function throughSegments(value2) {
-  if (typeof value2 !== "string" || value2 === "") return void 0;
-  return value2.startsWith("/") ? pointerSegments(value2) : [value2];
-}
-function readAnnotation(raw) {
-  if (!isPlainObject17(raw)) return void 0;
-  const template = pointerSegments(raw.template);
-  if (!template || template.length === 0 || template.some((segment) => segment === "")) return void 0;
-  const through = raw.through === void 0 ? void 0 : throughSegments(raw.through);
-  if (raw.through !== void 0 && !through) return void 0;
-  return { template, ...through ? { through } : {} };
-}
-function isExpression2(value2) {
-  return isCompiledValue(value2) || isTaggedSentinel(value2) && !isRefSentinel(value2);
-}
-function pathParamsSites(schema4, data, external) {
-  if (!declaresPathParams(schema4, external)) return [];
-  const out = /* @__PURE__ */ new Map();
-  const seen = /* @__PURE__ */ new Map();
-  const walk7 = (node, root, value2, path, holder) => {
-    if (!isSchema8(node) || value2 === void 0) return;
-    const key3 = renderValuePath(path);
-    const entered = seen.get(node) ?? /* @__PURE__ */ new Set();
-    if (entered.has(key3)) return;
-    entered.add(key3);
-    seen.set(node, entered);
-    const annotation = readAnnotation(node[PATH_PARAMS_FOR_ANNOTATION]);
-    if (annotation && holder && !out.has(key3)) {
-      let template = holder.value;
-      for (const segment of annotation.template) template = isPlainObject17(template) ? template[segment] : void 0;
-      out.set(key3, {
-        path,
-        holderPath: holder.path,
-        templatePath: [...holder.path, ...annotation.template],
-        params: value2,
-        template,
-        ...annotation.through ? { through: annotation.through } : {}
-      });
-    }
-    if (typeof node.$ref === "string") {
-      const target = resolveRefIn(node, root, external);
-      if (target.schema !== node) walk7(target.schema, target.root, value2, path, holder);
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(node[union2])) for (const branch of node[union2]) walk7(branch, root, value2, path, holder);
-    }
-    if (Array.isArray(value2)) {
-      value2.forEach((item, index) => {
-        const items = Array.isArray(node.items) ? node.items[index] : node.items;
-        walk7(items, root, item, [...path, index], void 0);
-      });
-      return;
-    }
-    if (!isPlainObject17(value2)) return;
-    const properties = isSchema8(node.properties) ? node.properties : {};
-    const here = { value: value2, path };
-    for (const [name2, child] of Object.entries(properties)) {
-      if (Object.hasOwn(value2, name2) || !declaresPathParams(child, external)) continue;
-      walk7(child, root, {}, [...path, name2], here);
-    }
-    for (const [name2, child] of Object.entries(value2)) {
-      if (Object.hasOwn(properties, name2)) {
-        walk7(properties[name2], root, child, [...path, name2], here);
-        continue;
-      }
-      const pattern2 = Object.entries(isSchema8(node.patternProperties) ? node.patternProperties : {}).find(
-        ([source]) => new RegExp(source, "u").test(name2)
-      );
-      if (pattern2) walk7(pattern2[1], root, child, [...path, name2], void 0);
-      else if (isSchema8(node.additionalProperties)) walk7(node.additionalProperties, root, child, [...path, name2], void 0);
-    }
-  };
-  walk7(schema4, schema4, data, [], void 0);
-  return [...out.values()];
-}
-var declaring2 = /* @__PURE__ */ new WeakMap();
-function declaresPathParams(schema4, external) {
-  const open = /* @__PURE__ */ new Set();
-  const scan = (node) => {
-    if (!node || typeof node !== "object") return { found: false, named: false };
-    const known = declaring2.get(node);
-    if (known !== void 0) return { found: known, named: false };
-    if (open.has(node)) return { found: false, named: false };
-    open.add(node);
-    let found = false;
-    let named = false;
-    if (Array.isArray(node)) {
-      for (const item of node) {
-        const child = scan(item);
-        found ||= child.found;
-        named ||= child.named;
-      }
-    } else {
-      const record = node;
-      if (PATH_PARAMS_FOR_ANNOTATION in record) found = true;
-      if (typeof record.$ref === "string" && !record.$ref.startsWith("#")) {
-        named = true;
-        const target = external?.(record.$ref);
-        if (target && scan(target).found) found = true;
-      }
-      for (const [key3, child] of Object.entries(record)) {
-        if (key3 === PATH_PARAMS_FOR_ANNOTATION) continue;
-        const inner = scan(child);
-        found ||= inner.found;
-        named ||= inner.named;
-      }
-    }
-    open.delete(node);
-    if (found || !named) declaring2.set(node, found);
-    return { found, named };
-  };
-  return scan(schema4).found;
-}
-var quoted2 = (names) => names.map((name2) => `'${name2}'`).join(", ");
-function templateSource(site, resource, host) {
-  const field = renderValuePath(site.templatePath);
-  if (typeof site.template === "string") {
-    return { kind: "template", text: site.template, described: `'${field}: ${site.template}'` };
-  }
-  if (isExpression2(site.template)) return { kind: "expression" };
-  if (!site.through || site.template === void 0 || site.template === null) return void 0;
-  const declaration = host.declarationOf(site.template, resource);
-  if (!declaration) return void 0;
-  let text3 = declaration;
-  for (const segment of site.through) text3 = isPlainObject17(text3) ? text3[segment] : void 0;
-  if (typeof text3 !== "string") return void 0;
-  const name2 = `'${String(declaration.metadata?.name)}'`;
-  return {
-    kind: "template",
-    text: text3,
-    described: `the template '${site.through.join(".")}: ${text3}' of ${name2} (named at '${field}')`
-  };
-}
-function pathParamsProblems(schema4, resource, host) {
-  const out = [];
-  for (const site of pathParamsSites(schema4, resource, host.external)) {
-    const params = site.params;
-    if (!isPlainObject17(params)) continue;
-    const source = templateSource(site, resource, host);
-    if (!source) continue;
-    const judgedAt = renderValuePath(site.holderPath);
-    const field = renderValuePath(site.templatePath);
-    const map3 = renderValuePath(site.path);
-    const entries = Object.keys(params);
-    if (source.kind === "expression") {
-      for (const name2 of entries) {
-        out.push({
-          code: "PATH_PARAMETER_UNUSED",
-          path: renderValuePath([...site.path, name2]),
-          judgedAt,
-          message: `'${map3}.${name2}' is never read: '${field}' is an expression, read as a whole address and never expanded. Remove '${map3}', or write '${field}' as a template.`
-        });
-      }
-      continue;
-    }
-    const reading = readPathTemplate(source.text);
-    if ("invalid" in reading) {
-      out.push({
-        code: "PATH_TEMPLATE_INVALID",
-        path: field,
-        judgedAt,
-        message: `${source.described} is not a path template: ${reading.invalid}.`
-      });
-      continue;
-    }
-    for (const variable of reading.variables) {
-      if (entries.includes(variable)) continue;
-      out.push({
-        code: "PATH_PARAMETER_UNBOUND",
-        path: field,
-        judgedAt,
-        message: `${source.described} reads '{${variable}}', which '${map3}' does not bind. Add '${variable}' to '${map3}'.`
-      });
-    }
-    for (const name2 of entries) {
-      if (reading.variables.includes(name2)) continue;
-      out.push({
-        code: "PATH_PARAMETER_UNUSED",
-        path: renderValuePath([...site.path, name2]),
-        judgedAt,
-        message: `'${map3}.${name2}' names no variable of ${source.described}` + (reading.variables.length > 0 ? ` \u2014 it reads ${quoted2(reading.variables)}` : `, which reads none`) + `. Remove the entry, or name the variable it fills.`
-      });
-    }
-  }
-  return out;
-}
-function alternativesOf5(node, root, external) {
-  const out = [];
-  const seen = /* @__PURE__ */ new Set();
-  const visit4 = (n, r) => {
-    if (!isSchema8(n) || seen.has(n)) return;
-    seen.add(n);
-    out.push(n);
-    if (typeof n.$ref === "string") {
-      const target = resolveRefIn(n, r, external);
-      if (target.schema !== n) visit4(target.schema, target.root);
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(n[union2])) for (const branch of n[union2]) visit4(branch, r);
-    }
-  };
-  visit4(node, root);
-  return out;
-}
-function fieldNodes(holder, root, segments, external) {
-  let current = [holder];
-  for (const segment of segments) {
-    const next = [];
-    for (const node of current) {
-      for (const alternative of alternativesOf5(node, root, external)) {
-        const child = isSchema8(alternative.properties) ? alternative.properties[segment] : void 0;
-        if (isSchema8(child)) next.push(child);
-      }
-    }
-    current = next;
-  }
-  return current.flatMap((node) => alternativesOf5(node, root, external));
-}
-var declaresObject2 = (node) => node.type === "object" || Array.isArray(node.type) && node.type.includes("object");
-function pathParamsAnnotationProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
-  if (!isSchema8(schema4)) return [];
-  const problems = [];
-  const visited = /* @__PURE__ */ new Set();
-  const shapeName = (ref) => parseCanonicalTypeSchemaId(ref)?.typeName ?? ref;
-  const report = (path, shape2, inner, reason) => {
-    const where = renderValuePath(shape2 ? path : [...path, PATH_PARAMS_FOR_ANNOTATION]);
-    const place2 = shape2 ? `'${where}', which reaches '${renderValuePath([...inner, PATH_PARAMS_FOR_ANNOTATION])}' in the named shape '${shape2}' it names,` : `'${where}'`;
-    problems.push({ path: where, message: `'${kind}' declares ${place2} ${reason}` });
-  };
-  const shape = `The annotation is { template: <JSON Pointer to the field holding the template>, through?: <field of the declaration a reference there names> }.`;
-  const judge = (node, root, holder, path, shapeOf3, inner) => {
-    const raw = node[PATH_PARAMS_FOR_ANNOTATION];
-    const refuse3 = (reason) => report(path, shapeOf3, inner, reason);
-    if (!isPlainObject17(raw)) {
-      refuse3(`as something other than an object. ${shape}`);
-      return;
-    }
-    const unknown = Object.keys(raw).filter((key3) => !ANNOTATION_KEYS2.includes(key3));
-    if (unknown.length > 0) {
-      refuse3(`with ${quoted2(unknown)}, read by nothing. ${shape}`);
-      return;
-    }
-    const template = pointerSegments(raw.template);
-    if (!template || template.length === 0 || template.some((segment) => segment === "")) {
-      refuse3(`with a 'template' that is no JSON Pointer ('/path') to the field holding the template. ${shape}`);
-      return;
-    }
-    if (raw.through !== void 0 && !throughSegments(raw.through)) {
-      refuse3(`with a 'through' that is neither a field name nor a JSON Pointer. ${shape}`);
-      return;
-    }
-    if (!holder) {
-      refuse3(`on a node that is no named property: it belongs on the map of path variables, a property beside the field holding the template.`);
-      return;
-    }
-    if (!declaresObject2(node)) {
-      refuse3(`on a property that holds no object: it belongs on the map whose keys name the template's variables, declared 'type: object'.`);
-      return;
-    }
-    if (template[0] === holder.name) {
-      refuse3(`with a 'template' naming the annotated map itself; name the field holding the template.`);
-      return;
-    }
-    const fields = fieldNodes(holder.node, root, template, resolveRef2);
-    if (fields.length === 0) {
-      refuse3(`with a 'template' naming '${template.join("/")}', which the object holding '${holder.name}' does not declare.`);
-      return;
-    }
-    const referenceSlot = fields.some((field) => "x-telo-ref" in field);
-    if (raw.through !== void 0 && !referenceSlot) {
-      refuse3(`with a 'through', but '${template.join("/")}' holds no reference: 'through' is read by nothing. Remove it, or let the field hold a reference.`);
-    } else if (raw.through === void 0 && referenceSlot) {
-      refuse3(`with no 'through', but '${template.join("/")}' may hold a reference: name the field of the declaration it names that holds the template.`);
-    }
-  };
-  const visit4 = (node, root, holder, path, shapeOf3, inner) => {
-    if (!isSchema8(node) || visited.has(node)) return;
-    visited.add(node);
-    const step = (key3) => shapeOf3 ? [path, [...inner, ...key3]] : [[...path, ...key3], inner];
-    if (PATH_PARAMS_FOR_ANNOTATION in node) judge(node, root, holder, path, shapeOf3, inner);
-    if (isSchema8(node.properties)) {
-      for (const [key3, child] of Object.entries(node.properties)) {
-        const [p, i] = step(["properties", key3]);
-        visit4(child, root, { node, name: key3 }, p, shapeOf3, i);
-      }
-    }
-    for (const mapKey of ["patternProperties", "$defs", "definitions"]) {
-      if (!isSchema8(node[mapKey])) continue;
-      for (const [key3, child] of Object.entries(node[mapKey])) {
-        const [p, i] = step([mapKey, key3]);
-        visit4(child, root, void 0, p, shapeOf3, i);
-      }
-    }
-    for (const single of ["additionalProperties", "items", "then", "else"]) {
-      if (isSchema8(node[single])) {
-        const [p, i] = step([single]);
-        visit4(node[single], root, void 0, p, shapeOf3, i);
-      }
-    }
-    for (const union2 of ["oneOf", "anyOf", "allOf"]) {
-      if (Array.isArray(node[union2])) {
-        node[union2].forEach((branch, index) => {
-          const [p, i] = step([union2, index]);
-          visit4(branch, root, holder, p, shapeOf3, i);
-        });
-      }
-    }
-    if (typeof node.$ref === "string") {
-      if (node.$ref.startsWith("#")) {
-        const target = resolveRefIn(node, root);
-        if (target.schema !== node) {
-          visit4(target.schema, root, holder, path, shapeOf3, inner);
-        }
-      } else {
-        const named = resolveRef2?.(node.$ref);
-        if (named) visit4(named, named, holder, path, shapeOf3 ?? shapeName(node.$ref), shapeOf3 ? inner : []);
-      }
-    }
-  };
-  visit4(schema4, schema4, void 0, at3, void 0, []);
-  return problems;
-}
-var pathParamsForReads = ({ value: value2, at: at3 }) => {
-  const annotation = readAnnotation(value2);
-  if (!annotation) return [];
-  const keys = placeAt(enclosingKeys(at3), `/${annotation.template.map((s) => s.replace(/~/g, "~0").replace(/\//g, "~1")).join("/")}`);
-  const places = [{ kind: "value", keys }];
-  if (annotation.through) {
-    const through = annotation.through;
-    places.push({ kind: "reference", keys, transitive: false, reads: () => [{ kind: "value", keys: through }] });
-  }
-  return places;
-};
-
 // ../../analyzer/nodejs/src/validate-scope-slots.ts
 function scopeSlotProblems(definition) {
   const schema4 = definition.schema;
@@ -87806,6 +88483,37 @@ function scopeSlotProblems(definition) {
       message: `'${String(definition.metadata?.name)}' declares \`x-telo-scope\` at '${path}', where no scope can be stood up: ${reason}. A scope belongs on a named top-level property \u2014 one in the schema root's \`properties\` or in a root \`anyOf\` / \`oneOf\` / \`allOf\` branch's, written directly or through a local \`$ref\`. Move the annotation there.`
     };
   });
+}
+function scopeOpenedByProblems(definition, capability) {
+  const schema4 = definition.schema;
+  if (!schema4 || typeof schema4 !== "object" || Array.isArray(schema4)) return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const scan = (value2, at3) => {
+    if (!value2 || typeof value2 !== "object" || seen.has(value2)) return;
+    seen.add(value2);
+    if (Array.isArray(value2)) {
+      value2.forEach((item, i) => scan(item, `${at3}[${i}]`));
+      return;
+    }
+    const node = value2;
+    if ("x-telo-scope" in node) {
+      const annotation = node["x-telo-scope"];
+      const reason = scopeAnnotationProblem(annotation) ?? openedByCapabilityProblem(annotation, capability);
+      if (reason !== void 0) {
+        const path = `${at3}.x-telo-scope`;
+        out.push({
+          path,
+          message: `'${String(definition.metadata?.name)}' declares \`x-telo-scope\` at '${path}' that it cannot honour: ${reason}.`
+        });
+      }
+    }
+    for (const [key3, child] of Object.entries(node)) {
+      if (key3 !== "x-telo-scope") scan(child, `${at3}.${key3}`);
+    }
+  };
+  scan(schema4, "schema");
+  return out;
 }
 
 // ../../analyzer/nodejs/src/validate-topology-roles.ts
@@ -88519,8 +89227,8 @@ function validateInvocationContract(manifests, registry, aliases, aliasesByModul
   const importedModules = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
+    const resolved2 = m.metadata?.resolvedModuleName;
+    if (resolved2) importedModules.add(resolved2);
   }
   const isOwn = (m) => {
     const ownModule = m.metadata?.module;
@@ -88590,17 +89298,29 @@ function checkRefSlotWiring(m, definition, manifests, resolveDef, resource, file
       const target = findInModule(manifests, name2, ownModule, scopeReadAt(m, path));
       if (!target) continue;
       const targetDef = resolveDef(target.kind, target);
-      const targetRequired = requiredInputsOf(
-        contractSchemaFor(target, targetDef, resolveDef, manifests)
-      );
+      const targetSchema = contractSchemaFor(target, targetDef, resolveDef, manifests);
+      if (runSite) {
+        const issues = targetSchema ? validateAgainstSchemaWithDefaults({}, targetSchema) : [];
+        if (issues.length > 0) {
+          diagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "CONTRACT_INPUTS_AT_RUN_SITE",
+            source: SOURCE14,
+            message: `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', which starts it with \`run()\` \u2014 a dispatch whose inputs are its contract applied to \`{}\` \u2014 but its contract refuses \`{}\`: ${issues.map((issue) => issue.message).join("; ")}. Invoke it from a step instead, or let the contract accept an empty call.`,
+            data: { resource, filePath, path }
+          });
+        }
+        continue;
+      }
+      const targetRequired = requiredInputsOf(targetSchema);
       if (!targetRequired || targetRequired.length === 0) continue;
-      const unsatisfiable = runSite ? targetRequired : targetRequired.filter((key3) => !(slotDeclares ?? []).includes(key3));
+      const unsatisfiable = targetRequired.filter((key3) => !(slotDeclares ?? []).includes(key3));
       if (unsatisfiable.length === 0) continue;
       diagnostics.push({
         severity: DiagnosticSeverity2.Error,
-        code: runSite ? "CONTRACT_INPUTS_AT_RUN_SITE" : "CONTRACT_SLOT_INPUTS_UNSATISFIABLE",
+        code: "CONTRACT_SLOT_INPUTS_UNSATISFIABLE",
         source: SOURCE14,
-        message: runSite ? `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', which starts it with \`run()\` \u2014 a dispatch that passes no arguments \u2014 but its contract requires ${list4(unsatisfiable)}. Nothing can supply them there. Invoke it from a step instead, or drop the requirement.` : `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', where the consumer builds the arguments from the slot's declared kind alone, but its contract requires ${list4(unsatisfiable)} which that kind does not declare. Nothing could supply them.`,
+        message: `${m.kind}/${resource.name}: '${name2}' is wired at '${path}', where the consumer builds the arguments from the slot's declared kind alone, but its contract requires ${list4(unsatisfiable)} which that kind does not declare. Nothing could supply them.`,
         data: { resource, filePath, path }
       });
     }
@@ -88960,15 +89680,15 @@ function duplicateNameDiagnostic(dup, first, name2, resources) {
     }
   };
 }
-function kindSatisfies(resolved, targetKind, registry, isDeclaration = false) {
+function kindSatisfies(resolved2, targetKind, registry, isDeclaration = false) {
   const canonical = registry.resolveRef(targetKind) ?? targetKind;
   const targetDef = registry.resolve(canonical);
   if (!targetDef) return true;
-  if ((targetDef.kind !== "Telo.Abstract" || isDeclaration) && resolved === canonical) return true;
+  if ((targetDef.kind !== "Telo.Abstract" || isDeclaration) && resolved2 === canonical) return true;
   const subtypes = registry.getByExtends(canonical);
-  if (subtypes.some((d) => `${d.metadata.module}.${d.metadata.name}` === resolved)) return true;
-  if (!registry.resolve(resolved)) return true;
-  return !registry.ancestryResolved(resolved);
+  if (subtypes.some((d) => `${d.metadata.module}.${d.metadata.name}` === resolved2)) return true;
+  if (!registry.resolve(resolved2)) return true;
+  return !registry.ancestryResolved(resolved2);
 }
 function valuePhrase(branch) {
   if ("const" in branch) return `the value ${JSON.stringify(branch.const)}`;
@@ -89011,30 +89731,30 @@ function acceptedAtSlot(entry2, inline, registry, scope) {
   return list5.length === 1 ? list5[0] : `${list5.slice(0, -1).join("; ")}; or ${list5[list5.length - 1]}`;
 }
 function checkKind(kind, entry2, registry, aliases, isDeclaration = false) {
-  const resolved = aliases.resolveKind(kind) ?? kind;
+  const resolved2 = aliases.resolveKind(kind) ?? kind;
   const unknownAlias = kind.includes(".") && aliases.resolveKindResult(kind).status === "unknown" && // …and the registry does not hold it under the name as written either. A
   // manifest may carry a canonical `<module>.<Kind>`, which no alias resolves
   // and which is nonetheless perfectly identified.
-  registry.resolve(resolved) === void 0;
+  registry.resolve(resolved2) === void 0;
   const errors = [];
   for (const refStr of entry2.refs) {
     const targetKind = registry.resolveRef(refStr);
     if (!targetKind) return [];
     const targetDef = registry.resolve(targetKind);
     if (!targetDef) return [];
-    if (!unknownAlias && kindSatisfies(resolved, targetKind, registry, isDeclaration)) return [];
+    if (!unknownAlias && kindSatisfies(resolved2, targetKind, registry, isDeclaration)) return [];
     const subtypes = registry.getByExtends(targetKind);
     const subtypeKinds = new Set(subtypes.map((d) => `${d.metadata.module}.${d.metadata.name}`));
     if (targetDef.kind === "Telo.Abstract") {
       const concrete = subtypes.filter((d) => d.kind !== "Telo.Abstract").map((d) => `${d.metadata.module}.${d.metadata.name}`);
       const options = concrete.length > 0 ? concrete : [...subtypeKinds];
-      const declared = registry.resolve(resolved)?.capability;
+      const declared = registry.resolve(resolved2)?.capability;
       errors.push(
         options.length > 0 ? `'${kind}' does not implement '${targetKind}' (known implementations: ${options.join(", ")})` : `'${kind}' does not implement '${targetKind}'${declared ? ` \u2014 it declares '${declared}'` : ""}`
       );
     } else {
       const options = subtypeKinds.size > 0 ? ` or a subtype (${[...subtypeKinds].join(", ")})` : "";
-      errors.push(`'${kind}' (resolved: '${resolved}') does not match required '${targetKind}'${options}`);
+      errors.push(`'${kind}' (resolved: '${resolved2}') does not match required '${targetKind}'${options}`);
     }
   }
   return errors;
@@ -89529,8 +90249,8 @@ function resolvedView(value2, taken, seen = /* @__PURE__ */ new Set()) {
     let copy;
     for (const key3 of Reflect.ownKeys(value2)) {
       const member = value2[key3];
-      const resolved = resolvedView(member, taken, seen);
-      if (resolved !== member) (copy ??= { ...value2 })[key3] = resolved;
+      const resolved2 = resolvedView(member, taken, seen);
+      if (resolved2 !== member) (copy ??= { ...value2 })[key3] = resolved2;
     }
     return copy ?? value2;
   } finally {
@@ -89807,8 +90527,8 @@ function validateSpanAttributes(manifests, rootModules, capabilityOf) {
     const shape = inNamedShape(written, capabilityOf);
     if (shape && isExportedShape(written.manifest, manifests)) {
       const root = written.manifest.schema ?? mark;
-      const resolved = resolveRefIn(mark, root, resolveRef2).schema;
-      const nodeProblem = spanAttributeNodeProblem(resolved === mark ? mark : { ...resolved, ...mark });
+      const resolved2 = resolveRefIn(mark, root, resolveRef2).schema;
+      const nodeProblem = spanAttributeNodeProblem(resolved2 === mark ? mark : { ...resolved2, ...mark });
       if (nodeProblem) report("SPAN_ATTRIBUTE_MISPLACED", written, nodeProblem);
       continue;
     }
@@ -89943,7 +90663,7 @@ function elementsOf(value2, host) {
 function deref4(schema4, resolveRef2) {
   let current = schema4;
   for (let hops = 0; hops < 16 && typeof current.$ref === "string"; hops++) {
-    const next = resolveRef2(current.$ref);
+    const next = resolveSchemaReference(current.$ref, void 0, resolveRef2)?.node;
     if (!next) break;
     current = next;
   }
@@ -89984,7 +90704,7 @@ function conjoined(schema4, resolveRef2, open = /* @__PURE__ */ new Set()) {
   let path = open;
   if (typeof node.$ref === "string" && !node.$ref.startsWith("#")) {
     if (open.has(node.$ref)) return node;
-    const target = resolveRef2(node.$ref);
+    const target = resolveSchemaReference(node.$ref, void 0, resolveRef2)?.node;
     if (!target) return node;
     path = new Set(open).add(node.$ref);
     const { $ref: _ref, ...rest } = node;
@@ -90051,7 +90771,7 @@ function validateSchemaTypeRefs(manifests, registry, aliases, aliasesByModule, r
         return;
       }
       const obj = value2;
-      const parsed = parseTeloTypeRef(obj.$ref);
+      const parsed = parseTeloTypeRef(typeof obj.$ref === "string" ? schemaReferenceParts(obj.$ref).shape : void 0);
       if (parsed) {
         const module = parsed.authority === "Self" ? ownModule : resolver.moduleForAlias(parsed.authority);
         if (!module) {
@@ -90118,14 +90838,14 @@ function collectValueSchemaIssues(manifest, defSchema, types, validator, valueSc
 }
 
 // ../../analyzer/nodejs/src/validate-match-for.ts
-var isSchema9 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema12 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) {
-  if (!isSchema9(schema4)) return [];
+  if (!isSchema12(schema4)) return [];
   const root = schema4;
   const problems = [];
   const seen = /* @__PURE__ */ new Set();
   const visit4 = (node, path, role, underAccessor, levels, binding) => {
-    if (!isSchema9(node) || seen.has(node)) return;
+    if (!isSchema12(node) || seen.has(node)) return;
     seen.add(node);
     const here = levels && levels.length > 0 ? [...levels.slice(0, -1), { node, key: levels[levels.length - 1].key }] : levels;
     const accessorHere = underAccessor || declaredEvalMode(node) === "accessor";
@@ -90172,6 +90892,11 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       const problem = fromReferrerProblem(node, where, binding !== void 0);
       if (problem) problems.push({ code: problem.code, path: where, message: problem.message });
     }
+    if (CONTEXT_FROM_PATH_TEMPLATE in node) {
+      const where = renderValuePath([...path, CONTEXT_FROM_PATH_TEMPLATE]);
+      const problem = fromPathTemplateProblem(node, where, binding !== void 0, binding?.field, root, shapes, isResource);
+      if (problem) problems.push({ code: problem.code, path: where, message: problem.message });
+    }
     if (NULLABLE_WHEN in node) {
       const where = renderValuePath([...path, NULLABLE_WHEN]);
       const problem = nullableWhenValueProblem(node[NULLABLE_WHEN]);
@@ -90185,7 +90910,6 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       } else if (!binding) {
         problems.push({
           code: "CONTEXT_NULLABLE_WHEN_INVALID",
-          warning: true,
           path: where,
           message: `'${where}' is read only on a binding \u2014 a property of an 'x-telo-context' \u2014 or a member beneath one, so here it marks nothing.`
         });
@@ -90198,7 +90922,6 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
         if (refusal) {
           problems.push({
             code: "CONTEXT_NULLABLE_WHEN_INVALID",
-            warning: true,
             path: where,
             message: `'${where}' at '${rule.pointer}' never decides anything: ${refusal}.`
           });
@@ -90251,9 +90974,9 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       }
     }
     const other = { kind: "other" };
-    const deeper = (key3, child) => here && isSchema9(child) ? [...here, { node: child, key: key3 }] : void 0;
+    const deeper = (key3, child) => here && isSchema12(child) ? [...here, { node: child, key: key3 }] : void 0;
     for (const map3 of ["properties", "patternProperties"]) {
-      if (!isSchema9(node[map3])) continue;
+      if (!isSchema12(node[map3])) continue;
       for (const [key3, child] of Object.entries(node[map3])) {
         visit4(
           child,
@@ -90266,7 +90989,7 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       }
     }
     for (const map3 of ["$defs", "definitions"]) {
-      if (!isSchema9(node[map3])) continue;
+      if (!isSchema12(node[map3])) continue;
       for (const [key3, child] of Object.entries(node[map3])) {
         visit4(child, [...path, map3, key3], other, false, void 0);
       }
@@ -90283,8 +91006,8 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
       node[key3].forEach((branch, i) => visit4(branch, [...path, key3, i], other, accessorHere, here));
     }
     const context = node["x-telo-context"];
-    if (isSchema9(context)) {
-      if (isSchema9(context.properties)) {
+    if (isSchema12(context)) {
+      if (isSchema12(context.properties)) {
         for (const [key3, binding2] of Object.entries(context.properties)) {
           visit4(binding2, [...path, "x-telo-context", "properties", key3], { kind: "binding", field: here }, false, void 0, { field: here });
         }
@@ -90296,18 +91019,8 @@ function annotationDeclarationProblems(schema4, at3, shapes, isResource = true) 
   return problems;
 }
 function deref5(node, document, shapes) {
-  const seen = /* @__PURE__ */ new Set();
-  let current = node;
-  let doc = document;
-  while (typeof current.$ref === "string" && !seen.has(current)) {
-    seen.add(current);
-    const local = current.$ref.startsWith("#");
-    const target = local ? resolveSchemaPointer(doc, current.$ref) : shapes(current.$ref);
-    if (!isSchema9(target)) break;
-    if (!local) doc = target;
-    current = target;
-  }
-  return [current, doc];
+  const reached = followSchemaReferences(node, document, shapes);
+  return [reached.node, reached.document ?? document];
 }
 function isArraySchema(node) {
   return node.items !== void 0 || node.type === "array";
@@ -90319,7 +91032,7 @@ function targetRefusal(enclosing, pointer, document, shapes) {
   for (const segment of segments) {
     if (isArraySchema(current)) return `'${pointer}' crosses an array, which holds any number of values`;
     const next = propertySchemas(current).find(([key3]) => key3 === segment)?.[1];
-    if (!isSchema9(next)) return `the enclosing object declares nothing at '${pointer}'`;
+    if (!isSchema12(next)) return `the enclosing object declares nothing at '${pointer}'`;
     field = next;
     [current, doc] = deref5(next, doc, shapes);
   }
@@ -90328,16 +91041,16 @@ function targetRefusal(enclosing, pointer, document, shapes) {
   return `the field at '${pointer}' is not an 'x-telo-eval: accessor' field`;
 }
 function matchUnsatisfiable(matches, type, shapes, document) {
-  if (!isSchema9(matches) || !isSchema9(type)) return void 0;
-  const [resolved, doc] = deref5(type, document ?? type, shapes);
-  const alternatives = resolved.anyOf ?? resolved.oneOf;
+  if (!isSchema12(matches) || !isSchema12(type)) return void 0;
+  const [resolved2, doc] = deref5(type, document ?? type, shapes);
+  const alternatives = resolved2.anyOf ?? resolved2.oneOf;
   if (Array.isArray(alternatives) && alternatives.length > 0) {
     const reasons = alternatives.map(
       (branch) => matchUnsatisfiable(matches, branch, shapes, doc)
     );
     return reasons.every((reason) => reason !== void 0) ? reasons[0] : void 0;
   }
-  return disjoint(matches, resolved, doc, shapes);
+  return disjoint(matches, resolved2, doc, shapes);
 }
 function typesOf(schema4) {
   if (typeof schema4.type === "string") return [schema4.type];
@@ -90379,13 +91092,13 @@ function constRefusal(value2, type) {
 function disjoint(matches, type, document, shapes) {
   if (Array.isArray(matches.allOf)) {
     for (const member of matches.allOf) {
-      const reason = isSchema9(member) ? disjoint(member, type, document, shapes) : void 0;
+      const reason = isSchema12(member) ? disjoint(member, type, document, shapes) : void 0;
       if (reason) return reason;
     }
   }
   if (Array.isArray(matches.anyOf) && matches.anyOf.length > 0) {
     const reasons = matches.anyOf.map(
-      (branch) => isSchema9(branch) ? disjoint(branch, type, document, shapes) : void 0
+      (branch) => isSchema12(branch) ? disjoint(branch, type, document, shapes) : void 0
     );
     if (reasons.every((reason) => reason !== void 0)) return reasons[0];
   }
@@ -90405,26 +91118,26 @@ function disjoint(matches, type, document, shapes) {
       return `it requires one of ${matches.enum.map(describe5).join(", ")}, and ${constRefusal(matches.enum[0], type) ?? "none can hold"}`;
     }
   }
-  const declared = isSchema9(type.properties) ? type.properties : {};
+  const declared = isSchema12(type.properties) ? type.properties : {};
   const closed = type.additionalProperties === false && type.patternProperties === void 0;
   const objectValue = !types || types.includes("object");
   if (Array.isArray(matches.required) && closed && objectValue) {
     const missing = matches.required.find((name2) => typeof name2 === "string" && !(name2 in declared));
     if (missing !== void 0) return `it requires the member '${missing}', which the value's closed object never has`;
   }
-  if (isSchema9(matches.properties)) {
+  if (isSchema12(matches.properties)) {
     const always = /* @__PURE__ */ new Set([
       ...Array.isArray(matches.required) ? matches.required : [],
       ...Array.isArray(type.required) ? type.required : []
     ]);
     for (const [name2, member] of Object.entries(matches.properties)) {
-      if (!always.has(name2) || !isSchema9(declared[name2])) continue;
+      if (!always.has(name2) || !isSchema12(declared[name2])) continue;
       const [memberType, doc] = deref5(declared[name2], document, shapes);
       const reason = matchUnsatisfiable(member, memberType, shapes, doc);
       if (reason) return `its member '${name2}' can never hold: ${reason}`;
     }
   }
-  if (isSchema9(matches.items) && isSchema9(type.items)) {
+  if (isSchema12(matches.items) && isSchema12(type.items)) {
     const nonEmpty = (matches.minItems ?? 0) >= 1 || (type.minItems ?? 0) >= 1;
     if (nonEmpty) {
       const [itemType, doc] = deref5(type.items, document, shapes);
@@ -90451,7 +91164,7 @@ function matchPlaces(value2, kindSchema, shapes, isExpression4) {
   return out;
 }
 function unsatisfiedMatch(matches, accessor, typed, shapes, isExpression4) {
-  if (!isSchema9(matches) || isExpression4(matches)) return void 0;
+  if (!isSchema12(matches) || isExpression4(matches)) return void 0;
   if (accessor === void 0) return void 0;
   const type = isExpression4(accessor) ? typed : { const: accessor };
   if (!type) return void 0;
@@ -90493,6 +91206,75 @@ function slotAdmitsNull(schema4) {
   const branches = unionBranches(schema4);
   if (branches) return branches.some(slotAdmitsNull);
   return schema4.type === void 0;
+}
+
+// ../../analyzer/nodejs/src/accessor-format-fit.ts
+var isSchema13 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function resolved(node, external) {
+  return typeof node.$ref === "string" ? shapeNamedBy(node, void 0, external) : node;
+}
+var branchesOf2 = (node) => Array.isArray(node.anyOf) ? node.anyOf : Array.isArray(node.oneOf) ? node.oneOf : void 0;
+function slotFormats(slot, external) {
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (raw) => {
+    if (!isSchema13(raw) || seen.has(raw)) return void 0;
+    seen.add(raw);
+    const node = resolved(raw, external);
+    if (typeof node.format === "string") return [node.format];
+    const branches = branchesOf2(node);
+    if (!branches || branches.length === 0) return void 0;
+    const out = [];
+    for (const branch of branches) {
+      const formats2 = visit4(branch);
+      if (!formats2) return void 0;
+      out.push(...formats2);
+    }
+    return out;
+  };
+  const formats = visit4(slot);
+  return formats ? new Set(formats) : void 0;
+}
+var isNullOnly = (node) => node.type === "null" || Array.isArray(node.type) && node.type.length > 0 && node.type.every((t) => t === "null");
+function isStringNode(node) {
+  if (node.type === "string") return true;
+  if (!Array.isArray(node.type)) return false;
+  const types = node.type.filter((t) => t !== "null");
+  return types.length === 1 && types[0] === "string";
+}
+function sourceFormats(source, external) {
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (raw) => {
+    if (!isSchema13(raw) || seen.has(raw)) return void 0;
+    seen.add(raw);
+    const node = resolved(raw, external);
+    const branches = branchesOf2(node);
+    if (branches && branches.length > 0) {
+      const out = [];
+      let nonNull = 0;
+      for (const branch of branches) {
+        if (isSchema13(branch) && isNullOnly(resolved(branch, external))) continue;
+        const formats = visit4(branch);
+        if (!formats) return void 0;
+        nonNull++;
+        out.push(...formats);
+      }
+      return nonNull > 0 ? out : void 0;
+    }
+    if (!isStringNode(node)) return void 0;
+    return [typeof node.format === "string" ? node.format : void 0];
+  };
+  return visit4(source);
+}
+var orList = (names) => names.join(" or ");
+function accessorFormatMisfit(slot, produced2, external) {
+  const admitted = slotFormats(slot, external);
+  if (!admitted) return void 0;
+  const formats = sourceFormats(produced2, external);
+  if (!formats || formats.every((format2) => format2 !== void 0 && admitted.has(format2))) return void 0;
+  const named = [...new Set(formats.filter((format2) => format2 !== void 0))];
+  const unformatted = formats.some((format2) => format2 === void 0);
+  const has = named.length === 0 ? "a string with no format" : `a string of format ${orList(named)}${unformatted ? " or with no format" : ""}`;
+  return `is ${has}; the field takes a string of format ${orList([...admitted])}`;
 }
 
 // ../../analyzer/nodejs/src/rule-declaration-view.ts
@@ -90813,7 +91595,7 @@ var ResourceRuleReports = class {
 var BROWSER_EXPORT_ANNOTATION = "x-telo-browser-export";
 var ANNOTATION_KEYS3 = ["entry", "abi", "external"];
 var ABI_FORM = AXIS_VALUE_FORMS.abi;
-function pointerSegments6(pointer) {
+function pointerSegments7(pointer) {
   if (typeof pointer !== "string" || !pointer.startsWith("/")) return void 0;
   return pointer.slice(1).split("/").map((segment) => segment.replace(/~1/g, "/").replace(/~0/g, "~"));
 }
@@ -90834,7 +91616,7 @@ function externalListProblem(value2) {
 }
 function readAnnotation2(raw) {
   if (!isPlainObject19(raw)) return void 0;
-  const entry2 = pointerSegments6(raw.entry);
+  const entry2 = pointerSegments7(raw.entry);
   if (!entry2) return void 0;
   return {
     entry: entry2,
@@ -91000,7 +91782,7 @@ function browserExportAnnotationProblems(kind, schema4, at3 = ["schema"]) {
         `${unknown.length === 1 ? "key" : "keys"} ${quoted3(unknown)} ${unknown.length === 1 ? "is" : "are"} read by nothing. Known: ${ANNOTATION_KEYS3.join(", ")}.`
       );
     }
-    if (!pointerSegments6(raw.entry)) {
+    if (!pointerSegments7(raw.entry)) {
       refuse3(
         [...path, "entry"],
         `'entry' must be a JSON Pointer ('/<field>'), relative to the object holding the annotated field, to the sibling string naming the browser entry's specifier.`
@@ -91220,8 +92002,8 @@ function validateExtends(manifests, registry, aliases) {
   const importedModules = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
+    const resolved2 = m.metadata?.resolvedModuleName;
+    if (resolved2) importedModules.add(resolved2);
   }
   for (const m of manifests) {
     if (m.kind !== "Telo.Definition" && m.kind !== "Telo.Abstract") continue;
@@ -91487,13 +92269,13 @@ function validateOnFull(manifest, out) {
 function loggingBlocks(manifest) {
   const blocks = [];
   const root = manifest.logging;
-  if (isObject16(root)) blocks.push({ block: root, prefix: "logging." });
+  if (isObject17(root)) blocks.push({ block: root, prefix: "logging." });
   const imports = manifest.imports;
-  if (isObject16(imports)) {
+  if (isObject17(imports)) {
     for (const [alias, entry2] of Object.entries(imports)) {
-      if (!isObject16(entry2)) continue;
+      if (!isObject17(entry2)) continue;
       const block = entry2.logging;
-      if (isObject16(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
+      if (isObject17(block)) blocks.push({ block, prefix: `imports.${alias}.logging.` });
     }
   }
   return blocks;
@@ -91505,7 +92287,7 @@ function isSinkKind(manifest, registry, aliases, aliasesByModule) {
   const canonical = resolver.resolveKind(manifest.kind) ?? manifest.kind;
   return registry.resolve(canonical)?.capability === "Telo.Sink";
 }
-function isObject16(value2) {
+function isObject17(value2) {
   return typeof value2 === "object" && value2 !== null && !Array.isArray(value2);
 }
 
@@ -92969,8 +93751,8 @@ function validateModuleMetadata(manifests, registry, aliases) {
   const importedModules = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
+    const resolved2 = m.metadata?.resolvedModuleName;
+    if (resolved2) importedModules.add(resolved2);
   }
   for (const manifest of manifests) {
     const isModuleDoc = manifest.kind === "Telo.Application" || manifest.kind === "Telo.Library";
@@ -93456,8 +94238,8 @@ function failed(direction, key3, comparator, running, source) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.135.0";
-var TELO_RUNNING_SURFACE = "0.135.0";
+var TELO_SURFACE_VERSION = "0.136.0";
+var TELO_RUNNING_SURFACE = "0.136.0";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE35 = "telo-analyzer";
@@ -93607,8 +94389,8 @@ function validateBaseMapping(manifests, registry, aliases) {
   const importedModules = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
+    const resolved2 = m.metadata?.resolvedModuleName;
+    if (resolved2) importedModules.add(resolved2);
   }
   for (const m of manifests) {
     if (m.kind !== "Telo.Definition") continue;
@@ -93701,13 +94483,13 @@ function nestedInlineAnchors(root, rootSchema) {
 }
 function walkSlots(data, schema4, schemaRoot, keys, atSlot) {
   if (!schema4 || typeof schema4 !== "object") return;
-  const resolved = resolveRef(schema4, schemaRoot);
-  if (collectRefs2(resolved).length > 0) {
+  const resolved2 = resolveRef(schema4, schemaRoot);
+  if (collectRefs2(resolved2).length > 0) {
     atSlot(data, keys);
     return;
   }
   if (Array.isArray(data)) {
-    const itemSchema = resolved.items;
+    const itemSchema = resolved2.items;
     if (!itemSchema) return;
     for (let i = 0; i < data.length; i++) {
       walkSlots(data[i], itemSchema, schemaRoot, [...keys, i], atSlot);
@@ -93715,8 +94497,8 @@ function walkSlots(data, schema4, schemaRoot, keys, atSlot) {
     return;
   }
   if (data && typeof data === "object") {
-    const props = collectProperties(resolved);
-    const additional = resolved.additionalProperties && typeof resolved.additionalProperties === "object" && !Array.isArray(resolved.additionalProperties) ? resolved.additionalProperties : void 0;
+    const props = collectProperties(resolved2);
+    const additional = resolved2.additionalProperties && typeof resolved2.additionalProperties === "object" && !Array.isArray(resolved2.additionalProperties) ? resolved2.additionalProperties : void 0;
     for (const [key3, value2] of Object.entries(data)) {
       const propSchema = props[key3] ?? additional;
       if (!propSchema) continue;
@@ -93807,8 +94589,8 @@ function validateProviderCoherence(manifests, registry, aliases) {
   const importedModules = /* @__PURE__ */ new Set();
   for (const m of manifests) {
     if (m.kind !== "Telo.Import") continue;
-    const resolved = m.metadata?.resolvedModuleName;
-    if (resolved) importedModules.add(resolved);
+    const resolved2 = m.metadata?.resolvedModuleName;
+    if (resolved2) importedModules.add(resolved2);
   }
   for (const m of manifests) {
     if (m.kind !== "Telo.Definition") continue;
@@ -93931,10 +94713,10 @@ function observationDeadline(capability) {
   return capability ? OBSERVATION_DEADLINES[capability] : void 0;
 }
 function observingCarriers(node, path) {
-  const carriers = [];
+  const carriers2 = [];
   const own2 = node["x-telo-ref"];
   if (own2 && typeof own2 === "object" && !Array.isArray(own2)) {
-    carriers.push({ annotation: own2, at: `${path}.x-telo-ref` });
+    carriers2.push({ annotation: own2, at: `${path}.x-telo-ref` });
   }
   for (const key3 of ["anyOf", "oneOf"]) {
     const branches = node[key3];
@@ -93942,11 +94724,11 @@ function observingCarriers(node, path) {
     branches.forEach((branch, i) => {
       const ann = branch?.["x-telo-ref"];
       if (ann && typeof ann === "object" && !Array.isArray(ann)) {
-        carriers.push({ annotation: ann, at: `${path}.${key3}[${i}].x-telo-ref` });
+        carriers2.push({ annotation: ann, at: `${path}.${key3}[${i}].x-telo-ref` });
       }
     });
   }
-  return carriers.filter((c) => c.annotation.observes !== void 0);
+  return carriers2.filter((c) => c.annotation.observes !== void 0);
 }
 function observingSlots(schema4) {
   const out = /* @__PURE__ */ new Map();
@@ -94628,9 +95410,9 @@ function readThrough2(node, root, registry, scope) {
   for (let hop = 0; current && hop < 16; hop++) {
     const ref = current.$ref;
     if (typeof ref === "string") {
-      const resolved = resolveLocalRef2(current, currentRoot ?? {});
-      if (resolved === current) break;
-      current = resolved;
+      const resolved2 = resolveLocalRef2(current, currentRoot ?? {});
+      if (resolved2 === current) break;
+      current = resolved2;
       continue;
     }
     const schemaFrom = current["x-telo-schema-from"];
@@ -94787,7 +95569,7 @@ var ZONE_ANNOTATIONS = [
   "x-telo-violates-zone"
 ];
 var TEMPLATE_BODY_KEYS = ["resources", "invoke", "run", "targets", "provide", "mount"];
-function isObject17(value2) {
+function isObject18(value2) {
   return !!value2 && typeof value2 === "object" && !Array.isArray(value2);
 }
 var SOURCE43 = "telo-analyzer";
@@ -94853,7 +95635,7 @@ function callableKindIssues(definition, resolve2) {
   const issues = [];
   const def = definition;
   const doc = definition;
-  const schema4 = isObject17(doc.schema) ? doc.schema : void 0;
+  const schema4 = isObject18(doc.schema) ? doc.schema : void 0;
   if (schema4) issues.push(...untypedCallableSlotIssues(schema4, "schema", def, resolve2));
   const parent = resolveParent(def, resolve2);
   if (typeof doc.extends === "string" && !parent && doc.capability === void 0) {
@@ -94965,7 +95747,7 @@ function determinismIssues(definition, def, doc, resolve2) {
     return issues;
   }
   if (declared !== true) return issues;
-  const schema4 = isObject17(doc.schema) ? doc.schema : void 0;
+  const schema4 = isObject18(doc.schema) ? doc.schema : void 0;
   if (definition.kind !== "Telo.Abstract" && schema4) {
     for (const [path, kinds] of callableSlotKinds(schema4, "schema", def, resolve2)) {
       const undetermined = kinds.filter((kind) => !requiresDeterminism(resolve2(kind, def), resolve2));
@@ -95766,20 +96548,115 @@ function validateScopedKindDocuments(members2, libraries, registry, aliases, ali
   return out;
 }
 
+// ../../analyzer/nodejs/src/eval-mode-branch-conflict.ts
+var EVAL_MODE_BRANCH_CONFLICT = "EVAL_MODE_BRANCH_CONFLICT";
+var isSchema14 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+function pointerTo(root, target, seen = /* @__PURE__ */ new Set()) {
+  if (root === target) return [];
+  if (!root || typeof root !== "object" || seen.has(root)) return void 0;
+  seen.add(root);
+  const entries = Array.isArray(root) ? root.map((value2, i) => [i, value2]) : Object.entries(root);
+  for (const [key3, value2] of entries) {
+    const inner = pointerTo(value2, target, seen);
+    if (inner) return [key3, ...inner];
+  }
+  return void 0;
+}
+function conflictLocation(conflict, root = conflict.document) {
+  const union2 = pointerTo(root, conflict.union) ?? pointerTo(conflict.document, conflict.union) ?? [];
+  const branch = conflict.union[conflict.keyword][conflict.branch];
+  const at3 = [...union2, conflict.keyword, conflict.branch];
+  if (!isSchema14(branch)) return at3;
+  if (conflict.segment.startsWith(".") && conflict.segment !== ".*") {
+    const key3 = conflict.segment.slice(1);
+    return isSchema14(branch.properties?.[key3]) ? [...at3, "properties", key3] : at3;
+  }
+  if (conflict.segment === "[*]" && isSchema14(branch.items)) return [...at3, "items"];
+  if (conflict.segment === ".*" && isSchema14(branch.additionalProperties)) return [...at3, "additionalProperties"];
+  return at3;
+}
+function modeText(mode) {
+  switch (mode) {
+    case "accessor":
+      return "an accessor (`x-telo-eval: accessor`)";
+    case "compile":
+      return "evaluated at load (`x-telo-eval: compile`)";
+    case "runtime":
+      return "evaluated per call (`x-telo-eval: runtime`)";
+    default:
+      return "a literal (no `x-telo-eval`)";
+  }
+}
+function evalModeBranchConflictMessage(conflict, subject, root = conflict.document) {
+  const at3 = pointerTo(root, conflict.union) ?? pointerTo(conflict.document, conflict.union) ?? [];
+  const union2 = renderValuePath(["schema", ...at3]);
+  const branch = `${conflict.keyword}[${conflict.branch}]`;
+  const other = `${conflict.keyword}[${conflict.other}]`;
+  const place2 = conflict.place.startsWith(".") ? conflict.place.slice(1) : conflict.place;
+  const what = place2 === "" ? "the union's own value" : `'${place2}'`;
+  return `${subject} declares a union at '${union2}' whose branches give ${what} two eval modes: ${branch} makes it ${modeText(conflict.mode)}, and ${other} makes it ${modeText(conflict.otherMode)}. Every branch is read at one path before a value picks one, so a property means the same in each: give it the same \`x-telo-eval\` in every branch declaring it, or another name where it means something else.`;
+}
+function conflictShape(conflict) {
+  if (!conflict.shape) return void 0;
+  const id = conflict.shape.split("#")[0];
+  const parsed = parseCanonicalTypeSchemaId(id);
+  return parsed ? { id, module: parsed.moduleName, name: parsed.typeName } : { id, module: "", name: id };
+}
+
+// ../../analyzer/nodejs/src/validate-eval-mode-branches.ts
+function validateEvalModeBranches(input) {
+  const byId = /* @__PURE__ */ new Map();
+  for (const document of input.shapeDocuments) {
+    const name2 = document.manifest.metadata?.name;
+    if (typeof name2 !== "string" || !document.module || isKindDocument(document.manifest)) continue;
+    const id = canonicalTypeSchemaId(document.module, name2);
+    if (!byId.has(id)) byId.set(id, document);
+  }
+  const reported = /* @__PURE__ */ new Set();
+  for (const { manifest, module, schema: schema4 } of input.kinds) {
+    for (const conflict of evalModeBranchConflicts(schema4, input.shapes)) {
+      const shape = conflictShape(conflict);
+      const declaring4 = shape ? byId.get(shape.id) : { manifest, module };
+      const root = shape && input.shapes(shape.id) || conflict.document;
+      const path = renderValuePath(["schema", ...conflictLocation(conflict, root)]);
+      const key3 = `${shape?.id ?? `${module ?? ""}\0${String(manifest.metadata?.name)}`}\0${path}`;
+      if (reported.has(key3)) continue;
+      reported.add(key3);
+      if (declaring4) {
+        input.report(declaring4.manifest, declaring4.module, {
+          code: EVAL_MODE_BRANCH_CONFLICT,
+          path,
+          message: evalModeBranchConflictMessage(conflict, `'${String(declaring4.manifest.metadata?.name)}'`, root)
+        });
+      } else {
+        input.report(manifest, module, {
+          code: EVAL_MODE_BRANCH_CONFLICT,
+          path: "schema",
+          message: evalModeBranchConflictMessage(
+            conflict,
+            `'${String(manifest.metadata?.name)}' reaches the named shape '${shape?.name}', which`,
+            root
+          )
+        });
+      }
+    }
+  }
+}
+
 // ../../analyzer/nodejs/src/text-slot-accessor.ts
-var isSchema10 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
+var isSchema15 = (node) => !!node && typeof node === "object" && !Array.isArray(node);
 function childSchemas2(node) {
   const out = [];
   for (const map3 of [node.properties, node.patternProperties]) {
-    if (isSchema10(map3)) out.push(...Object.values(map3).filter(isSchema10));
+    if (isSchema15(map3)) out.push(...Object.values(map3).filter(isSchema15));
   }
-  if (isSchema10(node.additionalProperties)) out.push(node.additionalProperties);
-  if (isSchema10(node.items)) out.push(node.items);
-  else if (Array.isArray(node.items)) out.push(...node.items.filter(isSchema10));
+  if (isSchema15(node.additionalProperties)) out.push(node.additionalProperties);
+  if (isSchema15(node.items)) out.push(node.items);
+  else if (Array.isArray(node.items)) out.push(...node.items.filter(isSchema15));
   for (const key3 of ["oneOf", "anyOf", "allOf"]) {
-    if (Array.isArray(node[key3])) out.push(...node[key3].filter(isSchema10));
+    if (Array.isArray(node[key3])) out.push(...node[key3].filter(isSchema15));
   }
-  for (const key3 of ["then", "else"]) if (isSchema10(node[key3])) out.push(node[key3]);
+  for (const key3 of ["then", "else"]) if (isSchema15(node[key3])) out.push(node[key3]);
   return out;
 }
 function textBeneath(node, root, resolveRef2, seen, shape) {
@@ -95788,16 +96665,10 @@ function textBeneath(node, root, resolveRef2, seen, shape) {
   const fragment = textFragmentOf(node);
   if (fragment !== void 0) return { fragment, ...shape ? { shape } : {} };
   if (typeof node.$ref === "string") {
-    if (node.$ref.startsWith("#")) {
-      const target = resolveSchemaPointer(root, node.$ref);
-      const found = isSchema10(target) ? textBeneath(target, root, resolveRef2, seen, shape) : void 0;
-      if (found) return found;
-    } else {
-      const named = resolveRef2?.(node.$ref);
-      const name2 = parseCanonicalTypeSchemaId(node.$ref)?.typeName ?? node.$ref;
-      const found = named ? textBeneath(named, named, resolveRef2, seen, shape ?? name2) : void 0;
-      if (found) return found;
-    }
+    const target = resolveSchemaReference(node.$ref, root, resolveRef2);
+    const name2 = target?.shape ? parseCanonicalTypeSchemaId(target.shape)?.typeName ?? target.shape : void 0;
+    const found = target ? textBeneath(target.node, target.document, resolveRef2, seen, shape ?? name2) : void 0;
+    if (found) return found;
   }
   for (const child of childSchemas2(node)) {
     const found = textBeneath(child, root, resolveRef2, seen, shape);
@@ -95806,11 +96677,11 @@ function textBeneath(node, root, resolveRef2, seen, shape) {
   return void 0;
 }
 function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) {
-  if (!isSchema10(schema4) || !isSchema10(schema4.properties)) return [];
+  if (!isSchema15(schema4) || !isSchema15(schema4.properties)) return [];
   const problems = [];
   const judged = /* @__PURE__ */ new Set();
   const visit4 = (node, path, open, shape) => {
-    if (!isSchema10(node)) return;
+    if (!isSchema15(node)) return;
     const mode = declaredEvalMode(node);
     if (mode) {
       if (mode !== "accessor" || judged.has(node)) return;
@@ -95828,37 +96699,37 @@ function textSlotAccessorProblems(kind, schema4, resolveRef2, at3 = ["schema"]) 
     }
     const step = (key3) => shape ? [path, { ...shape, inner: [...shape.inner, ...key3] }] : [[...path, ...key3], void 0];
     if (typeof node.$ref === "string") {
-      const local = node.$ref.startsWith("#");
       const document = shape?.document ?? schema4;
-      const target = local ? resolveSchemaPointer(document, node.$ref) : resolveRef2?.(node.$ref);
-      if (!isSchema10(target) || open.includes(target)) return;
-      if (local) {
-        const segments = pointerSegments(node.$ref.slice(1)) ?? [];
+      const reached = resolveSchemaReference(node.$ref, document, resolveRef2);
+      if (!reached || open.includes(reached.node)) return;
+      const target = reached.node;
+      const segments = pointerSegments(schemaReferenceParts(node.$ref).pointer.slice(1)) ?? [];
+      if (reached.shape === void 0) {
         if (shape) visit4(target, path, [...open, target], { ...shape, inner: segments });
         else visit4(target, [...at3, ...segments], [...open, target]);
       } else {
-        const name2 = parseCanonicalTypeSchemaId(node.$ref)?.typeName ?? node.$ref;
-        visit4(target, path, [...open, target], { name: name2, document: target, inner: [] });
+        const name2 = parseCanonicalTypeSchemaId(reached.shape)?.typeName ?? reached.shape;
+        visit4(target, path, [...open, target], { name: name2, document: reached.document, inner: segments });
       }
       return;
     }
-    if (isSchema10(node.properties)) {
+    if (isSchema15(node.properties)) {
       for (const [key3, child] of Object.entries(node.properties)) {
         const [p, s] = step(["properties", key3]);
         visit4(child, p, open, s);
       }
     }
-    if (isSchema10(node.patternProperties)) {
+    if (isSchema15(node.patternProperties)) {
       for (const [key3, child] of Object.entries(node.patternProperties)) {
         const [p, s] = step(["patternProperties", key3]);
         visit4(child, p, open, s);
       }
     }
-    if (isSchema10(node.additionalProperties)) {
+    if (isSchema15(node.additionalProperties)) {
       const [p, s] = step(["additionalProperties"]);
       visit4(node.additionalProperties, p, open, s);
     }
-    if (isSchema10(node.items)) {
+    if (isSchema15(node.items)) {
       const [p, s] = step(["items"]);
       visit4(node.items, p, open, s);
     }
@@ -96686,8 +97557,8 @@ function firstOf(node, pick, root) {
     const branches = node[keyword];
     if (!Array.isArray(branches)) continue;
     for (const branch of branches) {
-      const resolved = branch && typeof branch === "object" ? resolveLocalRef2(branch, root) : void 0;
-      const found = resolved ? pick(resolved) : void 0;
+      const resolved2 = branch && typeof branch === "object" ? resolveLocalRef2(branch, root) : void 0;
+      const found = resolved2 ? pick(resolved2) : void 0;
       if (found) return found;
     }
   }
@@ -97922,7 +98793,7 @@ var ConditionedNameIndex = class {
     }
     const candidates = this.candidates(population, name2);
     const presence = candidates.map(present2);
-    let resolved = logic.FALSE;
+    let resolved2 = logic.FALSE;
     candidates.forEach((candidate, i) => {
       let alone = presence[i];
       let ownFirst = candidate.module === fromModule ? presence[i] : logic.FALSE;
@@ -97934,12 +98805,12 @@ var ConditionedNameIndex = class {
         if (j < i && other.module === fromModule) ownFirst = logic.and(ownFirst, logic.not(presence[j]));
       });
       const held = logic.and(rest, logic.or(alone, logic.and(ownFirst, another)));
-      resolved = logic.or(resolved, held);
+      resolved2 = logic.or(resolved2, held);
       if (!logic.isFalse(held)) {
         out.push({ outcome: outcomeAt(candidate.declaration, scopeAddress(candidate.module, name2)), held });
       }
     });
-    const unresolved = logic.and(rest, logic.not(resolved));
+    const unresolved = logic.and(rest, logic.not(resolved2));
     if (!logic.isFalse(unresolved)) out.push({ outcome: UNRESOLVED, held: unresolved });
     return out;
   }
@@ -97948,7 +98819,7 @@ var ConditionedNameIndex = class {
     const candidates = this.candidates(population, name2).filter((c) => c.module === module);
     const presence = candidates.map(present2);
     const out = [];
-    let resolved = logic.FALSE;
+    let resolved2 = logic.FALSE;
     candidates.forEach((candidate, i) => {
       let alone = presence[i];
       let firstPresent = presence[i];
@@ -97964,12 +98835,12 @@ var ConditionedNameIndex = class {
         }
       });
       const held = importPath === void 0 ? firstPresent : logic.or(alone, logic.and(firstOfPath, another));
-      resolved = logic.or(resolved, held);
+      resolved2 = logic.or(resolved2, held);
       if (!logic.isFalse(held)) {
         out.push({ outcome: outcomeAt(candidate.declaration, scopeAddress(module, name2)), held });
       }
     });
-    const unresolved = logic.not(resolved);
+    const unresolved = logic.not(resolved2);
     if (!logic.isFalse(unresolved)) out.push({ outcome: UNRESOLVED, held: unresolved });
     return out;
   }
@@ -99723,11 +100594,11 @@ function createConsumerExpander(env) {
         if (read.class === "open") {
           const chain = read.chain.split(".");
           if (chain.some((c) => c.includes("[") || c.includes("?"))) continue;
-          const resolved = resolveChain(chain, instance);
-          if (!resolved) continue;
+          const resolved2 = resolveChain(chain, instance);
+          if (!resolved2) continue;
           combine(
             chain,
-            resolved.map(
+            resolved2.map(
               (o) => o.resolved.kind === "open" ? { open: o.resolved, holding: o.holding } : { value: celView(o.resolved.value, o.resolved.at), holding: o.holding }
             )
           );
@@ -99770,28 +100641,28 @@ function createConsumerExpander(env) {
       if (source === void 0) return [{ key: void 0, holding: EVERYWHERE }];
       const element = instance[instance.length - 1]?.element;
       const elementAt = element ? located.get(element) : void 0;
-      return valueIn(source, instance).map(({ resolved, holding: holding2 }) => {
-        if (resolved.kind === "open") {
+      return valueIn(source, instance).map(({ resolved: resolved2, holding: holding2 }) => {
+        if (resolved2.kind === "open") {
           refuse3(
             "REPEAT_COMPUTED",
-            resolved.at,
-            `the key ${runnerLabel(runner)} splices this element under reads a value that ${resolved.reason}. A splice's key reads only the element's literal parts and its binding.`,
-            resolved.undecided === true
+            resolved2.at,
+            `the key ${runnerLabel(runner)} splices this element under reads a value that ${resolved2.reason}. A splice's key reads only the element's literal parts and its binding.`,
+            resolved2.undecided === true
           );
           return { key: void 0, holding: holding2 };
         }
-        if (typeof resolved.value !== "string") return { key: void 0, holding: holding2 };
-        if (isIntegerLike(resolved.value) && elementAt) {
+        if (typeof resolved2.value !== "string") return { key: void 0, holding: holding2 };
+        if (isIntegerLike(resolved2.value) && elementAt) {
           refuse3(
             "REPEAT_NUMERIC_KEY",
             elementAt,
-            `this element is spliced under the integer-like key '${resolved.value}', which a map orders numerically rather than as written. Choose a key that is not an integer.`
+            `this element is spliced under the integer-like key '${resolved2.value}', which a map orders numerically rather than as written. Choose a key that is not an integer.`
           );
         }
-        return { key: resolved.value, holding: holding2 };
+        return { key: resolved2.value, holding: holding2 };
       });
     };
-    const branchesOf2 = (sentinel, instance) => {
+    const branchesOf3 = (sentinel, instance) => {
       const site = sites.get(sentinel);
       if (!site) return void 0;
       const tag = site.construct === "if" ? "if" : "switch";
@@ -99881,9 +100752,9 @@ function createConsumerExpander(env) {
     };
     const expansion = expandTemplateBody(runnerDoc, {
       positionOf: (sentinel) => sites.get(sentinel)?.position,
-      ...lift ? { space: lift.space, branches: branchesOf2 } : {},
+      ...lift ? { space: lift.space, branches: branchesOf3 } : {},
       decide: (sentinel, instance) => {
-        const outcomes = branchesOf2(sentinel, instance);
+        const outcomes = branchesOf3(sentinel, instance);
         return outcomes?.[0]?.branch;
       },
       elements: (sentinel, instance) => {
@@ -99893,11 +100764,11 @@ function createConsumerExpander(env) {
         const source = celSource3(sentinel.in);
         const chain = source?.trim().split(".");
         if (!chain) return void 0;
-        const resolved = resolveChain(chain, instance);
-        if (!resolved) return void 0;
+        const resolved2 = resolveChain(chain, instance);
+        if (!resolved2) return void 0;
         const elements = [];
         const keyed = { value: false };
-        for (const outcome of resolved) {
+        for (const outcome of resolved2) {
           const r = outcome.resolved;
           if (r.kind === "open") {
             refuse3(
@@ -100578,10 +101449,7 @@ function mergeVariantFindings(judged, module, rootModules) {
     for (const d of sink) {
       const shared = counts.get(keyOf(d)) === judged.length;
       const finding = shared || label2 === void 0 ? d : { ...d, message: `${d.message} (as ${label2} references it)` };
-      const anchors = foreign ? (variant?.referrers ?? []).filter((r) => {
-        const own2 = r.manifest.metadata?.module;
-        return own2 === void 0 || rootModules.has(own2);
-      }) : [];
+      const anchors = foreign ? entryReferrers(variant?.referrers ?? [], rootModules) : [];
       const copies = anchors.length === 0 ? [finding] : anchors.map((r) => {
         const data = { ...finding.data };
         delete data.quotedPlace;
@@ -100611,6 +101479,21 @@ function mergeVariantFindings(judged, module, rootModules) {
       }
     }
   }
+  return out;
+}
+function entryReferrers(referrers, rootModules) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const visit4 = (links) => {
+    for (const link of links) {
+      if (seen.has(link)) continue;
+      seen.add(link);
+      const own2 = link.manifest.metadata?.module;
+      if (own2 === void 0 || rootModules.has(own2)) out.push(link);
+      else visit4(link.via ?? []);
+    }
+  };
+  visit4(referrers);
   return out;
 }
 function pathCrossesNestedResource(root, path) {
@@ -100649,6 +101532,7 @@ var ANNOTATION_READS = {
   "x-telo-context-item-fills": itemFillsReads,
   "x-telo-context-from": contextFromReads,
   "x-telo-context-from-ref-kind": contextFromRefKindReads,
+  "x-telo-context-from-path-template": fromPathTemplateReads,
   "x-telo-context-from-referrer": fromReferrerReads,
   "x-telo-context-from-root": contextFromRootReads,
   "x-telo-context-nullable-when": nullableWhenReads,
@@ -100727,15 +101611,6 @@ function isAnnotation(keyword) {
     "contentEncoding"
   ].includes(keyword);
 }
-function resolvePointer2(root, pointer) {
-  let node = root;
-  for (const raw of pointer.split("/").slice(1)) {
-    const segment = raw.replace(/~1/g, "/").replace(/~0/g, "~");
-    if (node === null || typeof node !== "object") return void 0;
-    node = node[segment];
-  }
-  return node;
-}
 function expand3(node, document, schemas3, seen) {
   if (node === true || node === void 0) return { conjuncts: [], related: false };
   if (!node || typeof node !== "object" || Array.isArray(node)) return { conjuncts: [], related: true };
@@ -100757,10 +101632,10 @@ function expand3(node, document, schemas3, seen) {
   }
   if (typeof schema4.$ref === "string") {
     const ref = schema4.$ref;
-    const target = ref.startsWith("#") ? resolvePointer2(document, ref.slice(1)) : schemas3.sharedShape(ref);
+    const target = resolveSchemaReference(ref, document, (id) => schemas3.sharedShape(id));
     if (target === void 0) related = true;
     else {
-      const inner = expand3(target, ref.startsWith("#") ? document : target, schemas3, seen);
+      const inner = expand3(target.node, target.document, schemas3, seen);
       conjuncts.push(...inner.conjuncts);
       related ||= inner.related;
     }
@@ -102102,27 +102977,27 @@ function solveCelSites(input) {
       wit
     );
     if (!outcome) return { outcomeClass: { text: textOf3(["target", invoke.source, null]), condition: TRUE }, name: name2 };
-    const resolved = outcome.outcome;
-    const target = resolved.status === "unresolved" ? void 0 : union2.declarations.find((d) => d.manifest === resolved.declaration);
+    const resolved2 = outcome.outcome;
+    const target = resolved2.status === "unresolved" ? void 0 : union2.declarations.find((d) => d.manifest === resolved2.declaration);
     const outcomeClass = {
       text: textOf3([
         "target",
         invoke.source,
-        resolved.status,
-        resolved.status === "unresolved" ? null : [resolved.declaration.kind, resolved.address.key]
+        resolved2.status,
+        resolved2.status === "unresolved" ? null : [resolved2.declaration.kind, resolved2.address.key]
       ]),
       condition: outcome.condition,
       covers: { outcomes: [name2] }
     };
-    return { outcomeClass, resolved, target, name: name2 };
+    return { outcomeClass, resolved: resolved2, target, name: name2 };
   };
   const targetClasses = (declaration, invoke, refKeys, wit, places, ownReads) => {
     const resolution = resolutionAt(declaration, invoke, refKeys, wit);
     if (!resolution) return [];
-    const { outcomeClass, resolved, target } = resolution;
-    if (!resolved) return [outcomeClass];
-    if (!target && resolved.status === "resolved" && resolved.address.scope) {
-      const member = resolved.declaration;
+    const { outcomeClass, resolved: resolved2, target } = resolution;
+    if (!resolved2) return [outcomeClass];
+    if (!target && resolved2.status === "resolved" && resolved2.address.scope) {
+      const member = resolved2.declaration;
       const kindShapes2 = /* @__PURE__ */ new Set();
       const projectedMember = project(member, wit).value;
       for (const direction of ["outputType", "inputType"]) {
@@ -102143,8 +103018,8 @@ function solveCelSites(input) {
   const resolvedTargetClasses = (declaration, ref, refKeys, wit, reads, transitive, ownReads) => {
     const resolution = resolutionAt(declaration, ref, refKeys, wit);
     if (!resolution) return [];
-    const { outcomeClass, resolved, target } = resolution;
-    if (!resolved) return [outcomeClass];
+    const { outcomeClass, resolved: resolved2, target } = resolution;
+    if (!resolved2) return [outcomeClass];
     const kindShapes = /* @__PURE__ */ new Set();
     const shapesOf = (projected, within4) => {
       for (const direction of ["outputType", "inputType"]) {
@@ -102152,8 +103027,8 @@ function solveCelSites(input) {
       }
       return shapeClasses(kindShapes, wit);
     };
-    if (!target && resolved.status === "resolved" && resolved.address.scope) {
-      const member = resolved.declaration;
+    if (!target && resolved2.status === "resolved" && resolved2.address.scope) {
+      const member = resolved2.declaration;
       return [
         outcomeClass,
         ...namedReadClasses([{ member, near: declaration, reads, transitive }], wit, ownReads),
@@ -102255,9 +103130,9 @@ function solveCelSites(input) {
         const resolution = resolutionAt(crossing.holder, reference.value, crossing.at, wit);
         if (!resolution) continue;
         out.push(resolution.outcomeClass);
-        const { target, resolved } = resolution;
+        const { target, resolved: resolved2 } = resolution;
         if (!target) {
-          const member = resolved && resolved.status !== "unresolved" && resolved.address.scope ? resolved.declaration : void 0;
+          const member = resolved2 && resolved2.status !== "unresolved" && resolved2.address.scope ? resolved2.declaration : void 0;
           if (!member) continue;
           const found = memberAt(member, crossing.holder, wit);
           const keys = [...found.at, ...crossing.rest];
@@ -102337,14 +103212,15 @@ function solveCelSites(input) {
       const guard = new Set(seen).add(schema4);
       if (typeof schema4.$ref === "string") {
         const ref = schema4.$ref;
-        if (!ref.startsWith("#/")) {
-          const shape = input.shapeNameOf(ref);
+        const { shape: id } = schemaReferenceParts(ref);
+        if (id !== void 0) {
+          const shape = input.shapeNameOf(id);
           if (shape !== void 0) shapes.add(shape);
         }
-        const target = ref.startsWith("#/") ? resolvePointer3(document, ref.slice(1)) : input.shapeOf(ref, wit);
+        const target = resolveSchemaReference(ref, document, (shape) => input.shapeOf(shape, wit));
         if (target) {
-          if (!ref.startsWith("#/")) document = target;
-          visit4(target, depth, root, document, guard);
+          document = target.document;
+          visit4(target.node, depth, root, document, guard);
         }
       }
       out.push({ node: schema4, at: keys.slice(0, depth), root });
@@ -102996,12 +103872,13 @@ function solveCelSites(input) {
       const guard = new Set(seen).add(schema4);
       if (typeof schema4.$ref === "string") {
         const ref = schema4.$ref;
-        if (!ref.startsWith("#/")) {
-          const shape = input.shapeNameOf(ref);
+        const { shape: id } = schemaReferenceParts(ref);
+        if (id !== void 0) {
+          const shape = input.shapeNameOf(id);
           if (shape !== void 0) shapes.add(shape);
         }
-        const target = ref.startsWith("#/") ? resolvePointer3(document, ref.slice(1)) : input.shapeOf(ref, wit);
-        if (target) visit4(target, at3, root, ref.startsWith("#/") ? document : target, guard);
+        const target = resolveSchemaReference(ref, document, (shape) => input.shapeOf(shape, wit));
+        if (target) visit4(target.node, at3, root, target.document, guard);
       }
       out.push({ node: schema4, at: at3, root });
       for (const branch of ["allOf", "anyOf", "oneOf"]) {
@@ -103981,15 +104858,6 @@ function readsObservedStateGate(declaration, keys, chains) {
   if (isKindDocument(declaration)) return true;
   if (isModuleKind(declaration.kind) && keys[0] === "imports") return true;
   return chains.some((chain) => observedStateRead(chain) !== void 0);
-}
-function resolvePointer3(root, pointer) {
-  let node = root;
-  for (const raw of pointer.split("/").slice(1)) {
-    const segment = raw.replace(/~1/g, "/").replace(/~0/g, "~");
-    if (node === null || typeof node !== "object") return void 0;
-    node = node[segment];
-  }
-  return node;
 }
 function valueAt8(root, keys) {
   let node = root;
@@ -105066,7 +105934,9 @@ function stepBodyPlaces(identity, scope) {
 }
 function slotRuleSites(identity, scope) {
   if (!isEntryIdentity(identity, scope.rootModules)) return void 0;
-  const definition = namedDeclarationDefinition(identity, scope);
+  return definitionEvalSites(namedDeclarationDefinition(identity, scope), scope);
+}
+function definitionEvalSites(definition, scope) {
   const { defs, aliases } = scope;
   const resolveDef = (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k);
   const capability = definition ? inheritedCapability(definition, resolveDef) : void 0;
@@ -105426,7 +106296,11 @@ var RELATION_READERS = {
         const inputsPath = slotInputsPath(site);
         if (inputsPath === void 0 || !isAtOrAbove(region.at, site.keys) || seen.has(site.path)) continue;
         seen.add(site.path);
-        out.push({ anchor: site.keys, related: [parseKeys(inputsPath)] });
+        const completedWhen = slotCompletedWhenPath(site);
+        out.push({
+          anchor: site.keys,
+          related: [parseKeys(inputsPath), ...completedWhen !== void 0 ? [parseKeys(completedWhen)] : []]
+        });
       }
       return out;
     },
@@ -105450,6 +106324,8 @@ var RELATION_READERS = {
         site = callSiteAt("slot", pathText(inputsKeys), values, value2, manifest, ctx);
       }
       if (!site) return [];
+      const completedKeys = instance.related?.[1];
+      if (completedKeys && door.place(completedKeys) === true) site = { ...site, completed: true };
       return checkCallSite(site, manifest, door.requests, door.defs, door.aliases, doorScopes(door)).map(
         (issue) => callInputFinding(manifest, issue)
       );
@@ -105600,6 +106476,18 @@ var RELATION_READERS = {
       targets: [instance.anchor, ...instance.related ?? []].map(identityTarget)
     }),
     judge: (instance, input) => matchChecks(instance, input)
+  },
+  // An accessor chain naming a string of a format its field does not take, at
+  // a declaration of the entry's own modules and every template-body entry it
+  // declares: the chain's declared source against the field's formats.
+  accessorFormats: {
+    instances: (region, scope) => uniqueAnchors(
+      accessorChainFieldsOf(region.holder, region.identity, scope).map((field) => field.keys),
+      region.at
+    ),
+    // The way to the field selects the union branch declaring it.
+    reads: () => ({ places: [], facts: true, enclosing: true }),
+    judge: (instance, input) => accessorFormatChecks(instance, input)
   },
   // Each value an expression produces against the slot it flows into: the
   // expression, judged once for every slot it flows into and reported by the
@@ -106028,6 +106916,72 @@ function matchChecks(instance, { identity, value: value2, door }) {
       false,
       [path, { text: accessorPath, anywhere: true }]
     );
+  });
+}
+function accessorChainFieldsOf(holder, identity, scope, withSlots = false) {
+  const { defs, aliases, aliasesByModule, rootModules } = scope;
+  if (typeof identity.kind !== "string" || !isEntryIdentity(identity, rootModules)) return [];
+  const namedShape = (ref) => defs.schemaForId(ref);
+  const out = [];
+  const collect4 = (manifest, sites, schema4, prefix) => {
+    if (!sites) return;
+    const fields = accessorFields(manifest, sites).filter(
+      (field) => isTaggedSentinel(field.value) && field.value.engine === CEL_ENGINE
+    );
+    if (fields.length === 0) return;
+    const declared = withSlots ? schema4() : void 0;
+    const slots = declared ? collectCelValueSlots(manifest, declared, "", namedShape) : [];
+    for (const field of fields) {
+      out.push({
+        keys: [...prefix, ...field.keys],
+        slots: slots.filter((slot) => slot.path === field.path).map((slot) => slot.schema)
+      });
+    }
+  };
+  const definition = namedDeclarationDefinition(identity, scope);
+  collect4(holder, slotRuleSites(identity, scope), () => definition && validationSchemaOfDefinition(definition, scope), []);
+  for (const body2 of templateBodies(holder, defs, aliases, { aliasesByModule, rootModules })) {
+    const entry2 = body2.definition;
+    collect4(
+      body2.manifest,
+      definitionEvalSites(entry2, scope),
+      () => defs.effectiveSchemaOf(entry2),
+      parseKeys(body2.prefix)
+    );
+  }
+  return out;
+}
+function accessorFormatChecks(instance, { identity, value: value2, door }) {
+  const leaf = instance.anchor;
+  const holder = anchorHolder(identity, leaf, value2);
+  for (const { at: at3, members: members2 } of door.enclosing()) {
+    const object = at3.length === 0 ? holder : valueAtKeys2(holder, at3);
+    if (!object || Array.isArray(object)) continue;
+    for (const [key3, member] of Object.entries(members2)) if (!(key3 in object)) object[key3] = member;
+  }
+  const path = pathText(leaf);
+  const field = accessorChainFieldsOf(holder, identity, door, true).find((each) => pathText(each.keys) === path);
+  if (!field || field.slots.length === 0) return [];
+  const facts = door.facts(leaf);
+  const variants = facts?.variants;
+  const typings = Math.max(1, variants?.length ?? 0);
+  const namedShape = (ref) => door.defs.schemaForId(ref);
+  const found = /* @__PURE__ */ new Map();
+  for (let typing = 0; typing < typings; typing++) {
+    const produced2 = variants ? variants[typing]?.produced : facts?.produced;
+    if (!produced2) continue;
+    const reason = field.slots.map((slot) => accessorFormatMisfit(slot, produced2, namedShape)).find((r) => r !== void 0);
+    if (!reason) continue;
+    let entry2 = found.get(reason);
+    if (!entry2) found.set(reason, entry2 = { labels: /* @__PURE__ */ new Set(), count: 0 });
+    entry2.count++;
+    const label2 = variants?.[typing]?.label;
+    if (label2) entry2.labels.add(label2);
+  }
+  const chain = (isTaggedSentinel(value2) ? value2.source : facts?.source ?? "").trim();
+  return [...found].map(([reason, entry2]) => {
+    const under = entry2.count < typings && entry2.labels.size > 0 ? ` (as ${[...entry2.labels].join(", ")} references it)` : "";
+    return relationFindingAt(identity, "CEL_TYPE_ERROR", `CEL at '${path}': '${chain}' ${reason}.${under}`, path, false, path);
   });
 }
 function judgeSlotWith(slot, facts, expression, namedShape) {
@@ -109417,6 +110371,23 @@ var StaticAnalyzer = class {
             }
           });
         }
+        const capability = inheritedCapability(
+          def,
+          (k) => defs.resolve(scopeResolver.resolveKind(k) ?? k) ?? defs.resolve(k)
+        );
+        for (const problem of scopeOpenedByProblems(def, capability)) {
+          scopeSlotDiagnostics.push({
+            severity: DiagnosticSeverity2.Error,
+            code: "SCOPE_OPENED_BY_INVALID",
+            source: SOURCE53,
+            message: `${m.kind} ${problem.message}`,
+            data: {
+              resource: { kind: m.kind, name: def.metadata?.name },
+              filePath: def.metadata?.source,
+              path: problem.path
+            }
+          });
+        }
         for (const problem of valueSchemaFromProblems(
           m,
           effectiveAuthorSchema(m, (k) => defs.resolve(aliases.resolveKind(k) ?? k) ?? defs.resolve(k)),
@@ -109529,6 +110500,12 @@ var StaticAnalyzer = class {
     }
     for (const { id, schema: schema4 } of foldedShapesOf(manifests)) {
       defs.announceNamedShape(id, schema4);
+    }
+    for (const m of manifests) {
+      const ownModule = m.metadata?.module;
+      if (ownModule && !rootModules.has(ownModule)) continue;
+      if (!isKindDocument(m) && !namedShapeOf(m)) continue;
+      refSlotIssues.push(...completedWhenIssues(m, (id) => defs.namedShapeAt(id, ownModule, void 0)?.schema));
     }
     const peersTarget = analyzerPeersTarget(defs);
     const referrerSlot = analyzerReferrerSlot(defs);
@@ -109892,9 +110869,9 @@ var StaticAnalyzer = class {
       libraries: options?.moduleDocuments
     });
     const kindMatches = (filter, kind) => {
-      const resolved = aliases.resolveKind(kind) ?? kind;
-      if (resolved === filter) return true;
-      return defs.getByExtends(filter).some((d) => `${d.metadata.module}.${d.metadata.name}` === resolved);
+      const resolved2 = aliases.resolveKind(kind) ?? kind;
+      if (resolved2 === filter) return true;
+      return defs.getByExtends(filter).some((d) => `${d.metadata.module}.${d.metadata.name}` === resolved2);
     };
     const referrersOf = (manifest, graph) => {
       const name2 = manifest.metadata?.name;
@@ -110869,6 +111846,7 @@ var StaticAnalyzer = class {
           relationGroupFindings("annotations", m);
         }
         relationGroupFindings("match", m);
+        relationGroupFindings("accessorFormats", m);
       }
     }
     if (!options?.skipValidation) {
@@ -111199,6 +112177,45 @@ var StaticAnalyzer = class {
         ...coReferrerCallProblems(m, m.schema, (kind) => defs.resolve(kind), true).problems
       ];
       for (const problem of kindProblems) pushKindDocumentProblem(m, ownModule, problem);
+    }
+    const soleRootModule = rootModules.size === 1 ? [...rootModules][0] : void 0;
+    validateEvalModeBranches({
+      kinds: allManifests.flatMap((m) => {
+        const declared = kindDeclarationOf(m);
+        return declared ? [{ manifest: m, module: m.metadata?.module, schema: declared.schema }] : [];
+      }),
+      shapes: (ref) => defs.schemaForId(ref) ?? shapeDocuments.get(ref),
+      shapeDocuments: [
+        ...allManifests.map((manifest) => ({
+          manifest,
+          module: manifest.metadata?.module ?? soleRootModule
+        })),
+        ...(options?.moduleDocuments ?? []).flatMap(
+          (library) => library.manifests.map((manifest) => ({ manifest, module: library.module }))
+        )
+      ],
+      report: (manifest, module, problem) => pushKindDocumentProblem(manifest, module, problem)
+    });
+    const completedWhenJudged = /* @__PURE__ */ new Set();
+    const judgeCompletedWhen = (m, module) => {
+      if (rootModules.has(module)) return;
+      const key3 = `${module}\0${String(m.kind)}\0${String(m.metadata?.name)}`;
+      if (completedWhenJudged.has(key3)) return;
+      const scope = declaringModuleScope(module, aliases, { aliasesByModule, rootModules });
+      const shape = typeof m.kind === "string" && inheritedCapability(defs.resolve(scope.resolveKind(m.kind) ?? m.kind), (k) => defs.resolve(k)) === "Telo.Type";
+      if (!isKindDocument(m) && !shape) return;
+      completedWhenJudged.add(key3);
+      const lookup = (id) => defs.namedShapeAt(id, module, moduleAliasScope({ module }, aliases, aliasesByModule))?.schema ?? shapeDocuments.get(id);
+      for (const problem of completedWhenProblems(m.schema, `'${String(m.metadata?.name)}'`, "schema", lookup)) {
+        pushKindDocumentProblem(m, module, problem);
+      }
+    };
+    for (const m of allManifests) {
+      const module = m.metadata?.module;
+      if (module) judgeCompletedWhen(m, module);
+    }
+    for (const library of options?.moduleDocuments ?? []) {
+      for (const m of library.manifests) judgeCompletedWhen(m, library.module);
     }
     const placementJudged = /* @__PURE__ */ new Set();
     const judgePlacement = (m, module) => {
@@ -113803,8 +114820,8 @@ var Loader = class {
   async resolveImportUrl(fromSource, importSource) {
     if (!isLocalPathSource(importSource)) return importSource;
     for (const source of this.sources) {
-      const resolved = await source.resolveRelativeImport?.(fromSource, importSource);
-      if (resolved !== void 0) return resolved;
+      const resolved2 = await source.resolveRelativeImport?.(fromSource, importSource);
+      if (resolved2 !== void 0) return resolved2;
     }
     return this.pick(fromSource).resolveRelative(fromSource, importSource);
   }
@@ -113907,6 +114924,7 @@ var X_TELO_TEXT_VALUES = "x-telo-text-values";
 var X_TELO_PATH_PARAMS_FOR = "x-telo-path-params-for";
 var X_TELO_CONTEXT_EVAL = "x-telo-context-eval";
 var X_TELO_CONTEXT_FROM_REFERRER = "x-telo-context-from-referrer";
+var X_TELO_CONTEXT_FROM_PATH_TEMPLATE = "x-telo-context-from-path-template";
 var X_TELO_CONTEXT_NULLABLE_WHEN = "x-telo-context-nullable-when";
 var X_TELO_CONTEXT_ITEM_FILLS = "x-telo-context-item-fills";
 var X_TELO_CAUGHT_MEMBER2 = "x-telo-caught-member";
@@ -113953,8 +114971,8 @@ var TELO_SCHEMA_ANNOTATIONS = {
   },
   "x-telo-scope": {
     title: "Execution scope",
-    description: "JSON Pointer to a region whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit. Legal only on a named top-level property of the resource.",
-    anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }]
+    description: "JSON Pointer(s) to the regions whose `!ref`s resolve against this field's inline resources, created on entry and torn down on exit; the object form `{ regions, openedBy: dispatch }` also binds the opening invocation's `inputs` in the resources' creation-time fields. Legal only on a named top-level property of the resource.",
+    anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }, { type: "object" }]
   },
   "x-telo-context": {
     title: "CEL context",
@@ -114156,6 +115174,11 @@ var FROM_REFERRER_ENTRY = {
   description: "Type this node from what the path (`<binding>[/<member>\u2026]`) names in the scope at each slot referencing the resource \u2014 a field's record from the form holding it, a route's `request/principal` from its mounts \u2014 read at the site's own eval mode. Each referrer's type replaces the node's own keywords; judged once per distinct referrer type; with no referrer, or one whose scope lacks the path, the node is what it declares itself.",
   type: "string"
 };
+var FROM_PATH_TEMPLATE_ENTRY = {
+  title: "Context from path template",
+  description: "Type this node as the variables of the path template at the relative pointer (`0/path`, from the object holding the region's field): a closed object with one required string per `{name}` segment. Where the field holds no template, the node is an open map of strings.",
+  type: "string"
+};
 var NULLABLE_WHEN_ENTRY = {
   title: "Context nullable when",
   description: "This node may be null where the resource's value at `at` \u2014 a relative JSON pointer from the context holder, schema defaults filling a member whose object is present \u2014 is one of `equals`, or, with `absent: true`, where nothing is there. A computed or undecided value counts as a match. Null is added to whatever type the node resolves to.",
@@ -114170,6 +115193,7 @@ var NULLABLE_WHEN_ENTRY = {
 };
 var TELO_CONTEXT_BINDING_ANNOTATIONS = {
   [X_TELO_CONTEXT_FROM_REFERRER]: FROM_REFERRER_ENTRY,
+  [X_TELO_CONTEXT_FROM_PATH_TEMPLATE]: FROM_PATH_TEMPLATE_ENTRY,
   [X_TELO_CONTEXT_NULLABLE_WHEN]: NULLABLE_WHEN_ENTRY,
   [X_TELO_CONTEXT_ITEM_FILLS]: {
     title: "Context item fills",
@@ -114189,6 +115213,7 @@ var TELO_CONTEXT_BINDING_ANNOTATIONS = {
 };
 var TELO_CONTEXT_MEMBER_ANNOTATIONS = {
   [X_TELO_CONTEXT_FROM_REFERRER]: FROM_REFERRER_ENTRY,
+  [X_TELO_CONTEXT_FROM_PATH_TEMPLATE]: FROM_PATH_TEMPLATE_ENTRY,
   [X_TELO_CONTEXT_NULLABLE_WHEN]: NULLABLE_WHEN_ENTRY,
   [X_TELO_CAUGHT_MEMBER2]: {
     title: "Caught member",
@@ -115213,53 +116238,53 @@ function lookupRefSlot(definitionSchema, yamlPath, schemaFrom) {
   return node ? readRefSlot(node) : void 0;
 }
 function detectContext(text3, line, character, docs) {
-  const resolved = resolveNodeAtPosition(text3, docs ?? parseToAst(text3), line, character);
-  if (!resolved) return void 0;
-  const { docKind } = resolved;
-  if (resolved.slot === "value") {
-    const tag = resolved.tag;
+  const resolved2 = resolveNodeAtPosition(text3, docs ?? parseToAst(text3), line, character);
+  if (!resolved2) return void 0;
+  const { docKind } = resolved2;
+  if (resolved2.slot === "value") {
+    const tag = resolved2.tag;
     if (tag?.prefix !== void 0) {
-      const depth = resolved.resourceDepth ?? 0;
+      const depth = resolved2.resourceDepth ?? 0;
       return {
         type: "value-tag",
-        kind: resolved.resourceKind ?? docKind,
-        yamlPath: resolved.path.slice(depth),
+        kind: resolved2.resourceKind ?? docKind,
+        yamlPath: resolved2.path.slice(depth),
         concretePath: relativeConcretePath(
-          resolved.concretePath ?? "",
-          resolved.resourceConcretePath ?? ""
+          resolved2.concretePath ?? "",
+          resolved2.resourceConcretePath ?? ""
         ),
-        isItem: resolved.container === void 0,
+        isItem: resolved2.container === void 0,
         bare: tag.bare,
         replaceRange: tag.replaceRange
       };
     }
     const names = tag ? valueTag(tag.text.slice(1))?.names : void 0;
-    if (names && resolved.replaceRange) {
+    if (names && resolved2.replaceRange) {
       return {
         type: "module-file",
         names,
-        kind: resolved.resourceKind ?? docKind,
-        yamlPath: resolved.path.slice(resolved.resourceDepth ?? 0),
-        isItem: resolved.container === void 0,
-        prefix: resolved.prefix ?? "",
-        replaceRange: resolved.replaceRange
+        kind: resolved2.resourceKind ?? docKind,
+        yamlPath: resolved2.path.slice(resolved2.resourceDepth ?? 0),
+        isItem: resolved2.container === void 0,
+        prefix: resolved2.prefix ?? "",
+        replaceRange: resolved2.replaceRange
       };
     }
-    if (resolved.cel) {
+    if (resolved2.cel) {
       return {
         type: "cel",
         docKind,
-        docIndex: resolved.docIndex,
-        concretePath: resolved.concretePath ?? "",
-        segment: resolved.cel.segment,
-        offset: resolved.cel.offset
+        docIndex: resolved2.docIndex,
+        concretePath: resolved2.concretePath ?? "",
+        segment: resolved2.cel.segment,
+        offset: resolved2.cel.offset
       };
     }
-    const replaceRange = resolved.replaceRange;
+    const replaceRange = resolved2.replaceRange;
     if (!replaceRange) return void 0;
-    const key3 = resolved.path[resolved.path.length - 1];
-    const parentPath2 = resolved.path.slice(0, -1);
-    const prefix = resolved.prefix ?? "";
+    const key3 = resolved2.path[resolved2.path.length - 1];
+    const parentPath2 = resolved2.path.slice(0, -1);
+    const prefix = resolved2.prefix ?? "";
     if (key3 === "kind") {
       if (parentPath2.length === 0) return { type: "kind", replaceRange };
       if (docKind) return { type: "kind", docKind, yamlPath: parentPath2, replaceRange };
@@ -115273,12 +116298,12 @@ function detectContext(text3, line, character, docs) {
         type: "ref-name",
         docKind,
         yamlPath: parentPath2,
-        refKind: resolved.siblingKind,
+        refKind: resolved2.siblingKind,
         prefix,
         replaceRange
       };
     }
-    if ((docKind === "Telo.Application" || docKind === "Telo.Library") && resolved.spaceAfterColon) {
+    if ((docKind === "Telo.Application" || docKind === "Telo.Library") && resolved2.spaceAfterColon) {
       const isScalarEntry = parentPath2.length === 1 && parentPath2[0] === "imports";
       const isObjectSource = key3 === "source" && parentPath2.length === 2 && parentPath2[0] === "imports";
       if (isScalarEntry || isObjectSource) {
@@ -115286,24 +116311,24 @@ function detectContext(text3, line, character, docs) {
       }
     }
     if (docKind) {
-      return { type: "value-suggestions", docKind, yamlPath: resolved.path, replaceRange };
+      return { type: "value-suggestions", docKind, yamlPath: resolved2.path, replaceRange };
     }
     return void 0;
   }
-  const scopeKind = resolved.resourceKind ?? docKind;
+  const scopeKind = resolved2.resourceKind ?? docKind;
   if (!scopeKind) return void 0;
   return {
     type: "prop-key",
     docKind: scopeKind,
-    yamlPath: resolved.path.slice(resolved.resourceDepth ?? 0),
-    concretePath: resolved.concretePath ?? "",
-    docIndex: resolved.docIndex,
-    existingKeys: resolved.existingKeys ?? /* @__PURE__ */ new Set()
+    yamlPath: resolved2.path.slice(resolved2.resourceDepth ?? 0),
+    concretePath: resolved2.concretePath ?? "",
+    docIndex: resolved2.docIndex,
+    existingKeys: resolved2.existingKeys ?? /* @__PURE__ */ new Set()
   };
 }
 
 // ../ide-support/src/completions/call-inputs.ts
-function pointerSegments7(pointer) {
+function pointerSegments8(pointer) {
   if (!pointer.startsWith("/")) return void 0;
   const segments = pointer.slice(1).split("/").map((s) => s.replace(/~1/g, "/").replace(/~0/g, "~"));
   return segments.every((s) => s.length > 0 && !/^\d+$/.test(s)) ? segments : void 0;
@@ -115330,7 +116355,7 @@ function callInputsAt(registry, analysis, docKind, resourceName, concretePath2) 
     for (const [siblingName, siblingSchema] of Object.entries(properties)) {
       const slot = readRefSlot(siblingSchema);
       if (!slot?.inputs) continue;
-      const pointed = pointerSegments7(slot.inputs);
+      const pointed = pointerSegments8(slot.inputs);
       if (!pointed || pointed.length !== tail.length) continue;
       if (!pointed.every((seg, i) => seg === tail[i])) continue;
       const refPath = [...concreteSegments2.slice(0, depth), siblingName].filter(Boolean).join(".");
@@ -115738,13 +116763,13 @@ function readRefScalar(scalar2, text3) {
 // ../ide-support/src/completions/family-index.ts
 var TYPING = /^["']?([A-Za-z_]\w*)((?:\[[A-Za-z_]\w*\.(?:key|index)\])*)\[(?:([A-Za-z_]\w*)(\.(\w*))?)?$/;
 function familyIndexCompletions(text3, line, character, docs) {
-  const resolved = resolveNodeAtPosition(text3, docs, line, character);
-  const scalar2 = resolved?.node;
-  if (!resolved || resolved.slot !== "value" || scalar2?.kind !== "scalar" || scalar2.tag !== "!ref") return void 0;
-  const typing = TYPING.exec(resolved.prefix ?? "");
+  const resolved2 = resolveNodeAtPosition(text3, docs, line, character);
+  const scalar2 = resolved2?.node;
+  if (!resolved2 || resolved2.slot !== "value" || scalar2?.kind !== "scalar" || scalar2.tag !== "!ref") return void 0;
+  const typing = TYPING.exec(resolved2.prefix ?? "");
   if (!typing) return void 0;
   const [, head, done, typedBinding, dot, typedMember] = typing;
-  const doc = docs[resolved.docIndex];
+  const doc = docs[resolved2.docIndex];
   const loops = forEachLoops(doc);
   const family = loops.find((l) => l.family?.name === head);
   if (!family) return [];
@@ -115775,7 +116800,7 @@ function familyIndexCompletions(text3, line, character, docs) {
     }
     return view;
   };
-  const around = loops.filter((l) => l !== family && contains(l.map.range, [resolved.offset, resolved.offset])).sort((a, b) => a.map.range[0] - b.map.range[0]);
+  const around = loops.filter((l) => l !== family && contains(l.map.range, [resolved2.offset, resolved2.offset])).sort((a, b) => a.map.range[0] - b.map.range[0]);
   const chosen = [...done.matchAll(/\[([A-Za-z_]\w*)\./g)].map(
     (m) => [...around].reverse().find((l) => l.binding === m[1])
   );
@@ -115786,22 +116811,22 @@ function familyIndexCompletions(text3, line, character, docs) {
   const at3 = (offset) => offsetToPosition(offset, offsets);
   if (dot !== void 0) {
     const members2 = membersOf2(doc, source);
-    const start2 = resolved.offset - (typedMember ?? "").length;
+    const start2 = resolved2.offset - (typedMember ?? "").length;
     return members2.map((member) => ({
       label: member,
       kind: "enumMember",
       detail: `${member === "key" ? "a map" : "a list"} source's ${member}`,
-      replaceRange: { start: at3(start2), end: at3(resolved.offset) }
+      replaceRange: { start: at3(start2), end: at3(resolved2.offset) }
     }));
   }
-  const start = resolved.offset - (typedBinding ?? "").length;
+  const start = resolved2.offset - (typedBinding ?? "").length;
   return matching.map((loop) => ({
     label: loop.binding,
     insertText: `${loop.binding}.`,
     retrigger: true,
     kind: "value",
     detail: `iterates ${source}`,
-    replaceRange: { start: at3(start), end: at3(resolved.offset) }
+    replaceRange: { start: at3(start), end: at3(resolved2.offset) }
   }));
 }
 var contains = (outer, inner) => inner[0] >= outer[0] && inner[1] <= outer[1];
@@ -116127,9 +117152,9 @@ function refNameCompletions(docs, refKind, slot, registry, analysis, replaceRang
   if (refKind) {
     acceptable = /* @__PURE__ */ new Set([refKind]);
   } else if (refConstraints.length > 0 && registry) {
-    const resolved = refConstraints.map((c) => registry.userFacingKindsForRef(c));
-    if (resolved.some(Boolean)) {
-      acceptable = new Set(resolved.flatMap((kinds) => kinds ?? []));
+    const resolved2 = refConstraints.map((c) => registry.userFacingKindsForRef(c));
+    if (resolved2.some(Boolean)) {
+      acceptable = new Set(resolved2.flatMap((kinds) => kinds ?? []));
     }
   }
   const seen = /* @__PURE__ */ new Set();
@@ -116164,9 +117189,9 @@ function refConstrainedKinds(registry, parentDocKind, parentYamlPath) {
     (from) => registry.resolveSchemaFrom(from, parentDocKind)
   );
   if (!slot || slot.kinds.length === 0) return void 0;
-  const resolved = slot.kinds.map((c) => registry.userFacingKindsForRef(c));
-  if (!resolved.some(Boolean)) return void 0;
-  return [...new Set(resolved.flatMap((kinds) => kinds ?? []))].filter(
+  const resolved2 = slot.kinds.map((c) => registry.userFacingKindsForRef(c));
+  if (!resolved2.some(Boolean)) return void 0;
+  return [...new Set(resolved2.flatMap((kinds) => kinds ?? []))].filter(
     (kind) => !outputRefused(slot, { kind }, registry, void 0)
   );
 }
@@ -116387,29 +117412,29 @@ function fieldSchemaFor(resourceKind, relativePath, registry) {
 }
 function buildHover(text3, line, character, registry, docs, analysis) {
   const astDocs = docs ?? parseToAst(text3);
-  const resolved = resolveNodeAtPosition(text3, astDocs, line, character);
-  if (!resolved) return void 0;
-  if (resolved.cel) {
-    const hover = hoverForCel(text3, resolved, astDocs, analysis?.celScope);
+  const resolved2 = resolveNodeAtPosition(text3, astDocs, line, character);
+  if (!resolved2) return void 0;
+  if (resolved2.cel) {
+    const hover = hoverForCel(text3, resolved2, astDocs, analysis?.celScope);
     if (hover) return hover;
   }
-  if (resolved.slot === "value") return hoverForValue(resolved, registry);
-  return hoverForKey(resolved, registry);
+  if (resolved2.slot === "value") return hoverForValue(resolved2, registry);
+  return hoverForKey(resolved2, registry);
 }
-function hoverForCel(text3, resolved, docs, scopeQuery) {
-  if (!resolved.cel || !scopeQuery) return void 0;
-  const identity = docIdentity(docs[resolved.docIndex]);
+function hoverForCel(text3, resolved2, docs, scopeQuery) {
+  if (!resolved2.cel || !scopeQuery) return void 0;
+  const identity = docIdentity(docs[resolved2.docIndex]);
   const resource = scopeQuery.resourceFor(identity.kind, identity.name);
   if (!resource) return void 0;
   let ast2;
   try {
-    ast2 = resolved.cel.segment.ast();
+    ast2 = resolved2.cel.segment.ast();
   } catch (error) {
     if (!(error instanceof CelParseError)) throw error;
     return void 0;
   }
-  const scope = scopeQuery.scopeAt(resource, resolved.concretePath ?? "");
-  const call = moduleCallAt(text3, ast2, resolved.cel.offset, scope);
+  const scope = scopeQuery.scopeAt(resource, resolved2.concretePath ?? "");
+  const call = moduleCallAt(text3, ast2, resolved2.cel.offset, scope);
   if (call && !call.onReceiver) {
     const fn = scope.moduleFunction(call.qualified);
     if (!fn) return void 0;
@@ -116418,7 +117443,7 @@ function hoverForCel(text3, resolved, docs, scopeQuery) {
     if (about) lines2.push("", about);
     return { contents: lines2.join("\n") };
   }
-  const hit = chainAt(ast2, resolved.cel.offset);
+  const hit = chainAt(ast2, resolved2.cel.offset);
   if (!hit) return void 0;
   const parts = hit.parts.slice(0, hit.index + 1).map((p) => p.name);
   const symbol = celSymbolAt(scope, parts);
@@ -116429,31 +117454,31 @@ function hoverForCel(text3, resolved, docs, scopeQuery) {
   if (chainText2 !== symbol.name) lines.push("", `\`${chainText2}\``);
   return { contents: lines.join("\n") };
 }
-function hoverForValue(resolved, registry) {
-  const key3 = resolved.path[resolved.path.length - 1];
-  const value2 = scalarString(resolved.node);
-  const range = resolved.replaceRange;
+function hoverForValue(resolved2, registry) {
+  const key3 = resolved2.path[resolved2.path.length - 1];
+  const value2 = scalarString(resolved2.node);
+  const range = resolved2.replaceRange;
   if (key3 === "kind" && value2) {
     return { contents: kindHover(value2, registry?.resolveDefinition(value2)), range };
   }
-  if (key3 === "capability" && resolved.docKind === "Telo.Definition" && value2) {
+  if (key3 === "capability" && resolved2.docKind === "Telo.Definition" && value2) {
     const doc = declarableCapabilities().includes(value2) ? capabilityDescription(value2) : void 0;
     return doc ? { contents: `**${value2}**
 
 ${doc}`, range } : void 0;
   }
   if (key3) {
-    const field = fieldSchemaFor(resolved.siblingKind, [key3], registry);
+    const field = fieldSchemaFor(resolved2.siblingKind, [key3], registry);
     if (field) return { contents: fieldHover(key3, field), range };
   }
   return void 0;
 }
-function hoverForKey(resolved, registry) {
-  const keyName = scalarString(resolved.node);
+function hoverForKey(resolved2, registry) {
+  const keyName = scalarString(resolved2.node);
   if (!keyName) return void 0;
-  const range = resolved.replaceRange;
-  const resourceKind = resolved.resourceKind ?? resolved.docKind;
-  const relativePath = [...resolved.path.slice(resolved.resourceDepth ?? 0), keyName];
+  const range = resolved2.replaceRange;
+  const resourceKind = resolved2.resourceKind ?? resolved2.docKind;
+  const relativePath = [...resolved2.path.slice(resolved2.resourceDepth ?? 0), keyName];
   const field = fieldSchemaFor(resourceKind, relativePath, registry);
   if (field) return { contents: fieldHover(keyName, field), range };
   const structural = STRUCTURAL_KEY_DOCS[keyName];
@@ -116863,10 +117888,10 @@ function resolveCelTarget(graph, currentModule, segment, offset, resolvers) {
 
 // ../ide-support/src/definition/resolve-kind-target.ts
 var DEFINITION_DOC_KINDS = /* @__PURE__ */ new Set(["Telo.Definition", "Telo.Abstract"]);
-function isKindSlot(resolved) {
-  const key3 = resolved.path[resolved.path.length - 1];
+function isKindSlot(resolved2) {
+  const key3 = resolved2.path[resolved2.path.length - 1];
   if (key3 === "x-telo-ref" || key3 === "kind") return true;
-  return key3 === "extends" && resolved.path.length === 1 && DEFINITION_DOC_KINDS.has(resolved.docKind ?? "");
+  return key3 === "extends" && resolved2.path.length === 1 && DEFINITION_DOC_KINDS.has(resolved2.docKind ?? "");
 }
 function resolveKindTarget(graph, currentModule, kind) {
   const { alias, name: name2, onAlias } = kind;
@@ -116897,36 +117922,36 @@ function resolveRefTarget(graph, currentModule, ref) {
 // ../ide-support/src/definition/build-definition.ts
 function buildDefinition(text3, line, character, graph, currentFilePath, docs, analysis) {
   const astDocs = docs ?? parseToAst(text3);
-  const resolved = resolveNodeAtPosition(text3, astDocs, line, character);
-  if (!resolved) return void 0;
+  const resolved2 = resolveNodeAtPosition(text3, astDocs, line, character);
+  if (!resolved2) return void 0;
   const currentModule = moduleForFile(graph, currentFilePath) ?? graph.entry;
-  if (resolved.cel) {
-    const call = moduleCallTarget(graph, currentModule, text3, astDocs, resolved, analysis);
+  if (resolved2.cel) {
+    const call = moduleCallTarget(graph, currentModule, text3, astDocs, resolved2, analysis);
     if (call !== NOT_A_MODULE_CALL) return call;
-    return resolveCelTarget(graph, currentModule, resolved.cel.segment, resolved.cel.offset, {
+    return resolveCelTarget(graph, currentModule, resolved2.cel.segment, resolved2.cel.offset, {
       // A step is resolved in the CURRENT document — `steps.<name>.result` is
       // readable only inside the resource that declares it, which is one
       // document. Supplied as a closure so the chain resolver stays free of the
       // AST and the scope query alike.
-      locateStep: (stepName) => locateStepDeclaration(graph, currentFilePath, astDocs, resolved.docIndex, stepName, analysis?.celScope),
+      locateStep: (stepName) => locateStepDeclaration(graph, currentFilePath, astDocs, resolved2.docIndex, stepName, analysis?.celScope),
       locateContextBinding: (parts) => locateContextBinding(
         graph,
         astDocs,
-        resolved.docIndex,
-        resolved.concretePath ?? "",
+        resolved2.docIndex,
+        resolved2.concretePath ?? "",
         parts,
         analysis?.celScope
       )
     });
   }
-  const node = resolved.node;
-  if (resolved.slot !== "value" || node?.kind !== "scalar") return void 0;
+  const node = resolved2.node;
+  if (resolved2.slot !== "value" || node?.kind !== "scalar") return void 0;
   if (node.tag === "!ref") {
-    return refTarget(text3, node, resolved.offset, astDocs[resolved.docIndex], graph, currentModule, currentFilePath);
+    return refTarget(text3, node, resolved2.offset, astDocs[resolved2.docIndex], graph, currentModule, currentFilePath);
   }
-  const split = splitAliasQualified(text3, node, resolved.offset);
+  const split = splitAliasQualified(text3, node, resolved2.offset);
   if (!split) return void 0;
-  if (isKindSlot(resolved)) return resolveKindTarget(graph, currentModule, split);
+  if (isKindSlot(resolved2)) return resolveKindTarget(graph, currentModule, split);
   return void 0;
 }
 function refTarget(text3, scalar2, offset, doc, graph, currentModule, currentFilePath) {
@@ -116956,21 +117981,21 @@ function refTarget(text3, scalar2, offset, doc, graph, currentModule, currentFil
   });
 }
 var NOT_A_MODULE_CALL = Symbol("not a module call");
-function moduleCallTarget(graph, currentModule, text3, docs, resolved, analysis) {
+function moduleCallTarget(graph, currentModule, text3, docs, resolved2, analysis) {
   const query = analysis?.celScope;
-  if (!resolved.cel || !query) return NOT_A_MODULE_CALL;
-  const identity = docIdentity(docs[resolved.docIndex]);
+  if (!resolved2.cel || !query) return NOT_A_MODULE_CALL;
+  const identity = docIdentity(docs[resolved2.docIndex]);
   const resource = query.resourceFor(identity.kind, identity.name);
   if (!resource) return NOT_A_MODULE_CALL;
   let ast2;
   try {
-    ast2 = resolved.cel.segment.ast();
+    ast2 = resolved2.cel.segment.ast();
   } catch (error) {
     if (!(error instanceof CelParseError)) throw error;
     return NOT_A_MODULE_CALL;
   }
-  const scope = query.scopeAt(resource, resolved.concretePath ?? "");
-  const call = moduleCallAt(text3, ast2, resolved.cel.offset, scope);
+  const scope = query.scopeAt(resource, resolved2.concretePath ?? "");
+  const call = moduleCallAt(text3, ast2, resolved2.cel.offset, scope);
   if (!call) return NOT_A_MODULE_CALL;
   const imported = graph.importEdges.get(currentModule.owner.source)?.has(call.receiver) === true;
   if (call.onReceiver) return imported ? locateImport(currentModule, call.receiver) : void 0;
@@ -117142,8 +118167,8 @@ function stepDeclarations(doc, name2) {
 // ../ide-support/src/rename/build-rename.ts
 function prepareRename(text3, line, character, graph, currentFilePath, docs) {
   const astDocs = docs ?? parseToAst(text3);
-  const resolved = resolveNodeAtPosition(text3, astDocs, line, character);
-  if (!resolved) return { ok: false, reason: "Nothing renameable here." };
+  const resolved2 = resolveNodeAtPosition(text3, astDocs, line, character);
+  if (!resolved2) return { ok: false, reason: "Nothing renameable here." };
   const mod = moduleForFile(graph, currentFilePath);
   if (!mod) {
     return { ok: false, reason: "This file is not part of a loaded Telo module." };
@@ -117153,7 +118178,7 @@ function prepareRename(text3, line, character, graph, currentFilePath, docs) {
     start: offsetToPosition(span2[0], lineOffsets),
     end: offsetToPosition(span2[1], lineOffsets)
   });
-  const symbol = symbolAt(resolved, astDocs, toRange2, text3, ownReceivers(mod));
+  const symbol = symbolAt(resolved2, astDocs, toRange2, text3, ownReceivers(mod));
   if (!symbol) return { ok: false, reason: "Nothing renameable here." };
   if ("reason" in symbol) return { ok: false, reason: symbol.reason };
   const refusal = refuse2(symbol, mod, currentFilePath, text3, astDocs);
@@ -117194,11 +118219,11 @@ var DECLARATION_BLOCKS = /* @__PURE__ */ new Set(["variables", "secrets", "ports
 var MODULE_DOC_KINDS2 = /* @__PURE__ */ new Set(["Telo.Application", "Telo.Library"]);
 var KIND_DOC_KINDS2 = /* @__PURE__ */ new Set(["Telo.Definition", "Telo.Abstract"]);
 var SELF_PREFIX = "Self.";
-function symbolAt(resolved, astDocs, toRange2, text3, receivers) {
-  if (resolved.cel) return celSymbol(resolved.cel, toRange2, text3, receivers);
-  const path = resolved.path;
-  const node = resolved.node;
-  if (resolved.slot === "key" && node?.kind === "scalar" && path.length === 1 && DECLARATION_BLOCKS.has(path[0]) && MODULE_DOC_KINDS2.has(resolved.docKind ?? "")) {
+function symbolAt(resolved2, astDocs, toRange2, text3, receivers) {
+  if (resolved2.cel) return celSymbol(resolved2.cel, toRange2, text3, receivers);
+  const path = resolved2.path;
+  const node = resolved2.node;
+  if (resolved2.slot === "key" && node?.kind === "scalar" && path.length === 1 && DECLARATION_BLOCKS.has(path[0]) && MODULE_DOC_KINDS2.has(resolved2.docKind ?? "")) {
     const name3 = scalarString(node);
     if (!name3) return void 0;
     return {
@@ -117208,15 +118233,15 @@ function symbolAt(resolved, astDocs, toRange2, text3, receivers) {
       block: path[0]
     };
   }
-  if (resolved.slot !== "value" || node?.kind !== "scalar") return void 0;
+  if (resolved2.slot !== "value" || node?.kind !== "scalar") return void 0;
   const scalar2 = node;
   if (scalar2.tag === "!ref") {
     const reading = readRefScalar(scalar2, text3);
     if (!reading) return void 0;
-    const at3 = reading.bindings.findIndex((span2) => resolved.offset >= span2[0] && resolved.offset <= span2[1]);
+    const at3 = reading.bindings.findIndex((span2) => resolved2.offset >= span2[0] && resolved2.offset <= span2[1]);
     if (at3 >= 0) {
       const binding = reading.indexes[at3].binding;
-      const loop2 = loopBinding(forEachLoops(astDocs[resolved.docIndex]), binding, scalar2.range[0]);
+      const loop2 = loopBinding(forEachLoops(astDocs[resolved2.docIndex]), binding, scalar2.range[0]);
       if (!loop2?.asRange) {
         return { reason: `'${binding}' is the binding of a '!for-each' that writes no 'as:' \u2014 add one to rename it.` };
       }
@@ -117229,18 +118254,18 @@ function symbolAt(resolved, astDocs, toRange2, text3, receivers) {
     }
     return { kind: "resource", name: reading.name, range: toRange2(reading.head) };
   }
-  const loop = forEachLoops(astDocs[resolved.docIndex]).find(
+  const loop = forEachLoops(astDocs[resolved2.docIndex]).find(
     (l) => l.asRange?.[0] === scalar2.range[0] && l.asRange[1] === scalar2.range[1]
   );
   if (loop) return { kind: "binding", name: loop.binding, range: toRange2(scalar2.range), loop: loop.map.range };
   const name2 = scalarString(scalar2);
   if (!name2) return void 0;
-  const family = forEachLoops(astDocs[resolved.docIndex]).find(
+  const family = forEachLoops(astDocs[resolved2.docIndex]).find(
     (l) => l.family?.range[0] === scalar2.range[0] && l.family.range[1] === scalar2.range[1]
   );
   if (family) return { kind: "resource", name: name2, range: toRange2(scalar2.range) };
   if (path.length === 2 && path[0] === "metadata" && path[1] === "name") {
-    const docKind = resolved.docKind ?? "";
+    const docKind = resolved2.docKind ?? "";
     if (MODULE_DOC_KINDS2.has(docKind)) {
       return {
         reason: "Renaming a module is not supported yet \u2014 its name is the canonical kind prefix, so every consumer's `kind:` and `extends:` values resolve through it."
@@ -117478,16 +118503,16 @@ function buildSignatureHelp(text3, line, character, docs, analysis) {
   const query = analysis?.celScope;
   if (!query) return void 0;
   const astDocs = docs ?? parseToAst(text3);
-  const resolved = resolveNodeAtPosition(text3, astDocs, line, character);
-  if (!resolved?.cel) return void 0;
-  const { segment, offset } = resolved.cel;
+  const resolved2 = resolveNodeAtPosition(text3, astDocs, line, character);
+  if (!resolved2?.cel) return void 0;
+  const { segment, offset } = resolved2.cel;
   const start = bodyStart(text3, segment);
   const frame = openFrame(segment.source.slice(0, Math.max(0, offset - start)));
   if (!frame?.call) return void 0;
-  const identity = docIdentity(astDocs[resolved.docIndex]);
+  const identity = docIdentity(astDocs[resolved2.docIndex]);
   const resource = query.resourceFor(identity.kind, identity.name);
   if (!resource) return void 0;
-  const scope = query.scopeAt(resource, resolved.concretePath ?? "");
+  const scope = query.scopeAt(resource, resolved2.concretePath ?? "");
   if (!scope.moduleNames.has(frame.call.receiver)) return void 0;
   const qualified = `${frame.call.receiver}.${frame.call.name}`;
   const fn = scope.moduleFunction(qualified);
@@ -118273,23 +119298,23 @@ function buildViewModel(input) {
       userFacing: registry.userFacingKindsForRef(constraint) ?? []
     };
   }
-  const resolved = /* @__PURE__ */ new Map();
+  const resolved2 = /* @__PURE__ */ new Map();
   const spellings = new Set(Object.keys(refConstraints));
   for (const constraint of Object.values(refConstraints)) for (const s of constraint.userFacing) spellings.add(s);
   for (const m of analysis.manifests) if (typeof m.kind === "string") spellings.add(m.kind);
   for (const data of graphs) for (const node of data?.nodes ?? []) spellings.add(node.kind);
   for (const spelling of spellings) {
     const canonical = registry.resolveKind(spelling);
-    if (canonical) resolved.set(spelling, canonical);
+    if (canonical) resolved2.set(spelling, canonical);
   }
   for (const data of graphs) {
     for (const node of data?.nodes ?? []) {
-      if (resolved.has(node.kind) || node.unknownKind) continue;
-      resolved.set(node.kind, node.canonicalKind ?? node.kind);
+      if (resolved2.has(node.kind) || node.unknownKind) continue;
+      resolved2.set(node.kind, node.canonicalKind ?? node.kind);
     }
   }
   const kindSpellings = {};
-  for (const spelling of [...resolved.keys()].sort()) kindSpellings[spelling] = resolved.get(spelling);
+  for (const spelling of [...resolved2.keys()].sort()) kindSpellings[spelling] = resolved2.get(spelling);
   const contracts = {};
   for (const kind of registry.allKinds()) {
     const inputType = registry.inputTypeForKind(kind);
