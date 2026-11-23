@@ -17950,7 +17950,7 @@ function resolveAgainst(base, relative) {
 }
 
 // src/engine-version.ts
-var TELO_ENGINE_VERSION = "0.139.0+unreleased";
+var TELO_ENGINE_VERSION = "0.139.2+unreleased";
 
 // src/engine-port.ts
 var import_browser = __toESM(require_main3(), 1);
@@ -29258,7 +29258,7 @@ var Program = class {
 };
 
 // ../../cel/nodejs/src/engine-version.ts
-var ENGINE_VERSION = "0.139.0+unreleased";
+var ENGINE_VERSION = "0.139.2+unreleased";
 
 // ../../cel/nodejs/src/js-emitter.ts
 var RUNTIME_BINDINGS = [
@@ -106866,8 +106866,8 @@ function failed(direction, key3, comparator, running, source) {
 }
 
 // ../../analyzer/nodejs/src/telo-version.ts
-var TELO_SURFACE_VERSION = "0.139.0";
-var TELO_RUNNING_SURFACE = "0.139.0+unreleased";
+var TELO_SURFACE_VERSION = "0.139.2";
+var TELO_RUNNING_SURFACE = "0.139.2+unreleased";
 
 // ../../analyzer/nodejs/src/validate-requires.ts
 var SOURCE39 = "telo-analyzer";
